@@ -1,0 +1,17 @@
+.git
+.env
+.env.*
+.data
+node_modules
+artifacts
+infrastructure
+tests
+docs
+legacy/*
+!legacy/original-robotshop
+legacy/original-robotshop/*
+!legacy/original-robotshop/web
+legacy/original-robotshop/web/*
+!legacy/original-robotshop/web/static
+legacy/original-robotshop/web/static/*
+!legacy/original-robotshop/web/static/images

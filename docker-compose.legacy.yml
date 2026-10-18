@@ -1,0 +1,172 @@
+# Legacy application baseline; AI services will be added when implemented.
+services:
+  mongodb:
+    build:
+      context: ./legacy/original-robotshop/mongo
+    image: ${REPO:-robotshop}/rs-mongodb:${TAG:-2.1.0}
+    networks:
+      - robot-shop
+    logging: &logging
+      driver: "json-file"
+      options:
+        max-size: "25m"
+        max-file: "2"
+  redis:
+    image: redis:6.2-alpine
+    networks:
+      - robot-shop
+    logging:
+      <<: *logging
+  rabbitmq:
+    image: rabbitmq:3.8-management-alpine
+    networks:
+      - robot-shop
+    logging:
+      <<: *logging
+  catalogue:
+    build:
+      context: ./legacy/original-robotshop/catalogue
+    image: ${REPO:-robotshop}/rs-catalogue:${TAG:-2.1.0}
+    depends_on:
+      - mongodb
+    networks:
+      - robot-shop
+    healthcheck:
+      test: [ "CMD", "curl", "-H", "X-INSTANA-SYNTHETIC: 1", "-f", "http://localhost:8080/health" ]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    logging:
+      <<: *logging
+  user:
+    build:
+      context: ./legacy/original-robotshop/user
+    image: ${REPO:-robotshop}/rs-user:${TAG:-2.1.0}
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - robot-shop
+    healthcheck:
+      test: [ "CMD", "curl", "-H", "X-INSTANA-SYNTHETIC: 1", "-f", "http://localhost:8080/health" ]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    logging:
+      <<: *logging
+  cart:
+    build:
+      context: ./legacy/original-robotshop/cart
+    image: ${REPO:-robotshop}/rs-cart:${TAG:-2.1.0}
+    depends_on:
+      - redis
+    networks:
+      - robot-shop
+    healthcheck:
+      test: [ "CMD", "curl", "-H", "X-INSTANA-SYNTHETIC: 1", "-f", "http://localhost:8080/health" ]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    logging:
+      <<: *logging
+  mysql:
+    build:
+      context: ./legacy/original-robotshop/mysql
+    image: ${REPO:-robotshop}/rs-mysql-db:${TAG:-2.1.0}
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - robot-shop
+    logging:
+      <<: *logging
+  shipping:
+    build:
+      context: ./legacy/original-robotshop/shipping
+    image: ${REPO:-robotshop}/rs-shipping:${TAG:-2.1.0}
+    depends_on:
+      - mysql
+    networks:
+      - robot-shop
+    healthcheck:
+      test: ["CMD", "curl", "-H", "X-INSTANA-SYNTHETIC: 1", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    logging:
+      <<: *logging
+  ratings:
+    build:
+      context: ./legacy/original-robotshop/ratings
+    image: ${REPO:-robotshop}/rs-ratings:${TAG:-2.1.0}
+    environment:
+      APP_ENV: prod
+    networks:
+      - robot-shop
+    depends_on:
+      - mysql
+    healthcheck:
+      test: ["CMD", "curl", "-H", "X-INSTANA-SYNTHETIC: 1", "-f", "http://localhost/_health"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    logging:
+      <<: *logging
+  payment:
+    build:
+      context: ./legacy/original-robotshop/payment
+    image: ${REPO:-robotshop}/rs-payment:${TAG:-2.1.0}
+    depends_on:
+      - rabbitmq
+    networks:
+      - robot-shop
+    healthcheck:
+      test: ["CMD", "curl", "-H", "X-INSTANA-SYNTHETIC: 1", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    # Uncomment to change payment gateway
+    #environment:
+      #PAYMENT_GATEWAY: "https://www.worldpay.com"
+    logging:
+      <<: *logging
+  dispatch:
+    build:
+      context: ./legacy/original-robotshop/dispatch
+    image: ${REPO:-robotshop}/rs-dispatch:${TAG:-2.1.0}
+    depends_on:
+      - rabbitmq
+    networks:
+      - robot-shop
+    logging:
+      <<: *logging
+  web:
+    build:
+      context: ./legacy/original-robotshop/web
+      args:
+        # agent key to download tracing libs
+        KEY: ${INSTANA_AGENT_KEY:-}
+    image: ${REPO:-robotshop}/rs-web:${TAG:-2.1.0}
+    depends_on:
+      - catalogue
+      - user
+      - shipping
+      - payment
+    ports:
+      - "8080:8080"
+    networks:
+      - robot-shop
+    healthcheck:
+      test: [ "CMD", "curl", "-H", "X-INSTANA-SYNTHETIC: 1", "-f", "http://localhost:8080/" ]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    # Uncomment to enable Instana EUM
+    # environment:
+      # INSTANA_EUM_KEY: <your eum key>
+      # INSTANA_EUM_REPORTING_URL: <your reporting url>
+    logging:
+      <<: *logging
+
+networks:
+  robot-shop:
+

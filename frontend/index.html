@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ef4a2f">
+  <meta name="description" content="Find your next robot with RobotShop's catalogue-backed shopping assistant.">
+  <title>RobotShop — A little more extraordinary.</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" type="module"></script>
+</head>
+<body>
+  <a class="skip-link" href="#collection">Skip to collection</a>
+  <div class="announcement"><span>THE NEXT GENERATION OF GOOD COMPANY.</span><span>FICTIONAL ROBOTS. REAL POSSIBILITIES.</span></div>
+  <header class="header">
+    <a class="wordmark" href="/" aria-label="RobotShop home"><span class="brand-icon" aria-hidden="true">r.</span>robotshop<span class="brand-dot">®</span></a>
+    <nav aria-label="Main navigation"><a href="#collection">The collection</a><button class="text-button" id="ask-nav">Meet your match <span>↗</span></button><button class="text-button" id="ops-button">System status</button></nav>
+    <button class="bag-button" id="bag-button" aria-label="Open shopping bag">Bag <span id="bag-count">0</span></button>
+  </header>
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy"><p class="eyebrow"><span class="status-dot"></span> HUMAN NEEDS. ROBOT POSSIBILITIES.</p><h1 id="hero-title">A little more<br><em>extraordinary.</em></h1><p class="hero-description">Big ideas deserve a brilliant sidekick. Find the robot for your next adventure, everyday task, or out-of-this-world ambition.</p><div class="hero-actions"><a class="button primary" href="#collection">Explore the collection <span>↗</span></a><button class="button secondary" id="hero-assistant">Find my match <span>✧</span></button></div><div class="hero-note"><span class="tiny-stars">✧ ✧ ✧</span><span>Less searching. More discovering.</span></div></div>
+      <div class="hero-art"><span class="orbit orbit-one"></span><span class="orbit orbit-two"></span><span class="art-cross cross-one">+</span><span class="art-cross cross-two">+</span><span class="hero-edition">SERIES 01 / THE ORIGINALS</span><img class="hero-robot" src="/images/STAN-1.png" alt="Stan, a friendly white robot" width="360" height="400"><div class="floating-label"><span class="status-dot"></span> MEET STAN<span>Small robot. Big perspective.</span></div><div class="art-caption"><span>BUILT FOR YOUR WORLD</span><span>01 — 11</span></div></div>
+    </section>
+    <section class="benefits" aria-label="Shopping features"><p><span>✧</span> A smarter way to find your match</p><p><span>◎</span> Clear prices. Live demo availability.</p><p><span>↗</span> A new companion for every mission</p></section>
+    <section class="collection section" id="collection" aria-labelledby="collection-title">
+      <div class="section-top"><div><p class="eyebrow">GOOD COMPANY, GREAT CAPABILITIES</p><h2 id="collection-title">Find your kind of robot.</h2></div><p class="section-aside">A little practical. A little unexpected.<br>Entirely your kind of extraordinary.</p></div>
+      <div class="catalogue-tools"><div class="tabs" role="group" aria-label="Filter by category"><button class="tab selected" data-category="" aria-pressed="true">All robots <span id="product-count">—</span></button><button class="tab" data-category="Robot" aria-pressed="false">Robots</button><button class="tab" data-category="Artificial Intelligence" aria-pressed="false">Artificial intelligence</button></div><div class="search-sort"><label class="search-box"><span aria-hidden="true">⌕</span><input type="search" id="search" placeholder="Find something brilliant…" aria-label="Search products"></label><label class="sr-only" for="sort">Sort products</label><select id="sort"><option value="featured">Featured</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="name">Name</option></select></div></div>
+      <div class="results-meta"><span id="result-count" aria-live="polite">Loading the collection…</span><label><input type="checkbox" id="in-stock"> In stock only</label></div>
+      <div class="product-grid" id="products" aria-live="polite"></div><div id="catalogue-error" class="empty-state" hidden><h3>The collection is taking a moment.</h3><p>Please check the services and try again.</p><button class="button secondary" id="retry-products">Try again</button></div>
+    </section>
+    <section class="match-banner"><div><p class="eyebrow">A LITTLE HELP GOES A LONG WAY</p><h2>Not sure who’s your type?</h2><p>Tell our shopping assistant what you have in mind.<br>We’ll help you find a match from the collection.</p></div><button class="button light" id="banner-assistant">Let’s find your robot <span>↗</span></button><span class="banner-star" aria-hidden="true">✳</span></section>
+    <section class="section recommendations" aria-labelledby="picks-title"><div class="section-top"><div><p class="eyebrow">A GOOD PLACE TO START</p><h2 id="picks-title">Small prices. Big personalities.</h2></div><span class="section-aside">In-stock picks, sorted by price.</span></div><div id="recommendations" class="product-grid compact-grid"></div></section>
+  </main>
+  <footer><a class="wordmark" href="/">robotshop®</a><p>A new generation of good company.</p><span>Demo store · EUR · No real payments</span></footer>
+  <button class="assistant-launcher" id="assistant-launcher"><span>✧</span> Find my robot</button>
+  <dialog id="assistant-dialog" class="side-dialog" aria-labelledby="assistant-title"><div class="dialog-heading"><div><p class="eyebrow">YOUR PERSONAL ROBOT SCOUT</p><h2 id="assistant-title">Let’s find your match.</h2></div><button class="close-button" data-close="assistant-dialog" aria-label="Close assistant">×</button></div><p class="mode-notice" id="assistant-mode">Catalogue-backed shopping assistance</p><div class="chat-messages" id="chat-messages" role="log" aria-live="polite"><div class="chat-message assistant"><span class="message-label">ROBOTSHOP ASSISTANT</span><p>Hello, human. Tell me what you’re looking for and your budget. I’ll find in-stock matches from our catalogue.</p></div></div><div class="prompt-chips"><button data-prompt="Find a security robot under 1000 euros">Security under €1,000</button><button data-prompt="I need a robot for mining">A mining companion</button><button data-prompt="Show me observability robots">Meet an observability expert</button></div><form id="chat-form" class="chat-form"><label class="sr-only" for="message">Your message</label><textarea id="message" maxlength="1000" rows="2" placeholder="A robot for…" required></textarea><button class="button primary" id="send-message" type="submit" aria-label="Send message">↑</button></form><p class="dialog-footnote">Each question searches independently. Catalogue cards are the source of truth.</p></dialog>
+  <dialog id="cart-dialog" class="side-dialog" aria-labelledby="cart-title"><div class="dialog-heading"><div><p class="eyebrow">YOUR NEXT ADVENTURE</p><h2 id="cart-title">The good-company bag.</h2></div><button class="close-button" data-close="cart-dialog" aria-label="Close bag">×</button></div><div id="cart-items" class="cart-items"></div><div class="cart-bottom"><div class="cart-total"><span>Total</span><strong id="cart-total">€0.00</strong></div><p>This is a demo checkout. No payment details, charges, or deliveries.</p><label class="demo-confirm"><input type="checkbox" id="confirm-demo"> I understand this is a demo order.</label><button class="button primary full-width" id="checkout">Place demo order <span>↗</span></button><p id="order-result" role="status"></p></div></dialog>
+  <dialog id="product-dialog" class="product-dialog" aria-labelledby="detail-name"><button class="close-button detail-close" data-close="product-dialog" aria-label="Close product">×</button><div id="product-detail"></div></dialog>
+  <dialog id="ops-dialog" class="ops-dialog" aria-labelledby="ops-title"><div class="dialog-heading"><div><p class="eyebrow">BEHIND THE SCENES</p><h2 id="ops-title">System status</h2></div><button class="close-button" data-close="ops-dialog" aria-label="Close system status">×</button></div><p>Live health probes and read-only runbook guidance.</p><div id="ops-content" aria-live="polite"></div><button class="button secondary" id="refresh-ops">Refresh status</button></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

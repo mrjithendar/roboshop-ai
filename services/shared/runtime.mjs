@@ -1,0 +1,123 @@
+import http from 'node:http';
+import { randomBytes } from 'node:crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
+
+export const context = new AsyncLocalStorage();
+export const urls = {
+  catalogue: process.env.INGESTION_URL || 'http://127.0.0.1:4101',
+  recommendations: process.env.RECOMMENDATION_URL || 'http://127.0.0.1:4102',
+  agent: process.env.AGENT_URL || 'http://127.0.0.1:4103',
+  sre: process.env.SRE_URL || 'http://127.0.0.1:4104',
+};
+export class HttpError extends Error {
+  constructor(status, message) { super(message); this.status = status; }
+}
+export function json(res, value, status = 200) {
+  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+  res.end(JSON.stringify(value));
+}
+export async function body(req) {
+  if (!req.headers['content-type']?.startsWith('application/json')) throw new HttpError(415, 'Use application/json.');
+  let raw = '';
+  for await (const chunk of req) {
+    raw += chunk;
+    if (Buffer.byteLength(raw) > 16384) throw new HttpError(413, 'Request is too large.');
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error();
+    return parsed;
+  } catch { throw new HttpError(400, 'Expected a JSON object.'); }
+}
+export function text(value, name, max = 1000) {
+  if (typeof value !== 'string' || !value.trim() || value.length > max) throw new HttpError(400, `${name} must contain 1–${max} characters.`);
+  return value.trim();
+}
+export async function request(url, options = {}) {
+  const ctx = context.getStore();
+  const headers = { 'content-type': 'application/json', ...options.headers };
+  if (ctx) headers.traceparent = `00-${ctx.traceId}-${ctx.spanId}-01`;
+  try {
+    const response = await fetch(url, { ...options, headers, signal: options.signal || AbortSignal.timeout(12000) });
+    if (!response.ok) throw new HttpError(502, 'A dependent service is unavailable.');
+    return await response.json();
+  } catch (e) {
+    if (e instanceof HttpError) throw e;
+    throw new HttpError(503, 'A dependent service is unavailable. Please try again.');
+  }
+}
+let pendingExports = 0;
+export function exportSpan(service, ctx, start, name, status, attributes = {}) {
+  const endpoint = process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
+  const lf = process.env.LANGFUSE_BASE_URL;
+  const targets = [];
+  if (endpoint) targets.push([endpoint, {}]);
+  if (service === 'shopping-agent' && lf && process.env.LANGFUSE_PUBLIC_KEY && process.env.LANGFUSE_SECRET_KEY) {
+    targets.push([`${lf.replace(/\/$/, '')}/api/public/otel/v1/traces`, {
+      Authorization: `Basic ${Buffer.from(`${process.env.LANGFUSE_PUBLIC_KEY}:${process.env.LANGFUSE_SECRET_KEY}`).toString('base64')}`,
+      'x-langfuse-ingestion-version': '4',
+    }]);
+  }
+  if (!targets.length || pendingExports >= 32) return;
+  const payload = { resourceSpans: [{ resource: { attributes: [{ key: 'service.name', value: { stringValue: service } }] }, scopeSpans: [{ scope: { name: 'robotshop.manual', version: '0.1.0' }, spans: [{
+    traceId: ctx.traceId, spanId: ctx.spanId, ...(ctx.parentSpanId ? { parentSpanId: ctx.parentSpanId } : {}), name, kind: 2,
+    startTimeUnixNano: String(BigInt(start) * 1000000n), endTimeUnixNano: String(BigInt(Date.now()) * 1000000n),
+    status: { code: status >= 500 ? 2 : 1 },
+    attributes: Object.entries({ 'http.response.status_code': status, ...attributes }).map(([key, value]) => ({ key, value: typeof value === 'number' ? { intValue: String(value) } : { stringValue: String(value) } })),
+  }] }] }] };
+  for (const [url, headers] of targets) {
+    pendingExports++;
+    fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(payload), signal: AbortSignal.timeout(2000) })
+      .then(r => { if (!r.ok) console.error(JSON.stringify({ service, event: 'telemetry_export_failed', status: r.status })); })
+      .catch(() => console.error(JSON.stringify({ service, event: 'telemetry_export_failed' })))
+      .finally(() => pendingExports--);
+  }
+}
+export function serve(service, port, handler) {
+  const counts = new Map();
+  let duration = 0, requests = 0;
+  const server = http.createServer(async (req, res) => {
+    const start = Date.now();
+    const incoming = /^00-([a-f0-9]{32})-([a-f0-9]{16})-0[01]$/.exec(req.headers.traceparent || '');
+    const ctx = { traceId: incoming?.[1] || randomBytes(16).toString('hex'), spanId: randomBytes(8).toString('hex'), parentSpanId: incoming?.[2], attributes: {} };
+    res.setHeader('x-request-id', ctx.traceId);
+    res.setHeader('x-content-type-options', 'nosniff');
+    res.setHeader('referrer-policy', 'same-origin');
+    res.setHeader('content-security-policy', "default-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+    await context.run(ctx, async () => {
+      let route = 'unknown';
+      try {
+        const url = new URL(req.url, 'http://localhost');
+        route = url.pathname.startsWith('/api/') ? url.pathname.split('/').slice(0, 3).join('/') : ['/health', '/metrics'].includes(url.pathname) ? url.pathname : 'static';
+        if (url.pathname === '/health' && req.method === 'GET') return json(res, { status: 'ok', service });
+        if (url.pathname === '/metrics' && req.method === 'GET') {
+          const rows = ['# TYPE robotshop_http_requests_total counter'];
+          for (const [labels, count] of counts) rows.push(`robotshop_http_requests_total{service="${service}",${labels}} ${count}`);
+          rows.push('# TYPE robotshop_http_duration_seconds summary', `robotshop_http_duration_seconds_sum{service="${service}"} ${duration}`, `robotshop_http_duration_seconds_count{service="${service}"} ${requests}`, '');
+          res.writeHead(200, { 'content-type': 'text/plain; version=0.0.4' });
+          return res.end(rows.join('\n'));
+        }
+        await handler(req, res, url);
+        if (!res.writableEnded) json(res, { error: 'Not found.' }, 404);
+      } catch (e) {
+        if (!res.headersSent) json(res, { error: e.status ? e.message : 'Internal service error.', requestId: ctx.traceId }, e.status || 500);
+        else res.end();
+      } finally {
+        if (!['/health', '/metrics'].includes(route)) {
+          // Route labels deliberately omit query strings, SKUs, cookies and prompts.
+          const safeRoute = ['/api/products', '/api/recommendations', '/api/chat', '/api/cart', '/api/orders', '/api/ops', '/api/status', '/api/ready'].includes(route) ? route : 'other';
+          const key = `route="${safeRoute}",status="${res.statusCode}"`;
+          counts.set(key, (counts.get(key) || 0) + 1);
+          requests++; duration += (Date.now() - start) / 1000;
+          console.log(JSON.stringify({ service, route: safeRoute, status: res.statusCode, durationMs: Date.now() - start, traceId: ctx.traceId }));
+          exportSpan(service, ctx, start, `${req.method} ${safeRoute}`, res.statusCode, ctx.attributes);
+        }
+      }
+    });
+  });
+  server.requestTimeout = 30000;
+  server.headersTimeout = 10000;
+  server.listen(Number(process.env.PORT || port), process.env.HOST || '127.0.0.1', () => console.log(JSON.stringify({ service, event: 'listening', port: Number(process.env.PORT || port) })));
+  for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => server.close(() => process.exit(0)));
+  return server;
+}

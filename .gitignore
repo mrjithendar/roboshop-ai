@@ -13,3 +13,7 @@ coverage/
 *.tfstate.*
 *.tfplan
 crash.log
+
+.data/
+artifacts/
+*.log

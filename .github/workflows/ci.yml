@@ -1,0 +1,20 @@
+name: RobotShop checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      # The active platform uses Node built-ins and has no npm dependencies.
+      - run: npm test
+      - run: npm run evaluate
+      - run: docker compose config --quiet
+      - run: docker build --tag robotshop-ai:ci .
