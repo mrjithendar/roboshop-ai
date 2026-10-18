@@ -7,18 +7,19 @@ is unchanged.
 
 ## Start locally
 
-Requires Node.js 24 or newer. No npm dependencies or installation step is required.
+Requires Node.js 24 or newer and PostgreSQL 17. Configure database connection URLs in `.env` as described in [shipping setup](services/shipping-service/README.md).
 
 ```sh
+npm ci
+npm run shipping:migrate
 npm run dev
 ```
 
-Open **http://localhost:3000**. The launcher starts six services and Ctrl+C stops
+Open **http://localhost:3000**. The launcher starts seven services and Ctrl+C stops
 all of them. Data is stored in `.data/store.json`, which is excluded from Git.
 The catalogue still contains fictional robots. The old demo-order endpoint is disabled.
 Checkout now uses Razorpay and can collect real money once configured with live merchant
-credentials. Payment controls remain disabled until configuration is complete. No delivery
-or fulfilment integration is included. See [payment setup](services/payment-service/README.md).
+credentials. Payment controls remain disabled until configuration is complete. Shipping includes destination selection and distance pricing; carrier fulfilment is not integrated. See [payment setup](services/payment-service/README.md).
 
 ## Optional AI
 
@@ -38,6 +39,8 @@ reports the configured mode. The agent still checks its actual credentials.
 
 ## Containers and observability
 
+Set `SHIPPING_DB_PASSWORD` and `SHIPPING_APP_PASSWORD` in `.env` first.
+
 ```sh
 docker compose config --quiet
 docker compose up --build -d
@@ -51,12 +54,12 @@ docker compose up --build -d
 | http://localhost:16686 | Jaeger distributed traces |
 | http://localhost:3000/api/ready | Dependency readiness |
 
-Compose runs the six application services, an OpenTelemetry collector, Jaeger,
+Compose runs seven application services, PostgreSQL and a migration job, an OpenTelemetry collector, Jaeger,
 and Prometheus. Published ports bind to loopback. The app image runs as a non-root
 user with a read-only root filesystem; only the gateway's data volume is writable.
 Stop with `docker compose down`. Do not add `--volumes` unless you intend to delete
-saved demo data. Jaeger uses ephemeral in-memory trace storage; Prometheus and shop
-data use named volumes.
+saved application and database data. Jaeger uses ephemeral in-memory trace storage; Prometheus and shop
+data and PostgreSQL use named volumes.
 
 For local Node services to export to the Compose collector, set
 `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces` in `.env`.
@@ -111,7 +114,7 @@ GitHub Actions runs tests, evaluations, Compose validation, and an image build.
 GitHub Actions and `/vpc` Terraform paths every Monday at 09:00 Asia/Kolkata. Minor
 and patch changes are grouped per ecosystem; major changes remain separate. The
 legacy snapshot and its launch file are excluded. The active npm package currently
-has no third-party dependencies. Existing Terraform providers have no explicit
+uses the `pg` PostgreSQL driver. Existing Terraform providers have no explicit
 version constraints, limiting useful provider-update PRs until constraints/lockfiles
 are added as a separate infrastructure change.
 
@@ -173,3 +176,7 @@ marked paid only after the provider reports a matching captured, unrefunded paym
 Reservations are not automatically released because a provider checkout might still be
 payable. Abandoned or ambiguous creation attempts require merchant reconciliation;
 automated cancellation, refunds, disputes, and fulfilment are not implemented.
+
+## PostgreSQL shipping
+
+Shipping now requires a dedicated PostgreSQL server. Run `npm ci` and configure database credentials before `npm run shipping:migrate` and `npm run dev`. Compose includes PostgreSQL, a migration job and persistent storage; Helm uses an external TLS-enabled database. See [shipping setup and data coverage](services/shipping-service/README.md). Checkout now requires a delivery address and shipping quote, and payment totals include shipping.

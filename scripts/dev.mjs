@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const names = ['product-ingestion', 'recommendation-service', 'shopping-agent', 'payment-service', 'sre-copilot', 'ai-gateway'];
+const names = ['product-ingestion', 'recommendation-service', 'shopping-agent', 'payment-service', 'shipping-service', 'sre-copilot', 'ai-gateway'];
 const paymentToken = process.env.PAYMENT_SERVICE_TOKEN || randomBytes(32).toString('hex');
 const children = [];
 let stopping = false;
@@ -21,6 +21,8 @@ for (const name of names) {
   else delete env.PAYMENT_SERVICE_TOKEN;
   if (name !== 'payment-service') for (const key of ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'RAZORPAY_WEBHOOK_SECRET']) delete env[key];
   if (name === 'ai-gateway') env.ASSISTANT_AI_ENABLED = String(Boolean(env.OPENAI_API_KEY && env.OPENAI_MODEL));
+  if (name !== 'shipping-service') { delete env.SHIPPING_DATABASE_URL; delete env.SHIPPING_DB_CA_FILE; }
+  delete env.SHIPPING_MIGRATION_DATABASE_URL;
   if (name !== 'shopping-agent') for (const key of ['OPENAI_API_KEY', 'OPENAI_MODEL', 'LANGFUSE_PUBLIC_KEY', 'LANGFUSE_SECRET_KEY']) delete env[key];
   // PORT applies only to the public gateway; internal services use their defaults.
   if (name !== 'ai-gateway') delete env.PORT;

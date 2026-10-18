@@ -1,5 +1,5 @@
 {{- $root := . -}}
-{{- $services := dict "ai-gateway" 3000 "product-ingestion" 4101 "recommendation-service" 4102 "shopping-agent" 4103 "sre-copilot" 4104 "payment-service" 4105 -}}
+{{- $services := dict "ai-gateway" 3000 "product-ingestion" 4101 "recommendation-service" 4102 "shopping-agent" 4103 "sre-copilot" 4104 "payment-service" 4105 "shipping-service" 4106 -}}
 {{- range $name, $port := $services }}
 ---
 apiVersion: apps/v1
@@ -36,6 +36,15 @@ spec:
             - name: http
               containerPort: {{ $port }}
           env:
+            {{- if eq $name "shipping-service" }}
+            - name: SHIPPING_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "Set shipping.databaseSecretName to an existing PostgreSQL credentials Secret" $root.Values.shipping.databaseSecretName }}
+                  key: SHIPPING_DATABASE_URL
+            - name: SHIPPING_DB_TLS
+              value: "true"
+            {{- end }}
             - name: HOST
               value: "0.0.0.0"
             - name: PORT
@@ -46,6 +55,8 @@ spec:
               value: "http://{{ $root.Release.Name }}-recommendation-service:4102"
             - name: AGENT_URL
               value: "http://{{ $root.Release.Name }}-shopping-agent:4103"
+            - name: SHIPPING_URL
+              value: "http://{{ $root.Release.Name }}-shipping-service:4106"
             - name: PAYMENT_URL
               value: "http://{{ $root.Release.Name }}-payment-service:4105"
             - name: SRE_URL
@@ -88,13 +99,19 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: [ALL]
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 30
+            periodSeconds: 2
           livenessProbe:
             httpGet:
               path: /health
               port: http
           readinessProbe:
             httpGet:
-              path: {{ if eq $name "ai-gateway" }}/api/ready{{ else }}/health{{ end }}
+              path: {{ if eq $name "ai-gateway" }}/api/ready{{ else if eq $name "shipping-service" }}/api/shipping/ready{{ else }}/health{{ end }}
               port: http
             timeoutSeconds: 5
           resources:

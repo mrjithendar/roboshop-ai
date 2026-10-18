@@ -8,6 +8,7 @@ export const urls = {
   recommendations: process.env.RECOMMENDATION_URL || 'http://127.0.0.1:4102',
   agent: process.env.AGENT_URL || 'http://127.0.0.1:4103',
   sre: process.env.SRE_URL || 'http://127.0.0.1:4104',
+  shipping: process.env.SHIPPING_URL || 'http://127.0.0.1:4106',
   payment: process.env.PAYMENT_URL || 'http://127.0.0.1:4105',
 };
 export class HttpError extends Error {
@@ -106,7 +107,7 @@ export function serve(service, port, handler) {
       } finally {
         if (!['/health', '/metrics'].includes(route)) {
           // Route labels deliberately omit query strings, SKUs, cookies and prompts.
-          const safeRoute = ['/api/products', '/api/recommendations', '/api/chat', '/api/cart', '/api/orders', '/api/payment', '/api/payments', '/api/ops', '/api/status', '/api/ready'].includes(route) ? route : 'other';
+          const safeRoute = ['/api/products', '/api/recommendations', '/api/chat', '/api/cart', '/api/orders', '/api/payment', '/api/payments', '/api/shipping', '/api/ops', '/api/status', '/api/ready'].includes(route) ? route : 'other';
           const key = `route="${safeRoute}",status="${res.statusCode}"`;
           counts.set(key, (counts.get(key) || 0) + 1);
           requests++; duration += (Date.now() - start) / 1000;

@@ -8,12 +8,29 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: shipping_test
+          POSTGRES_USER: shipping
+          POSTGRES_PASSWORD: ci-local-only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U shipping -d shipping_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      SHIPPING_DATABASE_URL: postgresql://shipping:ci-local-only@127.0.0.1:5432/shipping_test
+      SHIPPING_DB_TLS: "false"
+      SHIPPING_DB_PASSWORD: ci-local-only
+      SHIPPING_APP_PASSWORD: ci-runtime-only
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      # The active platform uses Node built-ins and has no npm dependencies.
+      - run: npm ci
+      - run: npm run shipping:migrate
       - run: npm test
       - run: npm run evaluate
       - run: docker compose config --quiet

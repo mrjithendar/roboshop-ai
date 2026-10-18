@@ -21,3 +21,8 @@ resources:
 # Secret holds PAYMENT_SERVICE_TOKEN and the three RAZORPAY_* settings.
 paymentSecretName: ""
 paymentMode: live
+
+# External managed PostgreSQL; runtime role should have SELECT only on shipping tables.
+shipping:
+  databaseSecretName: ""
+  migrationSecretName: ""

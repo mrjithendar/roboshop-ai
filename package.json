@@ -3,13 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "node --env-file-if-exists=.env scripts/dev.mjs",
     "start": "node --env-file-if-exists=.env scripts/dev.mjs",
     "test": "node --test tests/*.test.mjs",
     "evaluate": "node scripts/evaluate.mjs",
     "ingest": "node services/product-ingestion/import.mjs",
-    "mcp": "node --env-file-if-exists=.env services/mcp-server/server.mjs"
+    "mcp": "node --env-file-if-exists=.env services/mcp-server/server.mjs",
+    "shipping:migrate": "node --env-file-if-exists=.env services/shipping-service/migrate.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
   }
 }

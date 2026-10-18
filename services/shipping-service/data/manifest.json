@@ -1,0 +1,12 @@
+{
+  "source": "GeoNames",
+  "license": "CC BY 4.0",
+  "countries": 252,
+  "cities": 34167,
+  "countriesWithCities": 244,
+  "sha256": "940c5126a17b54bad0b133ca131c528ee3b583a0ce7ce0476942e9c991aae127",
+  "inputs": {
+    "robotshop-cities15000.zip": "7d1c80d5be04850227384c1f6f9163b56401dc46270be1012e1a2de0a5bf4a70",
+    "robotshop-countryInfo.txt": "c55f638cfaafb4fe45a9aa15120a0f1f78e8a34a8e1847d7b9320cf740fbc9ab"
+  }
+}

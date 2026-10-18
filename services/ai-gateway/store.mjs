@@ -37,7 +37,9 @@ export class Store {
       if (!p) throw new HttpError(409, 'A cart product is no longer available.');
       return { ...p, instock: this.available(p), quantity, lineTotal: Math.round(p.price * 100) * quantity / 100 };
     });
-    return { items, total: items.reduce((total, item) => total + Math.round(item.lineTotal * 100), 0) / 100, currency: 'EUR' };
+    const subtotal = items.reduce((total, item) => total + Math.round(item.lineTotal * 100), 0) / 100;
+    const shipping = items.length ? this.state.sessions[id].shipping || null : null;
+    return { items, subtotal, shipping, total: (Math.round(subtotal * 100) + Math.round((shipping?.cost || 0) * 100)) / 100, currency: 'EUR' };
   }
   update(id, sku, quantity, products) {
     if (this.pending(id)) throw new HttpError(409, 'A payment is pending. Complete or reconcile it before changing your bag.');
@@ -50,6 +52,13 @@ export class Store {
     this.save(next);
     return this.cart(id, products);
   }
+  setShipping(id, shipping, products) {
+    if (this.pending(id)) throw new HttpError(409, 'A payment is pending. Shipping cannot be changed.');
+    const next = structuredClone(this.state);
+    next.sessions[id].shipping = shipping;
+    this.save(next);
+    return this.cart(id, products);
+  }
   beginPayment(id, key, products) {
     if (typeof key !== 'string' || !/^[a-zA-Z0-9-]{16,80}$/.test(key)) throw new HttpError(400, 'A valid idempotency key is required.');
     const previous = this.state.orders.find(o => o.session === id && o.key === key);
@@ -58,6 +67,8 @@ export class Store {
     const cart = this.cart(id, products);
     if (!cart.items.length) throw new HttpError(400, 'Your cart is empty.');
     if (cart.items.some(p => p.quantity > p.instock)) throw new HttpError(409, 'Stock changed. Update your cart before checking out.');
+    if (!cart.shipping) throw new HttpError(400, 'Add a delivery address and calculate shipping before payment.');
+    if (Date.now() - Date.parse(cart.shipping.quotedAt) > 86400000) throw new HttpError(409, 'Your shipping quote expired. Calculate shipping again.');
     if (this.state.orders.length >= 10000) throw new HttpError(503, 'Order capacity reached.');
     const order = { id: randomUUID(), session: id, key, ...cart, createdAt: new Date().toISOString(), status: 'creating', paymentCaptured: false };
     const next = structuredClone(this.state);

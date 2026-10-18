@@ -1,4 +1,3 @@
-# Application stack with Razorpay payment service.
 name: robotshop-ai
 services:
   product-ingestion:
@@ -127,6 +126,7 @@ services:
       SRE_URL: http://sre-copilot:4104
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
       PAYMENT_URL: http://payment-service:4105
+      SHIPPING_URL: http://shipping-service:4106
     init: true
     restart: unless-stopped
     read_only: true
@@ -164,6 +164,7 @@ services:
       ASSISTANT_AI_ENABLED: ${ASSISTANT_AI_ENABLED:-false}
       PAYMENT_URL: http://payment-service:4105
       PAYMENT_SERVICE_TOKEN: ${PAYMENT_SERVICE_TOKEN:-}
+      SHIPPING_URL: http://shipping-service:4106
     init: true
     restart: unless-stopped
     read_only: true
@@ -199,6 +200,8 @@ services:
       sre-copilot:
         condition: service_healthy
       payment-service:
+        condition: service_healthy
+      shipping-service:
         condition: service_healthy
   otel-collector:
     image: otel/opentelemetry-collector:0.162.0-386
@@ -262,6 +265,75 @@ services:
       options:
         max-size: 10m
         max-file: '3'
+  shipping-service:
+    build: .
+    image: robotshop-ai:local
+    command:
+    - node
+    - services/shipping-service/server.mjs
+    environment:
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      SHIPPING_DATABASE_URL: postgresql://shipping_app:${SHIPPING_APP_PASSWORD:?Set
+        SHIPPING_APP_PASSWORD}@shipping-db:5432/shipping
+      SHIPPING_DB_TLS: 'false'
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+    - ALL
+    security_opt:
+    - no-new-privileges:true
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:4106/api/shipping/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    depends_on:
+      shipping-migrate:
+        condition: service_completed_successfully
+  shipping-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: shipping
+      POSTGRES_USER: shipping
+      POSTGRES_PASSWORD: ${SHIPPING_DB_PASSWORD:?Set SHIPPING_DB_PASSWORD}
+      SHIPPING_APP_PASSWORD: ${SHIPPING_APP_PASSWORD:?Set SHIPPING_APP_PASSWORD}
+    volumes:
+    - shipping-postgres:/var/lib/postgresql/data
+    - ./infrastructure/postgres/10-shipping-role.sh:/docker-entrypoint-initdb.d/10-shipping-role.sh:ro
+    ports:
+    - 127.0.0.1:5432:5432
+    restart: unless-stopped
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U shipping -d shipping
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  shipping-migrate:
+    build: .
+    image: robotshop-ai:local
+    command:
+    - node
+    - services/shipping-service/migrate.mjs
+    environment:
+      SHIPPING_DATABASE_URL: postgresql://shipping:${SHIPPING_DB_PASSWORD:?Set SHIPPING_DB_PASSWORD}@shipping-db:5432/shipping
+      SHIPPING_DB_TLS: 'false'
+    depends_on:
+      shipping-db:
+        condition: service_healthy
+    restart: 'no'
 volumes:
   shop-data: {}
   prometheus-data: {}
+  shipping-postgres: {}

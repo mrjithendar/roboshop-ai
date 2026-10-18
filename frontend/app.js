@@ -1,7 +1,7 @@
 const $ = selector => document.querySelector(selector);
 const money = value => new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(value);
 let products = [], cart = { items: [], total: 0 }, category = '', chatBusy = false, cartBusy = false, checkoutKey = null;
-let toastTimer;
+let toastTimer, shippingDirty = false, citySearchVersion = 0, citySearchTimer;
 let paymentConfig = { enabled: false }, pendingOrder = null, checkoutScript;
 function paymentReference(value) { try { if (value === undefined) return localStorage.getItem('robotshop-payment-order'); if (value) localStorage.setItem('robotshop-payment-order', value); else localStorage.removeItem('robotshop-payment-order'); } catch {} }
 const el = (tag, className, content) => { const node = document.createElement(tag); if (className) node.className = className; if (content !== undefined) node.textContent = content; return node; };
@@ -65,11 +65,15 @@ async function updateCart(sku, quantity) {
   cartBusy = true;
   try { cart = await api('/api/cart', { method: 'POST', body: JSON.stringify({ sku, quantity }) }); checkoutKey = null; $('#order-result').textContent = ''; renderCart(); return true; }
   catch (error) { toast(error.message); return false; }
-  finally { cartBusy = false; }
+  finally { cartBusy = false; renderCart(); }
 }
 function renderCart() {
   $('#bag-count').textContent = cart.items.reduce((n, item) => n + item.quantity, 0);
-  $('#cart-total').textContent = money(cart.total); $('#checkout').disabled = cartBusy || !paymentConfig.enabled || !cart.items.length || ['creating', 'payment_review'].includes(pendingOrder?.status);
+  if (cart.shipping && !shippingDirty) $('#shipping-status').textContent = `${cart.shipping.address.recipient} · ${cart.shipping.address.line1} · ${cart.shipping.city.name}, ${cart.shipping.city.country} · ${money(cart.shipping.cost)} shipping. Edit below to change your destination.`;
+  $('#cart-subtotal').textContent = money(cart.subtotal || 0);
+  $('#cart-shipping').textContent = cart.shipping ? money(cart.shipping.cost) : 'Not calculated';
+  $('#shipping-fields').disabled = Boolean(pendingOrder) || cartBusy;
+  $('#cart-total').textContent = money(cart.total); $('#checkout').disabled = cartBusy || !paymentConfig.enabled || !cart.items.length || (!pendingOrder && (!cart.shipping || shippingDirty)) || ['creating', 'payment_review'].includes(pendingOrder?.status);
   $('#checkout').textContent = pendingOrder?.status === 'payment_pending' ? 'Resume secure payment ↗' : 'Pay securely ↗';
   $('#check-payment').hidden = !pendingOrder;
   const rows = cart.items.map(p => {
@@ -119,6 +123,7 @@ function loadCheckout() {
 }
 $('#bag-button').addEventListener('click', async () => {
   show('cart-dialog');
+  loadShipping().catch(error => $('#shipping-status').textContent = error.message);
   try { await loadPaymentConfig(); await checkPayment(); cart = await api('/api/cart'); renderCart(); }
   catch (error) { $('#order-result').textContent = error.message; }
 });
@@ -175,3 +180,41 @@ async function loadOps() {
 }
 $('#ops-button').addEventListener('click', () => { show('ops-dialog'); loadOps(); }); $('#refresh-ops').addEventListener('click', loadOps);
 await Promise.all([loadPaymentConfig(), loadProducts(), loadRecommendations(), api('/api/cart').then(result => { cart = result; renderCart(); }).catch(() => toast('Your bag could not be loaded. Please try again.')), api('/api/status').then(result => { $('#assistant-mode').textContent = result.assistantMode === 'ai' ? 'AI assistant connected · grounded in the catalogue' : 'Catalogue search mode · no language model connected'; }).catch(() => {})]);
+
+async function loadShipping() {
+  if ($('#shipping-country').options.length > 1) return;
+  const result = await api('/api/shipping/countries');
+  for (const country of result.countries) {
+    const option = el('option', '', country.name + (country.cityCount ? '' : ' (no cities in dataset)'));
+    option.value = country.code; option.disabled = !country.cityCount; $('#shipping-country').append(option);
+  }
+}
+$('#shipping-form').addEventListener('input', () => { shippingDirty = true; renderCart(); });
+$('#shipping-country').addEventListener('change', () => {
+  citySearchVersion++; clearTimeout(citySearchTimer); $('#shipping-search').value = '';
+  $('#shipping-city').replaceChildren(new Option('Select a search result', ''));
+});
+$('#shipping-search').addEventListener('input', () => {
+  const version = ++citySearchVersion; clearTimeout(citySearchTimer);
+  $('#shipping-city').replaceChildren(new Option('Select a search result', ''));
+  const query = $('#shipping-search').value.trim(), country = $('#shipping-country').value;
+  if (query.length < 2 || !country) return;
+  citySearchTimer = setTimeout(async () => {
+    try {
+      const result = await api('/api/shipping/cities?' + new URLSearchParams({ country, q: query }));
+      if (version !== citySearchVersion) return;
+      for (const city of result.cities) $('#shipping-city').append(new Option(`${city.name} · ${city.region || country}`, city.id));
+      $('#shipping-status').textContent = result.cities.length ? 'Select your city and enter your delivery address.' : 'No matching cities. Try another spelling. Only destinations listed in the dataset are supported.';
+    } catch (error) { if (version === citySearchVersion) $('#shipping-status').textContent = error.message; }
+  }, 300);
+});
+$('#shipping-form').addEventListener('submit', async event => {
+  event.preventDefault(); if (cartBusy || pendingOrder) return;
+  cartBusy = true; renderCart();
+  try {
+    cart = await api('/api/shipping/quote', { method: 'POST', body: JSON.stringify({ cityId: Number($('#shipping-city').value), recipient: $('#shipping-recipient').value, line1: $('#shipping-address').value, postalCode: $('#shipping-postcode').value }) });
+    shippingDirty = false; checkoutKey = null;
+    $('#shipping-status').textContent = cart.shipping ? `${cart.shipping.city.name}, ${cart.shipping.city.country} · ${cart.shipping.distanceKm.toLocaleString()} km · ${money(cart.shipping.cost)} shipping. Quote valid for 24 hours.` : 'Add an item to your bag to see your shipping total.';
+  } catch (error) { $('#shipping-status').textContent = error.message; }
+  finally { cartBusy = false; renderCart(); }
+});

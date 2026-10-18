@@ -62,6 +62,21 @@ serve('ai-gateway', 3000, async (req, res, url) => {
       if (req.headers.origin && req.headers.origin !== publicOrigin) throw new HttpError(403, 'Origin not allowed.');
       if (req.headers['sec-fetch-site'] === 'cross-site') throw new HttpError(403, 'Cross-site requests are not allowed.');
     }
+    if (url.pathname.startsWith('/api/shipping/')) {
+      const allowed = req.method === 'GET' && ['/api/shipping/countries', '/api/shipping/cities'].includes(url.pathname);
+      const quoting = req.method === 'POST' && url.pathname === '/api/shipping/quote';
+      if (!allowed && !quoting) return;
+      const id = quoting ? session(req, res) : null;
+      const data = quoting ? await body(req) : null;
+      if (quoting && store.pending(id)) throw new HttpError(409, 'A payment is pending. Shipping cannot be changed.');
+      let response;
+      const ctx = context.getStore();
+      try { response = await fetch(`${urls.shipping}${url.pathname}${url.search}`, { method: req.method, headers: { 'content-type': 'application/json', traceparent: `00-${ctx.traceId}-${ctx.spanId}-01` }, ...(quoting ? { body: JSON.stringify(data) } : {}), signal: AbortSignal.timeout(5000) }); }
+      catch { throw new HttpError(503, 'Shipping service unavailable. Please try again.'); }
+      const result = await response.json();
+      if (!response.ok) throw new HttpError(response.status, result.error || 'Shipping could not be calculated.');
+      return json(res, quoting ? store.setShipping(id, result, await catalogue()) : result);
+    }
     if (req.method === 'GET' && url.pathname === '/api/status') return json(res, { assistantMode: process.env.ASSISTANT_AI_ENABLED === 'true' ? 'ai' : 'catalogue-search', checkoutMode: 'razorpay' });
     if (req.method === 'GET' && url.pathname === '/api/payments/config') return json(res, await paymentCall('config'));
     if (req.method === 'GET' && url.pathname === '/api/payments/current') {

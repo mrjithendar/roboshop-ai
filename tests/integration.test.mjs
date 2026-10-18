@@ -10,14 +10,14 @@ import { createHmac } from 'node:crypto';
 
 async function freePort() { const server = createServer(); server.listen(0, '127.0.0.1'); await once(server, 'listening'); const port = server.address().port; await new Promise(resolve => server.close(resolve)); return port; }
 test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency failure', { timeout: 30000 }, async () => {
-  const names = ['product-ingestion', 'recommendation-service', 'shopping-agent', 'sre-copilot', 'ai-gateway', 'payment-service'];
+  const names = ['product-ingestion', 'recommendation-service', 'shopping-agent', 'sre-copilot', 'ai-gateway', 'payment-service', 'shipping-service'];
   const ports = await Promise.all(names.map(freePort));
   const base = `http://127.0.0.1:${ports[4]}`;
   const dir = mkdtempSync(join(tmpdir(), 'robotshop-integration-'));
   const children = [], traces = []; let logs = '';
   const receiver = createServer(async (req, res) => { let data = ''; for await (const part of req) data += part; traces.push(JSON.parse(data)); res.writeHead(200, { 'content-type': 'application/json' }); res.end('{}'); });
   receiver.listen(0, '127.0.0.1'); await once(receiver, 'listening');
-  const env = { ...process.env, HOST: '127.0.0.1', INGESTION_URL: `http://127.0.0.1:${ports[0]}`, RECOMMENDATION_URL: `http://127.0.0.1:${ports[1]}`, AGENT_URL: `http://127.0.0.1:${ports[2]}`, SRE_URL: `http://127.0.0.1:${ports[3]}`, DATA_DIR: dir, PUBLIC_ORIGIN: base, PAYMENT_URL: `http://127.0.0.1:${ports[5]}`, PAYMENT_SERVICE_TOKEN: 'integration-internal-token', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', RAZORPAY_WEBHOOK_SECRET: '', OPENAI_API_KEY: '', OPENAI_MODEL: '', LANGFUSE_BASE_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `http://127.0.0.1:${receiver.address().port}/v1/traces` };
+  const env = { ...process.env, HOST: '127.0.0.1', INGESTION_URL: `http://127.0.0.1:${ports[0]}`, RECOMMENDATION_URL: `http://127.0.0.1:${ports[1]}`, AGENT_URL: `http://127.0.0.1:${ports[2]}`, SRE_URL: `http://127.0.0.1:${ports[3]}`, DATA_DIR: dir, PUBLIC_ORIGIN: base, PAYMENT_URL: `http://127.0.0.1:${ports[5]}`, SHIPPING_URL: `http://127.0.0.1:${ports[6]}`, PAYMENT_SERVICE_TOKEN: 'integration-internal-token', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', RAZORPAY_WEBHOOK_SECRET: '', OPENAI_API_KEY: '', OPENAI_MODEL: '', LANGFUSE_BASE_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `http://127.0.0.1:${receiver.address().port}/v1/traces` };
   let cookie;
   async function call(path, options = {}, useCookie = true) {
     const response = await fetch(`${base}${path}`, { ...options, headers: { 'content-type': 'application/json', ...(useCookie && cookie ? { cookie } : {}), ...options.headers } });
@@ -54,9 +54,19 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     assert.equal((await call('/api/orders', { method: 'POST', body: '{}' })).response.status, 410);
     assert.equal((await call('/api/payments/config')).data.enabled, true);
     const orderOptions = { method: 'POST', headers: { 'idempotency-key': 'test-order-00000001' }, body: '{}' };
+    assert.equal((await call('/api/payments/orders', orderOptions)).response.status, 400);
+    assert.equal((await call('/api/shipping/countries')).data.countries.length, 252);
+    const cities = (await call('/api/shipping/cities?country=IN&q=Hyderabad')).data.cities;
+    assert.ok(cities.length);
+    const destination = { cityId: cities[0].id, recipient: 'Integration Customer', line1: '123 Test Street', postalCode: '500001', cost: 0 };
+    assert.equal((await call('/api/shipping/quote', { method: 'POST', body: JSON.stringify({ ...destination, cityId: -1 }) })).response.status, 400);
+    const quote = await call('/api/shipping/quote', { method: 'POST', body: JSON.stringify(destination) });
+    assert.equal(quote.response.status, 200); assert.ok(quote.data.shipping.cost > 0);
+    assert.equal(quote.data.total, (8400 + Math.round(quote.data.shipping.cost * 100)) / 100);
     const order = await call('/api/payments/orders', orderOptions), retry = await call('/api/payments/orders', orderOptions);
     assert.equal(order.response.status, 201); assert.equal(order.data.order.id, retry.data.order.id); assert.equal(order.data.order.paymentCaptured, false);
-    assert.equal(order.data.checkout.amount, 8400);
+    assert.equal(order.data.checkout.amount, Math.round(quote.data.total * 100));
+    assert.equal((await call('/api/shipping/quote', { method: 'POST', body: JSON.stringify(destination) })).response.status, 409);
     assert.equal((await call('/api/payments/status?orderId=' + order.data.order.id, {}, false)).response.status, 404);
     const verification = { orderId: order.data.order.id, razorpay_order_id: 'order_INTEGRATION', razorpay_payment_id: 'pay_INTEGRATION', razorpay_signature: '0'.repeat(64) };
     assert.equal((await call('/api/payments/verify', { method: 'POST', body: JSON.stringify(verification) })).response.status, 400);
