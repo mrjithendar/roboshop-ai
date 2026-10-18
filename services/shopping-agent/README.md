@@ -1,18 +1,23 @@
 # Python shopping agent
 
-`server.py` serves `POST /api/chat`, `/health` and `/metrics` on port 4103 using
-Waitress. `agent.py` retrieves at most four in-stock products, applies budgets,
-excludes unavailable SKUs supplied by the gateway, and optionally synthesizes a
-response through the existing OpenAI Responses integration. Without configured
-`OPENAI_API_KEY` and `OPENAI_MODEL`, or when the provider fails, the response clearly
-identifies catalogue-search mode. The agent cannot call mutation tools or pay.
+The agent owns all LLM calls. Private `POST /internal/chat` and
+`POST /internal/llm/test` require `LLM_SERVICE_TOKEN` from the gateway. `/health`
+and `/metrics` remain available internally on port 4103. `/api/chat` on this
+service is rejected; customers use the gateway's `/api/chat`.
 
-Install `requirements.txt` in a virtual environment and run `python server.py`.
-Set `INGESTION_URL` for the catalogue. Existing OTLP trace propagation, metrics and
-optional Langfuse export are supported; prompts, keys and cookie values are not
-included in telemetry. Model calls use `store: false` and a 15-second timeout.
+The gateway owns MongoDB provider configuration and sends a validated snapshot
+and revision per request. The agent has no MongoDB connection. `agent.py` keeps
+catalogue retrieval, budgets and stock filtering; only a selected Bedrock or
+Ollama provider can generate chat answers. Unconfigured and unavailable states
+never masquerade as generated recommendations. Legacy OpenAI variables are ignored.
 
-The dedicated Dockerfile builds from the repository root. Compose/Helm continue
-using the same service name, port and JSON contract.
+Adapters use Bedrock Converse and Ollama `/api/chat` (non-streaming). Requests
+have a 12-second caller deadline, 600-token output limit (32 for tests), two
+concurrent calls per process, and no cross-provider fallback. Ollama has an
+explicit pinned-IP allowlist, 4096-token context and a 64 KiB response cap.
+OpenTelemetry and optional Langfuse record metadata only, never prompts or outputs.
 
-HTTP serving limits follow the [Waitress configuration API](https://docs.pylonsproject.org/projects/waitress/en/v3.0.2/arguments.html).
+See [LLM operator setup](../../docs/deployment/llm-providers.md) for workload
+identity, endpoint provisioning, activation, timeouts and verification commands.
+Install `requirements.txt` and run `python server.py` for native operation.
+The Dockerfile remains non-root and includes all provider modules via `*.py`.

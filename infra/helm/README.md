@@ -35,7 +35,8 @@ Create Secrets in the release namespace through your secret-management process:
 | `shipping.migrationSecretName` | `SHIPPING_MIGRATION_DATABASE_URL` for the schema owner |
 | `integrations.secretName` | `REDIS_HOST`, `REDIS_PORT`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `RABBITMQ_VHOST`, `RABBITMQ_URL` |
 | `paymentSecretName` | `PAYMENT_SERVICE_TOKEN`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` |
-| `agentSecretName` (optional) | `OPENAI_API_KEY`, `OPENAI_MODEL` |
+| `llm.serviceSecretName` (required to activate AI) | `LLM_SERVICE_TOKEN` |
+| `llm.langfuseSecretName` (optional) | `LANGFUSE_BASE_URL`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` |
 
 The runtime database role needs schema USAGE, SELECT on shipping tables and INSERT
 on `shipping.shipment_requests`. Shipping startup uses the owner credentials for initialization, closes that pool, then starts the runtime pool. No migration Job is deployed.
@@ -75,3 +76,9 @@ These are deployment instructions; no cluster deployment was performed.
 Create the single super admin using the one-time operator command described in
 `docs/architecture/identity-and-admin.md`. Bootstrap credentials are not injected
 into Deployments. Only gateway and product-ingestion receive the MongoDB Secret.
+
+LLM provider selection is stored in MongoDB, not Helm values. Configure
+`llm.ollamaEndpoints` with approved literal IPv4 URLs, and use the dedicated
+`<release>-shopping-agent` service account for Bedrock workload identity.
+`llm.networkPolicyEnabled` defaults to true; your CNI must enforce NetworkPolicy.
+See [LLM setup](../../docs/deployment/llm-providers.md) for details.

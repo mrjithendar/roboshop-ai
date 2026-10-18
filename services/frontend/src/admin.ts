@@ -7,11 +7,11 @@ const input = (id: string) => control<HTMLInputElement>(id);
 const message = (error: unknown) => error instanceof Error ? error.message : 'Request failed.';
 const node = <K extends keyof HTMLElementTagNameMap>(tag: K, content = ''): HTMLElementTagNameMap[K] => { const result = document.createElement(tag); result.textContent = content; return result; };
 async function adminRequest<T>(path: string, method = 'GET', data?: object): Promise<T> {
-  const response = await fetch(path, { method, headers: { 'content-type': 'application/json' }, ...(data ? { body: JSON.stringify(data) } : {}), signal: AbortSignal.timeout(15000) });
+  const response = await fetch(path, { method, headers: { 'content-type': 'application/json' }, ...(data ? { body: JSON.stringify(data) } : {}), signal: AbortSignal.timeout(25000) });
   const result = await response.json();
   if (!response.ok) {
     if ([401, 403].includes(response.status)) { control('admin-content').hidden = true; control('admin-login').hidden = false; control('admin-status').textContent = 'Your account no longer has access to this action. Log in again.'; }
-    throw new Error(result.error || 'Request failed.');
+    throw new Error((result.error || 'Request failed.') + (result.requestId ? ` (Request ${result.requestId})` : ''));
   }
   return result;
 }
@@ -87,12 +87,57 @@ control('settings-form').addEventListener('submit', async event => {
   catch (error) { control('settings-status').textContent = message(error); }
   finally { save.disabled = false; }
 });
+type LLMConfig = { provider: 'none' | 'bedrock' | 'ollama'; model?: string; region?: string; endpoint?: string };
+interface LLMState { config: LLMConfig; revision: number; status: string; verifiedAt?: string; endpoints: string[] }
+let llmRevision = 0;
+function llmFields(): void {
+  const provider = control<HTMLSelectElement>('llm-provider').value;
+  control('llm-region-field').hidden = provider !== 'bedrock';
+  control('llm-endpoint-field').hidden = provider !== 'ollama';
+  control('llm-model-field').hidden = provider === 'none';
+}
+function displayLLM(state: LLMState): void {
+  llmRevision = state.revision;
+  control<HTMLSelectElement>('llm-provider').value = state.config.provider;
+  input('llm-model').value = state.config.model || '';
+  input('llm-region').value = state.config.region || '';
+  control<HTMLSelectElement>('llm-endpoint').replaceChildren(...state.endpoints.map(alias => new Option(alias, alias)));
+  control<HTMLSelectElement>('llm-endpoint').value = state.config.endpoint || state.endpoints[0] || '';
+  control('llm-current').textContent = `${state.config.provider} · ${state.config.model || 'No model'} · ${state.status} · revision ${state.revision}` + (state.verifiedAt ? ` · Last verified ${state.verifiedAt}` : '');
+  llmFields();
+}
+async function loadLLM(): Promise<void> { displayLLM(await adminRequest<LLMState>('/api/admin/llm')); }
+function proposedLLM(): LLMConfig {
+  const provider = control<HTMLSelectElement>('llm-provider').value as LLMConfig['provider'];
+  return provider === 'none' ? { provider } : { provider, model: input('llm-model').value.trim(), ...(provider === 'bedrock' ? { region: input('llm-region').value.trim() } : { endpoint: control<HTMLSelectElement>('llm-endpoint').value }) };
+}
+async function llmAction(action: 'test' | 'save' | 'disconnect' | 'refresh'): Promise<void> {
+  const buttons = ['llm-test', 'llm-save', 'llm-disconnect', 'llm-refresh'].map(id => control<HTMLButtonElement>(id));
+  buttons.forEach(b => b.disabled = true); control('llm-status').textContent = 'Working…';
+  try {
+    if (action === 'refresh') { await loadLLM(); control('llm-status').textContent = 'Configuration refreshed.'; return; }
+    if (action === 'test') {
+      await adminRequest('/api/admin/llm/test', 'POST', { revision: llmRevision, config: proposedLLM() });
+      control('llm-status').textContent = 'Connection successful. Active configuration has not changed.';
+    } else {
+      const state = await adminRequest<LLMState>(action === 'disconnect' ? '/api/admin/llm/disconnect' : '/api/admin/llm', action === 'disconnect' ? 'POST' : 'PUT', { revision: llmRevision, ...(action === 'save' ? { config: proposedLLM() } : {}) });
+      displayLLM(state); control('llm-status').textContent = state.config.provider === 'none' ? 'AI disconnected. Ollama infrastructure has not been stopped or deleted.' : 'Connection verified and configuration activated.';
+    }
+  } catch (error) { control('llm-status').textContent = message(error); }
+  finally { buttons.forEach(b => b.disabled = false); }
+}
+control('llm-provider').addEventListener('change', llmFields);
+control('llm-form').addEventListener('submit', event => { event.preventDefault(); void llmAction('save'); });
+for (const action of ['test', 'disconnect', 'refresh'] as const) control(`llm-${action}`).addEventListener('click', () => { void llmAction(action); });
+
 try {
   const { user } = await adminRequest<{ user: AdminUser | null }>('/api/auth/me');
   if (!user || user.role === 'customer') throw new Error('An admin or super admin account is required.');
   control('admin-content').hidden = false; control('admin-status').textContent = `Signed in as ${user.name} · ${user.role}`;
   await loadAdminProducts();
   if (user.role === 'superadmin') {
+    control('llm-section').hidden = false;
+    await loadLLM();
     control('users-section').hidden = false; control('settings-section').hidden = false;
     const [settings] = await Promise.all([adminRequest<Settings>('/api/admin/settings'), loadUsers()]);
     input('setting-name').value = settings.storeName; input('setting-announcement').value = settings.announcement; input('setting-email').value = settings.supportEmail; input('setting-checkout').checked = settings.checkoutEnabled;

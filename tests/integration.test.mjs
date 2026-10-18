@@ -25,7 +25,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
   const children = [], traces = [], binaryTraces = []; let logs = '';
   const receiver = createServer(async (req, res) => { const chunks = []; for await (const part of req) chunks.push(part); const data = Buffer.concat(chunks); if (req.headers['content-type']?.includes('json')) { traces.push(JSON.parse(data)); res.writeHead(200, { 'content-type': 'application/json' }); res.end('{}'); } else { binaryTraces.push(data); res.writeHead(200, { 'content-type': 'application/x-protobuf' }); res.end(); } });
   receiver.listen(0, '127.0.0.1'); await once(receiver, 'listening');
-  const env = { ...process.env, SHIPPING_TRACING_ENABLED: 'true', OTEL_BSP_SCHEDULE_DELAY: '500', MONGODB_DATABASE: mongoDatabase, HOST: '127.0.0.1', TRUST_PROXY: edgePort ? 'true' : 'false', INGESTION_URL: `http://127.0.0.1:${ports[0]}`, RECOMMENDATION_URL: `http://127.0.0.1:${ports[1]}`, AGENT_URL: `http://127.0.0.1:${ports[2]}`, SRE_URL: `http://127.0.0.1:${ports[3]}`, DATA_DIR: dir, PUBLIC_ORIGIN: base, GATEWAY_URL: base, PAYMENT_URL: `http://127.0.0.1:${ports[5]}`, SHIPPING_URL: `http://127.0.0.1:${ports[6]}`, PAYMENT_SERVICE_TOKEN: 'integration-internal-token', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', RAZORPAY_WEBHOOK_SECRET: '', OPENAI_API_KEY: '', OPENAI_MODEL: '', LANGFUSE_BASE_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `http://127.0.0.1:${receiver.address().port}/v1/traces` };
+  const env = { ...process.env, SHIPPING_TRACING_ENABLED: 'true', OTEL_BSP_SCHEDULE_DELAY: '500', MONGODB_DATABASE: mongoDatabase, HOST: '127.0.0.1', TRUST_PROXY: edgePort ? 'true' : 'false', INGESTION_URL: `http://127.0.0.1:${ports[0]}`, RECOMMENDATION_URL: `http://127.0.0.1:${ports[1]}`, AGENT_URL: `http://127.0.0.1:${ports[2]}`, SRE_URL: `http://127.0.0.1:${ports[3]}`, DATA_DIR: dir, PUBLIC_ORIGIN: base, GATEWAY_URL: base, PAYMENT_URL: `http://127.0.0.1:${ports[5]}`, SHIPPING_URL: `http://127.0.0.1:${ports[6]}`, LLM_SERVICE_TOKEN: 'integration-only-token-0123456789abcdef', PAYMENT_SERVICE_TOKEN: 'integration-internal-token', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', RAZORPAY_WEBHOOK_SECRET: '', OPENAI_API_KEY: '', OPENAI_MODEL: '', LANGFUSE_BASE_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `http://127.0.0.1:${receiver.address().port}/v1/traces` };
   let cookie; const cookieJar = new Map();
   async function call(path, options = {}, useCookie = true) {
     const response = await fetch(`${base}${path}`, { ...options, headers: { 'content-type': 'application/json', origin: base, ...(useCookie && cookie ? { cookie } : {}), ...options.headers } });
@@ -50,7 +50,9 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     assert.equal((await call('/api/ready')).data.status, 'healthy');
     assert.equal((await call('/api/recommendations?q=security&budget=1000')).data.products[0].sku, 'RED');
     const chat = await call('/api/chat', { method: 'POST', body: JSON.stringify({ message: 'security under 1000' }) });
-    assert.equal(chat.data.products[0].sku, 'RED'); assert.equal(chat.data.mode, 'catalogue-search');
+    const privateResponse = await fetch(`http://127.0.0.1:${ports[2]}/internal/chat`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${env.LLM_SERVICE_TOKEN}` }, body: JSON.stringify({ config: { provider: 'none' }, revision: 0 }) });
+    assert.equal(privateResponse.status, 200); assert.equal((await privateResponse.json()).mode, 'not-configured');
+    assert.deepEqual(chat.data.products, []); assert.equal(chat.data.mode, 'not-configured'); assert.equal(chat.data.answer, 'Please connect an LLM to get AI recommendations.');
     assert.equal((await call('/api/chat', { method: 'POST', body: JSON.stringify({ message: 123 }) })).response.status, 400);
     assert.equal((await call('/api/cart')).data.total, 0);
     assert.equal((await call('/api/cart', { method: 'POST', body: JSON.stringify({ sku: 'Ewooid', quantity: 1 }) })).response.status, 409);
@@ -159,7 +161,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     assert.match(await (await fetch(`http://127.0.0.1:${ports[4]}/metrics`)).text(), /robotshop_http_requests_total/);
     await new Promise(r => setTimeout(r, 100));
     const spans = traces.flatMap(t => t.resourceSpans.flatMap(r => r.scopeSpans.flatMap(s => s.spans)));
-    assert.ok(spans.some(s => s.name === 'POST /api/chat' && s.parentSpanId));
+    assert.ok(spans.some(s => s.name === 'POST /api/chat')); // no agent call when unconfigured
     assert.ok(!JSON.stringify(traces).includes('security under 1000'));
     const mcp = spawn(process.env.PYTHON || 'python3', ['services/mcp-server/server.py'], { env, stdio: ['pipe', 'pipe', 'pipe'] }); children.push(mcp);
     let output = ''; mcp.stdout.on('data', d => output += d);

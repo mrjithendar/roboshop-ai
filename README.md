@@ -7,7 +7,7 @@ is unchanged.
 
 ## Start locally
 
-Requires Node.js 24+, Python 3.11+ (containers use 3.12), Java 21+, PostgreSQL, and MongoDB 8. Configure database connection URLs in `.env` as described in [shipping setup](services/shipping-service/README.md).
+Requires Node.js 24+, Python 3.11+ (containers use 3.14), Java 21+, PostgreSQL, and MongoDB 8. Configure database connection URLs in `.env` as described in [shipping setup](services/shipping-service/README.md).
 
 ```sh
 npm ci
@@ -23,23 +23,24 @@ credentials. Payment controls remain disabled until configuration is complete. S
 
 ## Optional AI
 
-Copy `.env.example` to `.env`, set `OPENAI_API_KEY` and an `OPENAI_MODEL` available
-to your account, then restart. Do not put credentials in frontend code or Git.
-The assistant uses the OpenAI Responses API, with storage disabled, and receives
-only the current question and matching catalogue evidence. There is no multi-turn
-memory. Requests to the model send that question and evidence to OpenAI.
+A fresh installation has **no LLM configured**. The chat panel displays
+“Please connect an LLM to get AI recommendations.” Catalogue browsing/search,
+regular product recommendations, cart and checkout remain available.
 
-With no credentials, it explicitly uses deterministic catalogue search. If a model
-request fails or times out, the same fallback is labeled in the interface. Product
-cards always use catalogue data; model prose can still be inaccurate. The assistant
-has no checkout, shell, payment, or infrastructure tools.
+A superadmin can test and activate **Amazon Bedrock** or an operator-approved
+**Ollama** endpoint under **Admin → AI / LLM configuration**. Provider changes and
+disconnect take effect on subsequent requests without restarting services. Failed
+tests leave the active configuration unchanged; there is no automatic fallback.
+Legacy `OPENAI_API_KEY`, `OPENAI_MODEL` and `ASSISTANT_AI_ENABLED` do not activate AI.
 
-For Docker/Helm, also set `ASSISTANT_AI_ENABLED=true` / `aiEnabled: true` so the UI
-reports the configured mode. The agent still checks its actual credentials.
+See [exact operator setup and IAM permissions](docs/deployment/llm-providers.md).
+Model prose can be inaccurate; product cards use catalogue data. Only the current
+question and bounded catalogue evidence are sent to the chosen provider. The
+assistant has no checkout, shell, payment or infrastructure tools.
 
 ## Containers and observability
 
-For a fresh installation, run `python3 generate-secrets.py` to create a private `.env` containing all required passwords and the internal payment token. RabbitMQ defaults to username `robotshop`. The generator refuses to overwrite existing files. See [Compose secrets setup](docs/deployment/compose-secrets.md) for AWS Secrets Manager commands and existing installations.
+For a fresh installation, run `python3 generate-secrets.py` to create a private `.env` containing all required passwords and the internal payment/LLM service tokens. RabbitMQ defaults to username `robotshop`. The generator refuses to overwrite existing files. See [Compose secrets setup](docs/deployment/compose-secrets.md) for AWS Secrets Manager commands and existing installations.
 
 ```sh
 docker compose config --quiet

@@ -211,8 +211,8 @@ async function chat(message: string) {
   chatBusy = true; $('#send-message').disabled = true; $('#message').value = ''; chatMessage('user', message);
   const pending = chatMessage('assistant', 'Finding your match…');
   try {
-    const result = await api<{ answer: string; notice: string; products: Product[] }>('/api/chat', { method: 'POST', body: JSON.stringify({ message }) });
-    pending.querySelector('p')!.textContent = result.answer; $('#assistant-mode').textContent = result.notice;
+    const result = await api<{ answer: string; notice: string; products: Product[]; requestId?: string }>('/api/chat', { method: 'POST', body: JSON.stringify({ message }) });
+    pending.querySelector('p')!.textContent = result.answer; $('#assistant-mode').textContent = result.notice + (result.requestId ? ` (Request ${result.requestId})` : '');
     for (const p of result.products) { const row = el('div', 'chat-product'), info = el('div'); info.append(el('strong', '', p.name), el('span', '', money(p.price))); row.append(image(p), info, addButton(p)); pending.append(row); }
   } catch (error) { pending.querySelector('p')!.textContent = errorMessage(error); }
   finally { chatBusy = false; $('#send-message').disabled = false; $('#message').focus(); pending.scrollIntoView({ block: 'nearest' }); }
@@ -280,4 +280,4 @@ await api<{ storeName: string; announcement: string; supportEmail: string; check
   const announcement = document.querySelector('.announcement span'); if (announcement) announcement.textContent = settings.announcement;
   const footer = document.querySelector('footer p'); if (footer && settings.supportEmail) footer.textContent = `Contact: ${settings.supportEmail}`;
 }).catch(() => {});
-await Promise.all([loadPaymentConfig(), loadProducts(), loadRecommendations(), api<Cart>('/api/cart').then(result => { cart = result; renderCart(); }).catch(() => toast('Your bag could not be loaded. Please try again.')), api<{ assistantMode: string }>('/api/status').then(result => { $('#assistant-mode').textContent = result.assistantMode === 'ai' ? 'AI assistant connected · grounded in the catalogue' : 'Catalogue search mode · no language model connected'; }).catch(() => {})]);
+await Promise.all([loadPaymentConfig(), loadProducts(), loadRecommendations(), api<Cart>('/api/cart').then(result => { cart = result; renderCart(); }).catch(() => toast('Your bag could not be loaded. Please try again.')), api<{ assistantMode: string }>('/api/status').then(result => { $('#assistant-mode').textContent = result.assistantMode === 'ai' ? 'AI assistant connected · grounded in the catalogue' : 'Please connect an LLM to get AI recommendations.'; }).catch(() => {})]);

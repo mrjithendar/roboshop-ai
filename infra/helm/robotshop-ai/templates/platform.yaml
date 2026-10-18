@@ -23,7 +23,12 @@ spec:
         app.kubernetes.io/instance: {{ $root.Release.Name }}
         app.kubernetes.io/component: {{ $name }}
     spec:
+      {{- if eq $name "shopping-agent" }}
+      serviceAccountName: {{ $root.Release.Name }}-shopping-agent
+      automountServiceAccountToken: {{ $root.Values.llm.workloadIdentityEnabled }}
+      {{- else }}
       automountServiceAccountToken: false
+      {{- end }}
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -135,14 +140,27 @@ spec:
               value: {{ $root.Values.loginActivityRetentionDays | quote }}
             - name: TRUST_PROXY
               value: {{ $root.Values.nginx.enabled | quote }}
-            - name: ASSISTANT_AI_ENABLED
-              value: {{ $root.Values.aiEnabled | quote }}
             {{- end }}
-          {{- if and (eq $name "shopping-agent") $root.Values.agentSecretName }}
-          envFrom:
-            - secretRef:
-                name: {{ $root.Values.agentSecretName }}
-          {{- end }}
+            {{- if or (eq $name "ai-gateway") (eq $name "shopping-agent") }}
+            - name: OLLAMA_ENDPOINTS_JSON
+              value: {{ $root.Values.llm.ollamaEndpoints | toJson | quote }}
+            {{- if $root.Values.llm.serviceSecretName }}
+            - name: LLM_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $root.Values.llm.serviceSecretName }}
+                  key: LLM_SERVICE_TOKEN
+            {{- end }}
+            {{- end }}
+            {{- if and (eq $name "shopping-agent") $root.Values.llm.langfuseSecretName }}
+            {{- range $key := list "LANGFUSE_BASE_URL" "LANGFUSE_PUBLIC_KEY" "LANGFUSE_SECRET_KEY" }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $root.Values.llm.langfuseSecretName }}
+                  key: {{ $key }}
+            {{- end }}
+            {{- end }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

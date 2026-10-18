@@ -61,7 +61,7 @@ role-specific UI behavior. Set shipping owner/runtime URLs as described in the
 shipping guide; the Java service initializes its test schema during startup.
 
 Python migration tests: `PYTHON="$PWD/.venv/bin/python" npm run test:python` covers
-retrieval, model fallback, password compatibility, ledger/payment invariants,
+retrieval, provider configuration and failure handling, password compatibility, ledger/payment invariants,
 MCP validation/auth forwarding and HTTP input validation. `npm test` runs Python
 unit tests before the Node test harness, which launches the actual Python gateway,
 agent and MCP for MongoDB and full HTTP tests. Previous Node modules under
@@ -72,3 +72,9 @@ address bounds, replay-safe purchase snapshots, account isolation and pagination
 The full integration test also asserts actual Java OTLP protobuf export and
 RabbitMQ consumer linkage to the payment trace; private addresses and prompts
 must be absent from all captured telemetry payloads.
+
+LLM tests install `tests/python/requirements.txt` in addition to both Python
+service requirements. `test_llm.py` mocks MongoDB and provider calls; it verifies
+roles/origin checks, revisions, activation/disconnect, allowlists, deadlines and
+provider mapping without AWS credentials or a running model server. The dedicated
+`llm-checks.yml` workflow runs these tests and the admin/storefront UI tests.

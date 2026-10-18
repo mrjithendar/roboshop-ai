@@ -20,9 +20,14 @@ serviceImages:
     repository: robotshop-payment-service
     tag: local
 publicOrigin: http://localhost:3000
-aiEnabled: false
-# Pre-create a Secret containing OPENAI_API_KEY and OPENAI_MODEL to enable AI.
-agentSecretName: ""
+# Provider selection lives only in MongoDB and defaults to none.
+llm:
+  serviceSecretName: "" # Existing Secret with LLM_SERVICE_TOKEN (32+ characters).
+  ollamaEndpoints: {} # Example: private-ec2: http://10.0.1.25:11434
+  workloadIdentityEnabled: false
+  serviceAccountAnnotations: {} # IRSA annotations, or associate Pod Identity externally.
+  langfuseSecretName: "" # Optional LANGFUSE_BASE_URL/PUBLIC_KEY/SECRET_KEY only.
+  networkPolicyEnabled: true
 otelTracesEndpoint: http://otel-collector:4318/v1/traces
 deploymentEnvironment: production
 loginActivityRetentionDays: 90

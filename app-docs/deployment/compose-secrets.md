@@ -5,8 +5,8 @@ therefore prevent both `up` and `ps`. Run commands from the repository root.
 Common service URLs and telemetry settings are defined once in
 `services/common/compose.yml` and inherited using `extends`.
 RabbitMQ's username defaults to `robotshop`; database URLs are assembled by
-Compose. Only seven generated secrets are needed: separate Mongo root/app,
-Postgres owner/app, Redis, RabbitMQ passwords, and the internal payment token.
+Compose. Only eight generated secrets are needed: separate Mongo root/app,
+Postgres owner/app, Redis, RabbitMQ passwords, and the internal payment and LLM service tokens.
 Separate credentials retain the existing database privilege boundaries.
 
 For a fresh installation:

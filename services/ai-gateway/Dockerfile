@@ -1,4 +1,4 @@
-# Build from the repository root.
+# Build from the repository root. Provider configuration is injected at runtime, never baked in.
 FROM python:3.14-slim
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 HOST=0.0.0.0
 WORKDIR /app

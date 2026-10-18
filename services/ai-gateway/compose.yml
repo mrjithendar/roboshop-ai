@@ -6,8 +6,9 @@ services:
       service: application
     image: ${IMAGE_PREFIX:-robotshop}-ai-gateway:${IMAGE_TAG:-local}
     environment:
+      LLM_SERVICE_TOKEN: ${LLM_SERVICE_TOKEN:-}
+      OLLAMA_ENDPOINTS_JSON: ${OLLAMA_ENDPOINTS_JSON:-{}}
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:3000}
-      ASSISTANT_AI_ENABLED: ${ASSISTANT_AI_ENABLED:-false}
       PAYMENT_SERVICE_TOKEN: ${PAYMENT_SERVICE_TOKEN:-}
       SHIPPING_URL: http://shipping-service:4106
       RABBITMQ_URL: amqp://${RABBITMQ_USERNAME:-robotshop}:${RABBITMQ_PASSWORD:?Set

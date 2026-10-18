@@ -390,6 +390,8 @@ def application(service, handler):
             )
         ]:
             route = "other"
+        if req.path in ("/internal/chat", "/internal/llm/test"):
+            route = req.path
         try:
             if req.path == "/health" and req.method == "GET":
                 result = {"status": "ok", "service": service}

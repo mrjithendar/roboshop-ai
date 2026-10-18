@@ -30,54 +30,9 @@ PRODUCTS = json.loads((ROOT / "services/product-ingestion/products.json").read_t
 
 class AgentTests(unittest.TestCase):
     def test_offline(self):
-        result = answer(
-            PRODUCTS,
-            "security under 1000",
-            api_key="",
-            model="",
-            fetcher=lambda *a, **k: self.fail("network"),
-        )
-        self.assertEqual(result["mode"], "catalogue-search")
-        self.assertEqual(result["products"][0]["sku"], "RED")
-
-    def test_model(self):
-        def fake(url, payload, headers, **kwargs):
-            self.assertEqual(url, "https://api.openai.com/v1/responses")
-            self.assertFalse(payload["store"])
-            self.assertNotIn("tools", payload)
-            self.assertEqual(
-                json.loads(payload["input"])["catalogueEvidence"][0]["sku"], "RED"
-            )
-            return {
-                "status": "completed",
-                "output": [
-                    {
-                        "type": "message",
-                        "content": [{"type": "output_text", "text": "Grounded answer"}],
-                    }
-                ],
-            }
-
-        self.assertEqual(
-            answer(
-                PRODUCTS,
-                "security under 1000",
-                api_key="test",
-                model="test",
-                fetcher=fake,
-            )["answer"],
-            "Grounded answer",
-        )
-
-    def test_failure(self):
-        def fail(*args, **kwargs):
-            raise Exception("private-key")
-
-        result = answer(
-            PRODUCTS, "mining", api_key="private-key", model="test", fetcher=fail
-        )
-        self.assertEqual(result["mode"], "catalogue-search")
-        self.assertNotIn("private-key", json.dumps(result))
+        result = answer(PRODUCTS, "security under 1000")
+        self.assertEqual(result["mode"], "not-configured")
+        self.assertEqual(result["products"], [])
 
     def test_unavailable_and_budget(self):
         self.assertEqual(retrieve(PRODUCTS, "security under 5"), [])

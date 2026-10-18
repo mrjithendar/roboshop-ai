@@ -16,6 +16,8 @@ from auth import Auth, connect_mongo, public_user, require_role
 from admin import routes as admin_routes, settings
 from store import Store, cents
 from events import OrderPublisher
+from llm import LLMConfiguration
+from llm_config import service_headers, unconfigured
 from catalogue import retrieve
 
 
@@ -70,6 +72,8 @@ class Gateway:
                 ("shipping", "SHIPPING_URL", "http://127.0.0.1:4106"),
             ]
         }
+
+        self.llm = LLMConfiguration(db, self.urls["agent"])
 
     def limit(self, req, ai=False):
         with self.limit_lock:
@@ -219,6 +223,9 @@ class Gateway:
                 and req.headers.get("origin") != self.origin
             ):
                 raise HttpError(403, "Origin not allowed.")
+            if path == "/api/admin/llm" or path.startswith("/api/admin/llm/"):
+                self.limit(req, True)
+                return self.llm.routes(req)
             with self.store.lock:
                 return admin_routes(req, self.db, self.auth, self.store)
         if path == "/api/settings" and method == "GET":
@@ -258,8 +265,8 @@ class Gateway:
             return {
                 "assistantMode": (
                     "ai"
-                    if os.getenv("ASSISTANT_AI_ENABLED") == "true"
-                    else "catalogue-search"
+                    if self.llm.current()["config"]["provider"] != "none"
+                    else "not-configured"
                 ),
                 "checkoutMode": "razorpay",
             }
@@ -424,15 +431,27 @@ class Gateway:
             return result
         if path == "/api/chat" and method == "POST":
             self.limit(req, True)
-            message = text(req.body().get("message"))
+            data = req.body()
+            if set(data) != {"message"}:
+                raise HttpError(400, "Only message is accepted for chat.")
+            message = text(data.get("message"))
+            active = self.llm.current()
+            if active["config"]["provider"] == "none":
+                return unconfigured()
             products = self.catalogue()
             with self.store.lock:
                 unavailable = [
                     p["sku"] for p in products if self.store.available(p) < 1
                 ]
             result = request(
-                self.urls["agent"] + "/api/chat",
-                {"message": message, "unavailableSkus": unavailable},
+                self.urls["agent"] + "/internal/chat",
+                {
+                    "message": message,
+                    "unavailableSkus": unavailable,
+                    "config": active["config"],
+                    "revision": active["revision"],
+                },
+                service_headers(),
                 timeout=20,
             )
             with self.store.lock:

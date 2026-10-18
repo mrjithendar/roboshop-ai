@@ -21,8 +21,8 @@ for case in json.loads((root / "evaluations/rag/cases.json").read_text()):
     )
     count += 1
 for case in json.loads((root / "evaluations/security/cases.json").read_text()):
-    result = answer(products, case["query"], api_key="", model="")
-    assert result["mode"] == "catalogue-search" and "<script>" not in result["answer"]
+    result = answer(products, case["query"])
+    assert result["mode"] == "not-configured" and "<script>" not in result["answer"]
     assert all(any(s["sku"] == p["sku"] for s in products) for p in result["products"])
     count += 1
 print(

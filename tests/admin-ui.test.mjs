@@ -15,6 +15,7 @@ function setup(t, role) {
       '/api/auth/me': { user: { id: 'root', name: 'Operator', email: 'operator@example.com', role } },
       '/api/admin/products': { products: [product] },
       '/api/admin/users': { users: [{ id: 'root', name: 'Operator', email: 'operator@example.com', role: 'superadmin' }, { id: 'customer', name: 'Buyer', email: 'buyer@example.com', role: 'customer', disabled: false }], next: null },
+      '/api/admin/llm': { config: { provider: 'none' }, revision: 0, status: 'not-configured', endpoints: ['private-ec2'] },
       '/api/admin/settings': { storeName: 'Test shop', announcement: 'Welcome', supportEmail: 'support@example.com', checkoutEnabled: true },
     };
     return { ok: true, status: 200, json: async () => defaults[path] || { saved: true } };
@@ -32,6 +33,8 @@ test('admin sees safe product editor but no super-admin controls', async t => {
   assert.equal(ui.$('#admin-content').hidden, false);
   assert.equal(ui.$('#users-section').hidden, true);
   assert.equal(ui.$('#settings-section').hidden, true);
+  assert.equal(ui.$('#llm-section').hidden, true);
+  assert.ok(!ui.calls.some(call => call.path.startsWith('/api/admin/llm')));
   assert.equal(ui.$('#admin-products img'), null);
   ui.$('#admin-products button').click();
   assert.equal(ui.$('#product-sku').readOnly, true);
@@ -49,6 +52,8 @@ test('super admin sees user access controls and bounded store configuration', as
   const ui = setup(t, 'superadmin'); await ui.boot();
   assert.equal(ui.$('#users-section').hidden, false);
   assert.equal(ui.$('#settings-section').hidden, false);
+  assert.equal(ui.$('#llm-section').hidden, false);
+  assert.match(ui.$('#llm-current').textContent, /not-configured/);
   assert.equal(ui.$('#setting-name').value, 'Test shop');
   assert.match(ui.$('#admin-users').firstElementChild.textContent, /protected/);
   assert.equal(ui.$('#admin-users').firstElementChild.querySelector('select'), null);
@@ -73,4 +78,38 @@ test('super-admin customer details are fetched only on explicit inspection', asy
   await new Promise(resolve => setTimeout(resolve, 10));
   assert.match(ui.$('.customer-details').textContent, /192\.0\.2\.1/);
   assert.equal(ui.$('.customer-details').hidden, false);
+});
+
+test('LLM proposed connection test does not activate and disconnect uses revision', async t => {
+  const ui = setup(t, 'superadmin'); await ui.boot();
+  ui.$('#llm-provider').value = 'ollama'; ui.$('#llm-provider').dispatchEvent(new ui.w.Event('change'));
+  assert.equal(ui.$('#llm-region-field').hidden, true);
+  assert.equal(ui.$('#llm-endpoint-field').hidden, false);
+  ui.$('#llm-model').value = 'qwen3:4b';
+  ui.$('#llm-test').click(); await new Promise(resolve => setTimeout(resolve, 10));
+  const testCall = ui.calls.find(c => c.path === '/api/admin/llm/test');
+  assert.deepEqual(JSON.parse(testCall.options.body), { revision: 0, config: { provider: 'ollama', model: 'qwen3:4b', endpoint: 'private-ec2' } });
+  assert.ok(!ui.calls.some(c => c.options.method === 'PUT'));
+  assert.match(ui.$('#llm-current').textContent, /none/);
+  const original = ui.w.fetch;
+  ui.w.fetch = async (path, options) => {
+    if (path === '/api/admin/llm/disconnect') {
+      ui.calls.push({ path, options });
+      return { ok: true, json: async () => ({ config: { provider: 'none' }, revision: 1, status: 'not-configured', endpoints: ['private-ec2'] }) };
+    }
+    return original(path, options);
+  };
+  ui.$('#llm-disconnect').click(); await new Promise(resolve => setTimeout(resolve, 10));
+  assert.match(ui.$('#llm-current').textContent, /revision 1/);
+  assert.match(ui.$('#llm-status').textContent, /not been stopped or deleted/);
+});
+
+test('failed LLM save preserves displayed active revision and shows request ID', async t => {
+  const ui = setup(t, 'superadmin'); await ui.boot();
+  ui.w.fetch = async () => ({ ok: false, status: 409, json: async () => ({ error: 'Refresh before saving.', requestId: 'test-trace' }) });
+  ui.$('#llm-form').dispatchEvent(new ui.w.Event('submit', { cancelable: true }));
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.match(ui.$('#llm-current').textContent, /revision 0/);
+  assert.match(ui.$('#llm-status').textContent, /test-trace/);
+  assert.equal(ui.$('#llm-save').disabled, false);
 });

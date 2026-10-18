@@ -6,8 +6,8 @@ services:
       service: application
     image: ${IMAGE_PREFIX:-robotshop}-shopping-agent:${IMAGE_TAG:-local}
     environment:
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      LLM_SERVICE_TOKEN: ${LLM_SERVICE_TOKEN:-}
+      OLLAMA_ENDPOINTS_JSON: ${OLLAMA_ENDPOINTS_JSON:-{}}
       LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-}
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
