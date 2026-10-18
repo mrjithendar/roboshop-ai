@@ -1,6 +1,7 @@
 import json
 import threading
 import pika
+from runtime import trace_span, trace_header
 
 
 class OrderPublisher:
@@ -68,18 +69,30 @@ class OrderPublisher:
                         )
                         timer.start()
                         try:
-                            channel.basic_publish(
-                                exchange="robotshop.orders",
-                                routing_key="order.paid",
-                                body=json.dumps(event).encode(),
-                                mandatory=True,
-                                properties=pika.BasicProperties(
-                                    delivery_mode=2,
-                                    message_id=event["eventId"],
-                                    type=event["type"],
-                                    content_type="application/json",
-                                ),
-                            )
+                            with trace_span(
+                                "robotshop.orders publish",
+                                kind=4,
+                                parent=event.get("traceparent"),
+                                service="ai-gateway",
+                                attributes={
+                                    "messaging.system": "rabbitmq",
+                                    "messaging.destination.name": "robotshop.orders",
+                                    "messaging.operation.type": "send",
+                                },
+                            ):
+                                channel.basic_publish(
+                                    exchange="robotshop.orders",
+                                    routing_key="order.paid",
+                                    body=json.dumps(event).encode(),
+                                    mandatory=True,
+                                    properties=pika.BasicProperties(
+                                        delivery_mode=2,
+                                        message_id=event["eventId"],
+                                        type=event["type"],
+                                        content_type="application/json",
+                                        headers={"traceparent": trace_header()},
+                                    ),
+                                )
                         finally:
                             timer.cancel()
                         with self.store.lock:

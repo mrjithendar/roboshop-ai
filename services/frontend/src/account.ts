@@ -13,6 +13,9 @@ export async function initAccount(changed: () => Promise<void>): Promise<void> {
   const render = () => {
     accountElement('account-button').textContent = currentUser ? currentUser.name : 'Log in';
     accountElement('logout-button').hidden = !currentUser;
+    form.hidden = Boolean(currentUser);
+    accountElement('account-details').hidden = !currentUser;
+    if (!currentUser) accountElement('account-details').replaceChildren();
     accountElement('admin-link').hidden = !currentUser || currentUser.role === 'customer';
   };
   async function accountRequest(path: string, data?: object): Promise<{ user: User | null }> {
@@ -21,9 +24,49 @@ export async function initAccount(changed: () => Promise<void>): Promise<void> {
     if (!response.ok) throw new Error(result.error || 'Account service unavailable.');
     return result;
   }
+  const privateText = (tag: string, value: string): HTMLElement => { const el = document.createElement(tag); el.textContent = value; return el; };
+  let accountGeneration = 0;
+  async function loadAccount(): Promise<void> {
+    const userId = currentUser?.id, generation = ++accountGeneration;
+    if (!userId) return;
+    const panel = accountElement('account-details'); panel.replaceChildren(privateText('p', 'Loading your account…'));
+    async function read<T>(path: string): Promise<T> {
+      const response = await fetch(path, { signal: AbortSignal.timeout(15000) });
+      const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Account details unavailable.'); return data;
+    }
+    interface Purchase { id: string; total: number; currency: string; paidAt: string; items: { name: string; quantity: number }[] }
+    try {
+      const [profile, activity, history] = await Promise.all([
+        read<{ activity: { lastLoginAt?: string; lastLoginIp?: string; loginCount?: number }; addresses: { address: { recipient: string; line1: string; postalCode: string }; city: { name: string; country: string } }[] }>('/api/account/profile'),
+        read<{ retentionDays: number; events: { occurredAt: string; ipAddress: string; userAgent: string }[] }>('/api/account/activity'),
+        read<{ purchases: Purchase[]; next: string | null }>('/api/account/purchases'),
+      ]);
+      if (currentUser?.id !== userId || generation !== accountGeneration) return;
+      panel.replaceChildren(privateText('h3', 'Account activity'), privateText('p', `Last login: ${profile.activity.lastLoginAt ? new Date(profile.activity.lastLoginAt).toLocaleString() : 'Unavailable'} · IP: ${profile.activity.lastLoginIp || 'Unavailable'}`));
+      panel.append(privateText('h3', 'Saved delivery addresses'));
+      for (const item of profile.addresses) panel.append(privateText('p', `${item.address.recipient} · ${item.address.line1} · ${item.city.name}, ${item.city.country} ${item.address.postalCode}`));
+      if (!profile.addresses.length) panel.append(privateText('p', 'No delivery addresses saved yet.'));
+      panel.append(privateText('h3', 'Purchase history'));
+      const purchases = document.createElement('div'); panel.append(purchases);
+      function appendPurchases(rows: Purchase[]): void { for (const order of rows) purchases.append(privateText('p', `${new Date(order.paidAt).toLocaleDateString()} · ${order.id} · ${order.currency} ${order.total.toFixed(2)} · ${order.items.map(item => `${item.name} × ${item.quantity}`).join(', ')}`)); }
+      appendPurchases(history.purchases);
+      if (!history.purchases.length) purchases.append(privateText('p', 'No completed purchases yet. Newly verified payments may take a few seconds to appear.'));
+      let cursor = history.next;
+      const more = document.createElement('button'); more.className = 'button secondary'; more.textContent = 'Load more purchases'; more.hidden = !cursor; panel.append(more);
+      more.addEventListener('click', async () => {
+        more.disabled = true;
+        try { const page = await read<{ purchases: Purchase[]; next: string | null }>(`/api/account/purchases?cursor=${encodeURIComponent(cursor || '')}`); if (currentUser?.id !== userId || generation !== accountGeneration) return; appendPurchases(page.purchases); cursor = page.next; more.hidden = !cursor; }
+        catch (error) { if (currentUser?.id === userId) status.textContent = error instanceof Error ? error.message : 'History unavailable.'; }
+        finally { more.disabled = false; }
+      });
+      const recent = document.createElement('details'); recent.append(privateText('summary', `Recent logins · ${activity.retentionDays}-day history`));
+      for (const event of activity.events) recent.append(privateText('p', `${new Date(event.occurredAt).toLocaleString()} · ${event.ipAddress || 'Unknown IP'} · ${event.userAgent}`));
+      panel.append(recent);
+    } catch (error) { if (currentUser?.id === userId && generation === accountGeneration) panel.replaceChildren(privateText('p', error instanceof Error ? error.message : 'Account details unavailable.')); }
+  }
   accountElement('account-button').addEventListener('click', () => {
     status.textContent = currentUser ? `Signed in as ${currentUser.email} (${currentUser.role}).` : '';
-    showLogin();
+    render(); showLogin(); if (currentUser) void loadAccount();
   });
   mode.addEventListener('change', () => {
     const registering = mode.value === 'register';

@@ -10,7 +10,7 @@ import time
 import uuid
 from datetime import datetime
 from pathlib import Path
-from runtime import HttpError, iso
+from runtime import HttpError, iso, trace_header
 
 PENDING = ("creating", "payment_pending", "payment_review")
 
@@ -216,6 +216,7 @@ class Store:
         order = {
             "id": str(uuid.uuid4()),
             "session": id,
+            "userId": self.state["sessions"][id].get("userId"),
             "key": key,
             **cart,
             "createdAt": iso(),
@@ -308,7 +309,11 @@ class Store:
         state = copy.deepcopy(self.state)
         order = next(o for o in state["orders"] if o["id"] == id)
         order.update(
-            shipmentEvent={"eventId": str(uuid.uuid4()), "occurredAt": iso()},
+            shipmentEvent={
+                "eventId": str(uuid.uuid4()),
+                "occurredAt": iso(),
+                "traceparent": trace_header(),
+            },
             status="paid",
             paymentCaptured=True,
             paymentId=payment["paymentId"],

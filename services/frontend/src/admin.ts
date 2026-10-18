@@ -35,6 +35,25 @@ async function loadUsers(append = false): Promise<void> {
   const result = await adminRequest<{ users: AdminUser[]; next: string | null }>('/api/admin/users' + (append && nextUsers ? `?after=${encodeURIComponent(nextUsers)}` : ''));
   const rows = result.users.map(user => {
     const row = node('div'); row.className = 'admin-user'; row.append(node('strong', user.name), node('span', user.email));
+    const inspect = node('button', 'Customer details'); inspect.className = 'button secondary';
+    const details = node('div'); details.className = 'customer-details'; details.hidden = true;
+    inspect.addEventListener('click', async () => {
+      details.replaceChildren(); details.hidden = false; inspect.disabled = true;
+      try {
+        const [profile, history] = await Promise.all([
+          adminRequest<{ activity: { lastLoginAt?: string; lastLoginIp?: string; loginCount?: number }; addresses: { address: { recipient: string; line1: string; postalCode: string }; city: { name: string; country: string } }[] }>(`/api/admin/users/${user.id}/profile`),
+          adminRequest<{ purchases: { id: string; paidAt: string; total: number; currency: string }[]; next: string | null }>(`/api/admin/users/${user.id}/purchases`),
+        ]);
+        details.append(node('p', `Last login: ${profile.activity.lastLoginAt || 'Unavailable'} · IP: ${profile.activity.lastLoginIp || 'Unavailable'} · Logins: ${profile.activity.loginCount || 0}`));
+        for (const item of profile.addresses) details.append(node('p', `${item.address.recipient} · ${item.address.line1} · ${item.city.name}, ${item.city.country} ${item.address.postalCode}`));
+        function add(rows: { id: string; paidAt: string; total: number; currency: string }[]): void { for (const order of rows) details.append(node('p', `${order.paidAt} · ${order.id} · ${order.currency} ${order.total.toFixed(2)}`)); }
+        add(history.purchases); if (!history.purchases.length) details.append(node('p', 'No completed purchases.'));
+        let cursor = history.next; const more = node('button', 'More purchases'); more.hidden = !cursor; details.append(more);
+        more.addEventListener('click', async () => { more.disabled = true; try { const page = await adminRequest<typeof history>(`/api/admin/users/${user.id}/purchases?cursor=${encodeURIComponent(cursor || '')}`); add(page.purchases); cursor = page.next; more.hidden = !cursor; } catch (error) { control('admin-status').textContent = message(error); } finally { more.disabled = false; } });
+      } catch (error) { details.replaceChildren(node('p', message(error))); }
+      finally { inspect.disabled = false; }
+    });
+    row.append(inspect, details);
     if (user.role === 'superadmin') { row.append(node('span', 'Super admin · protected')); return row; }
     const role = node('select'); role.setAttribute('aria-label', `Role for ${user.email}`);
     for (const value of ['customer', 'admin']) role.append(new Option(value, value)); role.value = user.role;

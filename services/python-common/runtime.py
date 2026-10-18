@@ -12,6 +12,8 @@ import urllib.error
 import urllib.request
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
+from urllib.parse import urlsplit
 from datetime import datetime, timezone
 from http import HTTPStatus
 from urllib.parse import parse_qs
@@ -26,6 +28,53 @@ class HttpError(Exception):
 ctx = contextvars.ContextVar("request_context", default=None)
 exports = ThreadPoolExecutor(max_workers=2)
 export_slots = threading.BoundedSemaphore(32)
+SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", "robotshop")
+
+
+def configure_telemetry(service):
+    global SERVICE_NAME
+    SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", service)
+
+
+def trace_context(header=None):
+    match = re.fullmatch(r"00-([a-f0-9]{32})-([a-f0-9]{16})-(0[01])", header or "")
+    if match and (int(match[1], 16) == 0 or int(match[2], 16) == 0):
+        match = None
+    return {
+        "traceId": match[1] if match else secrets.token_hex(16),
+        "spanId": secrets.token_hex(8),
+        "attributes": {},
+        "flags": match[3] if match else "01",
+        **({"parentSpanId": match[2]} if match else {}),
+    }
+
+
+def trace_header(context=None):
+    context = context or ctx.get()
+    return (
+        f"00-{context['traceId']}-{context['spanId']}-{context.get('flags', '01')}"
+        if context
+        else None
+    )
+
+
+@contextmanager
+def trace_span(name, kind=1, attributes=None, parent=None, service=None):
+    previous = ctx.get()
+    context = trace_context(parent or trace_header(previous))
+    context["service"] = service or (previous or {}).get("service", SERVICE_NAME)
+    context["kind"] = kind
+    context["attributes"] = attributes or {}
+    token = ctx.set(context)
+    start, status = time.time_ns(), 200
+    try:
+        yield context
+    except Exception:
+        status = 500
+        raise
+    finally:
+        telemetry(context["service"], context, start, name, status)
+        ctx.reset(token)
 
 
 def now():
@@ -48,11 +97,11 @@ def text(value, name="Message", maximum=1000):
     return value.strip()
 
 
-def request(url, data=None, headers=None, timeout=12, method=None):
+def _request(url, data=None, headers=None, timeout=12, method=None):
     headers = {"content-type": "application/json", **(headers or {})}
     context = ctx.get()
     if context:
-        headers["traceparent"] = f"00-{context['traceId']}-{context['spanId']}-01"
+        headers["traceparent"] = trace_header(context)
     req = urllib.request.Request(
         url,
         data=encode(data) if data is not None else None,
@@ -70,7 +119,7 @@ def request(url, data=None, headers=None, timeout=12, method=None):
         ) from error
 
 
-def upstream(url, data=None, headers=None, timeout=15, method=None):
+def _upstream(url, data=None, headers=None, timeout=15, method=None):
     # Preserve payment/shipping validation errors without leaking upstream internals.
     req = urllib.request.Request(
         url,
@@ -80,7 +129,7 @@ def upstream(url, data=None, headers=None, timeout=15, method=None):
     )
     context = ctx.get()
     if context:
-        req.add_header("traceparent", f"00-{context['traceId']}-{context['spanId']}-01")
+        req.add_header("traceparent", trace_header(context))
     try:
         with urllib.request.urlopen(req, timeout=timeout) as response:
             return json.load(response)
@@ -99,6 +148,30 @@ def upstream(url, data=None, headers=None, timeout=15, method=None):
         raise HttpError(
             503, "Dependent service unavailable. Please try again."
         ) from error
+
+
+def request(url, data=None, headers=None, timeout=12, method=None):
+    with trace_span(
+        "HTTP " + (method or ("POST" if data is not None else "GET")),
+        kind=3,
+        attributes={
+            "server.address": urlsplit(url).hostname or "",
+            "http.request.method": method or ("POST" if data is not None else "GET"),
+        },
+    ):
+        return _request(url, data, headers, timeout, method)
+
+
+def upstream(url, data=None, headers=None, timeout=15, method=None):
+    with trace_span(
+        "HTTP " + (method or ("POST" if data is not None else "GET")),
+        kind=3,
+        attributes={
+            "server.address": urlsplit(url).hostname or "",
+            "http.request.method": method or ("POST" if data is not None else "GET"),
+        },
+    ):
+        return _upstream(url, data, headers, timeout, method)
 
 
 class Request:
@@ -169,6 +242,8 @@ class Request:
 
 
 def telemetry(service, context, start, route, status):
+    if os.getenv("OTEL_SDK_DISABLED") == "true" or context.get("flags", "01") == "00":
+        return
     targets = []
     if os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"):
         targets.append((os.environ["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"], {}))
@@ -193,12 +268,18 @@ def telemetry(service, context, start, route, status):
         "traceId": context["traceId"],
         "spanId": context["spanId"],
         "name": route,
-        "kind": 2,
+        "kind": context.get("kind", 2),
+        "flags": 1,
         "startTimeUnixNano": str(start),
         "endTimeUnixNano": str(time.time_ns()),
         "status": {"code": 2 if status >= 500 else 1},
         "attributes": [
-            {"key": k, "value": {"stringValue": str(v)}}
+            {
+                "key": k,
+                "value": (
+                    {"intValue": str(v)} if type(v) is int else {"stringValue": str(v)}
+                ),
+            }
             for k, v in {
                 "http.response.status_code": status,
                 **context["attributes"],
@@ -212,7 +293,23 @@ def telemetry(service, context, start, route, status):
             {
                 "resource": {
                     "attributes": [
-                        {"key": "service.name", "value": {"stringValue": service}}
+                        {"key": "service.name", "value": {"stringValue": service}},
+                        {
+                            "key": "service.version",
+                            "value": {
+                                "stringValue": os.getenv(
+                                    "OTEL_SERVICE_VERSION", "0.2.0"
+                                )
+                            },
+                        },
+                        {
+                            "key": "deployment.environment.name",
+                            "value": {
+                                "stringValue": os.getenv(
+                                    "DEPLOYMENT_ENVIRONMENT", "development"
+                                )
+                            },
+                        },
                     ]
                 },
                 "scopeSpans": [
@@ -224,7 +321,7 @@ def telemetry(service, context, start, route, status):
 
     def send(url, headers):
         try:
-            request(url, payload, headers, timeout=2)
+            _request(url, payload, headers, timeout=2)
         except Exception:
             pass
         finally:
@@ -242,17 +339,8 @@ def application(service, handler):
     def app(environ, start_response):
         start = time.time_ns()
         req = Request(environ)
-        incoming = re.fullmatch(
-            r"00-([a-f0-9]{32})-([a-f0-9]{16})-0[01]",
-            req.headers.get("traceparent", ""),
-        )
-        context = {
-            "traceId": incoming[1] if incoming else secrets.token_hex(16),
-            "spanId": secrets.token_hex(8),
-            "attributes": {},
-        }
-        if incoming:
-            context["parentSpanId"] = incoming[2]
+        context = trace_context(req.headers.get("traceparent"))
+        context["service"] = service
         token = ctx.set(context)
         status, headers = 200, [
             ("Content-Type", "application/json; charset=utf-8"),
@@ -267,6 +355,7 @@ def application(service, handler):
             "/api/" + s
             for s in (
                 "auth",
+                "account",
                 "admin",
                 "settings",
                 "catalogue",
@@ -366,6 +455,8 @@ def application(service, handler):
 
 def serve(service, port, handler):
     from waitress import serve as run
+
+    configure_telemetry(service)
 
     run(
         application(service, handler),

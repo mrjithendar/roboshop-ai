@@ -8,7 +8,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python-common"))
-from runtime import upstream, HttpError
+from runtime import upstream, HttpError, trace_span, configure_telemetry
 
 STRING = {"type": "string", "maxLength": 1000}
 SKU = {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$"}
@@ -302,7 +302,12 @@ class MCP:
             try:
                 args = params.get("arguments", {})
                 validate(args, spec["inputSchema"])
-                result = self.call(spec["name"], args)
+                with trace_span(
+                    "mcp.tool " + spec["name"],
+                    service="mcp-server",
+                    attributes={"rpc.system": "mcp", "mcp.tool.name": spec["name"]},
+                ):
+                    result = self.call(spec["name"], args)
                 return reply(
                     {
                         "content": [{"type": "text", "text": json.dumps(result)}],
@@ -324,6 +329,7 @@ class MCP:
 
 
 def main():
+    configure_telemetry("mcp-server")
     server = MCP()
     while True:
         line = sys.stdin.buffer.readline(16386)

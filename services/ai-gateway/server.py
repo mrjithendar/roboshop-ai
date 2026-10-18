@@ -10,7 +10,8 @@ from urllib.parse import urlencode
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "services/python-common"))
-from runtime import HttpError, serve, request, upstream, text
+from runtime import HttpError, serve, request, upstream, text, configure_telemetry
+from customers import Customers
 from auth import Auth, connect_mongo, public_user, require_role
 from admin import routes as admin_routes, settings
 from store import Store, cents
@@ -19,7 +20,11 @@ from catalogue import retrieve
 
 
 def public_order(o):
-    return {k: v for k, v in o.items() if k not in ("session", "key", "shipmentEvent")}
+    return {
+        k: v
+        for k, v in o.items()
+        if k not in ("session", "key", "shipmentEvent", "userId", "customerSyncedAt")
+    }
 
 
 def expectation(o):
@@ -47,6 +52,8 @@ class Gateway:
         self.store = store
         self.auth = Auth(db)
         self.auth.initialize()
+        configure_telemetry("ai-gateway")
+        self.customers = Customers(db, store)
         self.limits = {}
         self.limit_lock = threading.Lock()
         self.origin = os.getenv(
@@ -165,12 +172,47 @@ class Gateway:
                 if path.endswith("/register")
                 else self.auth.login(data)
             )
+            self.customers.record_login(
+                user["_id"],
+                client_address(req),
+                req.headers.get("user-agent", ""),
+                registration=path.endswith("/register"),
+            )
             new = self.auth.issue(user)
             self.auth.logout(token)
             req.set_cookie("rs_auth", new, 28800)
             req.user = public_user(user)
-            self.session(req)
+            cart_id = self.session(req)
+            with self.store.lock:
+                shipping = self.store.state["sessions"][cart_id].get("shipping")
+            if shipping:
+                self.customers.save_address(req.user["id"], shipping)
             return {"user": req.user}, 201 if path.endswith("/register") else 200, []
+        if path.startswith("/api/account/"):
+            require_role(req.user)
+            if method != "GET":
+                return
+            if path == "/api/account/profile":
+                return self.customers.profile(req.user["id"])
+            if path == "/api/account/purchases":
+                return self.customers.purchases(
+                    req.user["id"], req.query.get("cursor", "")
+                )
+            if path == "/api/account/activity":
+                return self.customers.activity(req.user["id"])
+            return
+        customer = re.fullmatch(
+            r"/api/admin/users/([a-f0-9-]{36})/(profile|purchases|activity)", path
+        )
+        if customer and method == "GET":
+            require_role(req.user, ["superadmin"])
+            if not self.db.users.find_one({"_id": customer[1]}, {"_id": 1}):
+                raise HttpError(404, "User not found.")
+            if customer[2] == "profile":
+                return self.customers.profile(customer[1])
+            if customer[2] == "activity":
+                return self.customers.activity(customer[1])
+            return self.customers.purchases(customer[1], req.query.get("cursor", ""))
         if path.startswith("/api/admin/"):
             if (
                 method not in ("GET", "HEAD")
@@ -208,6 +250,8 @@ class Gateway:
             if not quote:
                 return result
             products = self.catalogue()
+            if req.user:
+                self.customers.save_address(req.user["id"], result)
             with self.store.lock:
                 return self.store.set_shipping(id, result, products)
         if path == "/api/status" and method == "GET":
@@ -465,8 +509,10 @@ if __name__ == "__main__":
     gateway = Gateway(db, store)
     publisher = OrderPublisher(store, os.getenv("RABBITMQ_URL"))
     publisher.start()
+    gateway.customers.start()
     try:
         serve("ai-gateway", 3000, gateway.handle)
     finally:
         publisher.stop()
+        gateway.customers.stop()
         client.close()
