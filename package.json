@@ -26,7 +26,7 @@
     "amqplib": "^2.2.0"
   },
   "devDependencies": {
-    "jsdom": "30.1.2",
-    "typescript": "5.9.3"
+    "jsdom": "26.1.0",
+    "typescript": "7.0.2"
   }
 }
