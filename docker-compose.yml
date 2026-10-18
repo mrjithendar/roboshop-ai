@@ -1,10 +1,7 @@
 name: robotshop-ai
 services:
   product-ingestion:
-    build:
-      context: .
-      dockerfile: services/product-ingestion/Dockerfile
-    image: robotshop-product-ingestion:local
+    image: ${IMAGE_PREFIX:-robotshop}-product-ingestion:${IMAGE_TAG:-local}
     environment:
       INGESTION_URL: http://product-ingestion:4101
       RECOMMENDATION_URL: http://recommendation-service:4102
@@ -41,10 +38,7 @@ services:
       mongodb:
         condition: service_healthy
   recommendation-service:
-    build:
-      context: .
-      dockerfile: services/recommendation-service/Dockerfile
-    image: robotshop-recommendation-service:local
+    image: ${IMAGE_PREFIX:-robotshop}-recommendation-service:${IMAGE_TAG:-local}
     environment:
       INGESTION_URL: http://product-ingestion:4101
       RECOMMENDATION_URL: http://recommendation-service:4102
@@ -80,10 +74,7 @@ services:
       product-ingestion:
         condition: service_healthy
   shopping-agent:
-    build:
-      context: .
-      dockerfile: services/shopping-agent/Dockerfile
-    image: robotshop-shopping-agent:local
+    image: ${IMAGE_PREFIX:-robotshop}-shopping-agent:${IMAGE_TAG:-local}
     environment:
       INGESTION_URL: http://product-ingestion:4101
       RECOMMENDATION_URL: http://recommendation-service:4102
@@ -124,10 +115,7 @@ services:
       product-ingestion:
         condition: service_healthy
   sre-copilot:
-    build:
-      context: .
-      dockerfile: services/sre-copilot/Dockerfile
-    image: robotshop-sre-copilot:local
+    image: ${IMAGE_PREFIX:-robotshop}-sre-copilot:${IMAGE_TAG:-local}
     environment:
       INGESTION_URL: http://product-ingestion:4101
       RECOMMENDATION_URL: http://recommendation-service:4102
@@ -161,10 +149,7 @@ services:
         max-size: 10m
         max-file: '3'
   ai-gateway:
-    build:
-      context: .
-      dockerfile: services/ai-gateway/Dockerfile
-    image: robotshop-ai-gateway:local
+    image: ${IMAGE_PREFIX:-robotshop}-ai-gateway:${IMAGE_TAG:-local}
     environment:
       INGESTION_URL: http://product-ingestion:4101
       RECOMMENDATION_URL: http://recommendation-service:4102
@@ -247,10 +232,7 @@ services:
     ports:
     - 127.0.0.1:9090:9090
   payment-service:
-    build:
-      context: .
-      dockerfile: services/payment-service/Dockerfile
-    image: robotshop-payment-service:local
+    image: ${IMAGE_PREFIX:-robotshop}-payment-service:${IMAGE_TAG:-local}
     environment:
       INGESTION_URL: http://product-ingestion:4101
       RECOMMENDATION_URL: http://recommendation-service:4102
@@ -289,10 +271,7 @@ services:
         max-size: 10m
         max-file: '3'
   shipping-service:
-    build:
-      context: .
-      dockerfile: services/shipping-service/Dockerfile
-    image: robotshop-shipping:local
+    image: ${IMAGE_PREFIX:-robotshop}-shipping:${IMAGE_TAG:-local}
     command: []
     environment:
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
@@ -359,10 +338,7 @@ services:
       service: nginx
   mcp-server:
     profiles: [tools]
-    build:
-      context: .
-      dockerfile: services/mcp-server/Dockerfile
-    image: robotshop-mcp-server:local
+    image: ${IMAGE_PREFIX:-robotshop}-mcp-server:${IMAGE_TAG:-local}
     stdin_open: true
     init: true
     read_only: true

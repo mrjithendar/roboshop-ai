@@ -2,10 +2,7 @@
 # Run Compose from the repository root; paths here are relative to this directory.
 services:
   nginx:
-    build:
-      context: ../..
-      dockerfile: services/nginx/Dockerfile
-    image: robotshop-nginx:local
+    image: ${IMAGE_PREFIX:-robotshop}-nginx:${IMAGE_TAG:-local}
     environment:
       GATEWAY_HOST: ai-gateway
       GATEWAY_PORT: '3000'

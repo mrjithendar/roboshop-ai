@@ -22,7 +22,8 @@ Migrations run inside shipping startup before HTTP/message processing, in a tran
 Copy `.env.example` to `.env`, preserving any existing credentials. Set separate strong URL-safe `SHIPPING_DB_PASSWORD` (schema owner) and `SHIPPING_APP_PASSWORD` (restricted runtime service). Then:
 
 ```sh
-docker compose up -d --build
+./build-images.sh
+docker compose up -d
 ```
 
 Compose initializes PostgreSQL on its persistent `shipping-postgres` volume, creates the runtime role with read-only location access and INSERT on shipment requests, starts shipping, which initializes its schema and location data before becoming healthy. Database credentials are configuration, never source constants. The initialization script runs only for a new database volume; apply equivalent grants manually when adopting an existing database. Never remove a volume to rotate credentials.
@@ -57,7 +58,7 @@ java -jar build/libs/shipping-service.jar
 
 Direct Java commands read exported environment variables, not `.env`; the root npm development command loads `.env` for you. The runnable JAR includes the compressed data snapshot and SQL migrations. Migration checksums and seed IDs are compatible with the previous Node implementation, so existing PostgreSQL databases are retained. Startup briefly opens the separate owner connection, runs checksum-protected migrations and seeds, then closes it. Normal requests use the restricted runtime role. Initialization failure prevents service startup; an advisory lock serializes concurrent starts. No separate migration container or Job is required.
 
-Compose builds `robotshop-shipping:local` using a separate multi-stage Java Dockerfile. Helm configures `shipping.image` separately from the Node application image. Java containers have a writable `/tmp` volume for Tomcat and a read-only root filesystem. Prometheus metrics remain at `/metrics` using standard Micrometer names; HTTP health remains `/health`, with database readiness at `/api/shipping/ready`. Set `SHIPPING_TRACING_ENABLED=true` and `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` to enable OpenTelemetry export; the dev launcher, Compose and Helm wire this automatically.
+The root `./build-images.sh` builds `robotshop-shipping:local` using the dedicated multi-stage Java Dockerfile; Compose runs that image. Helm configures `shipping.image` separately from the Node application image. Java containers have a writable `/tmp` volume for Tomcat and a read-only root filesystem. Prometheus metrics remain at `/metrics` using standard Micrometer names; HTTP health remains `/health`, with database readiness at `/api/shipping/ready`. Set `SHIPPING_TRACING_ENABLED=true` and `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` to enable OpenTelemetry export; the dev launcher, Compose and Helm wire this automatically.
 
 Gradle dependency locking and a verified Wrapper distribution checksum provide repeatable builds. Run `./gradlew test bootJar --write-locks` after reviewing dependency upgrades. CI uses Java 21, runs Java unit tests and the full HTTP checkout tests against PostgreSQL, and builds both Node and Java images.
 

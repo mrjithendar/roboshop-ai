@@ -43,7 +43,8 @@ Set `SHIPPING_DB_PASSWORD`, `SHIPPING_APP_PASSWORD`, `REDIS_PASSWORD`, `RABBITMQ
 
 ```sh
 docker compose config --quiet
-docker compose up --build -d
+./build-images.sh
+docker compose up -d
 ```
 
 | Endpoint | Purpose |
@@ -215,7 +216,7 @@ verification results, and remaining production work.
 
 Shipping performs schema migrations and location seeding within its own Java process
 before accepting traffic. There is no separate migration service or Helm Job. For
-an existing Compose deployment, `docker compose up -d --build --remove-orphans`
+an existing Compose deployment, `docker compose up -d --remove-orphans`
 removes the retired migration container while retaining named database volumes.
 
 ## Login and administration
@@ -236,10 +237,10 @@ Build from the repository root, for example:
 
 ```sh
 docker build -f services/ai-gateway/Dockerfile -t robotshop-ai-gateway:local .
-docker compose build
+./build-images.sh
 ```
 
-Compose selects each service Dockerfile automatically. Java shipping and NGINX
+Run `./build-images.sh` before starting Compose. Compose uses the resulting images and contains no build directives. Java shipping and NGINX
 retain their dedicated Dockerfiles. NGINX compiles and serves the TypeScript
 frontend; backend images do not include frontend assets or other application services.
 Redis, RabbitMQ, MongoDB and PostgreSQL use their official images and existing
@@ -292,3 +293,33 @@ rules](docs/architecture/customer-records.md).
 OpenTelemetry covers HTTP services, MCP tool calls, downstream requests and the
 RabbitMQ payment-to-shipping flow. Jaeger is available at `http://localhost:16686`
 when the Compose stack is running. See [tracing coverage and configuration](observability/opentelemetry/README.md).
+
+## Build all Docker images
+
+From the repository root:
+
+```sh
+./build-images.sh
+docker compose up -d
+```
+
+The script builds nine images: gateway, ingestion, recommendations, shopping agent,
+SRE, payments, MCP, Java shipping and NGINX (which includes the frontend). MongoDB,
+PostgreSQL, Redis, RabbitMQ and observability backends use their configured official
+images; Compose pulls them when needed. MCP remains under the optional `tools` profile.
+
+To use a custom registry prefix/tag, export the same values for both commands:
+
+```sh
+export IMAGE_PREFIX=registry.example.com/team/robotshop
+export IMAGE_TAG=release-1
+./build-images.sh
+docker compose up -d
+```
+
+The script reads exported environment variables, not `.env`. Shell exports also
+override Compose `.env` values, keeping build and runtime tags consistent. It does
+not push images. `./build-images.sh --help` documents `--pull`, `--no-cache`,
+`--platform` and `--dry-run`. It stops at the first failed build. Rebuild before
+recreating services after code changes; `docker compose build` no longer builds
+application images. The legacy Compose stack is unchanged.

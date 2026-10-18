@@ -6,7 +6,7 @@ Compose file owns the `shipping-postgres` named volume and makes shipping wait f
 SQL migrations and location seed before starting its HTTP server.
 
 From the repository root, configure `SHIPPING_DB_PASSWORD` and
-`SHIPPING_APP_PASSWORD` in `.env`, then run `docker compose up -d --build`. Changing
+`SHIPPING_APP_PASSWORD` in `.env`, build application images with `./build-images.sh`, then run `docker compose up -d`. Changing
 an environment password does not rotate credentials in an existing database;
 perform an explicit database role rotation. Never delete the volume to rotate keys.
 

@@ -31,7 +31,8 @@ the storefront in container deployments.
 `src/`, compiler configuration, and README files are not public routes.
 
 ```sh
-docker compose up -d --build nginx
+./build-images.sh
+docker compose up -d nginx
 # Storefront: http://localhost:3000
 ```
 

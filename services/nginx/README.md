@@ -36,7 +36,8 @@ Browser → NGINX :8080 (HTTP) / :8443 (optional HTTPS)
 Configure the PostgreSQL, Redis and RabbitMQ credentials in the project's `.env` first, as described in the root README. Then, from the repository root:
 
 ```sh
-docker compose up -d --build
+./build-images.sh
+docker compose up -d
 ```
 
 Open **http://localhost:3000**. That port now belongs to NGINX; the gateway's port is no longer published. Its internal address remains `ai-gateway:3000`. Existing frontend API paths and the default `PUBLIC_ORIGIN` still work. Rebuild the NGINX image after changing frontend files or configuration.
@@ -58,7 +59,7 @@ The default HTTP setup does not enable live payment configuration by itself. For
 3. Start with the overlay:
 
 ```sh
-docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
 ```
 
 The overlay exposes loopback ports 80/443 and sets the gateway/payment `PUBLIC_ORIGIN` to `https://NGINX_SERVER_NAME`. The existing port 3000 also redirects to HTTPS. Hostname DNS/hosts resolution and certificates must match. For an externally reachable deployment, configure the network bindings, DNS and firewall deliberately. After certificate renewal, reload NGINX with `nginx -s reload -c /tmp/robotshop-nginx/nginx.conf`.

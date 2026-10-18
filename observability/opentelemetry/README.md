@@ -2,7 +2,7 @@
 
 Compose configures every HTTP application service to export to
 `http://otel-collector:4318/v1/traces`. The collector batches traces and exports them
-to Jaeger. Start the stack using `docker compose up -d --build`; browse
+to Jaeger. Build application images with `./build-images.sh`, then start the stack using `docker compose up -d`; browse
 `http://localhost:16686` and select a service. This command starts the application's
 configured databases/services too. Native development uses
 `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:4318/v1/traces` with a running

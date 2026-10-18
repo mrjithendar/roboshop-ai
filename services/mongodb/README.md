@@ -9,7 +9,8 @@ and seeds the catalogue in this database.
 `MONGO_APP_PASSWORD` in the ignored `.env`, then run from the repository root:
 
 ```sh
-docker compose up -d --build
+./build-images.sh
+docker compose up -d
 ```
 
 Use long, randomly generated URL-safe passwords for local Compose because its app
