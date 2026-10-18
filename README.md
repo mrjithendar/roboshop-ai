@@ -12,7 +12,6 @@ Requires Node.js 24 or newer, Java 21 or newer, and PostgreSQL 17. Configure dat
 ```sh
 npm ci
 npm run shipping:build
-npm run shipping:migrate
 npm run dev
 ```
 
@@ -55,7 +54,7 @@ docker compose up --build -d
 | http://localhost:16686 | Jaeger distributed traces |
 | http://localhost:3000/api/ready | Dependency readiness |
 
-Compose runs seven application services, PostgreSQL and a migration job, an OpenTelemetry collector, Jaeger,
+Compose runs seven application services, PostgreSQL, an OpenTelemetry collector, Jaeger,
 and Prometheus. Published ports bind to loopback. The app image runs as a non-root
 user with a read-only root filesystem; only the gateway's data volume is writable.
 Stop with `docker compose down`. Do not add `--volumes` unless you intend to delete
@@ -185,7 +184,7 @@ automated cancellation, refunds, disputes, and fulfilment are not implemented.
 
 ## PostgreSQL shipping
 
-Shipping now requires a dedicated PostgreSQL server. Run `npm ci` and configure database credentials before `npm run shipping:migrate` and `npm run dev`. Compose includes PostgreSQL, a migration job and persistent storage; Helm uses an external TLS-enabled database. See [shipping setup and data coverage](services/shipping-service/README.md). Checkout now requires a delivery address and shipping quote, and payment totals include shipping.
+Shipping now requires a dedicated PostgreSQL server. Run `npm ci` and configure database credentials before `npm run dev`. Shipping initializes its SQL schema and location data during startup. Compose includes PostgreSQL and persistent storage; Helm uses an external TLS-enabled database. See [shipping setup and data coverage](services/shipping-service/README.md). Checkout now requires a delivery address and shipping quote, and payment totals include shipping.
 
 Redis caching and RabbitMQ order events are enabled in Compose. Redis accelerates location lookups; RabbitMQ delivers confirmed orders to Java shipping, which records shipment requests in PostgreSQL. Run migrations before starting the updated stack. See [cache and messaging configuration](services/shipping-service/README.md#redis-and-rabbitmq). RabbitMQ management is available locally at http://localhost:15672 with your configured credentials. Stop the stack with `docker compose down`; retain volumes to preserve PostgreSQL and RabbitMQ data.
 
@@ -213,3 +212,8 @@ assets through the gateway. After changing frontend code, rebuild/restart your
 chosen deployment. See the [frontend guide](services/frontend/README.md) and the
 [architecture review](docs/architecture/2026-10-18-review.md) for boundaries,
 verification results, and remaining production work.
+
+Shipping performs schema migrations and location seeding within its own Java process
+before accepting traffic. There is no separate migration service or Helm Job. For
+an existing Compose deployment, `docker compose up -d --build --remove-orphans`
+removes the retired migration container while retaining named database volumes.

@@ -63,6 +63,11 @@ spec:
                 secretKeyRef:
                   name: {{ required "Set shipping.databaseSecretName to an existing PostgreSQL credentials Secret" $root.Values.shipping.databaseSecretName }}
                   key: SHIPPING_DATABASE_URL
+            - name: SHIPPING_MIGRATION_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "Set shipping.migrationSecretName for shipping startup migrations" $root.Values.shipping.migrationSecretName }}
+                  key: SHIPPING_MIGRATION_DATABASE_URL
             - name: SHIPPING_DB_TLS
               value: "true"
             {{- end }}
@@ -133,7 +138,7 @@ spec:
             httpGet:
               path: /health
               port: http
-            failureThreshold: 30
+            failureThreshold: {{ if eq $name "shipping-service" }}150{{ else }}30{{ end }}
             periodSeconds: 2
           livenessProbe:
             httpGet:

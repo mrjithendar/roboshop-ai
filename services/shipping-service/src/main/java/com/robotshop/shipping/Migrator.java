@@ -1,7 +1,7 @@
 package com.robotshop.shipping;
 
 import javax.sql.DataSource;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;

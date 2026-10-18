@@ -35,6 +35,7 @@ shipping:
       cpu: 1000m
       memory: 512Mi
   databaseSecretName: ""
+  # Owner credentials used by shipping itself during startup; no separate Job.
   migrationSecretName: ""
 
 # Managed Redis/RabbitMQ with TLS. Credentials and endpoints come from an existing Secret.

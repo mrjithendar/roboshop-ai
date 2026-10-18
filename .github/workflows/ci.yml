@@ -1,5 +1,6 @@
 name: RobotShop checks
 on:
+  workflow_dispatch:
   push:
   pull_request:
 permissions:
@@ -54,7 +55,6 @@ jobs:
       - run: npm ci
       - run: npm run frontend:typecheck
       - run: npm run shipping:build
-      - run: npm run shipping:migrate
       - run: docker build -f services/nginx/Dockerfile --tag robotshop-nginx:ci .
       - run: npm test
         env:

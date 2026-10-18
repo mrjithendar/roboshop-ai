@@ -2,8 +2,8 @@
 
 `compose.yml` owns the PostgreSQL service. `10-shipping-role.sh` runs only when a new
 data volume is initialized and creates the restricted `shipping_app` role. The root
-Compose file owns the `shipping-postgres` named volume and sequences the Java
-migration job before shipping starts.
+Compose file owns the `shipping-postgres` named volume and makes shipping wait for database health. Shipping runs its own
+SQL migrations and location seed before starting its HTTP server.
 
 From the repository root, configure `SHIPPING_DB_PASSWORD` and
 `SHIPPING_APP_PASSWORD` in `.env`, then run `docker compose up -d --build`. Changing

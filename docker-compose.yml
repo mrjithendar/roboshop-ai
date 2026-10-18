@@ -287,6 +287,8 @@ services:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:?Set RABBITMQ_USERNAME}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}
+      SHIPPING_MIGRATION_DATABASE_URL: postgresql://shipping:${SHIPPING_DB_PASSWORD:?Set
+        SHIPPING_DB_PASSWORD}@shipping-db:5432/shipping
     init: true
     restart: unless-stopped
     read_only: true
@@ -301,18 +303,18 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
-      start_period: 30s
+      start_period: 120s
     logging:
       driver: json-file
       options:
         max-size: 10m
         max-file: '3'
     depends_on:
-      shipping-migrate:
-        condition: service_completed_successfully
       redis:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      shipping-db:
         condition: service_healthy
     tmpfs:
     - /tmp
@@ -320,23 +322,6 @@ services:
     extends:
       file: services/postgres/compose.yml
       service: shipping-db
-  shipping-migrate:
-    build:
-      context: .
-      dockerfile: services/shipping-service/Dockerfile
-    image: robotshop-shipping:local
-    command:
-    - --migrate
-    environment:
-      SHIPPING_DATABASE_URL: postgresql://shipping:${SHIPPING_DB_PASSWORD:?Set SHIPPING_DB_PASSWORD}@shipping-db:5432/shipping
-      SHIPPING_DB_TLS: 'false'
-      SHIPPING_TRACING_ENABLED: 'false'
-    depends_on:
-      shipping-db:
-        condition: service_healthy
-    restart: 'no'
-    tmpfs:
-    - /tmp
   redis:
     extends:
       file: services/redis/compose.yml

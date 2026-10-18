@@ -13,7 +13,6 @@
     "evaluate": "node scripts/evaluate.mjs",
     "ingest": "node services/product-ingestion/import.mjs",
     "mcp": "node --env-file-if-exists=.env services/mcp-server/server.mjs",
-    "shipping:migrate": "node --env-file-if-exists=.env scripts/shipping.mjs",
     "shipping:build": "sh services/shipping-service/gradlew -p services/shipping-service --no-daemon test bootJar",
     "predev": "npm run frontend:build && npm run shipping:build",
     "prestart": "npm run frontend:build && npm run shipping:build",
@@ -24,14 +23,10 @@
     "pretest:nginx": "npm run frontend:build"
   },
   "dependencies": {
-<<<<<<< HEAD
-    "amqplib": "^0.10.9"
+    "amqplib": "^2.2.0"
   },
   "devDependencies": {
     "jsdom": "26.1.0",
     "typescript": "5.9.3"
-=======
-    "amqplib": "^2.2.0"
->>>>>>> baab61f5e68d12d83373f2d359378bab680eecbf
   }
 }
