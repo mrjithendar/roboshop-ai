@@ -1,9 +1,9 @@
-FROM eclipse-temurin:21-jdk AS build
+FROM eclipse-temurin:24-jdk AS build
 WORKDIR /workspace
 COPY services/shipping-service/ ./
 RUN chmod +x gradlew && ./gradlew --no-daemon bootJar
 
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 RUN addgroup -g 1000 shipping && adduser -D -u 1000 -G shipping shipping
 WORKDIR /app
 COPY --from=build --chown=shipping:shipping /workspace/build/libs/shipping-service.jar /app/shipping-service.jar

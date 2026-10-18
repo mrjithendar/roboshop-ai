@@ -24,10 +24,14 @@
     "pretest:nginx": "npm run frontend:build"
   },
   "dependencies": {
+<<<<<<< HEAD
     "amqplib": "^0.10.9"
   },
   "devDependencies": {
     "jsdom": "26.1.0",
     "typescript": "5.9.3"
+=======
+    "amqplib": "^2.2.0"
+>>>>>>> baab61f5e68d12d83373f2d359378bab680eecbf
   }
 }
