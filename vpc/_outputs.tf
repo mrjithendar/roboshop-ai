@@ -27,5 +27,14 @@ output "private_rt" {
 }
 
 output "availability_zones" {
-  value = random_shuffle.az_list.result
+  value = var.availability_zones
+}
+
+output "eks_subnet_ids" {
+  description = "Private subnets for the EKS control plane ENIs and managed node groups."
+  value       = local.privateSubnets
+}
+
+output "nat_gateway_ids" {
+  value = aws_nat_gateway.ngw[*].id
 }

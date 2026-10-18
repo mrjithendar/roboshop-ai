@@ -1,11 +1,9 @@
-data "aws_vpc" "default" {
+data "aws_availability_zones" "azs" {
+  state = "available"
   filter {
-    name   = "tag:Name"
-    values = ["Default"]
+    name   = "zone-type"
+    values = ["availability-zone"]
   }
 }
 
-data "aws_availability_zones" "azs" {
-  state         = "available"
-  exclude_names = ["us-east-1e"] #, "us-east-1f", "us-east-1c", "us-east-1d"]
-}
+data "aws_region" "current" {}
