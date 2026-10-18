@@ -1,0 +1,51 @@
+# Extended by root docker-compose.yml; run Compose from the repository root.
+services:
+  shipping-service:
+    extends:
+      file: ../common/compose.yml
+      service: telemetry
+    image: ${IMAGE_PREFIX:-robotshop}-shipping:${IMAGE_TAG:-local}
+    command: []
+    environment:
+      SHIPPING_DATABASE_URL: postgresql://shipping_app:${SHIPPING_APP_PASSWORD:?Set
+        SHIPPING_APP_PASSWORD}@shipping-db:5432/shipping
+      SHIPPING_DB_TLS: 'false'
+      SHIPPING_TRACING_ENABLED: ${SHIPPING_TRACING_ENABLED:-true}
+      CACHE_ENABLED: 'true'
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+      MESSAGING_ENABLED: 'true'
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-robotshop}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}
+      SHIPPING_MIGRATION_DATABASE_URL: postgresql://shipping:${SHIPPING_DB_PASSWORD:?Set
+        SHIPPING_DB_PASSWORD}@shipping-db:5432/shipping
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+    - ALL
+    security_opt:
+    - no-new-privileges:true
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:4106/api/shipping/ready
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 120s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      shipping-db:
+        condition: service_healthy
+    tmpfs:
+    - /tmp

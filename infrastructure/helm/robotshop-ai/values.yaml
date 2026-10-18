@@ -84,3 +84,16 @@ nginx:
 mongodb:
   secretName: ""
   database: robotshop
+
+frontend:
+  replicas: 1
+  image:
+    repository: robotshop-frontend
+    tag: local
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 250m
+      memory: 64Mi

@@ -2,7 +2,8 @@
 
 Compose interpolation happens before containers start. Missing `.env` values
 therefore prevent both `up` and `ps`. Run commands from the repository root.
-Common service URLs and telemetry settings are now defined once in YAML anchors.
+Common service URLs and telemetry settings are defined once in
+`services/common/compose.yml` and inherited using `extends`.
 RabbitMQ's username defaults to `robotshop`; database URLs are assembled by
 Compose. Only seven generated secrets are needed: separate Mongo root/app,
 Postgres owner/app, Redis, RabbitMQ passwords, and the internal payment token.

@@ -80,7 +80,7 @@ rating, or payment services.
 | Path | Implementation |
 | --- | --- |
 | `services/frontend/` | Strict TypeScript storefront; compiled assets served by NGINX, with Razorpay checkout loaded on demand |
-| `services/nginx/` | Edge server, split configuration, frontend image build and Compose deployment |
+| `services/nginx/` | Public reverse proxy, split configuration and Compose deployment |
 | `services/redis/` | Location cache configuration and Compose deployment |
 | `services/rabbitmq/` | Order-event broker configuration and Compose deployment |
 | `services/postgres/` | PostgreSQL deployment and least-privilege shipping role bootstrap |
@@ -204,11 +204,11 @@ remains under `infrastructure/helm/`; monitoring configuration stays under
 The storefront source is `services/frontend/src/app.ts`. Run `npm ci`, then
 `npm run frontend:build` to compile it into the ignored `services/frontend/dist/`
 directory. `npm run frontend:typecheck` checks the strict TypeScript contracts.
-`npm run dev`, `npm start`, and `npm test` build it automatically. Both Docker images
-compile it in a build stage, so no host-generated assets are required.
+`npm run dev`, `npm start`, and `npm test` build it automatically. The frontend Docker image
+compiles it in a build stage, so no host-generated assets are required.
 
-The frontend is deployed as static assets in the NGINX service; it does not need an
-additional Node process or network hop. Local development serves the same compiled
+The frontend is deployed in its own private static-server container. The separate
+NGINX edge proxies pages to `frontend:8080` and `/api/*` to `ai-gateway:3000`. Local development serves the same compiled
 assets through the gateway. After changing frontend code, rebuild/restart your
 chosen deployment. See the [frontend guide](services/frontend/README.md) and the
 [architecture review](docs/architecture/2026-10-18-review.md) for boundaries,
@@ -241,8 +241,7 @@ docker build -f services/ai-gateway/Dockerfile -t robotshop-ai-gateway:local .
 ```
 
 Run `./build-images.sh` before starting Compose. Compose uses the resulting images and contains no build directives. Java shipping and NGINX
-retain their dedicated Dockerfiles. NGINX compiles and serves the TypeScript
-frontend; backend images do not include frontend assets or other application services.
+retain their dedicated Dockerfiles. The frontend has its own Dockerfile and image; backend images do not include frontend assets or other application services.
 Redis, RabbitMQ, MongoDB and PostgreSQL use their official images and existing
 service-specific Compose configuration.
 
@@ -303,8 +302,8 @@ From the repository root:
 docker compose up -d
 ```
 
-The script builds nine images: gateway, ingestion, recommendations, shopping agent,
-SRE, payments, MCP, Java shipping and NGINX (which includes the frontend). MongoDB,
+The script builds ten images: gateway, ingestion, recommendations, shopping agent,
+SRE, payments, MCP, Java shipping, frontend and NGINX. MongoDB,
 PostgreSQL, Redis, RabbitMQ and observability backends use their configured official
 images; Compose pulls them when needed. MCP remains under the optional `tools` profile.
 
@@ -323,3 +322,31 @@ not push images. `./build-images.sh --help` documents `--pull`, `--no-cache`,
 `--platform` and `--dry-run`. It stops at the first failed build. Rebuild before
 recreating services after code changes; `docker compose build` no longer builds
 application images. The legacy Compose stack is unchanged.
+
+## Per-service Compose configuration
+
+The root `docker-compose.yml` lists all services using `extends` and declares the
+shared named volumes. Edit each service's settings in `services/<service>/compose.yml`;
+the `shipping-db` definition lives in `services/postgres/compose.yml`. Observability
+services also have definitions under `services/otel-collector`, `services/jaeger`
+and `services/prometheus`; their configuration files remain under `observability/`.
+
+Common telemetry settings and internal API URLs live in
+`services/common/compose.yml`. Application definitions inherit those templates;
+the templates are not extra running containers. Keep service-specific credentials
+in each consuming service's environment mapping.
+
+Always run from the repository root so Compose loads the project `.env` and all
+dependencies and volumes. The individual files are fragments, not standalone stacks:
+
+```bash
+docker compose config --quiet
+docker compose up -d
+# Start or update a specific service and its dependencies:
+docker compose up -d shopping-agent
+# Include the optional MCP tool service:
+docker compose --profile tools up -d
+```
+
+Images remain prebuilt; use `./build-images.sh` or pull your published images first.
+The existing `docker-compose.tls.yml` overlay still applies to the root project.

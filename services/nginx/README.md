@@ -4,7 +4,7 @@ NGINX serves the storefront files and sends `/api/*` to the Python AI gateway. T
 
 ```text
 Browser → NGINX :8080 (HTTP) / :8443 (optional HTTPS)
-           ├── /, /admin, compiled JS/CSS, /images/*.png → frontend files
+           ├── /, /admin, compiled JS/CSS, /images/*.png → frontend:8080
            ├── /api/* → AI gateway :3000 → application services
            ├── /health → NGINX liveness
            └── /ready → gateway /api/ready → dependency readiness
@@ -26,7 +26,7 @@ Browser → NGINX :8080 (HTTP) / :8443 (optional HTTPS)
 | `snippets/proxy.conf` | Forwarding headers, API timeouts and proxy behavior. |
 | `snippets/security-headers.conf` | Browser security headers, including the Razorpay-compatible CSP. |
 | `start.sh` | Validates settings, renders templates, checks configuration and starts NGINX. |
-| `Dockerfile` | Compiles `services/frontend/src/app.ts` and packages only the generated public assets. |
+| `Dockerfile` | Packages the edge proxy configuration; assets live in the frontend image. |
 | `compose.yml` | Service deployment extended by the root Compose file. |
 
 `http/` files are included inside the main `http` block. One selected server file includes the routes, which include reusable proxy/header settings. `start.sh` substitutes only explicitly listed environment variables, leaving NGINX variables such as `$uri` and `$scheme` intact. Generated configuration lives under `/tmp/robotshop-nginx`; source files remain read-only.
@@ -40,7 +40,7 @@ Configure the PostgreSQL, Redis and RabbitMQ credentials in the project's `.env`
 docker compose up -d
 ```
 
-Open **http://localhost:3000**. That port now belongs to NGINX; the gateway's port is no longer published. Its internal address remains `ai-gateway:3000`. Existing frontend API paths and the default `PUBLIC_ORIGIN` still work. Rebuild the NGINX image after changing frontend files or configuration.
+Open **http://localhost:3000**. That port now belongs to NGINX; the gateway's port is no longer published. Its internal address remains `ai-gateway:3000`. Existing frontend API paths and the default `PUBLIC_ORIGIN` still work. Rebuild the frontend image after changing storefront files; rebuild NGINX after changing proxy configuration.
 
 ```sh
 docker compose exec nginx nginx -t -c /tmp/robotshop-nginx/nginx.conf

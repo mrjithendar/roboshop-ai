@@ -12,11 +12,12 @@ for service in ai-gateway product-ingestion recommendation-service shopping-agen
   docker build -f services/$service/Dockerfile -t YOUR-REGISTRY/robotshop-$service:YOUR-TAG .
 done
 docker build -f services/shipping-service/Dockerfile -t YOUR-REGISTRY/robotshop-shipping:YOUR-TAG .
+docker build -f services/frontend/Dockerfile -t YOUR-REGISTRY/robotshop-frontend:YOUR-TAG .
 docker build -f services/nginx/Dockerfile -t YOUR-REGISTRY/robotshop-nginx:YOUR-TAG .
 ```
 
-The NGINX image compiles and deploys `services/frontend`; no separate frontend
-runtime is needed. Use immutable release tags or digests in your deployment process.
+The frontend image builds and serves static assets; NGINX is a separate public
+reverse proxy. Configure `frontend.image` as well as `nginx.image`. Use immutable release tags or digests in your deployment process.
 
 ## Required external services
 

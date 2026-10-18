@@ -19,11 +19,11 @@ is ignored by Git. Never edit generated JavaScript. Rebuild after source edits;
 
 ## Deployment
 
-`../nginx/Dockerfile` compiles the storefront in a Node build stage and copies only
-the generated public assets into the NGINX runtime. `../nginx/compose.yml` owns its
-Compose deployment, extended by root `docker-compose.yml`. The Helm chart's `nginx`
-Deployment uses this same image. There is intentionally one web-serving process:
-NGINX serves the frontend and proxies `/api/*` to the private gateway.
+`Dockerfile` builds the TypeScript assets and packages them with a lightweight
+static Nginx server. `compose.yml` defines the private `frontend:8080` service.
+The separate `nginx` service handles public HTTP/HTTPS, security headers, caching
+policy and API proxying. Only the edge publishes a host port. The Helm chart also
+has separate frontend and nginx Deployments and Services.
 
 Native development still serves the compiled frontend through the gateway.
 Container gateway images contain only backend code; keep NGINX enabled to serve

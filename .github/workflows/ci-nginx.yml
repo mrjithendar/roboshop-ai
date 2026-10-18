@@ -9,11 +9,6 @@ on:
     #   - '.dockerignore'
     #   - '.github/workflows/ci-nginx.yml'
     #   - '.github/workflows/publish-ecr.yml'
-    #   - 'package.json'
-    #   - 'package-lock.json'
-    #   - 'services/frontend/**'
-    #   - 'scripts/build-frontend.mjs'
-    #   - 'legacy/original-robotshop/web/static/images/**'
 
 permissions:
   contents: read

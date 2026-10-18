@@ -3,7 +3,7 @@
 Each `ci-<service>.yml` in `.github/workflows/` calls `publish-ecr.yml`.
 Pushes to the default branch (`master` or `main`) build services whose sources
 changed. Shared Python/Node changes rebuild their dependent services. Changes
-to the reusable workflow or `.dockerignore` rebuild all nine images. Run a
+to the reusable workflow or `.dockerignore` rebuild all ten images. Run a
 workflow manually from GitHub Actions on the default branch to publish it without
 a source change. Other branches and pull requests cannot publish through these
 workflows. If the default branch has another name, update the branch filters.
@@ -70,8 +70,10 @@ The workflow checks that its repository exists; it does not provision AWS resour
 | mcp-server | robotshop-mcp-server |
 | shipping-service | robotshop-shipping |
 | nginx | robotshop-nginx |
+| frontend | robotshop-frontend |
 
-Nginx packages the TypeScript frontend and legacy product images. Redis,
+The frontend image packages the TypeScript storefront and legacy product images.
+Nginx is a separate reverse-proxy image. Redis,
 RabbitMQ, MongoDB, PostgreSQL and observability components use upstream images;
 they have no custom Dockerfiles to publish.
 

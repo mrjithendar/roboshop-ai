@@ -26,6 +26,10 @@ spec:
           image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.tag }}"
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           env:
+            - name: FRONTEND_HOST
+              value: "{{ .Release.Name }}-frontend"
+            - name: FRONTEND_PORT
+              value: "8080"
             - name: GATEWAY_HOST
               value: "{{ .Release.Name }}-ai-gateway"
             - name: GATEWAY_PORT

@@ -1,0 +1,57 @@
+# Extended by root docker-compose.yml; run Compose from the repository root.
+services:
+  ai-gateway:
+    extends:
+      file: ../common/compose.yml
+      service: application
+    image: ${IMAGE_PREFIX:-robotshop}-ai-gateway:${IMAGE_TAG:-local}
+    environment:
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:3000}
+      ASSISTANT_AI_ENABLED: ${ASSISTANT_AI_ENABLED:-false}
+      PAYMENT_SERVICE_TOKEN: ${PAYMENT_SERVICE_TOKEN:-}
+      SHIPPING_URL: http://shipping-service:4106
+      RABBITMQ_URL: amqp://${RABBITMQ_USERNAME:-robotshop}:${RABBITMQ_PASSWORD:?Set
+        RABBITMQ_PASSWORD}@rabbitmq:5672
+      TRUST_PROXY: 'true'
+      LOGIN_ACTIVITY_RETENTION_DAYS: ${LOGIN_ACTIVITY_RETENTION_DAYS:-90}
+      MONGODB_URL: mongodb://robotshop:${MONGO_APP_PASSWORD:?Set MONGO_APP_PASSWORD}@mongodb:27017/robotshop?authSource=robotshop
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+    - ALL
+    security_opt:
+    - no-new-privileges:true
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3000/health', timeout=2)"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    volumes:
+    - shop-data:/app/.data
+    depends_on:
+      product-ingestion:
+        condition: service_healthy
+      recommendation-service:
+        condition: service_healthy
+      shopping-agent:
+        condition: service_healthy
+      sre-copilot:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+      shipping-service:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy

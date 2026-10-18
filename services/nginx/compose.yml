@@ -6,9 +6,13 @@ services:
     environment:
       GATEWAY_HOST: ai-gateway
       GATEWAY_PORT: '3000'
+      FRONTEND_HOST: frontend
+      FRONTEND_PORT: '8080'
     ports:
     - 127.0.0.1:3000:8080
     depends_on:
+      frontend:
+        condition: service_healthy
       ai-gateway:
         condition: service_healthy
     init: true
