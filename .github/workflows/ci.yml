@@ -61,7 +61,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - run: python -m pip install -r services/ai-gateway/requirements.txt -r services/shopping-agent/requirements.txt
