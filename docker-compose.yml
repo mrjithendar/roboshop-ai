@@ -193,7 +193,7 @@ services:
       sre-copilot:
         condition: service_healthy
   otel-collector:
-    image: otel/opentelemetry-collector:0.123.0
+    image: otel/opentelemetry-collector:0.162.0-386
     command:
     - --config=/etc/otelcol/config.yaml
     volumes:
@@ -207,7 +207,7 @@ services:
     ports:
     - 127.0.0.1:16686:16686
   prometheus:
-    image: prom/prometheus:v3.5.0
+    image: prom/prometheus:v3.15.0
     volumes:
     - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     - ./observability/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
