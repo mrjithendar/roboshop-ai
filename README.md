@@ -186,4 +186,4 @@ Redis caching and RabbitMQ order events are enabled in Compose. Redis accelerate
 
 ## NGINX entry point
 
-Compose now serves the storefront through NGINX at **http://localhost:3000** and proxies `/api/*` to the private AI gateway. Configuration is split into commented files for routing, caching, headers, compression, logging and optional HTTPS. See the [NGINX configuration guide](infrastructure/nginx/README.md) for the file map, startup commands and TLS setup. Node-only development still uses the gateway directly.
+Compose now serves the storefront through NGINX at **http://localhost:3000** and proxies `/api/*` to the private AI gateway. Configuration is split into commented files for routing, caching, headers, compression, logging and optional HTTPS. See the [NGINX configuration guide](services/nginx/README.md) for the file map, startup commands and TLS setup. Node-only development still uses the gateway directly.

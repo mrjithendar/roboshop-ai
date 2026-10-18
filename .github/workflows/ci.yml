@@ -6,7 +6,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 10
     services:
       redis:
@@ -54,7 +54,7 @@ jobs:
       - run: npm ci
       - run: npm run shipping:build
       - run: npm run shipping:migrate
-      - run: docker build -f infrastructure/nginx/Dockerfile --tag robotshop-nginx:ci .
+      - run: docker build -f services/nginx/Dockerfile --tag robotshop-nginx:ci .
       - run: npm test
         env:
           NGINX_TEST: "true"

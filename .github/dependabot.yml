@@ -117,7 +117,7 @@ updates:
       prefix: "chore(deps)"
 
   - package-ecosystem: docker
-    directory: /infrastructure/nginx
+    directory: /services/nginx
     schedule:
       interval: weekly
       day: monday

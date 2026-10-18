@@ -152,7 +152,7 @@ serve('ai-gateway', 3000, async (req, res, url) => {
   }
   if (req.method !== 'GET' && req.method !== 'HEAD') return;
   let path;
-  if (['/', '/index.html', '/app.js', '/styles.css'].includes(url.pathname)) path = resolve(root, 'frontend', url.pathname === '/' ? 'index.html' : url.pathname.slice(1));
+  if (['/', '/index.html', '/app.js', '/styles.css'].includes(url.pathname)) path = resolve(root, 'services/frontend/dist', url.pathname === '/' ? 'index.html' : url.pathname.slice(1));
   else if (/^\/images\/[a-zA-Z0-9_-]+\.png$/.test(url.pathname)) path = resolve(root, 'legacy/original-robotshop/web/static', url.pathname.slice(1));
   else return;
   try {

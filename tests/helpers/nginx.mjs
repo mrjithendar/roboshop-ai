@@ -12,11 +12,11 @@ export async function startNginx({ port, gatewayPort, directory, tls }) {
     args = ['run', '--rm', '--name', name, '--network', 'host', '--read-only', '--tmpfs', '/tmp', '--cap-drop', 'ALL', '-e', 'GATEWAY_HOST=127.0.0.1', '-e', `GATEWAY_PORT=${gatewayPort}`, '-e', `NGINX_HTTP_PORT=${port}`, ...(tls ? ['-e','NGINX_TLS=true','-e','NGINX_SERVER_NAME=localhost','-e',`NGINX_HTTPS_PORT=${tls.port}`,'-v',`${tls.directory}:/etc/nginx/tls:ro`] : []), image];
   } else {
     const web = join(directory, 'web'); mkdirSync(web, { recursive: true });
-    cpSync(resolve('frontend'), web, { recursive: true });
+    cpSync(resolve('services/frontend/dist'), web, { recursive: true });
     cpSync(resolve('legacy/original-robotshop/web/static/images'), join(web, 'images'), { recursive: true });
-    command = 'sh'; args = [resolve('infrastructure/nginx/start.sh')];
+    command = 'sh'; args = [resolve('services/nginx/start.sh')];
     const mime = ['/opt/homebrew/etc/nginx/mime.types', '/etc/nginx/mime.types'].find(existsSync);
-    env = { ...env, GATEWAY_HOST: '127.0.0.1', GATEWAY_PORT: String(gatewayPort), NGINX_HTTP_PORT: String(port), NGINX_CONFIG_DIR: resolve('infrastructure/nginx'), NGINX_RUN_DIR: join(directory, 'nginx'), NGINX_WEB_ROOT: web, NGINX_MIME_TYPES: process.env.NGINX_MIME_TYPES || mime, NGINX_RESOLVER: '127.0.0.1', NGINX_TLS: tls ? 'true' : 'false', ...(tls ? { NGINX_SERVER_NAME: 'localhost', NGINX_HTTPS_PORT: String(tls.port), NGINX_TLS_CERT_FILE: join(tls.directory,'tls.crt'), NGINX_TLS_KEY_FILE: join(tls.directory,'tls.key') } : {}) };
+    env = { ...env, GATEWAY_HOST: '127.0.0.1', GATEWAY_PORT: String(gatewayPort), NGINX_HTTP_PORT: String(port), NGINX_CONFIG_DIR: resolve('services/nginx'), NGINX_RUN_DIR: join(directory, 'nginx'), NGINX_WEB_ROOT: web, NGINX_MIME_TYPES: process.env.NGINX_MIME_TYPES || mime, NGINX_RESOLVER: '127.0.0.1', NGINX_TLS: tls ? 'true' : 'false', ...(tls ? { NGINX_SERVER_NAME: 'localhost', NGINX_HTTPS_PORT: String(tls.port), NGINX_TLS_CERT_FILE: join(tls.directory,'tls.crt'), NGINX_TLS_KEY_FILE: join(tls.directory,'tls.key') } : {}) };
   }
   const child = spawn(command, args, { env, stdio: ['ignore', 'pipe', 'pipe'] });
   let logs = '';

@@ -325,7 +325,7 @@ services:
       SHIPPING_APP_PASSWORD: ${SHIPPING_APP_PASSWORD:?Set SHIPPING_APP_PASSWORD}
     volumes:
     - shipping-postgres:/var/lib/postgresql/data
-    - ./infrastructure/postgres/10-shipping-role.sh:/docker-entrypoint-initdb.d/10-shipping-role.sh:ro
+    - ./services/postgres/10-shipping-role.sh:/docker-entrypoint-initdb.d/10-shipping-role.sh:ro
     ports:
     - 127.0.0.1:5432:5432
     restart: unless-stopped
@@ -396,7 +396,7 @@ services:
   nginx:
     build:
       context: .
-      dockerfile: infrastructure/nginx/Dockerfile
+      dockerfile: services/nginx/Dockerfile
     image: robotshop-nginx:local
     environment:
       GATEWAY_HOST: ai-gateway
