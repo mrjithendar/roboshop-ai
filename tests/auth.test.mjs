@@ -8,7 +8,7 @@ import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { spawn } from 'node:child_process';
 import { connectMongo } from '../services/shared/mongo.mjs';
-import { Auth } from '../services/ai-gateway/auth.mjs';
+import { Auth } from './fixtures/previous-gateway/auth.mjs';
 import { seedProducts } from '../services/shared/products.mjs';
 
 async function port() { const server = createServer(); server.listen(0, '127.0.0.1'); await once(server, 'listening'); const value = server.address().port; await new Promise(resolve => server.close(resolve)); return value; }
@@ -19,7 +19,7 @@ test('MongoDB accounts, one super admin, server-side roles, persistent sessions 
   const gatewayPort = await port(), cataloguePort = await port(), base = `http://127.0.0.1:${gatewayPort}`;
   const children = []; let logs = '';
   async function start(name, servicePort) {
-    const child = spawn(process.execPath, [`services/${name}/server.mjs`], { env: { ...process.env, MONGODB_DATABASE: database, DATA_DIR: directory, PUBLIC_ORIGIN: base, HOST: '127.0.0.1', PORT: String(servicePort), INGESTION_URL: `http://127.0.0.1:${cataloguePort}`, RABBITMQ_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: '', PAYMENT_SERVICE_TOKEN: 'test-only-token' }, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(name === 'ai-gateway' ? (process.env.PYTHON || 'python3') : process.execPath, [`services/${name}/server.${name === 'ai-gateway' ? 'py' : 'mjs'}`], { env: { ...process.env, MONGODB_DATABASE: database, DATA_DIR: directory, PUBLIC_ORIGIN: base, HOST: '127.0.0.1', PORT: String(servicePort), INGESTION_URL: `http://127.0.0.1:${cataloguePort}`, RABBITMQ_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: '', PAYMENT_SERVICE_TOKEN: 'test-only-token' }, stdio: ['ignore', 'pipe', 'pipe'] });
     children.push(child); child.stdout.on('data', chunk => logs += chunk); child.stderr.on('data', chunk => logs += chunk);
     for (let i = 0; i < 100; i++) { try { if ((await fetch(`http://127.0.0.1:${servicePort}/health`)).ok) return child; } catch {} await new Promise(resolve => setTimeout(resolve, 50)); }
     assert.fail(logs);
@@ -43,6 +43,11 @@ test('MongoDB accounts, one super admin, server-side roles, persistent sessions 
     const customer = browser(), other = browser(), admin = browser();
     assert.equal((await customer.call('/api/admin/products')).status, 401);
     assert.equal((await customer.call('/api/payments/orders', 'POST', {})).status, 401);
+    assert.equal((await customer.call('/api/recommendations/personalized')).status, 401);
+    const comparison = await customer.call('/api/compare?skus=RED,RMC');
+    assert.equal(comparison.status, 200);
+    assert.deepEqual(comparison.data.products.map(p => p.sku), ['RED', 'RMC']);
+    assert.equal((await customer.call('/api/compare?skus=RED,RED')).status, 400);
     assert.equal((await customer.call('/api/auth/register', 'POST', { email: 'alice@example.com', name: 'Alice', password, role: 'superadmin' })).status, 400);
     assert.equal((await customer.call('/api/auth/login', 'POST', { email: superUser.email, password }, { origin: 'https://evil.example' })).status, 403);
     assert.equal((await customer.call('/api/cart', 'POST', { sku: 'RMC', quantity: 1 })).status, 200);
@@ -53,6 +58,10 @@ test('MongoDB accounts, one super admin, server-side roles, persistent sessions 
     assert.ok(!JSON.stringify(registered.data).includes('password'));
     assert.notEqual(customer.cookies.get('rs_session'), guestCookie);
     assert.equal((await customer.call('/api/cart')).data.items[0].quantity, 1);
+    const personal = await customer.call('/api/recommendations/personalized');
+    assert.equal(personal.status, 200);
+    assert.equal(personal.data.basis, 'cart-categories');
+    assert.ok(personal.data.products.every(p => p.sku !== 'RMC' && p.instock > 0));
     assert.equal((await customer.call('/api/cart', 'GET', undefined, { cookie: `rs_session=${guestCookie}` })).data.items.length, 0);
     const stored = await db.collection('users').findOne({ email: 'alice@example.com' });
     assert.match(stored.passwordHash, /^scrypt:/); assert.ok(!stored.passwordHash.includes(password));
@@ -66,6 +75,16 @@ test('MongoDB accounts, one super admin, server-side roles, persistent sessions 
     assert.equal((await admin.call(`/api/admin/users/${superUser.id}`, 'PATCH', { role: 'admin', disabled: false })).status, 409);
     const users = (await admin.call('/api/admin/users')).data.users;
     assert.equal(users.length, 3); assert.ok(!JSON.stringify(users).includes('password'));
+    async function mcpCall(token, name, args = {}) {
+      const child = spawn(process.env.PYTHON || 'python3', ['services/mcp-server/server.py'], { env: { ...process.env, GATEWAY_URL: base, PUBLIC_ORIGIN: base, MCP_SESSION_TOKEN: token }, stdio: ['pipe', 'pipe', 'pipe'] });
+      let output = ''; child.stdout.on('data', chunk => output += chunk);
+      child.stdin.end([{ jsonrpc: '2.0', id: 1, method: 'initialize' }, { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name, arguments: args } }].map(JSON.stringify).join('\n') + '\n');
+      await once(child, 'exit'); return JSON.parse(output.trim().split('\n').at(-1)).result;
+    }
+    assert.equal((await mcpCall(other.cookies.get('rs_auth'), 'admin_list_products')).isError, true);
+    assert.equal((await mcpCall(other.cookies.get('rs_auth'), 'update_cart', { sku: 'RED', quantity: 1 })).isError, false);
+    assert.equal((await mcpCall(admin.cookies.get('rs_auth'), 'admin_get_settings')).isError, false);
+    assert.equal((await mcpCall(admin.cookies.get('rs_auth'), 'admin_set_user_access', { userId: superUser.id, role: 'admin', disabled: false })).isError, true);
     const oldCustomerToken = customer.cookies.get('rs_auth');
     assert.equal((await admin.call(`/api/admin/users/${stored._id}`, 'PATCH', { role: 'admin', disabled: false })).status, 200);
     assert.equal((await customer.call('/api/auth/me')).data.user, null);

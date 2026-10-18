@@ -7,7 +7,7 @@ is unchanged.
 
 ## Start locally
 
-Requires Node.js 24 or newer, Java 21 or newer, PostgreSQL 17, and MongoDB 8. Configure database connection URLs in `.env` as described in [shipping setup](services/shipping-service/README.md).
+Requires Node.js 24+, Python 3.11+ (containers use 3.12), Java 21+, PostgreSQL, and MongoDB 8. Configure database connection URLs in `.env` as described in [shipping setup](services/shipping-service/README.md).
 
 ```sh
 npm ci
@@ -91,7 +91,7 @@ rating, or payment services.
 | `services/mongodb/` | Accounts, login sessions, products/settings database and Compose deployment |
 | `services/payment-service/` | Razorpay orders, signature verification, captured-payment validation |
 | `services/sre-copilot/` | Live health probes and deterministic read-only runbook suggestions |
-| `services/mcp-server/` | Stdio MCP adapter with two read-only tools |
+| `services/mcp-server/` | Python MCP adapter with 15 shopping, diagnostics and role-protected admin tools |
 | `services/shared/` | HTTP, trace propagation, metrics, catalogue validation and ranking |
 | `observability/` | Collector, Prometheus alerts, optional Langfuse configuration |
 | `infrastructure/helm/robotshop-ai/` | Demo Kubernetes chart with a single gateway and persistent volume |
@@ -190,7 +190,7 @@ Redis caching and RabbitMQ order events are enabled in Compose. Redis accelerate
 
 ## NGINX entry point
 
-Compose now serves the storefront through NGINX at **http://localhost:3000** and proxies `/api/*` to the private AI gateway. Configuration is split into commented files for routing, caching, headers, compression, logging and optional HTTPS. See the [NGINX configuration guide](services/nginx/README.md) for the file map, startup commands and TLS setup. Node-only development still uses the gateway directly.
+Compose now serves the storefront through NGINX at **http://localhost:3000** and proxies `/api/*` to the private AI gateway. Configuration is split into commented files for routing, caching, headers, compression, logging and optional HTTPS. See the [NGINX configuration guide](services/nginx/README.md) for the file map, startup commands and TLS setup. Native development still uses the gateway directly.
 
 ## Service layout and frontend build
 
@@ -231,7 +231,7 @@ for native, Compose and Kubernetes setup. Keep passwords out of Git and chat.
 
 ## Service container images
 
-Each Node microservice owns `services/<service>/Dockerfile` and its own image.
+Each application microservice owns `services/<service>/Dockerfile` and its own image.
 Build from the repository root, for example:
 
 ```sh
@@ -249,3 +249,34 @@ The MCP server is a standalone stdio image: build with
 `docker build -f services/mcp-server/Dockerfile -t robotshop-mcp-server:local .`
 and run with `docker run --rm -i` plus internal service URL environment variables
 and the appropriate Docker network. It does not expose an HTTP port.
+
+## Python gateway, shopping agent and MCP
+
+The gateway, shopping agent and MCP server run Python; payment, recommendations,
+product ingestion and SRE remain Node, and shipping remains Java. Each has its own
+Docker image. Install Python dependencies for native development:
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -r services/ai-gateway/requirements.txt -r services/shopping-agent/requirements.txt
+export PYTHON="$PWD/.venv/bin/python"
+npm run dev
+```
+
+`PYTHON` also selects the interpreter for `npm run mcp`, `admin:bootstrap`,
+`test:python`, `evaluate` and HTTP integration tests. CI installs the same pinned
+requirements. Container execution does not require a host Python environment.
+
+New gateway endpoints: `GET /api/compare?skus=RED,RMC` compares 2–4 products;
+`GET /api/recommendations/personalized` requires login and recommends available
+products from the account cart's categories, excluding products already in it.
+An empty cart falls back to general in-stock picks. The frontend continues using
+its existing interface; these capabilities are exposed through the APIs and the
+15 tools described in [MCP setup](services/mcp-server/README.md).
+
+Existing MongoDB users, scrypt hashes and sessions, catalogue/settings documents,
+and the JSON order/cart ledger remain compatible. Gateway replicas must stay at
+one: a process lock protects the ledger, but it is not a distributed database.
+Back up the ledger and MongoDB before deployment. The old Node auth/ledger modules
+are retained only under `tests/fixtures/previous-gateway` for compatibility tests;
+they are not shipped in production images.

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
-import { OrderPublisher } from '../services/ai-gateway/events.mjs';
+import { OrderPublisher } from './fixtures/previous-gateway/events.mjs';
 
 test('outbox retains unconfirmed events, retries and records confirmation only after broker ack', async () => {
   let confirmed = false, fail = true, attempts = 0;

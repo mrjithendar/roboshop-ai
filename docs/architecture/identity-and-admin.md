@@ -51,12 +51,12 @@ variables in your terminal through your local secret workflow, then run:
 
 ```sh
 docker compose exec -e SUPERADMIN_EMAIL -e SUPERADMIN_PASSWORD -e SUPERADMIN_NAME \
-  ai-gateway npm run admin:bootstrap
+  ai-gateway python services/ai-gateway/bootstrap.py
 ```
 
 `docker compose exec -e NAME` forwards an **exported shell variable**; it does not
 read the value from Compose's `.env` automatically. Do not put literal passwords
-in shell command history. The setup script is packaged in the Node image. For
+in shell command history. The setup script is packaged in the Python gateway image. For
 Kubernetes, run the same command in the gateway pod with operator-supplied environment
 values; no bootstrap credentials belong in Helm values or a public endpoint.
 

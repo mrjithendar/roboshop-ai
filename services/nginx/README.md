@@ -1,6 +1,6 @@
 # NGINX for RobotShop
 
-NGINX serves the storefront files and sends `/api/*` to the Node AI gateway. The gateway continues to own session cookies, request validation and payment checks. Java shipping, PostgreSQL, Redis and RabbitMQ stay behind the application services.
+NGINX serves the storefront files and sends `/api/*` to the Python AI gateway. The gateway continues to own session cookies, request validation and payment checks. Java shipping, PostgreSQL, Redis and RabbitMQ stay behind the application services.
 
 ```text
 Browser → NGINX :8080 (HTTP) / :8443 (optional HTTPS)

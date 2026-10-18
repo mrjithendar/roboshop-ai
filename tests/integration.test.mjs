@@ -25,7 +25,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
   const children = [], traces = []; let logs = '';
   const receiver = createServer(async (req, res) => { let data = ''; for await (const part of req) data += part; traces.push(JSON.parse(data)); res.writeHead(200, { 'content-type': 'application/json' }); res.end('{}'); });
   receiver.listen(0, '127.0.0.1'); await once(receiver, 'listening');
-  const env = { ...process.env, MONGODB_DATABASE: mongoDatabase, HOST: '127.0.0.1', TRUST_PROXY: edgePort ? 'true' : 'false', INGESTION_URL: `http://127.0.0.1:${ports[0]}`, RECOMMENDATION_URL: `http://127.0.0.1:${ports[1]}`, AGENT_URL: `http://127.0.0.1:${ports[2]}`, SRE_URL: `http://127.0.0.1:${ports[3]}`, DATA_DIR: dir, PUBLIC_ORIGIN: base, PAYMENT_URL: `http://127.0.0.1:${ports[5]}`, SHIPPING_URL: `http://127.0.0.1:${ports[6]}`, PAYMENT_SERVICE_TOKEN: 'integration-internal-token', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', RAZORPAY_WEBHOOK_SECRET: '', OPENAI_API_KEY: '', OPENAI_MODEL: '', LANGFUSE_BASE_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `http://127.0.0.1:${receiver.address().port}/v1/traces` };
+  const env = { ...process.env, MONGODB_DATABASE: mongoDatabase, HOST: '127.0.0.1', TRUST_PROXY: edgePort ? 'true' : 'false', INGESTION_URL: `http://127.0.0.1:${ports[0]}`, RECOMMENDATION_URL: `http://127.0.0.1:${ports[1]}`, AGENT_URL: `http://127.0.0.1:${ports[2]}`, SRE_URL: `http://127.0.0.1:${ports[3]}`, DATA_DIR: dir, PUBLIC_ORIGIN: base, GATEWAY_URL: base, PAYMENT_URL: `http://127.0.0.1:${ports[5]}`, SHIPPING_URL: `http://127.0.0.1:${ports[6]}`, PAYMENT_SERVICE_TOKEN: 'integration-internal-token', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', RAZORPAY_WEBHOOK_SECRET: '', OPENAI_API_KEY: '', OPENAI_MODEL: '', LANGFUSE_BASE_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `http://127.0.0.1:${receiver.address().port}/v1/traces` };
   let cookie; const cookieJar = new Map();
   async function call(path, options = {}, useCookie = true) {
     const response = await fetch(`${base}${path}`, { ...options, headers: { 'content-type': 'application/json', origin: base, ...(useCookie && cookie ? { cookie } : {}), ...options.headers } });
@@ -34,7 +34,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
   }
   try {
     for (let i = 0; i < names.length; i++) {
-      const child = spawn(names[i] === 'shipping-service' ? 'java' : process.execPath, names[i] === 'shipping-service' ? ['-jar', 'services/shipping-service/build/libs/shipping-service.jar'] : [names[i] === 'payment-service' ? 'tests/fixtures/payment-server.mjs' : `services/${names[i]}/server.mjs`], { env: { ...env, PORT: String(ports[i]) }, stdio: ['ignore', 'pipe', 'pipe'] });
+      const child = spawn(names[i] === 'shipping-service' ? 'java' : ['ai-gateway', 'shopping-agent'].includes(names[i]) ? (process.env.PYTHON || 'python3') : process.execPath, names[i] === 'shipping-service' ? ['-jar', 'services/shipping-service/build/libs/shipping-service.jar'] : [names[i] === 'payment-service' ? 'tests/fixtures/payment-server.mjs' : `services/${names[i]}/server.${['ai-gateway', 'shopping-agent'].includes(names[i]) ? 'py' : 'mjs'}`], { env: { ...env, PORT: String(ports[i]) }, stdio: ['ignore', 'pipe', 'pipe'] });
       children.push(child); child.stdout.on('data', d => logs += d); child.stderr.on('data', d => logs += d);
     }
     for (const port of ports) {
@@ -151,11 +151,11 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     const spans = traces.flatMap(t => t.resourceSpans.flatMap(r => r.scopeSpans.flatMap(s => s.spans)));
     assert.ok(spans.some(s => s.name === 'POST /api/chat' && s.parentSpanId));
     assert.ok(!JSON.stringify(traces).includes('security under 1000'));
-    const mcp = spawn(process.execPath, ['services/mcp-server/server.mjs'], { env, stdio: ['pipe', 'pipe', 'pipe'] }); children.push(mcp);
+    const mcp = spawn(process.env.PYTHON || 'python3', ['services/mcp-server/server.py'], { env, stdio: ['pipe', 'pipe', 'pipe'] }); children.push(mcp);
     let output = ''; mcp.stdout.on('data', d => output += d);
     mcp.stdin.end([{ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'test', version: '1' } } }, { jsonrpc: '2.0', id: 2, method: 'tools/list' }, { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'search_products', arguments: { query: 'mining' } } }, { jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'execute_shell', arguments: {} } }].map(m => JSON.stringify(m)).join('\n') + '\n');
     await once(mcp, 'exit'); const replies = output.trim().split('\n').map(JSON.parse);
-    assert.equal(replies[1].result.tools.length, 2); assert.equal(replies[2].result.isError, false); assert.equal(replies[3].result.isError, true);
+    assert.equal(replies[1].result.tools.length, 15); assert.equal(replies[2].result.isError, false); assert.equal(replies[3].error.code, -32602);
     children[0].kill('SIGTERM'); await once(children[0], 'exit');
     assert.equal((await call('/api/ready')).response.status, 503);
     assert.equal((await call('/api/ops')).data.status, 'degraded');

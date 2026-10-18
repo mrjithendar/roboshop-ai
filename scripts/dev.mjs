@@ -17,6 +17,7 @@ function stop(code = 0) {
 }
 for (const name of names) {
   const env = { ...process.env };
+  delete env.MCP_SESSION_TOKEN;
   if (['payment-service', 'ai-gateway'].includes(name)) env.PAYMENT_SERVICE_TOKEN = paymentToken;
   else delete env.PAYMENT_SERVICE_TOKEN;
   if (name !== 'payment-service') for (const key of ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'RAZORPAY_WEBHOOK_SECRET']) delete env[key];
@@ -34,7 +35,7 @@ for (const name of names) {
   if (name !== 'shopping-agent') for (const key of ['OPENAI_API_KEY', 'OPENAI_MODEL', 'LANGFUSE_PUBLIC_KEY', 'LANGFUSE_SECRET_KEY']) delete env[key];
   // PORT applies only to the public gateway; internal services use their defaults.
   if (name !== 'ai-gateway') delete env.PORT;
-  const child = spawn(name === 'shipping-service' ? 'java' : process.execPath, name === 'shipping-service' ? ['-jar', 'services/shipping-service/build/libs/shipping-service.jar'] : [`services/${name}/server.mjs`], { cwd: root, env, stdio: 'inherit' });
+  const child = spawn(name === 'shipping-service' ? 'java' : ['ai-gateway', 'shopping-agent'].includes(name) ? (process.env.PYTHON || 'python3') : process.execPath, name === 'shipping-service' ? ['-jar', 'services/shipping-service/build/libs/shipping-service.jar'] : [`services/${name}/server.${['ai-gateway', 'shopping-agent'].includes(name) ? 'py' : 'mjs'}`], { cwd: root, env, stdio: 'inherit' });
   children.push(child);
   child.on('error', () => stop(1));
   child.on('exit', code => { if (!stopping) stop(code || 1); });

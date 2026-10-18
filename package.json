@@ -10,18 +10,19 @@
     "dev": "node --env-file-if-exists=.env scripts/dev.mjs",
     "start": "node --env-file-if-exists=.env scripts/dev.mjs",
     "test": "node --test tests/*.test.mjs",
-    "evaluate": "node scripts/evaluate.mjs",
+    "evaluate": "node scripts/run-python.mjs scripts/evaluate.py",
     "ingest": "node services/product-ingestion/import.mjs",
-    "mcp": "node --env-file-if-exists=.env services/mcp-server/server.mjs",
+    "mcp": "node --env-file-if-exists=.env scripts/run-python.mjs services/mcp-server/server.py",
     "shipping:build": "sh services/shipping-service/gradlew -p services/shipping-service --no-daemon test bootJar",
     "predev": "npm run frontend:build && npm run shipping:build",
     "prestart": "npm run frontend:build && npm run shipping:build",
-    "pretest": "npm run frontend:build && npm run shipping:build",
+    "pretest": "npm run frontend:build && npm run shipping:build && npm run test:python",
     "test:nginx": "NGINX_TEST=true node --test tests/nginx.test.mjs",
     "frontend:build": "node scripts/build-frontend.mjs",
     "frontend:typecheck": "tsc -p services/frontend/tsconfig.json --noEmit",
     "pretest:nginx": "npm run frontend:build",
-    "admin:bootstrap": "node --env-file-if-exists=.env scripts/bootstrap-admin.mjs"
+    "admin:bootstrap": "node --env-file-if-exists=.env scripts/run-python.mjs services/ai-gateway/bootstrap.py",
+    "test:python": "node scripts/run-python.mjs -m unittest discover -s tests/python -v"
   },
   "dependencies": {
     "amqplib": "^2.2.0",

@@ -63,7 +63,7 @@ Gradle dependency locking and a verified Wrapper distribution checksum provide r
 
 ## Redis and RabbitMQ
 
-Compose enables Redis location caching and RabbitMQ paid-order processing. Set `REDIS_PASSWORD`, `RABBITMQ_USERNAME` and `RABBITMQ_PASSWORD` in `.env` before startup. Use URL-safe credentials in Compose or percent-encode credentials in connection URLs. For local Node/Java startup, set `CACHE_ENABLED=true`, `MESSAGING_ENABLED=true`, the Redis/RabbitMQ host credentials, and the gateway's `RABBITMQ_URL`. Do not use the RabbitMQ guest account remotely.
+Compose enables Redis location caching and RabbitMQ paid-order processing. Set `REDIS_PASSWORD`, `RABBITMQ_USERNAME` and `RABBITMQ_PASSWORD` in `.env` before startup. Use URL-safe credentials in Compose or percent-encode credentials in connection URLs. For local Python/Node/Java startup, set `CACHE_ENABLED=true`, `MESSAGING_ENABLED=true`, the Redis/RabbitMQ host credentials, and the gateway's `RABBITMQ_URL`. Do not use the RabbitMQ guest account remotely.
 
 Redis stores only public location results, never addresses, carts, payment data or stock. Country results expire after six hours and searches after ten minutes. Keys include the dataset hash, so a new seed cannot reuse obsolete entries. Redis failure falls back to PostgreSQL with short connection/command timeouts. Compose limits cache memory and uses LRU eviction; Redis data is disposable.
 

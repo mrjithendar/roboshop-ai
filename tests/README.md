@@ -59,3 +59,10 @@ never connect to the legacy users database or use a live merchant provider.
 `tests/auth.test.mjs` covers server authorization; `tests/admin-ui.test.mjs` covers
 role-specific UI behavior. Set shipping owner/runtime URLs as described in the
 shipping guide; the Java service initializes its test schema during startup.
+
+Python migration tests: `PYTHON="$PWD/.venv/bin/python" npm run test:python` covers
+retrieval, model fallback, password compatibility, ledger/payment invariants,
+MCP validation/auth forwarding and HTTP input validation. `npm test` runs Python
+unit tests before the Node test harness, which launches the actual Python gateway,
+agent and MCP for MongoDB and full HTTP tests. Previous Node modules under
+`fixtures/previous-gateway` are compatibility references, not service runtimes.

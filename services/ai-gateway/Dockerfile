@@ -1,13 +1,12 @@
-# Build from the repository root: docker build -f services/ai-gateway/Dockerfile .
-FROM node:26-alpine
-ENV NODE_ENV=production HOST=0.0.0.0
+# Build from the repository root.
+FROM python:3.12-slim
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 HOST=0.0.0.0
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund && npm cache clean --force
-COPY --chown=node:node services/shared/ ./services/shared/
-COPY --chown=node:node services/ai-gateway/ ./services/ai-gateway/
-COPY --chown=node:node scripts/bootstrap-admin.mjs ./scripts/bootstrap-admin.mjs
-RUN mkdir -p /app/.data && chown node:node /app/.data
-USER node
+COPY services/ai-gateway/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && useradd --uid 1000 --create-home app
+COPY --chown=app:app services/python-common/ ./services/python-common/
+COPY --chown=app:app services/ai-gateway/*.py ./services/ai-gateway/
+RUN mkdir -p /app/.data && chown app:app /app/.data
+USER app
 EXPOSE 3000
-CMD ["node", "services/ai-gateway/server.mjs"]
+CMD ["python", "services/ai-gateway/server.py"]

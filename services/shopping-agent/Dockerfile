@@ -1,9 +1,11 @@
-# Build from the repository root: docker build -f services/shopping-agent/Dockerfile .
-FROM node:26-alpine
-ENV NODE_ENV=production HOST=0.0.0.0
+# Build from the repository root.
+FROM python:3.12-slim
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 HOST=0.0.0.0
 WORKDIR /app
-COPY --chown=node:node services/shared/ ./services/shared/
-COPY --chown=node:node services/shopping-agent/ ./services/shopping-agent/
-USER node
+COPY services/shopping-agent/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && useradd --uid 1000 --create-home app
+COPY --chown=app:app services/python-common/ ./services/python-common/
+COPY --chown=app:app services/shopping-agent/*.py ./services/shopping-agent/
+USER app
 EXPOSE 4103
-CMD ["node", "services/shopping-agent/server.mjs"]
+CMD ["python", "services/shopping-agent/server.py"]

@@ -39,7 +39,7 @@ Create Secrets in the release namespace through your secret-management process:
 The runtime database role needs schema USAGE, SELECT on shipping tables and INSERT
 on `shipping.shipment_requests`. Shipping startup uses the owner credentials for initialization, closes that pool, then starts the runtime pool. No migration Job is deployed.
 Database, cache and broker TLS are enabled in the chart; `RABBITMQ_URL` must use
-`amqps://` with a certificate trusted by Node. Provision trusted certificates for
+`amqps://` with a certificate trusted by the service runtime. Provision trusted certificates for
 all clients. Private CA mounting is not currently exposed as a chart value.
 
 ```sh

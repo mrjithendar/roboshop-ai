@@ -19,3 +19,21 @@ settings. `auth.mjs` and `admin.mjs` implement authentication and server-enforce
 roles inside this gateway. Login is mandatory for payment browser APIs; signed
 provider webhooks remain independent of browser sessions. See
 [identity and admin](../../docs/architecture/identity-and-admin.md).
+
+
+## Python runtime
+
+`server.py` is the service entry point (Waitress, port 3000). Install this directory's
+`requirements.txt` for native execution; `npm run dev` uses the `PYTHON` environment
+variable or `python3`. The image contains Python gateway/shared code only.
+
+MongoDB auth, public settings, admin role checks, CSRF/origin checks, payment
+verification and the single-writer JSON ledger preserve existing formats. A
+reentrant lock serializes ledger writes and inventory/admin checkout operations.
+The background Pika publisher uses durable quorum queues, mandatory routing and
+publisher confirms before marking outbox entries delivered. Delivery is at least
+once; the Java shipping consumer deduplicates event IDs.
+
+Additional endpoints are `/api/compare` (2–4 distinct SKUs) and authenticated
+`/api/recommendations/personalized` (cart categories). MCP tools call these and the
+same authenticated cart/admin endpoints; MCP never bypasses authorization.

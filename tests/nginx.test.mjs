@@ -9,7 +9,7 @@ import { execFileSync } from 'node:child_process';
 import https from 'node:https';
 import { createHmac } from 'node:crypto';
 import { startNginx } from './helpers/nginx.mjs';
-import { clientAddress } from '../services/ai-gateway/proxy.mjs';
+import { clientAddress } from './fixtures/previous-gateway/proxy.mjs';
 
 async function listen(server) { server.listen(0,'127.0.0.1'); await once(server,'listening'); return server.address().port; }
 test('gateway uses forwarding headers only when configured behind its trusted proxy',()=>{

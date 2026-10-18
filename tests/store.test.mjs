@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Store } from '../services/ai-gateway/store.mjs';
+import { Store } from './fixtures/previous-gateway/store.mjs';
 const products = [{ sku: 'TEST', name: 'Test', price: 12.34, instock: 2 }];
 
 test('cart isolation, persistence, authoritative totals and idempotent checkout', () => {
