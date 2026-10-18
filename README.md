@@ -39,7 +39,7 @@ reports the configured mode. The agent still checks its actual credentials.
 
 ## Containers and observability
 
-Set `SHIPPING_DB_PASSWORD`, `SHIPPING_APP_PASSWORD`, `REDIS_PASSWORD`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `MONGO_ROOT_PASSWORD` and `MONGO_APP_PASSWORD` in `.env` first.
+For a fresh installation, run `python3 generate-secrets.py` to create a private `.env` containing all required passwords and the internal payment token. RabbitMQ defaults to username `robotshop`. The generator refuses to overwrite existing files. See [Compose secrets setup](docs/deployment/compose-secrets.md) for AWS Secrets Manager commands and existing installations.
 
 ```sh
 docker compose config --quiet

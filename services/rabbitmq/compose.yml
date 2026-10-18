@@ -5,7 +5,7 @@ services:
     image: rabbitmq:4.1-management-alpine
     hostname: robotshop-rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:?Set RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-robotshop}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}
     volumes:
     - rabbitmq-data:/var/lib/rabbitmq
