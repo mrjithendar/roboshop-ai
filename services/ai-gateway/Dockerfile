@@ -1,5 +1,5 @@
 # Build from the repository root.
-FROM python:3.12-slim
+FROM python:3.14-slim
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 HOST=0.0.0.0
 WORKDIR /app
 COPY services/ai-gateway/requirements.txt ./requirements.txt
