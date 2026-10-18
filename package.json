@@ -21,6 +21,6 @@
     "test:nginx": "NGINX_TEST=true node --test tests/nginx.test.mjs"
   },
   "dependencies": {
-    "amqplib": "^0.10.9"
+    "amqplib": "^2.2.0"
   }
 }
