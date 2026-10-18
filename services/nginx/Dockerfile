@@ -1,4 +1,4 @@
-FROM nginx:1.28-alpine
+FROM nginx:1.29-alpine
 COPY services/nginx/ /etc/nginx/robotshop/
 COPY frontend/ /usr/share/nginx/html/
 COPY legacy/original-robotshop/web/static/images/ /usr/share/nginx/html/images/
