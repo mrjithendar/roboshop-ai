@@ -167,6 +167,7 @@ services:
       SHIPPING_URL: http://shipping-service:4106
       RABBITMQ_URL: amqp://${RABBITMQ_USERNAME:?Set RABBITMQ_USERNAME}:${RABBITMQ_PASSWORD:?Set
         RABBITMQ_PASSWORD}@rabbitmq:5672
+      TRUST_PROXY: 'true'
     init: true
     restart: unless-stopped
     read_only: true
@@ -188,8 +189,6 @@ services:
       options:
         max-size: 10m
         max-file: '3'
-    ports:
-    - 127.0.0.1:3000:3000
     volumes:
     - shop-data:/app/.data
     depends_on:
@@ -394,6 +393,40 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+  nginx:
+    build:
+      context: .
+      dockerfile: infrastructure/nginx/Dockerfile
+    image: robotshop-nginx:local
+    environment:
+      GATEWAY_HOST: ai-gateway
+      GATEWAY_PORT: '3000'
+    ports:
+    - 127.0.0.1:3000:8080
+    depends_on:
+      ai-gateway:
+        condition: service_healthy
+    init: true
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+    - /tmp
+    cap_drop:
+    - ALL
+    security_opt:
+    - no-new-privileges:true
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:8080/health
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
 volumes:
   shop-data: {}
   prometheus-data: {}

@@ -4,7 +4,8 @@
 .data
 node_modules
 artifacts
-infrastructure
+infrastructure/*
+!infrastructure/nginx
 tests
 docs
 legacy/*

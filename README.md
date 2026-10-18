@@ -50,7 +50,7 @@ docker compose up --build -d
 | Endpoint | Purpose |
 | --- | --- |
 | http://localhost:3000 | Storefront, shopping assistant, system status |
-| http://localhost:3000/metrics | Gateway Prometheus metrics |
+| Internal `ai-gateway:3000/metrics` | Gateway Prometheus metrics (private in Compose) |
 | http://localhost:9090 | Prometheus queries and alert rules |
 | http://localhost:16686 | Jaeger distributed traces |
 | http://localhost:3000/api/ready | Dependency readiness |
@@ -183,3 +183,7 @@ automated cancellation, refunds, disputes, and fulfilment are not implemented.
 Shipping now requires a dedicated PostgreSQL server. Run `npm ci` and configure database credentials before `npm run shipping:migrate` and `npm run dev`. Compose includes PostgreSQL, a migration job and persistent storage; Helm uses an external TLS-enabled database. See [shipping setup and data coverage](services/shipping-service/README.md). Checkout now requires a delivery address and shipping quote, and payment totals include shipping.
 
 Redis caching and RabbitMQ order events are enabled in Compose. Redis accelerates location lookups; RabbitMQ delivers confirmed orders to Java shipping, which records shipment requests in PostgreSQL. Run migrations before starting the updated stack. See [cache and messaging configuration](services/shipping-service/README.md#redis-and-rabbitmq). RabbitMQ management is available locally at http://localhost:15672 with your configured credentials. Stop the stack with `docker compose down`; retain volumes to preserve PostgreSQL and RabbitMQ data.
+
+## NGINX entry point
+
+Compose now serves the storefront through NGINX at **http://localhost:3000** and proxies `/api/*` to the private AI gateway. Configuration is split into commented files for routing, caching, headers, compression, logging and optional HTTPS. See the [NGINX configuration guide](infrastructure/nginx/README.md) for the file map, startup commands and TLS setup. Node-only development still uses the gateway directly.

@@ -54,7 +54,11 @@ jobs:
       - run: npm ci
       - run: npm run shipping:build
       - run: npm run shipping:migrate
+      - run: docker build -f infrastructure/nginx/Dockerfile --tag robotshop-nginx:ci .
       - run: npm test
+        env:
+          NGINX_TEST: "true"
+          NGINX_TEST_IMAGE: robotshop-nginx:ci
       - run: npm run evaluate
       - run: REDIS_PASSWORD=ci-config-only docker compose config --quiet
       - run: docker build --tag robotshop-ai:ci .

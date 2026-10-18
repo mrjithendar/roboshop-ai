@@ -41,3 +41,21 @@ shipping:
 integrations:
   enabled: true
   secretName: ""
+
+nginx:
+  enabled: true
+  image:
+    repository: robotshop-nginx
+    tag: local
+  replicas: 2
+  serviceType: ClusterIP
+  # Leave TLS termination to the cluster ingress/load balancer by default.
+  tlsSecretName: ""
+  serverName: localhost
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi

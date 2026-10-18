@@ -45,6 +45,7 @@ updates:
       - docker-compose.legacy.yml
     # This image is built locally, not resolved from a public registry.
     ignore:
+      - dependency-name: robotshop-nginx
       - dependency-name: robotshop-shipping
       - dependency-name: robotshop-ai
     schedule:
@@ -107,6 +108,16 @@ updates:
 
   - package-ecosystem: docker
     directory: /services/shipping-service
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: docker
+    directory: /infrastructure/nginx
     schedule:
       interval: weekly
       day: monday

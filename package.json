@@ -17,7 +17,8 @@
     "shipping:build": "sh services/shipping-service/gradlew -p services/shipping-service --no-daemon test bootJar",
     "predev": "npm run shipping:build",
     "prestart": "npm run shipping:build",
-    "pretest": "npm run shipping:build"
+    "pretest": "npm run shipping:build",
+    "test:nginx": "NGINX_TEST=true node --test tests/nginx.test.mjs"
   },
   "dependencies": {
     "amqplib": "^0.10.9"

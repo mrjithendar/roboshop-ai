@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { serve, json, body, text, request, urls, context, HttpError } from '../shared/runtime.mjs';
 import { Store } from './store.mjs';
 import { OrderPublisher } from './events.mjs';
+import { clientAddress } from './proxy.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const store = new Store(process.env.DATA_DIR || resolve(root, '.data'));
@@ -13,7 +14,7 @@ for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => void publis
 const publicOrigin = process.env.PUBLIC_ORIGIN || `http://localhost:${process.env.PORT || 3000}`;
 const limits = new Map();
 function limit(req, ai = false) {
-  const key = `${req.socket.remoteAddress}:${ai}`;
+  const key = `${clientAddress(req)}:${ai}`;
   const now = Date.now();
   for (const [key, value] of limits) if (value.until < now) limits.delete(key);
   const record = limits.get(key) || { count: 0, until: now + 60000 };

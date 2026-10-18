@@ -8,17 +8,20 @@ import { join } from 'node:path';
 import { once } from 'node:events';
 import { createHmac } from 'node:crypto';
 import amqp from 'amqplib';
+import { startNginx } from './helpers/nginx.mjs';
 
 async function freePort() { const server = createServer(); server.listen(0, '127.0.0.1'); await once(server, 'listening'); const port = server.address().port; await new Promise(resolve => server.close(resolve)); return port; }
 test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency failure', { timeout: 60000 }, async () => {
   const names = ['product-ingestion', 'recommendation-service', 'shopping-agent', 'sre-copilot', 'ai-gateway', 'payment-service', 'shipping-service'];
   const ports = await Promise.all(names.map(freePort));
-  const base = `http://127.0.0.1:${ports[4]}`;
+  const edgePort = process.env.NGINX_TEST === 'true' ? await freePort() : null;
+  const base = `http://127.0.0.1:${edgePort || ports[4]}`;
+  let edge;
   const dir = mkdtempSync(join(tmpdir(), 'robotshop-integration-'));
   const children = [], traces = []; let logs = '';
   const receiver = createServer(async (req, res) => { let data = ''; for await (const part of req) data += part; traces.push(JSON.parse(data)); res.writeHead(200, { 'content-type': 'application/json' }); res.end('{}'); });
   receiver.listen(0, '127.0.0.1'); await once(receiver, 'listening');
-  const env = { ...process.env, HOST: '127.0.0.1', INGESTION_URL: `http://127.0.0.1:${ports[0]}`, RECOMMENDATION_URL: `http://127.0.0.1:${ports[1]}`, AGENT_URL: `http://127.0.0.1:${ports[2]}`, SRE_URL: `http://127.0.0.1:${ports[3]}`, DATA_DIR: dir, PUBLIC_ORIGIN: base, PAYMENT_URL: `http://127.0.0.1:${ports[5]}`, SHIPPING_URL: `http://127.0.0.1:${ports[6]}`, PAYMENT_SERVICE_TOKEN: 'integration-internal-token', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', RAZORPAY_WEBHOOK_SECRET: '', OPENAI_API_KEY: '', OPENAI_MODEL: '', LANGFUSE_BASE_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `http://127.0.0.1:${receiver.address().port}/v1/traces` };
+  const env = { ...process.env, HOST: '127.0.0.1', TRUST_PROXY: edgePort ? 'true' : 'false', INGESTION_URL: `http://127.0.0.1:${ports[0]}`, RECOMMENDATION_URL: `http://127.0.0.1:${ports[1]}`, AGENT_URL: `http://127.0.0.1:${ports[2]}`, SRE_URL: `http://127.0.0.1:${ports[3]}`, DATA_DIR: dir, PUBLIC_ORIGIN: base, PAYMENT_URL: `http://127.0.0.1:${ports[5]}`, SHIPPING_URL: `http://127.0.0.1:${ports[6]}`, PAYMENT_SERVICE_TOKEN: 'integration-internal-token', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', RAZORPAY_WEBHOOK_SECRET: '', OPENAI_API_KEY: '', OPENAI_MODEL: '', LANGFUSE_BASE_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `http://127.0.0.1:${receiver.address().port}/v1/traces` };
   let cookie;
   async function call(path, options = {}, useCookie = true) {
     const response = await fetch(`${base}${path}`, { ...options, headers: { 'content-type': 'application/json', ...(useCookie && cookie ? { cookie } : {}), ...options.headers } });
@@ -35,6 +38,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
       for (let retry = 0; retry < 600; retry++) { try { if ((await fetch(`http://127.0.0.1:${port}/health`)).ok) { ready = true; break; } } catch {} await new Promise(r => setTimeout(r, 30)); }
       assert.ok(ready, logs);
     }
+    if (edgePort) edge = await startNginx({ port: edgePort, gatewayPort: ports[4], directory: dir });
     assert.match(await (await fetch(base)).text(), /Find your kind of robot/);
     assert.equal((await fetch(`${base}/.env`)).status, 404);
     assert.equal((await fetch(`${base}/images/STAN-1.png`)).status, 200);
@@ -136,7 +140,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     }
 
     assert.equal((await call('/api/products')).data.products.find(p => p.sku === 'RMC').instock, 46);
-    assert.match(await (await fetch(`${base}/metrics`)).text(), /robotshop_http_requests_total/);
+    assert.match(await (await fetch(`http://127.0.0.1:${ports[4]}/metrics`)).text(), /robotshop_http_requests_total/);
     await new Promise(r => setTimeout(r, 100));
     const spans = traces.flatMap(t => t.resourceSpans.flatMap(r => r.scopeSpans.flatMap(s => s.spans)));
     assert.ok(spans.some(s => s.name === 'POST /api/chat' && s.parentSpanId));
@@ -151,6 +155,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     assert.equal((await call('/api/ops')).data.status, 'degraded');
     assert.equal((await call('/api/products')).response.status, 503);
   } finally {
+    if (edge) await edge.stop();
     for (const child of children) if (child.exitCode === null) child.kill('SIGTERM');
     await Promise.all(children.map(child => child.exitCode === null ? once(child, 'exit') : Promise.resolve()));
     await new Promise(resolve => receiver.close(resolve)); rmSync(dir, { recursive: true, force: true });
