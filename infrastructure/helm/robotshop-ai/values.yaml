@@ -36,3 +36,8 @@ shipping:
       memory: 512Mi
   databaseSecretName: ""
   migrationSecretName: ""
+
+# Managed Redis/RabbitMQ with TLS. Credentials and endpoints come from an existing Secret.
+integrations:
+  enabled: true
+  secretName: ""

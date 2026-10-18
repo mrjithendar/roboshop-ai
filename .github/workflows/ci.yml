@@ -9,6 +9,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
+      redis:
+        image: redis:7.4-alpine
+        ports: ["6379:6379"]
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+      rabbitmq:
+        image: rabbitmq:4.1-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: ci
+          RABBITMQ_DEFAULT_PASS: ci-only
+        ports: ["5672:5672"]
+        options: --health-cmd "rabbitmq-diagnostics -q ping" --health-interval 5s --health-timeout 5s --health-retries 20
       postgres:
         image: postgres:17-alpine
         env:
@@ -24,6 +35,13 @@ jobs:
       SHIPPING_DB_TLS: "false"
       SHIPPING_DB_PASSWORD: ci-local-only
       SHIPPING_APP_PASSWORD: ci-runtime-only
+      CACHE_ENABLED: "true"
+      MESSAGING_ENABLED: "true"
+      REDIS_PASSWORD: ""
+      RABBITMQ_HOST: 127.0.0.1
+      RABBITMQ_USERNAME: ci
+      RABBITMQ_PASSWORD: ci-only
+      RABBITMQ_URL: amqp://ci:ci-only@127.0.0.1:5672
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
@@ -38,6 +56,6 @@ jobs:
       - run: npm run shipping:migrate
       - run: npm test
       - run: npm run evaluate
-      - run: docker compose config --quiet
+      - run: REDIS_PASSWORD=ci-config-only docker compose config --quiet
       - run: docker build --tag robotshop-ai:ci .
       - run: docker build -f services/shipping-service/Dockerfile --tag robotshop-shipping:ci .

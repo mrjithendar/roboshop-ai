@@ -40,7 +40,7 @@ reports the configured mode. The agent still checks its actual credentials.
 
 ## Containers and observability
 
-Set `SHIPPING_DB_PASSWORD` and `SHIPPING_APP_PASSWORD` in `.env` first.
+Set `SHIPPING_DB_PASSWORD`, `SHIPPING_APP_PASSWORD`, `REDIS_PASSWORD`, `RABBITMQ_USERNAME` and `RABBITMQ_PASSWORD` in `.env` first.
 
 ```sh
 docker compose config --quiet
@@ -115,7 +115,7 @@ GitHub Actions runs tests, evaluations, Compose validation, and an image build.
 GitHub Actions and `/vpc` Terraform paths every Monday at 09:00 Asia/Kolkata. Minor
 and patch changes are grouped per ecosystem; major changes remain separate. The
 legacy snapshot and its launch file are excluded. The active npm package currently
-has no third-party runtime dependencies; Java shipping dependencies are managed by Gradle. Existing Terraform providers have no explicit
+uses `amqplib` for RabbitMQ; Java shipping dependencies are managed by Gradle. Existing Terraform providers have no explicit
 version constraints, limiting useful provider-update PRs until constraints/lockfiles
 are added as a separate infrastructure change.
 
@@ -181,3 +181,5 @@ automated cancellation, refunds, disputes, and fulfilment are not implemented.
 ## PostgreSQL shipping
 
 Shipping now requires a dedicated PostgreSQL server. Run `npm ci` and configure database credentials before `npm run shipping:migrate` and `npm run dev`. Compose includes PostgreSQL, a migration job and persistent storage; Helm uses an external TLS-enabled database. See [shipping setup and data coverage](services/shipping-service/README.md). Checkout now requires a delivery address and shipping quote, and payment totals include shipping.
+
+Redis caching and RabbitMQ order events are enabled in Compose. Redis accelerates location lookups; RabbitMQ delivers confirmed orders to Java shipping, which records shipment requests in PostgreSQL. Run migrations before starting the updated stack. See [cache and messaging configuration](services/shipping-service/README.md#redis-and-rabbitmq). RabbitMQ management is available locally at http://localhost:15672 with your configured credentials. Stop the stack with `docker compose down`; retain volumes to preserve PostgreSQL and RabbitMQ data.

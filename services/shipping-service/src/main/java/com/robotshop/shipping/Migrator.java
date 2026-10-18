@@ -23,16 +23,18 @@ final class Migrator {
             try (var statement = connection.createStatement()) {
                 statement.execute("SELECT pg_advisory_xact_lock(74103106)");
                 statement.execute("CREATE TABLE IF NOT EXISTS public.shipping_migrations (version integer PRIMARY KEY, checksum text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now())");
-                byte[] sql = resource("/migrations/001_locations.sql");
+                for (int version=1; version<=2; version++) {
+                byte[] sql = resource(version==1 ? "/migrations/001_locations.sql" : "/migrations/002_shipments.sql");
                 String checksum = hash(sql);
                 boolean applied;
-                try (var rows = statement.executeQuery("SELECT checksum FROM public.shipping_migrations WHERE version=1")) {
+                try (var rows = statement.executeQuery("SELECT checksum FROM public.shipping_migrations WHERE version="+version)) {
                     applied = rows.next();
                     if (applied && !checksum.equals(rows.getString(1))) throw new IllegalStateException("Applied migration checksum changed");
                 }
                 if (!applied) {
                     statement.execute(new String(sql,StandardCharsets.UTF_8));
-                    try (var insert = connection.prepareStatement("INSERT INTO public.shipping_migrations(version,checksum) VALUES(1,?)")) { insert.setString(1,checksum); insert.executeUpdate(); }
+                    try (var insert = connection.prepareStatement("INSERT INTO public.shipping_migrations(version,checksum) VALUES(?,?)")) { insert.setInt(1,version); insert.setString(2,checksum); insert.executeUpdate(); }
+                }
                 }
                 String seedHash = mapper.readTree(resource("/data/manifest.json")).get("sha256").asText();
                 boolean seeded;
@@ -59,6 +61,8 @@ final class Migrator {
                     }
                     try (var insert = connection.prepareStatement("INSERT INTO shipping.metadata VALUES ('seed',?) ON CONFLICT (key) DO UPDATE SET value=excluded.value")) { insert.setString(1,seedHash); insert.executeUpdate(); }
                 }
+                // Local Compose role; externally provisioned roles receive grants from the DBA.
+                statement.execute("DO $$ BEGIN IF EXISTS (SELECT FROM pg_roles WHERE rolname='shipping_app') THEN GRANT INSERT ON shipping.shipment_requests TO shipping_app; END IF; END $$");
                 connection.commit();
                 System.out.println("Shipping migrations and GeoNames seed applied.");
             } catch (Exception e) { connection.rollback(); throw e; }

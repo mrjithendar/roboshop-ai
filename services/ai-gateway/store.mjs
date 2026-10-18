@@ -92,6 +92,17 @@ export class Store {
     const next = structuredClone(this.state), order = next.orders.find(o => o.id === id);
     if (order?.status === 'creating') { order.status = 'payment_review'; this.save(next); }
   }
+  pendingEvents() {
+    return this.state.orders.filter(o => o.status === 'paid' && o.shipmentEvent && !o.shipmentEvent.publishedAt).map(o => ({
+      ...o.shipmentEvent, type: 'order.paid', version: 1, orderId: o.id,
+      shipping: o.shipping, items: o.items.map(({ sku, quantity }) => ({ sku, quantity })),
+    }));
+  }
+  eventPublished(eventId) {
+    const next = structuredClone(this.state);
+    const order = next.orders.find(o => o.shipmentEvent?.eventId === eventId);
+    if (order && !order.shipmentEvent.publishedAt) { order.shipmentEvent.publishedAt = new Date().toISOString(); this.save(next); }
+  }
   markPaid(id, payment) {
     const current = this.paymentOrder(id);
     if (payment.verified !== true || payment.orderId !== current.razorpayOrderId || payment.amount !== Math.round(current.total * 100) || payment.currency !== current.currency) throw new HttpError(409, 'Payment confirmation mismatch.');
@@ -101,6 +112,7 @@ export class Store {
     }
     if (current.status !== 'payment_pending' || this.state.orders.some(o => o.paymentId === payment.paymentId)) throw new HttpError(409, 'Payment already used or order state invalid.');
     const next = structuredClone(this.state), order = next.orders.find(o => o.id === id);
+    order.shipmentEvent = { eventId: randomUUID(), occurredAt: new Date().toISOString() };
     order.status = 'paid'; order.paymentCaptured = true; order.paymentId = payment.paymentId; order.paidAt = new Date().toISOString();
     for (const p of order.items) next.sold[p.sku] = (next.sold[p.sku] || 0) + p.quantity;
     if (next.sessions[order.session]) next.sessions[order.session].items = {};

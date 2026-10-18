@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { once } from 'node:events';
 import { createHmac } from 'node:crypto';
+import amqp from 'amqplib';
 
 async function freePort() { const server = createServer(); server.listen(0, '127.0.0.1'); await once(server, 'listening'); const port = server.address().port; await new Promise(resolve => server.close(resolve)); return port; }
 test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency failure', { timeout: 60000 }, async () => {
@@ -87,6 +88,53 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     assert.equal(verified.data.status, 'paid'); assert.equal(verified.data.paymentCaptured, true);
     assert.equal((await call('/api/payments/verify', { method: 'POST', body: JSON.stringify(verification) })).data.id, order.data.order.id);
     assert.equal((await call('/api/cart')).data.items.length, 0);
+    if (env.RABBITMQ_URL) {
+      let published=false;
+      for(let retry=0;retry<100;retry++) {
+        published=Boolean(JSON.parse(readFileSync(join(dir,'store.json'),'utf8')).orders.find(o=>o.id===order.data.order.id)?.shipmentEvent?.publishedAt);
+        if(published) break;
+        await new Promise(r=>setTimeout(r,100));
+      }
+      assert.ok(published,'Paid-order event must receive a RabbitMQ publisher confirmation');
+      let consumed=false;
+      for(let retry=0;retry<100;retry++) {
+        const metrics=await (await fetch(`http://127.0.0.1:${ports[6]}/metrics`)).text();
+        consumed=/robotshop_shipping_events_total\{[^}]*result="accepted"[^}]*\} [1-9]/.test(metrics);
+        if(consumed) break;
+        await new Promise(r=>setTimeout(r,100));
+      }
+      assert.ok(consumed,'Java shipping consumer must persist a shipment request');
+      const broker=await amqp.connect(env.RABBITMQ_URL), channel=await broker.createConfirmChannel();
+      try {
+        const saved=JSON.parse(readFileSync(join(dir,'store.json'),'utf8')).orders.find(o=>o.id===order.data.order.id);
+        const event={...saved.shipmentEvent,type:'order.paid',version:1,orderId:saved.id,shipping:saved.shipping,items:saved.items.map(({sku,quantity})=>({sku,quantity}))};
+        const publish = data => new Promise((resolve,reject)=>channel.publish('robotshop.orders','order.paid',Buffer.from(JSON.stringify(data)),{persistent:true,contentType:'application/json'},error=>error?reject(error):resolve()));
+        await publish(event);
+        let duplicate=false;
+        for(let retry=0;retry<100;retry++) {
+          const metrics=await (await fetch(`http://127.0.0.1:${ports[6]}/metrics`)).text();
+          duplicate=/robotshop_shipping_events_total\{[^}]*result="duplicate"[^}]*\} [1-9]/.test(metrics);
+          if(duplicate) break;
+          await new Promise(r=>setTimeout(r,100));
+        }
+        assert.ok(duplicate,'Redelivered paid events must not create duplicate shipments');
+        const before=(await channel.checkQueue('robotshop.shipping.failed')).messageCount;
+        await publish({type:'invalid',test:true});
+        let deadLettered=false;
+        for(let retry=0;retry<250;retry++) {
+          deadLettered=(await channel.checkQueue('robotshop.shipping.failed')).messageCount>before;
+          if(deadLettered) break;
+          await new Promise(r=>setTimeout(r,100));
+        }
+        assert.ok(deadLettered,'Invalid events must route to the dead-letter queue');
+      } finally { await channel.close(); await broker.close(); }
+    }
+    if(env.CACHE_ENABLED==='true') {
+      await call('/api/shipping/countries'); await call('/api/shipping/countries');
+      const metrics=await (await fetch(`http://127.0.0.1:${ports[6]}/metrics`)).text();
+      assert.match(metrics,/robotshop_location_cache_total\{[^}]*result="hit"/);
+    }
+
     assert.equal((await call('/api/products')).data.products.find(p => p.sku === 'RMC').instock, 46);
     assert.match(await (await fetch(`${base}/metrics`)).text(), /robotshop_http_requests_total/);
     await new Promise(r => setTimeout(r, 100));

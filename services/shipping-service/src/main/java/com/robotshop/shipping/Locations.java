@@ -14,23 +14,27 @@ import java.time.Instant;
 public class Locations {
     private final JdbcTemplate jdbc;
     private final String seedHash;
-    public Locations(JdbcTemplate jdbc, ObjectMapper mapper) throws Exception {
+    private final LocationCache cache;
+    public Locations(JdbcTemplate jdbc, ObjectMapper mapper, LocationCache cache) throws Exception {
         this.jdbc = jdbc;
+        this.cache = cache;
         try (var in = getClass().getResourceAsStream("/data/manifest.json")) { seedHash = mapper.readTree(in).get("sha256").asText(); }
     }
     public void ready() {
+        if (jdbc.queryForObject("SELECT to_regclass('shipping.shipment_requests') IS NOT NULL", Boolean.class) != Boolean.TRUE) throw new IllegalStateException("Shipping database needs migration");
         if (!seedHash.equals(jdbc.queryForObject("SELECT value FROM shipping.metadata WHERE key='seed'", String.class)))
             throw new IllegalStateException("Shipping database needs migration");
     }
     public List<Map<String,Object>> countries() {
-        return jdbc.queryForList("SELECT code,name,(SELECT count(*)::integer FROM shipping.cities WHERE country_code=code) AS \"cityCount\" FROM shipping.countries ORDER BY name");
+        return cache.read(seedHash+":countries", java.time.Duration.ofHours(6), () -> jdbc.queryForList("SELECT code,name,(SELECT count(*)::integer FROM shipping.cities WHERE country_code=code) AS \"cityCount\" FROM shipping.countries ORDER BY name"));
     }
     public List<Map<String,Object>> search(String country, String query) {
         if (country == null || !country.matches("[A-Z]{2}") || jdbc.queryForObject("SELECT count(*) FROM shipping.countries WHERE code=?", Integer.class, country) == 0)
             throw bad("Select a valid country.");
         query = Normalizer.normalize(text(query,"City search",80), Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
         if (query.length() < 2) throw bad("Enter at least two characters.");
-        return jdbc.queryForList("SELECT id,country_code AS \"countryCode\",name,region FROM shipping.cities WHERE country_code=? AND search_name>=? AND search_name<? ORDER BY search_name,id LIMIT 30",country,query,query+'\uffff');
+        final String prefix = query;
+        return cache.read(seedHash+":cities:"+country+":"+query, java.time.Duration.ofMinutes(10), () -> jdbc.queryForList("SELECT id,country_code AS \"countryCode\",name,region FROM shipping.cities WHERE country_code=? AND search_name>=? AND search_name<? ORDER BY search_name,id LIMIT 30",country,prefix,prefix+'\uffff'));
     }
     public Map<String,Object> quote(Map<String,Object> input) {
         Object id = input.get("cityId");

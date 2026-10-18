@@ -3,9 +3,13 @@ import { resolve, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serve, json, body, text, request, urls, context, HttpError } from '../shared/runtime.mjs';
 import { Store } from './store.mjs';
+import { OrderPublisher } from './events.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const store = new Store(process.env.DATA_DIR || resolve(root, '.data'));
+const publisher = new OrderPublisher(store, process.env.RABBITMQ_URL);
+publisher.start();
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => void publisher.stop());
 const publicOrigin = process.env.PUBLIC_ORIGIN || `http://localhost:${process.env.PORT || 3000}`;
 const limits = new Map();
 function limit(req, ai = false) {
@@ -35,7 +39,7 @@ async function paymentCall(path, data) {
   return result;
 }
 function publicOrder(order) {
-  const { session: _session, key: _key, ...result } = order;
+  const { session: _session, key: _key, shipmentEvent: _event, ...result } = order;
   return result;
 }
 function paymentExpectation(order) { return { orderId: order.razorpayOrderId, amount: Math.round(order.total * 100), currency: order.currency }; }

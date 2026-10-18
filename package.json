@@ -18,5 +18,8 @@
     "predev": "npm run shipping:build",
     "prestart": "npm run shipping:build",
     "pretest": "npm run shipping:build"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.9"
   }
 }

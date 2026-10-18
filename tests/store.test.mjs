@@ -35,5 +35,11 @@ test('cart isolation, persistence, authoritative totals and idempotent checkout'
     assert.equal(restored.available(products[0]), 0);
     assert.equal(restored.cart(alice, products).items.length, 0);
     assert.equal(restored.state.orders.length, 1);
+    assert.equal(restored.pendingEvents().length, 1);
+    const event = restored.pendingEvents()[0];
+    assert.equal(event.orderId, order.id);
+    assert.deepEqual(event.items, [{sku:'TEST',quantity:2}]);
+    restored.eventPublished(event.eventId);
+    assert.equal(new Store(dir).pendingEvents().length, 0);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

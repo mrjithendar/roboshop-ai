@@ -39,6 +39,23 @@ spec:
               containerPort: {{ $port }}
           env:
             {{- if eq $name "shipping-service" }}
+            - name: CACHE_ENABLED
+              value: {{ $root.Values.integrations.enabled | quote }}
+            - name: MESSAGING_ENABLED
+              value: {{ $root.Values.integrations.enabled | quote }}
+            {{- if $root.Values.integrations.enabled }}
+            {{- range $key := list "REDIS_HOST" "REDIS_PORT" "REDIS_USERNAME" "REDIS_PASSWORD" "RABBITMQ_HOST" "RABBITMQ_PORT" "RABBITMQ_USERNAME" "RABBITMQ_PASSWORD" "RABBITMQ_VHOST" }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "Set integrations.secretName for external Redis and RabbitMQ" $root.Values.integrations.secretName }}
+                  key: {{ $key }}
+            {{- end }}
+            - name: REDIS_TLS
+              value: "true"
+            - name: RABBITMQ_TLS
+              value: "true"
+            {{- end }}
             - name: SHIPPING_TRACING_ENABLED
               value: {{ ne $root.Values.otelTracesEndpoint "" | quote }}
             - name: SHIPPING_DATABASE_URL
@@ -90,6 +107,13 @@ spec:
             {{- end }}
             {{- end }}
             {{- if eq $name "ai-gateway" }}
+            {{- if $root.Values.integrations.enabled }}
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "Set integrations.secretName for external Redis and RabbitMQ" $root.Values.integrations.secretName }}
+                  key: RABBITMQ_URL
+            {{- end }}
             - name: ASSISTANT_AI_ENABLED
               value: {{ $root.Values.aiEnabled | quote }}
             {{- end }}
