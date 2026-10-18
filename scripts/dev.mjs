@@ -1,9 +1,11 @@
 import { spawn } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { randomBytes } from 'node:crypto';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const names = ['product-ingestion', 'recommendation-service', 'shopping-agent', 'sre-copilot', 'ai-gateway'];
+const names = ['product-ingestion', 'recommendation-service', 'shopping-agent', 'payment-service', 'sre-copilot', 'ai-gateway'];
+const paymentToken = process.env.PAYMENT_SERVICE_TOKEN || randomBytes(32).toString('hex');
 const children = [];
 let stopping = false;
 function stop(code = 0) {
@@ -15,6 +17,9 @@ function stop(code = 0) {
 }
 for (const name of names) {
   const env = { ...process.env };
+  if (['payment-service', 'ai-gateway'].includes(name)) env.PAYMENT_SERVICE_TOKEN = paymentToken;
+  else delete env.PAYMENT_SERVICE_TOKEN;
+  if (name !== 'payment-service') for (const key of ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'RAZORPAY_WEBHOOK_SECRET']) delete env[key];
   if (name === 'ai-gateway') env.ASSISTANT_AI_ENABLED = String(Boolean(env.OPENAI_API_KEY && env.OPENAI_MODEL));
   if (name !== 'shopping-agent') for (const key of ['OPENAI_API_KEY', 'OPENAI_MODEL', 'LANGFUSE_PUBLIC_KEY', 'LANGFUSE_SECRET_KEY']) delete env[key];
   // PORT applies only to the public gateway; internal services use their defaults.

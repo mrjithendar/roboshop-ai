@@ -2,6 +2,8 @@ const $ = selector => document.querySelector(selector);
 const money = value => new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(value);
 let products = [], cart = { items: [], total: 0 }, category = '', chatBusy = false, cartBusy = false, checkoutKey = null;
 let toastTimer;
+let paymentConfig = { enabled: false }, pendingOrder = null, checkoutScript;
+function paymentReference(value) { try { if (value === undefined) return localStorage.getItem('robotshop-payment-order'); if (value) localStorage.setItem('robotshop-payment-order', value); else localStorage.removeItem('robotshop-payment-order'); } catch {} }
 const el = (tag, className, content) => { const node = document.createElement(tag); if (className) node.className = className; if (content !== undefined) node.textContent = content; return node; };
 async function api(path, options = {}) {
   const response = await fetch(path, { ...options, headers: { 'content-type': 'application/json', ...options.headers }, signal: AbortSignal.timeout(25000) });
@@ -54,7 +56,7 @@ function detail(p) {
   const heading = el('h2', '', p.name); heading.id = 'detail-name';
   const buy = el('button', 'button primary', p.instock ? 'Add to bag  +' : 'Out of stock'); buy.disabled = !p.instock;
   buy.addEventListener('click', async () => { buy.disabled = true; await add(p); buy.disabled = !p.instock; });
-  copy.append(el('p', 'eyebrow', p.categories.join(' / ')), heading, el('p', '', p.description), el('p', 'product-price', money(p.price)), el('p', '', p.instock ? `${p.instock} available in the demo catalogue` : 'Currently out of stock'), buy);
+  copy.append(el('p', 'eyebrow', p.categories.join(' / ')), heading, el('p', '', p.description), el('p', 'product-price', money(p.price)), el('p', '', p.instock ? `${p.instock} available` : 'Currently out of stock'), buy);
   grid.append(image(p, 'detail-image'), copy); $('#product-detail').replaceChildren(grid); show('product-dialog');
 }
 async function add(p) { const quantity = (cart.items.find(item => item.sku === p.sku)?.quantity || 0) + 1; if (await updateCart(p.sku, quantity)) toast(`${p.name} is in your bag.`); }
@@ -67,7 +69,9 @@ async function updateCart(sku, quantity) {
 }
 function renderCart() {
   $('#bag-count').textContent = cart.items.reduce((n, item) => n + item.quantity, 0);
-  $('#cart-total').textContent = money(cart.total); $('#checkout').disabled = !cart.items.length || !$('#confirm-demo').checked;
+  $('#cart-total').textContent = money(cart.total); $('#checkout').disabled = cartBusy || !paymentConfig.enabled || !cart.items.length || ['creating', 'payment_review'].includes(pendingOrder?.status);
+  $('#checkout').textContent = pendingOrder?.status === 'payment_pending' ? 'Resume secure payment ↗' : 'Pay securely ↗';
+  $('#check-payment').hidden = !pendingOrder;
   const rows = cart.items.map(p => {
     const row = el('div', 'cart-row'), info = el('div'), qty = el('div', 'quantity-control');
     for (const [symbol, quantity, label] of [['−', p.quantity - 1, 'Decrease'], ['+', p.quantity + 1, 'Increase']]) {
@@ -75,22 +79,74 @@ function renderCart() {
       if (symbol === '+') { qty.append(el('span', '', String(p.quantity))); button.disabled = p.quantity >= Math.min(p.instock, 20); } qty.append(button);
     }
     const remove = el('button', 'remove-button', 'Remove'); remove.addEventListener('click', () => updateCart(p.sku, 0));
+    if (pendingOrder) { qty.querySelectorAll('button').forEach(button => button.disabled = true); remove.disabled = true; }
     info.append(el('h3', '', p.name), el('p', '', money(p.lineTotal)), qty); row.append(image(p), info, remove); return row;
   });
   $('#cart-items').replaceChildren(...(rows.length ? rows : [el('p', 'empty-state', 'Your next companion is waiting. Explore the collection to fill your bag.')]));
 }
-$('#bag-button').addEventListener('click', async () => { show('cart-dialog'); try { cart = await api('/api/cart'); renderCart(); } catch (error) { toast(error.message); } });
-$('#confirm-demo').addEventListener('change', renderCart);
+async function paymentResult(order) {
+  if (order?.status === 'paid' && order.paymentCaptured) {
+    pendingOrder = null; checkoutKey = null; paymentReference(null);
+    $('#order-result').textContent = `Payment confirmed. Order ${order.id.slice(0, 8)} · ${money(order.total)}. Reference: ${order.paymentId}`;
+    cart = await api('/api/cart'); renderCart(); await Promise.all([loadProducts(), loadRecommendations()]);
+  } else if (order) {
+    pendingOrder = order; paymentReference(order.id);
+    $('#order-result').textContent = order.status === 'payment_review' || order.status === 'creating'
+      ? `Payment setup needs review. Contact the store with order ${order.id}. Do not submit another payment.`
+      : 'Payment is not confirmed yet. Resume checkout or check payment status. Your bag and stock reservation are preserved.';
+    renderCart();
+  }
+}
+async function checkPayment() {
+  const id = pendingOrder?.id || paymentReference();
+  if (id) await paymentResult(await api(`/api/payments/status?orderId=${encodeURIComponent(id)}`));
+  else { const result = await api('/api/payments/current'); if (result.order) await paymentResult(result.order); }
+}
+async function loadPaymentConfig() {
+  try { paymentConfig = await api('/api/payments/config'); $('#payment-notice').textContent = paymentConfig.message; }
+  catch { paymentConfig = { enabled: false }; $('#payment-notice').textContent = 'Payments are unavailable. Please try again later.'; }
+  renderCart();
+}
+function loadCheckout() {
+  if (window.Razorpay) return Promise.resolve();
+  if (!checkoutScript) checkoutScript = new Promise((resolve, reject) => {
+    const script = document.createElement('script'); script.src = 'https://checkout.razorpay.com/v1/checkout.js'; script.async = true;
+    script.onload = () => window.Razorpay ? resolve() : reject(new Error('Payment checkout could not load.'));
+    script.onerror = () => { script.remove(); checkoutScript = null; reject(new Error('Payment checkout could not load. Please try again.')); };
+    document.head.append(script);
+  });
+  return checkoutScript;
+}
+$('#bag-button').addEventListener('click', async () => {
+  show('cart-dialog');
+  try { await loadPaymentConfig(); await checkPayment(); cart = await api('/api/cart'); renderCart(); }
+  catch (error) { $('#order-result').textContent = error.message; }
+});
+$('#check-payment').addEventListener('click', async () => { try { await checkPayment(); } catch (error) { $('#order-result').textContent = error.message; } });
 $('#checkout').addEventListener('click', async () => {
-  if (cartBusy || !$('#confirm-demo').checked) return;
-  cartBusy = true; $('#checkout').disabled = true; checkoutKey ||= crypto.randomUUID();
+  if (cartBusy || !paymentConfig.enabled) return;
+  cartBusy = true; renderCart(); checkoutKey ||= crypto.randomUUID();
   try {
-    const order = await api('/api/orders', { method: 'POST', headers: { 'idempotency-key': checkoutKey }, body: JSON.stringify({ confirmDemo: true }) });
-    cart = { items: [], total: 0 }; $('#confirm-demo').checked = false; renderCart();
-    $('#order-result').textContent = `Demo order ${order.id.slice(0, 8)} confirmed. ${money(order.total)} total. No payment was taken.`;
-    checkoutKey = null; await Promise.all([loadProducts(), loadRecommendations()]);
-  } catch (error) { $('#order-result').textContent = error.message; $('#checkout').disabled = false; }
-  finally { cartBusy = false; }
+    await loadCheckout();
+    const result = await api('/api/payments/orders', { method: 'POST', headers: { 'idempotency-key': checkoutKey }, body: '{}' });
+    if (result.order.status === 'paid') { await paymentResult(result.order); return; }
+    pendingOrder = result.order; paymentReference(result.order.id);
+    const checkout = new window.Razorpay({ ...result.checkout,
+      handler: async response => {
+        show('cart-dialog'); $('#order-result').textContent = 'Verifying payment with Razorpay…';
+        try { await paymentResult(await api('/api/payments/verify', { method: 'POST', body: JSON.stringify({ orderId: result.order.id, ...response }) })); }
+        catch { $('#order-result').textContent = 'Payment verification is pending. Check payment status before making another payment.'; }
+        finally { cartBusy = false; renderCart(); }
+      },
+      modal: { ondismiss: async () => {
+        cartBusy = false; show('cart-dialog'); renderCart();
+        try { await checkPayment(); } catch (error) { $('#order-result').textContent = error.message; }
+      } },
+    });
+    checkout.on('payment.failed', () => { $('#order-result').textContent = 'Payment was not confirmed. You can retry within Razorpay or check payment status.'; });
+    $('#cart-dialog').close(); checkout.open();
+  } catch (error) { $('#order-result').textContent = error.message; show('cart-dialog'); }
+  finally { cartBusy = false; renderCart(); }
 });
 for (const id of ['ask-nav', 'hero-assistant', 'banner-assistant', 'assistant-launcher']) $(`#${id}`).addEventListener('click', () => { show('assistant-dialog'); $('#message').focus(); });
 function chatMessage(role, content) { const node = el('div', `chat-message ${role}`); node.append(el('span', 'message-label', role === 'user' ? 'YOU' : 'ROBOTSHOP ASSISTANT'), el('p', '', content)); $('#chat-messages').append(node); node.scrollIntoView({ block: 'nearest' }); return node; }
@@ -118,4 +174,4 @@ async function loadOps() {
   } catch (error) { $('#ops-content').replaceChildren(el('p', '', error.message)); }
 }
 $('#ops-button').addEventListener('click', () => { show('ops-dialog'); loadOps(); }); $('#refresh-ops').addEventListener('click', loadOps);
-await Promise.all([loadProducts(), loadRecommendations(), api('/api/cart').then(result => { cart = result; renderCart(); }).catch(() => toast('Your bag could not be loaded. Please try again.')), api('/api/status').then(result => { $('#assistant-mode').textContent = result.assistantMode === 'ai' ? 'AI assistant connected · grounded in the catalogue' : 'Catalogue search mode · no language model connected'; }).catch(() => {})]);
+await Promise.all([loadPaymentConfig(), loadProducts(), loadRecommendations(), api('/api/cart').then(result => { cart = result; renderCart(); }).catch(() => toast('Your bag could not be loaded. Please try again.')), api('/api/status').then(result => { $('#assistant-mode').textContent = result.assistantMode === 'ai' ? 'AI assistant connected · grounded in the catalogue' : 'Catalogue search mode · no language model connected'; }).catch(() => {})]);

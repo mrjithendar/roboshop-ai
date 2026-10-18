@@ -1,4 +1,4 @@
-# Modern local demo. Legacy stack: docker compose -f docker-compose.legacy.yml up --build
+# Application stack with Razorpay payment service.
 name: robotshop-ai
 services:
   product-ingestion:
@@ -13,6 +13,7 @@ services:
       AGENT_URL: http://shopping-agent:4103
       SRE_URL: http://sre-copilot:4104
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      PAYMENT_URL: http://payment-service:4105
     init: true
     restart: unless-stopped
     read_only: true
@@ -46,6 +47,7 @@ services:
       AGENT_URL: http://shopping-agent:4103
       SRE_URL: http://sre-copilot:4104
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      PAYMENT_URL: http://payment-service:4105
     init: true
     restart: unless-stopped
     read_only: true
@@ -87,6 +89,7 @@ services:
       LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-}
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      PAYMENT_URL: http://payment-service:4105
     init: true
     restart: unless-stopped
     read_only: true
@@ -123,6 +126,7 @@ services:
       AGENT_URL: http://shopping-agent:4103
       SRE_URL: http://sre-copilot:4104
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      PAYMENT_URL: http://payment-service:4105
     init: true
     restart: unless-stopped
     read_only: true
@@ -158,6 +162,8 @@ services:
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:3000}
       ASSISTANT_AI_ENABLED: ${ASSISTANT_AI_ENABLED:-false}
+      PAYMENT_URL: http://payment-service:4105
+      PAYMENT_SERVICE_TOKEN: ${PAYMENT_SERVICE_TOKEN:-}
     init: true
     restart: unless-stopped
     read_only: true
@@ -192,6 +198,8 @@ services:
         condition: service_healthy
       sre-copilot:
         condition: service_healthy
+      payment-service:
+        condition: service_healthy
   otel-collector:
     image: otel/opentelemetry-collector:0.162.0-386
     command:
@@ -214,6 +222,46 @@ services:
     - prometheus-data:/prometheus
     ports:
     - 127.0.0.1:9090:9090
+  payment-service:
+    build: .
+    image: robotshop-ai:local
+    command:
+    - node
+    - services/payment-service/server.mjs
+    environment:
+      INGESTION_URL: http://product-ingestion:4101
+      RECOMMENDATION_URL: http://recommendation-service:4102
+      AGENT_URL: http://shopping-agent:4103
+      SRE_URL: http://sre-copilot:4104
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      PAYMENT_URL: http://payment-service:4105
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+      PAYMENT_SERVICE_TOKEN: ${PAYMENT_SERVICE_TOKEN:-}
+      PAYMENT_MODE: ${PAYMENT_MODE:-live}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:3000}
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+    - ALL
+    security_opt:
+    - no-new-privileges:true
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:4105/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
 volumes:
   shop-data: {}
   prometheus-data: {}

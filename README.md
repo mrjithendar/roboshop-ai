@@ -1,7 +1,7 @@
 # RobotShop AI
 
 A working local modernization of the Robot Shop demo: responsive storefront,
-catalogue-grounded shopping assistant, recommendations, persistent demo checkout,
+catalogue-grounded shopping assistant, recommendations, Razorpay checkout,
 and service observability. The original application in `legacy/original-robotshop/`
 is unchanged.
 
@@ -13,10 +13,12 @@ Requires Node.js 24 or newer. No npm dependencies or installation step is requir
 npm run dev
 ```
 
-Open **http://localhost:3000**. The launcher starts five services and Ctrl+C stops
+Open **http://localhost:3000**. The launcher starts six services and Ctrl+C stops
 all of them. Data is stored in `.data/store.json`, which is excluded from Git.
-The shop contains fictional robots; checkout records a demo order and never charges
-money, takes payment details, or arranges delivery.
+The catalogue still contains fictional robots. The old demo-order endpoint is disabled.
+Checkout now uses Razorpay and can collect real money once configured with live merchant
+credentials. Payment controls remain disabled until configuration is complete. No delivery
+or fulfilment integration is included. See [payment setup](services/payment-service/README.md).
 
 ## Optional AI
 
@@ -49,7 +51,7 @@ docker compose up --build -d
 | http://localhost:16686 | Jaeger distributed traces |
 | http://localhost:3000/api/ready | Dependency readiness |
 
-Compose runs the five application services, an OpenTelemetry collector, Jaeger,
+Compose runs the six application services, an OpenTelemetry collector, Jaeger,
 and Prometheus. Published ports bind to loopback. The app image runs as a non-root
 user with a read-only root filesystem; only the gateway's data volume is writable.
 Stop with `docker compose down`. Do not add `--volumes` unless you intend to delete
@@ -75,10 +77,11 @@ rating, or payment services.
 | Path | Implementation |
 | --- | --- |
 | `frontend/` | Responsive HTML/CSS/JS storefront; no AngularJS or third-party browser scripts |
-| `services/ai-gateway/` | Public API, static assets, validation, rate limits, sessions, demo carts/orders |
+| `services/ai-gateway/` | Public API, static assets, validation, rate limits, sessions, carts, pending/paid orders |
 | `services/shopping-agent/` | Keyword retrieval, optional model synthesis, visible fallback |
 | `services/recommendation-service/` | Budget/category/stock-aware ranking with reasons |
 | `services/product-ingestion/` | Validated catalogue snapshot, importer, read-only catalogue API |
+| `services/payment-service/` | Razorpay orders, signature verification, captured-payment validation |
 | `services/sre-copilot/` | Live health probes and deterministic read-only runbook suggestions |
 | `services/mcp-server/` | Stdio MCP adapter with two read-only tools |
 | `services/shared/` | HTTP, trace propagation, metrics, catalogue validation and ranking |
@@ -114,13 +117,13 @@ are added as a separate infrastructure change.
 
 ## Deployment boundaries
 
-This is a single-instance demo platform, not a production commerce deployment.
+This is a single-instance platform, not a complete production commerce deployment.
 The JSON ledger has one writer, bounded session/order capacity, and no database
 transactions across replicas. Sessions expire after seven days. There is no account
-login, real payment/shipping flow, vector database, personalized model, or automated
+login, shipping flow, vector database, personalized model, or automated
 SRE remediation. Product ingestion is a validated batch import, not a scheduled
 synchronization pipeline. MCP search uses the imported stock snapshot, while the
-storefront also subtracts the demo order ledger.
+storefront also subtracts the order ledger.
 
 Before exposing it beyond a trusted local/demo environment, add authentication,
 operator authorization, TLS, a transactional database, durable telemetry storage,
@@ -132,6 +135,41 @@ and [demo scenarios](docs/demo-scenarios/README.md).
 
 Local HTTP/integration tests, deterministic evaluations, and Helm lint/render passed.
 The storefront rendered in Chrome at desktop and 390px mobile widths; catalogue search,
-assistant-to-bag interaction, bag persistence and demo checkout were verified. Docker Compose was unavailable on the workstation, so the container
+assistant-to-bag interaction and bag persistence were verified. Razorpay flow tests use a
+mock provider; no real payment was submitted. Docker Compose was unavailable on the workstation, so the container
 stack and real Prometheus/Jaeger/Langfuse ingestion have not been runtime-verified.
 The model adapter was tested using a mock; no live model call was made.
+
+## Razorpay live-payment configuration
+
+The payment service replaces the dummy behavior of the legacy payment component;
+the original snapshot stays unchanged. It runs on port 4105 with the same Node runtime
+as the modern services. The gateway is the only public application entry point.
+
+Set these values in your ignored `.env` (never in frontend code or chat):
+
+```dotenv
+PAYMENT_MODE=live
+PUBLIC_ORIGIN=https://your-store.example
+RAZORPAY_KEY_ID=rzp_live_YOUR_KEY_ID
+RAZORPAY_KEY_SECRET=YOUR_SECRET
+RAZORPAY_WEBHOOK_SECRET=YOUR_WEBHOOK_SECRET
+PAYMENT_SERVICE_TOKEN=YOUR_RANDOM_INTERNAL_TOKEN
+```
+
+Configure a Razorpay `payment.captured` webhook to
+`https://your-store.example/api/payments/webhook`, enable automatic capture in the
+merchant dashboard, and restart the services. Keep the same webhook secret on both
+sides. Existing catalogue prices remain EUR; the merchant account must support EUR
+payments. This change does not convert prices to INR or activate a merchant account.
+Use `PAYMENT_MODE=test` with test keys for sandbox verification before enabling live
+keys. Live keys require an HTTPS PUBLIC_ORIGIN. No live credentials were configured
+or real payment tested during implementation.
+
+Pending checkouts reserve stock and lock cart changes. Dismissal does not claim payment
+failure or clear the bag: resume the same order or check payment status. A signed webhook
+or status reconciliation can finish an order if the browser callback is lost. Orders are
+marked paid only after the provider reports a matching captured, unrefunded payment.
+Reservations are not automatically released because a provider checkout might still be
+payable. Abandoned or ambiguous creation attempts require merchant reconciliation;
+automated cancellation, refunds, disputes, and fulfilment are not implemented.

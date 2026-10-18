@@ -1,5 +1,5 @@
 {{- $root := . -}}
-{{- $services := dict "ai-gateway" 3000 "product-ingestion" 4101 "recommendation-service" 4102 "shopping-agent" 4103 "sre-copilot" 4104 -}}
+{{- $services := dict "ai-gateway" 3000 "product-ingestion" 4101 "recommendation-service" 4102 "shopping-agent" 4103 "sre-copilot" 4104 "payment-service" 4105 -}}
 {{- range $name, $port := $services }}
 ---
 apiVersion: apps/v1
@@ -46,13 +46,35 @@ spec:
               value: "http://{{ $root.Release.Name }}-recommendation-service:4102"
             - name: AGENT_URL
               value: "http://{{ $root.Release.Name }}-shopping-agent:4103"
+            - name: PAYMENT_URL
+              value: "http://{{ $root.Release.Name }}-payment-service:4105"
             - name: SRE_URL
               value: "http://{{ $root.Release.Name }}-sre-copilot:4104"
             - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
               value: {{ $root.Values.otelTracesEndpoint | quote }}
-            {{- if eq $name "ai-gateway" }}
+            {{- if or (eq $name "ai-gateway") (eq $name "payment-service") }}
+            - name: PAYMENT_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $root.Values.paymentSecretName | default (printf "%s-payment" $root.Release.Name) }}
+                  key: PAYMENT_SERVICE_TOKEN
+                  optional: true
             - name: PUBLIC_ORIGIN
               value: {{ $root.Values.publicOrigin | quote }}
+            {{- end }}
+            {{- if eq $name "payment-service" }}
+            - name: PAYMENT_MODE
+              value: {{ $root.Values.paymentMode | quote }}
+            {{- range $key := list "RAZORPAY_KEY_ID" "RAZORPAY_KEY_SECRET" "RAZORPAY_WEBHOOK_SECRET" }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $root.Values.paymentSecretName | default (printf "%s-payment" $root.Release.Name) }}
+                  key: {{ $key }}
+                  optional: true
+            {{- end }}
+            {{- end }}
+            {{- if eq $name "ai-gateway" }}
             - name: ASSISTANT_AI_ENABLED
               value: {{ $root.Values.aiEnabled | quote }}
             {{- end }}

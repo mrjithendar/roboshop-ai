@@ -1,10 +1,15 @@
 # AI gateway
 
-Runs on port 3000. Serves the storefront and `/api/products`, `/api/recommendations`,
-`/api/chat`, `/api/cart`, `/api/orders`, `/api/ops`, `/api/status`, and `/api/ready`.
-`/health` is liveness; `/metrics` exposes Prometheus counters and duration summaries.
-POST cart body: `{"sku":"RMC","quantity":2}`. Quantity is absolute, 0 removes.
-POST orders requires `{"confirmDemo":true}` and an `Idempotency-Key` header.
-Prices and stock are calculated server-side. Cookies are HttpOnly and SameSite=Strict;
-Secure is enabled when PUBLIC_ORIGIN uses HTTPS. Mutation origins are checked.
-DATA_DIR defaults to `.data/`. Exactly one gateway process may write this ledger.
+Port 3000 serves the storefront, catalogue, recommendations, chat, cart and operations.
+POST `/api/cart` accepts `{"sku":"RMC","quantity":2}` with absolute quantity (0 removes).
+`/api/payments/config`, `/api/payments/orders`, `/api/payments/verify`,
+`/api/payments/current`, `/api/payments/status?orderId=...` and `/api/payments/webhook`
+implement Razorpay checkout. Order creation requires an Idempotency-Key header.
+`POST /api/orders` returns 410; demo checkout is removed.
+
+Prices and stock are server-authoritative. Pending payments reserve stock and lock cart
+changes. Captured payments are confirmed exactly once. Session ownership protects
+payment status/verification. Webhooks authenticate raw bytes rather than browser origin.
+Cookies are HttpOnly, SameSite=Strict and Secure on HTTPS. Mutation origins are checked.
+DATA_DIR defaults to `.data/`. Only one process may write this ledger.
+See [payment-service](../payment-service/README.md) for activation and recovery boundaries.

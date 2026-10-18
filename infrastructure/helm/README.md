@@ -1,6 +1,6 @@
 # Demo Kubernetes chart
 
-`robotshop-ai/` deploys five services with ClusterIP networking, non-root containers,
+`robotshop-ai/` deploys six services with ClusterIP networking, non-root containers,
 resource limits, health probes, and a persistent single-writer gateway ledger.
 Build/push the root Dockerfile and set `image.repository` and `image.tag` to your image.
 

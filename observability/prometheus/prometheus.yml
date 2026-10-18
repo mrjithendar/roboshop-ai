@@ -11,3 +11,4 @@ scrape_configs:
           - recommendation-service:4102
           - shopping-agent:4103
           - sre-copilot:4104
+          - payment-service:4105

@@ -8,6 +8,7 @@ export const urls = {
   recommendations: process.env.RECOMMENDATION_URL || 'http://127.0.0.1:4102',
   agent: process.env.AGENT_URL || 'http://127.0.0.1:4103',
   sre: process.env.SRE_URL || 'http://127.0.0.1:4104',
+  payment: process.env.PAYMENT_URL || 'http://127.0.0.1:4105',
 };
 export class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -16,12 +17,12 @@ export function json(res, value, status = 200) {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
   res.end(JSON.stringify(value));
 }
-export async function body(req) {
+export async function body(req, limit = 16384) {
   if (!req.headers['content-type']?.startsWith('application/json')) throw new HttpError(415, 'Use application/json.');
   let raw = '';
   for await (const chunk of req) {
     raw += chunk;
-    if (Buffer.byteLength(raw) > 16384) throw new HttpError(413, 'Request is too large.');
+    if (Buffer.byteLength(raw) > limit) throw new HttpError(413, 'Request is too large.');
   }
   try {
     const parsed = JSON.parse(raw);
@@ -83,7 +84,7 @@ export function serve(service, port, handler) {
     res.setHeader('x-request-id', ctx.traceId);
     res.setHeader('x-content-type-options', 'nosniff');
     res.setHeader('referrer-policy', 'same-origin');
-    res.setHeader('content-security-policy', "default-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+    res.setHeader('content-security-policy', "default-src 'self'; img-src 'self' https://*.razorpay.com data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://checkout.razorpay.com; connect-src 'self' https://*.razorpay.com; frame-src https://*.razorpay.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     await context.run(ctx, async () => {
       let route = 'unknown';
       try {
@@ -105,7 +106,7 @@ export function serve(service, port, handler) {
       } finally {
         if (!['/health', '/metrics'].includes(route)) {
           // Route labels deliberately omit query strings, SKUs, cookies and prompts.
-          const safeRoute = ['/api/products', '/api/recommendations', '/api/chat', '/api/cart', '/api/orders', '/api/ops', '/api/status', '/api/ready'].includes(route) ? route : 'other';
+          const safeRoute = ['/api/products', '/api/recommendations', '/api/chat', '/api/cart', '/api/orders', '/api/payment', '/api/payments', '/api/ops', '/api/status', '/api/ready'].includes(route) ? route : 'other';
           const key = `route="${safeRoute}",status="${res.statusCode}"`;
           counts.set(key, (counts.get(key) || 0) + 1);
           requests++; duration += (Date.now() - start) / 1000;

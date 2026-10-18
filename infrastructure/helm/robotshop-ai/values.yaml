@@ -17,3 +17,7 @@ resources:
   limits:
     cpu: 500m
     memory: 256Mi
+
+# Secret holds PAYMENT_SERVICE_TOKEN and the three RAZORPAY_* settings.
+paymentSecretName: ""
+paymentMode: live
