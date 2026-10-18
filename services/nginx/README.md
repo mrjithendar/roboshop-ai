@@ -19,14 +19,15 @@ Browser → NGINX :8080 (HTTP) / :8443 (optional HTTPS)
 | `http/10-logging.conf` | JSON access logs with route groups, timings and request IDs. Omits query strings, cookies and bodies from access logs. |
 | `http/20-upstream.conf` | Gateway hostname/port, connection reuse and DNS refresh after service replacement. |
 | `http/30-compression.conf` | Gzip for public text assets. |
-| `http/40-cache-policy.conf` | HTML revalidation, short asset caching, and no-store for APIs/errors. |
+| `http/40-cache-policy.conf` | HTML/JS/CSS revalidation, image caching, and no-store for APIs/errors. |
 | `servers/http.conf` | Default HTTP listener for local use or a TLS-terminating ingress. |
 | `servers/https.conf` | Optional HTTPS listener and HTTP-to-HTTPS redirect. |
 | `snippets/routes.conf` | Which URLs serve files, proxy requests or return 404. |
 | `snippets/proxy.conf` | Forwarding headers, API timeouts and proxy behavior. |
 | `snippets/security-headers.conf` | Browser security headers, including the Razorpay-compatible CSP. |
 | `start.sh` | Validates settings, renders templates, checks configuration and starts NGINX. |
-| `Dockerfile` | Builds the separate `robotshop-nginx` image with frontend assets. |
+| `Dockerfile` | Compiles `services/frontend/src/app.ts` and packages only the generated public assets. |
+| `compose.yml` | Service deployment extended by the root Compose file. |
 
 `http/` files are included inside the main `http` block. One selected server file includes the routes, which include reusable proxy/header settings. `start.sh` substitutes only explicitly listed environment variables, leaving NGINX variables such as `$uri` and `$scheme` intact. Generated configuration lives under `/tmp/robotshop-nginx`; source files remain read-only.
 

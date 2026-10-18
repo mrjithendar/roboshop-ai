@@ -36,7 +36,8 @@ test('NGINX serves assets and safely proxies API requests', { skip: process.env.
     for(const [path,type] of [['/app.js','javascript'],['/styles.css','css'],['/images/STAN-1.png','image/png']]) {
       r=await fetch(base+path); assert.equal(r.status,200); assert.ok(r.headers.get('content-type').includes(type)); assert.match(r.headers.get('cache-control'),/public/); assert.equal(r.headers.get('x-content-type-options'),'nosniff');
     }
-    for(const path of ['/.env','/metrics','/missing.js','/services/ai-gateway/store.mjs']) assert.equal((await fetch(base+path)).status,404);
+    assert.match((await fetch(base+'/app.js')).headers.get('cache-control'), /max-age=0, must-revalidate/);
+    for(const path of ['/.env','/metrics','/missing.js','/src/app.ts','/tsconfig.json','/README.md','/services/ai-gateway/store.mjs']) assert.equal((await fetch(base+path)).status,404);
     r=await fetch(base+'/api/cart?test=secret-query',{headers:{cookie:'rs_session=existing','x-real-ip':'198.51.100.9','x-forwarded-for':'198.51.100.9'}});
     assert.equal(r.status,200); assert.equal(r.headers.get('cache-control'),'no-store'); assert.match(r.headers.get('set-cookie'),/HttpOnly/);
     assert.equal(seen.url,'/api/cart?test=secret-query'); assert.equal(seen.headers.cookie,'rs_session=existing');

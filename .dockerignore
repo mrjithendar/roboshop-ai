@@ -5,7 +5,6 @@
 node_modules
 artifacts
 infrastructure/*
-!infrastructure/nginx
 tests
 docs
 legacy/*
@@ -19,3 +18,5 @@ legacy/original-robotshop/web/static/*
 
 **/.gradle
 **/build
+
+**/dist

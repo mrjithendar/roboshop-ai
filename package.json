@@ -15,12 +15,19 @@
     "mcp": "node --env-file-if-exists=.env services/mcp-server/server.mjs",
     "shipping:migrate": "node --env-file-if-exists=.env scripts/shipping.mjs",
     "shipping:build": "sh services/shipping-service/gradlew -p services/shipping-service --no-daemon test bootJar",
-    "predev": "npm run shipping:build",
-    "prestart": "npm run shipping:build",
-    "pretest": "npm run shipping:build",
-    "test:nginx": "NGINX_TEST=true node --test tests/nginx.test.mjs"
+    "predev": "npm run frontend:build && npm run shipping:build",
+    "prestart": "npm run frontend:build && npm run shipping:build",
+    "pretest": "npm run frontend:build && npm run shipping:build",
+    "test:nginx": "NGINX_TEST=true node --test tests/nginx.test.mjs",
+    "frontend:build": "node scripts/build-frontend.mjs",
+    "frontend:typecheck": "tsc -p services/frontend/tsconfig.json --noEmit",
+    "pretest:nginx": "npm run frontend:build"
   },
   "dependencies": {
     "amqplib": "^0.10.9"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0",
+    "typescript": "5.9.3"
   }
 }

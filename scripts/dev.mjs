@@ -24,6 +24,9 @@ for (const name of names) {
   if (name !== 'shipping-service') { delete env.SHIPPING_DATABASE_URL; delete env.SHIPPING_DB_CA_FILE; }
   if (name !== 'ai-gateway') delete env.RABBITMQ_URL;
   if (name !== 'shipping-service') for (const key of Object.keys(env)) if (/^(REDIS_|RABBITMQ_(HOST|PORT|USERNAME|PASSWORD|VHOST|TLS)|CACHE_ENABLED|MESSAGING_ENABLED)/.test(key)) delete env[key];
+  // Compose bootstrap passwords are never needed by application processes.
+  delete env.SHIPPING_DB_PASSWORD;
+  delete env.SHIPPING_APP_PASSWORD;
   delete env.SHIPPING_MIGRATION_DATABASE_URL;
   if (name === 'shipping-service') env.SHIPPING_TRACING_ENABLED = String(Boolean(env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT));
   if (name !== 'shopping-agent') for (const key of ['OPENAI_API_KEY', 'OPENAI_MODEL', 'LANGFUSE_PUBLIC_KEY', 'LANGFUSE_SECRET_KEY']) delete env[key];

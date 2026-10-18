@@ -20,11 +20,16 @@ export function json(res, value, status = 200) {
 }
 export async function body(req, limit = 16384) {
   if (!req.headers['content-type']?.startsWith('application/json')) throw new HttpError(415, 'Use application/json.');
-  let raw = '';
+  const chunks = [];
+  let size = 0;
   for await (const chunk of req) {
-    raw += chunk;
-    if (Buffer.byteLength(raw) > limit) throw new HttpError(413, 'Request is too large.');
+    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    size += bytes.length;
+    if (size > limit) throw new HttpError(413, 'Request is too large.');
+    chunks.push(bytes);
   }
+  // Decode once: UTF-8 characters can span TCP chunks (e.g. worldwide addresses).
+  const raw = Buffer.concat(chunks).toString('utf8');
   try {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error();

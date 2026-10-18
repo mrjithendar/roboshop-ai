@@ -22,7 +22,7 @@ resources:
 paymentSecretName: ""
 paymentMode: live
 
-# External managed PostgreSQL; runtime role should have SELECT only on shipping tables.
+# External managed PostgreSQL; runtime role needs SELECT on shipping tables and INSERT on shipment_requests.
 shipping:
   image:
     repository: robotshop-shipping

@@ -80,7 +80,12 @@ rating, or payment services.
 
 | Path | Implementation |
 | --- | --- |
-| `frontend/` | Responsive HTML/CSS/JS storefront; no AngularJS or third-party browser scripts |
+| `services/frontend/` | Strict TypeScript storefront; compiled assets served by NGINX, with Razorpay checkout loaded on demand |
+| `services/nginx/` | Edge server, split configuration, frontend image build and Compose deployment |
+| `services/redis/` | Location cache configuration and Compose deployment |
+| `services/rabbitmq/` | Order-event broker configuration and Compose deployment |
+| `services/postgres/` | PostgreSQL deployment and least-privilege shipping role bootstrap |
+| `services/shipping-service/` | Java/Gradle shipping quotes, SQL locations and shipment event consumer |
 | `services/ai-gateway/` | Public API, static assets, validation, rate limits, sessions, carts, pending/paid orders |
 | `services/shopping-agent/` | Keyword retrieval, optional model synthesis, visible fallback |
 | `services/recommendation-service/` | Budget/category/stock-aware ranking with reasons |
@@ -187,3 +192,24 @@ Redis caching and RabbitMQ order events are enabled in Compose. Redis accelerate
 ## NGINX entry point
 
 Compose now serves the storefront through NGINX at **http://localhost:3000** and proxies `/api/*` to the private AI gateway. Configuration is split into commented files for routing, caching, headers, compression, logging and optional HTTPS. See the [NGINX configuration guide](services/nginx/README.md) for the file map, startup commands and TLS setup. Node-only development still uses the gateway directly.
+
+## Service layout and frontend build
+
+All application and supporting-service sources now live under `services/`. Root
+`docker-compose.yml` orchestrates the stack and extends the deployment definitions
+in `services/{nginx,redis,rabbitmq,postgres}/compose.yml`. Kubernetes orchestration
+remains under `infrastructure/helm/`; monitoring configuration stays under
+`observability/`.
+
+The storefront source is `services/frontend/src/app.ts`. Run `npm ci`, then
+`npm run frontend:build` to compile it into the ignored `services/frontend/dist/`
+directory. `npm run frontend:typecheck` checks the strict TypeScript contracts.
+`npm run dev`, `npm start`, and `npm test` build it automatically. Both Docker images
+compile it in a build stage, so no host-generated assets are required.
+
+The frontend is deployed as static assets in the NGINX service; it does not need an
+additional Node process or network hop. Local development serves the same compiled
+assets through the gateway. After changing frontend code, rebuild/restart your
+chosen deployment. See the [frontend guide](services/frontend/README.md) and the
+[architecture review](docs/architecture/2026-10-18-review.md) for boundaries,
+verification results, and remaining production work.

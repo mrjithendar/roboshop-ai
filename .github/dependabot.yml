@@ -39,7 +39,12 @@ updates:
       prefix: "chore(deps)"
 
   - package-ecosystem: docker-compose
-    directory: /
+    directories:
+      - /
+      - /services/redis
+      - /services/rabbitmq
+      - /services/postgres
+      - /services/nginx
     exclude-paths:
       - legacy/**
       - docker-compose.legacy.yml
