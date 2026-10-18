@@ -7,7 +7,7 @@ is unchanged.
 
 ## Start locally
 
-Requires Node.js 24 or newer, Java 21 or newer, and PostgreSQL 17. Configure database connection URLs in `.env` as described in [shipping setup](services/shipping-service/README.md).
+Requires Node.js 24 or newer, Java 21 or newer, PostgreSQL 17, and MongoDB 8. Configure database connection URLs in `.env` as described in [shipping setup](services/shipping-service/README.md).
 
 ```sh
 npm ci
@@ -16,9 +16,9 @@ npm run dev
 ```
 
 Open **http://localhost:3000**. The launcher starts seven services and Ctrl+C stops
-all of them. Data is stored in `.data/store.json`, which is excluded from Git.
+all of them. Accounts, login sessions, editable products and store settings are stored in MongoDB. Carts/orders remain in `.data/store.json`, which is excluded from Git.
 The catalogue still contains fictional robots. The old demo-order endpoint is disabled.
-Checkout now uses Razorpay and can collect real money once configured with live merchant
+Checkout requires login and uses Razorpay and can collect real money once configured with live merchant
 credentials. Payment controls remain disabled until configuration is complete. Shipping includes destination selection and distance pricing; carrier fulfilment is not integrated. See [payment setup](services/payment-service/README.md).
 
 ## Optional AI
@@ -39,7 +39,7 @@ reports the configured mode. The agent still checks its actual credentials.
 
 ## Containers and observability
 
-Set `SHIPPING_DB_PASSWORD`, `SHIPPING_APP_PASSWORD`, `REDIS_PASSWORD`, `RABBITMQ_USERNAME` and `RABBITMQ_PASSWORD` in `.env` first.
+Set `SHIPPING_DB_PASSWORD`, `SHIPPING_APP_PASSWORD`, `REDIS_PASSWORD`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `MONGO_ROOT_PASSWORD` and `MONGO_APP_PASSWORD` in `.env` first.
 
 ```sh
 docker compose config --quiet
@@ -54,12 +54,11 @@ docker compose up --build -d
 | http://localhost:16686 | Jaeger distributed traces |
 | http://localhost:3000/api/ready | Dependency readiness |
 
-Compose runs seven application services, PostgreSQL, an OpenTelemetry collector, Jaeger,
-and Prometheus. Published ports bind to loopback. The app image runs as a non-root
+Compose runs seven application services, PostgreSQL, MongoDB, Redis, RabbitMQ, NGINX, an OpenTelemetry collector, Jaeger, and Prometheus. Published ports bind to loopback. The app image runs as a non-root
 user with a read-only root filesystem; only the gateway's data volume is writable.
 Stop with `docker compose down`. Do not add `--volumes` unless you intend to delete
 saved application and database data. Jaeger uses ephemeral in-memory trace storage; Prometheus and shop
-data and PostgreSQL use named volumes.
+data, PostgreSQL, MongoDB and RabbitMQ use named volumes.
 
 For local Node services to export to the Compose collector, set
 `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces` in `.env`.
@@ -88,7 +87,8 @@ rating, or payment services.
 | `services/ai-gateway/` | Public API, static assets, validation, rate limits, sessions, carts, pending/paid orders |
 | `services/shopping-agent/` | Keyword retrieval, optional model synthesis, visible fallback |
 | `services/recommendation-service/` | Budget/category/stock-aware ranking with reasons |
-| `services/product-ingestion/` | Validated catalogue snapshot, importer, read-only catalogue API |
+| `services/product-ingestion/` | MongoDB catalogue API and insert-only legacy product seed |
+| `services/mongodb/` | Accounts, login sessions, products/settings database and Compose deployment |
 | `services/payment-service/` | Razorpay orders, signature verification, captured-payment validation |
 | `services/sre-copilot/` | Live health probes and deterministic read-only runbook suggestions |
 | `services/mcp-server/` | Stdio MCP adapter with two read-only tools |
@@ -217,3 +217,14 @@ Shipping performs schema migrations and location seeding within its own Java pro
 before accepting traffic. There is no separate migration service or Helm Job. For
 an existing Compose deployment, `docker compose up -d --build --remove-orphans`
 removes the retired migration container while retaining named database volumes.
+
+## Login and administration
+
+Use **Log in** to register or sign in. Login is required before checkout. Admins see
+an **Admin panel** link (`/admin`) for managing products. The single super admin also
+manages user roles, disabled accounts and public store configuration.
+
+There are no default admin credentials. Configure MongoDB, supply `SUPERADMIN_EMAIL`
+and `SUPERADMIN_PASSWORD` through your local environment, then run
+`npm run admin:bootstrap` once. See the [complete setup and permissions guide](docs/architecture/identity-and-admin.md)
+for native, Compose and Kubernetes setup. Keep passwords out of Git and chat.

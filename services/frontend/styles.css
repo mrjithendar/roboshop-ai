@@ -12,3 +12,6 @@
 
 .shipping-form select { max-width: none; }
 .shipping-form { flex-shrink: 0; }
+
+/* Account and administration forms reuse the storefront design. */
+[hidden]{display:none!important}.header{flex-wrap:wrap;gap:1rem}.admin-heading{font-size:clamp(2rem,5vw,4rem);margin:0 0 1rem}.admin-page main{max-width:1200px;margin:auto}.admin-page section{margin:2.5rem 0;padding-bottom:2rem;border-bottom:1px solid #ddd}.admin-form{display:grid;gap:1rem;max-width:660px;margin-top:1.5rem}.admin-form label{display:grid;gap:.4rem;font-weight:600}.admin-form input:not([type=checkbox]),.admin-form select,.admin-form textarea,.admin-user select{width:100%;padding:.8rem;border:1px solid #bbb;border-radius:8px;background:white;font:inherit}.admin-form input[type=checkbox]{width:auto;justify-self:start}.admin-form textarea{min-height:110px}.admin-table-wrap{overflow:auto;margin-top:1rem}.admin-table{width:100%;border-collapse:collapse;text-align:left}.admin-table th,.admin-table td{padding:.8rem;border-bottom:1px solid #ddd;vertical-align:middle}.admin-user{display:flex;flex-wrap:wrap;align-items:center;gap:1rem;padding:1rem 0;border-bottom:1px solid #ddd}.admin-user select{width:auto}.admin-user span{overflow-wrap:anywhere}#account-status,#admin-status,#product-status,#settings-status{white-space:pre-wrap}#account-dialog{width:min(560px,94vw)}

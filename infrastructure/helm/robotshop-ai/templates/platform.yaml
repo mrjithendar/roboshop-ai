@@ -38,6 +38,15 @@ spec:
             - name: http
               containerPort: {{ $port }}
           env:
+            {{- if or (eq $name "ai-gateway") (eq $name "product-ingestion") }}
+            - name: MONGODB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "Set mongodb.secretName for accounts and catalogue persistence" $root.Values.mongodb.secretName }}
+                  key: MONGODB_URL
+            - name: MONGODB_DATABASE
+              value: {{ $root.Values.mongodb.database | quote }}
+            {{- end }}
             {{- if eq $name "shipping-service" }}
             - name: CACHE_ENABLED
               value: {{ $root.Values.integrations.enabled | quote }}

@@ -4,7 +4,7 @@ NGINX serves the storefront files and sends `/api/*` to the Node AI gateway. The
 
 ```text
 Browser → NGINX :8080 (HTTP) / :8443 (optional HTTPS)
-           ├── /, /app.js, /styles.css, /images/*.png → frontend files
+           ├── /, /admin, compiled JS/CSS, /images/*.png → frontend files
            ├── /api/* → AI gateway :3000 → application services
            ├── /health → NGINX liveness
            └── /ready → gateway /api/ready → dependency readiness

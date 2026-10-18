@@ -9,7 +9,7 @@ export function normalizeProducts(rows) {
     if (!Number.isFinite(p.price) || p.price < 0 || p.price > 1000000 || !Number.isInteger(p.instock) || p.instock < 0) throw new Error(`Invalid price or stock for ${p.sku}.`);
     if (!Array.isArray(p.categories) || !p.categories.length || p.categories.some(c => typeof c !== 'string' || c.length > 100)) throw new Error(`Invalid categories for ${p.sku}.`);
     seen.add(p.sku);
-    return { sku: p.sku, name: p.name.trim(), description: p.description, price: Math.round(p.price * 100) / 100, instock: p.instock, categories: p.categories, image: `/images/${p.sku}.png` };
+    return { archived: p.archived === true, sku: p.sku, name: p.name.trim(), description: p.description, price: Math.round(p.price * 100) / 100, instock: p.archived === true ? 0 : p.instock, categories: p.categories, image: `/images/${p.sku}.png` };
   });
 }
 const stopwords = new Set('a an the for to me i want need find show robot robots droid please something under below less than euros euro with and of my is can you recommend'.split(' '));

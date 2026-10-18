@@ -60,3 +60,8 @@ nginx:
     limits:
       cpu: 250m
       memory: 128Mi
+
+# Existing Secret with MONGODB_URL; use verified TLS for remote MongoDB.
+mongodb:
+  secretName: ""
+  database: robotshop

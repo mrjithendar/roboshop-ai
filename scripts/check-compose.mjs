@@ -15,7 +15,7 @@ for (const [name, service] of Object.entries(model.services)) {
   }
 }
 if (model.services['ai-gateway'].ports?.length) throw new Error('Gateway must remain private behind NGINX');
-for (const service of ['nginx', 'redis', 'rabbitmq', 'shipping-db']) {
+for (const service of ['nginx', 'redis', 'rabbitmq', 'shipping-db', 'mongodb']) {
   if (!model.services[service]) throw new Error(`Missing supporting service: ${service}`);
 }
 console.log('Compose service definitions, build paths, mounts and gateway boundary validated.');

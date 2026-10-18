@@ -1,0 +1,113 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createServer } from 'node:http';
+import { once } from 'node:events';
+import { spawn } from 'node:child_process';
+import { connectMongo } from '../services/shared/mongo.mjs';
+import { Auth } from '../services/ai-gateway/auth.mjs';
+import { seedProducts } from '../services/shared/products.mjs';
+
+async function port() { const server = createServer(); server.listen(0, '127.0.0.1'); await once(server, 'listening'); const value = server.address().port; await new Promise(resolve => server.close(resolve)); return value; }
+test('MongoDB accounts, one super admin, server-side roles, persistent sessions and editable catalogue', { timeout: 60000 }, async () => {
+  const database = `auth_test_${randomUUID().replaceAll('-', '')}`;
+  const { client, db } = await connectMongo(process.env.MONGODB_URL, database);
+  const directory = mkdtempSync(join(tmpdir(), 'robotshop-auth-'));
+  const gatewayPort = await port(), cataloguePort = await port(), base = `http://127.0.0.1:${gatewayPort}`;
+  const children = []; let logs = '';
+  async function start(name, servicePort) {
+    const child = spawn(process.execPath, [`services/${name}/server.mjs`], { env: { ...process.env, MONGODB_DATABASE: database, DATA_DIR: directory, PUBLIC_ORIGIN: base, HOST: '127.0.0.1', PORT: String(servicePort), INGESTION_URL: `http://127.0.0.1:${cataloguePort}`, RABBITMQ_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: '', PAYMENT_SERVICE_TOKEN: 'test-only-token' }, stdio: ['ignore', 'pipe', 'pipe'] });
+    children.push(child); child.stdout.on('data', chunk => logs += chunk); child.stderr.on('data', chunk => logs += chunk);
+    for (let i = 0; i < 100; i++) { try { if ((await fetch(`http://127.0.0.1:${servicePort}/health`)).ok) return child; } catch {} await new Promise(resolve => setTimeout(resolve, 50)); }
+    assert.fail(logs);
+  }
+  function browser() {
+    const cookies = new Map();
+    return { cookies, async call(path, method = 'GET', data, headers = {}) {
+      const response = await fetch(base + path, { method, headers: { 'content-type': 'application/json', origin: base, cookie: [...cookies].map(([key, value]) => `${key}=${value}`).join('; '), ...headers }, ...(data ? { body: JSON.stringify(data) } : {}) });
+      for (const cookie of response.headers.getSetCookie()) { const [key, value] = cookie.split(';')[0].split('='); if (value) cookies.set(key, value); else cookies.delete(key); }
+      return { status: response.status, headers: response.headers, data: await response.json() };
+    } };
+  }
+  const password = 'Test-only-password-2026';
+  try {
+    const auth = new Auth(db); await auth.initialize();
+    const winners = await Promise.allSettled(['one', 'two'].map(name => auth.bootstrap({ email: `${name}@example.com`, password, name })));
+    assert.equal(winners.filter(result => result.status === 'fulfilled').length, 1);
+    assert.equal(await db.collection('users').countDocuments({ role: 'superadmin' }), 1);
+    const superUser = winners.find(result => result.status === 'fulfilled').value;
+    await start('product-ingestion', cataloguePort); let gateway = await start('ai-gateway', gatewayPort);
+    const customer = browser(), other = browser(), admin = browser();
+    assert.equal((await customer.call('/api/admin/products')).status, 401);
+    assert.equal((await customer.call('/api/payments/orders', 'POST', {})).status, 401);
+    assert.equal((await customer.call('/api/auth/register', 'POST', { email: 'alice@example.com', name: 'Alice', password, role: 'superadmin' })).status, 400);
+    assert.equal((await customer.call('/api/auth/login', 'POST', { email: superUser.email, password }, { origin: 'https://evil.example' })).status, 403);
+    assert.equal((await customer.call('/api/cart', 'POST', { sku: 'RMC', quantity: 1 })).status, 200);
+    const guestCookie = customer.cookies.get('rs_session');
+    const registered = await customer.call('/api/auth/register', 'POST', { email: 'Alice@Example.com', name: 'Alice', password });
+    assert.equal(registered.status, 201); assert.equal(registered.data.user.role, 'customer');
+    assert.match(registered.headers.get('set-cookie'), /HttpOnly/); assert.match(registered.headers.get('set-cookie'), /SameSite=Strict/);
+    assert.ok(!JSON.stringify(registered.data).includes('password'));
+    assert.notEqual(customer.cookies.get('rs_session'), guestCookie);
+    assert.equal((await customer.call('/api/cart')).data.items[0].quantity, 1);
+    assert.equal((await customer.call('/api/cart', 'GET', undefined, { cookie: `rs_session=${guestCookie}` })).data.items.length, 0);
+    const stored = await db.collection('users').findOne({ email: 'alice@example.com' });
+    assert.match(stored.passwordHash, /^scrypt:/); assert.ok(!stored.passwordHash.includes(password));
+    assert.equal(await db.collection('auth_sessions').countDocuments({ _id: customer.cookies.get('rs_auth') }), 0, 'raw session tokens are never stored');
+    assert.equal((await customer.call('/api/admin/products')).status, 403);
+    assert.equal((await other.call('/api/auth/register', 'POST', { email: 'bob@example.com', name: 'Bob', password })).status, 201);
+    assert.equal((await other.call('/api/cart')).data.items.length, 0);
+    // A stolen cart identifier alone must not confer account ownership.
+    assert.equal((await other.call('/api/cart', 'GET', undefined, { cookie: `rs_session=${customer.cookies.get('rs_session')}; rs_auth=${other.cookies.get('rs_auth')}` })).data.items.length, 0);
+    assert.equal((await admin.call('/api/auth/login', 'POST', { email: superUser.email, password })).status, 200);
+    assert.equal((await admin.call(`/api/admin/users/${superUser.id}`, 'PATCH', { role: 'admin', disabled: false })).status, 409);
+    const users = (await admin.call('/api/admin/users')).data.users;
+    assert.equal(users.length, 3); assert.ok(!JSON.stringify(users).includes('password'));
+    const oldCustomerToken = customer.cookies.get('rs_auth');
+    assert.equal((await admin.call(`/api/admin/users/${stored._id}`, 'PATCH', { role: 'admin', disabled: false })).status, 200);
+    assert.equal((await customer.call('/api/auth/me')).data.user, null);
+    assert.equal((await customer.call('/api/admin/products')).status, 401);
+    assert.equal((await customer.call('/api/auth/login', 'POST', { email: stored.email, password })).data.user.role, 'admin');
+    assert.notEqual(customer.cookies.get('rs_auth'), oldCustomerToken);
+    assert.equal((await customer.call('/api/admin/users')).status, 403);
+    assert.equal((await customer.call('/api/admin/settings')).status, 403);
+    const product = { sku: 'ADMIN-TEST', name: '<script>test</script>', description: 'Created through the admin API', price: 23.45, instock: 3, categories: ['Robot'], archived: false };
+    assert.equal((await customer.call('/api/admin/products', 'POST', product)).status, 201);
+    assert.equal((await customer.call('/api/admin/products', 'POST', product)).status, 409);
+    assert.equal((await customer.call('/api/products')).data.products.find(p => p.sku === product.sku).price, 23.45);
+    assert.equal((await customer.call('/api/admin/products/ADMIN-TEST', 'PUT', { ...product, price: 30, revision: 1 })).status, 200);
+    assert.equal((await customer.call('/api/admin/products/ADMIN-TEST', 'PUT', { ...product, price: 1, revision: 1 })).status, 409);
+    assert.equal((await customer.call('/api/admin/products/ADMIN-TEST', 'PUT', { ...product, archived: true, revision: 2 })).status, 200);
+    assert.ok(!(await customer.call('/api/products')).data.products.some(p => p.sku === product.sku));
+    const existing = (await customer.call('/api/admin/products')).data.products.find(p => p.sku === 'RMC');
+    const update = { sku: existing.sku, name: existing.name, description: existing.description, price: 50, instock: existing.instock, categories: existing.categories, archived: false, revision: existing.revision };
+    assert.equal((await customer.call('/api/admin/products/RMC', 'PUT', update)).status, 200);
+    await seedProducts(db); assert.equal((await db.collection('products').findOne({ _id: 'RMC' })).price, 50, 'startup does not overwrite edits');
+    const settings = { storeName: 'My Robot Shop', announcement: 'Welcome', supportEmail: 'help@example.com', checkoutEnabled: false };
+    assert.equal((await admin.call('/api/admin/settings', 'PUT', { ...settings, RAZORPAY_KEY_SECRET: 'must-not-save' })).status, 400);
+    assert.equal((await admin.call('/api/admin/settings', 'PUT', settings)).status, 200);
+    assert.deepEqual((await other.call('/api/settings')).data, settings);
+    assert.equal((await other.call('/api/payments/orders', 'POST', {})).status, 503);
+    // Mongo sessions and JSON account-cart ownership survive gateway restart.
+    gateway.kill('SIGTERM'); await once(gateway, 'exit'); gateway = await start('ai-gateway', gatewayPort);
+    assert.equal((await customer.call('/api/auth/me')).data.user.id, stored._id);
+    assert.equal((await customer.call('/api/cart')).data.items[0].quantity, 1);
+    const token = other.cookies.get('rs_auth');
+    assert.equal((await other.call('/api/auth/logout', 'POST', {})).status, 200);
+    assert.equal((await other.call('/api/auth/me', 'GET', undefined, { cookie: `rs_auth=${token}` })).data.user, null);
+    assert.equal((await admin.call(`/api/admin/users/${stored._id}`, 'PATCH', { role: 'customer', disabled: true })).status, 200);
+    assert.equal((await customer.call('/api/auth/login', 'POST', { email: stored.email, password })).status, 401);
+    const expiring = await auth.issue(await auth.users.findOne({ _id: superUser.id }));
+    await db.collection('auth_sessions').updateMany({ userId: superUser.id }, { $set: { expiresAt: new Date(0) } });
+    assert.equal(await auth.current(expiring), null, 'expired sessions fail even before Mongo TTL cleanup');
+    for (let i = 0; i < 20; i++) await auth.limit('test-limiter-only');
+    await assert.rejects(auth.limit('test-limiter-only'), { status: 429 });
+    assert.ok(!logs.includes(password));
+  } finally {
+    for (const child of children) if (child.exitCode === null && child.signalCode === null) { child.kill('SIGTERM'); await once(child, 'exit'); }
+    await db.dropDatabase(); await client.close(); rmSync(directory, { recursive: true, force: true });
+  }
+});

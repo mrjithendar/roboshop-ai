@@ -1,14 +1,17 @@
 # Product ingestion
 
-Port 4101, GET `/api/products`. `products.json` is a normalized snapshot of the eleven
-products in the unchanged legacy Mongo seed. SKU uniqueness, safe identifiers, prices,
-stock and category types are validated at startup and import.
+Port 4101 serves `GET /api/products` from MongoDB. Configure `MONGODB_URL` and optional
+`MONGODB_DATABASE` (default `robotshop`). `GET /api/catalogue/ready` checks MongoDB.
 
-```sh
-npm run ingest -- /path/to/products.json
-```
+At startup, the eleven legacy products in `products.json` are validated and inserted
+only if their SKU is missing. Existing admin edits and archived products survive
+restart. This database is the catalogue used by storefront, recommendations and AI.
 
-Restart product-ingestion after import. CATALOGUE_FILE can select another JSON file.
-The importer validates before atomic replacement. It does not execute JavaScript,
-fetch arbitrary URLs, or schedule synchronization. Images must already exist under
-the legacy static image directory; the storefront falls back to its placeholder.
+`npm run ingest -- /path/to/products.json` validates/replaces the checked-in seed
+file. Restarting ingestion inserts new SKUs from it; it does **not** overwrite products
+already in MongoDB. Use the authorized admin API/panel to change existing products.
+There is no runtime `CATALOGUE_FILE` override or automatic external synchronization.
+
+Images remain deployed static assets under the legacy image directory. New SKUs use
+the placeholder until a matching image is packaged. Products are archived, not hard
+deleted, so existing carts and payment snapshots remain interpretable.

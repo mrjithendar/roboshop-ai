@@ -6,12 +6,16 @@ import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { once } from 'node:events';
+import { randomUUID } from 'node:crypto';
+import { connectMongo } from '../services/shared/mongo.mjs';
 import { createHmac } from 'node:crypto';
 import amqp from 'amqplib';
 import { startNginx } from './helpers/nginx.mjs';
 
 async function freePort() { const server = createServer(); server.listen(0, '127.0.0.1'); await once(server, 'listening'); const port = server.address().port; await new Promise(resolve => server.close(resolve)); return port; }
 test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency failure', { timeout: 60000 }, async () => {
+  const mongoDatabase = `integration_${randomUUID().replaceAll('-', '')}`;
+  const mongo = await connectMongo(process.env.MONGODB_URL, mongoDatabase);
   const names = ['product-ingestion', 'recommendation-service', 'shopping-agent', 'sre-copilot', 'ai-gateway', 'payment-service', 'shipping-service'];
   const ports = await Promise.all(names.map(freePort));
   const edgePort = process.env.NGINX_TEST === 'true' ? await freePort() : null;
@@ -21,11 +25,11 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
   const children = [], traces = []; let logs = '';
   const receiver = createServer(async (req, res) => { let data = ''; for await (const part of req) data += part; traces.push(JSON.parse(data)); res.writeHead(200, { 'content-type': 'application/json' }); res.end('{}'); });
   receiver.listen(0, '127.0.0.1'); await once(receiver, 'listening');
-  const env = { ...process.env, HOST: '127.0.0.1', TRUST_PROXY: edgePort ? 'true' : 'false', INGESTION_URL: `http://127.0.0.1:${ports[0]}`, RECOMMENDATION_URL: `http://127.0.0.1:${ports[1]}`, AGENT_URL: `http://127.0.0.1:${ports[2]}`, SRE_URL: `http://127.0.0.1:${ports[3]}`, DATA_DIR: dir, PUBLIC_ORIGIN: base, PAYMENT_URL: `http://127.0.0.1:${ports[5]}`, SHIPPING_URL: `http://127.0.0.1:${ports[6]}`, PAYMENT_SERVICE_TOKEN: 'integration-internal-token', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', RAZORPAY_WEBHOOK_SECRET: '', OPENAI_API_KEY: '', OPENAI_MODEL: '', LANGFUSE_BASE_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `http://127.0.0.1:${receiver.address().port}/v1/traces` };
-  let cookie;
+  const env = { ...process.env, MONGODB_DATABASE: mongoDatabase, HOST: '127.0.0.1', TRUST_PROXY: edgePort ? 'true' : 'false', INGESTION_URL: `http://127.0.0.1:${ports[0]}`, RECOMMENDATION_URL: `http://127.0.0.1:${ports[1]}`, AGENT_URL: `http://127.0.0.1:${ports[2]}`, SRE_URL: `http://127.0.0.1:${ports[3]}`, DATA_DIR: dir, PUBLIC_ORIGIN: base, PAYMENT_URL: `http://127.0.0.1:${ports[5]}`, SHIPPING_URL: `http://127.0.0.1:${ports[6]}`, PAYMENT_SERVICE_TOKEN: 'integration-internal-token', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', RAZORPAY_WEBHOOK_SECRET: '', OPENAI_API_KEY: '', OPENAI_MODEL: '', LANGFUSE_BASE_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `http://127.0.0.1:${receiver.address().port}/v1/traces` };
+  let cookie; const cookieJar = new Map();
   async function call(path, options = {}, useCookie = true) {
-    const response = await fetch(`${base}${path}`, { ...options, headers: { 'content-type': 'application/json', ...(useCookie && cookie ? { cookie } : {}), ...options.headers } });
-    if (response.headers.get('set-cookie') && useCookie) cookie = response.headers.get('set-cookie').split(';')[0];
+    const response = await fetch(`${base}${path}`, { ...options, headers: { 'content-type': 'application/json', origin: base, ...(useCookie && cookie ? { cookie } : {}), ...options.headers } });
+    if (useCookie) { for (const value of response.headers.getSetCookie()) { const [key, val] = value.split(';')[0].split('='); if (val) cookieJar.set(key, val); else cookieJar.delete(key); } cookie = [...cookieJar].map(([key, value]) => `${key}=${value}`).join('; '); }
     return { response, data: await response.json() };
   }
   try {
@@ -58,6 +62,8 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     assert.equal((await call('/api/cart', {}, false)).data.total, 0);
     assert.equal((await call('/api/orders', { method: 'POST', body: '{}' })).response.status, 410);
     assert.equal((await call('/api/payments/config')).data.enabled, true);
+    assert.equal((await call('/api/payments/orders', { method: 'POST', body: '{}' })).response.status, 401);
+    assert.equal((await call('/api/auth/register', { method: 'POST', body: JSON.stringify({ name: 'Buyer', email: 'buyer@example.com', password: 'Test-only-checkout-2026' }) })).response.status, 201);
     const orderOptions = { method: 'POST', headers: { 'idempotency-key': 'test-order-00000001' }, body: '{}' };
     assert.equal((await call('/api/payments/orders', orderOptions)).response.status, 400);
     const countries = (await call('/api/shipping/countries')).data.countries;
@@ -78,7 +84,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     assert.equal(order.response.status, 201); assert.equal(order.data.order.id, retry.data.order.id); assert.equal(order.data.order.paymentCaptured, false);
     assert.equal(order.data.checkout.amount, Math.round(quote.data.total * 100));
     assert.equal((await call('/api/shipping/quote', { method: 'POST', body: JSON.stringify(destination) })).response.status, 409);
-    assert.equal((await call('/api/payments/status?orderId=' + order.data.order.id, {}, false)).response.status, 404);
+    assert.equal((await call('/api/payments/status?orderId=' + order.data.order.id, {}, false)).response.status, 401);
     const verification = { orderId: order.data.order.id, razorpay_order_id: 'order_INTEGRATION', razorpay_payment_id: 'pay_INTEGRATION', razorpay_signature: '0'.repeat(64) };
     assert.equal((await call('/api/payments/verify', { method: 'POST', body: JSON.stringify(verification) })).response.status, 400);
     assert.equal((await call('/api/cart')).data.items.length, 1);
@@ -158,6 +164,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     if (edge) await edge.stop();
     for (const child of children) if (child.exitCode === null) child.kill('SIGTERM');
     await Promise.all(children.map(child => child.exitCode === null ? once(child, 'exit') : Promise.resolve()));
-    await new Promise(resolve => receiver.close(resolve)); rmSync(dir, { recursive: true, force: true });
+    await new Promise(resolve => receiver.close(resolve)); await mongo.db.dropDatabase(); await mongo.client.close();
+    rmSync(dir, { recursive: true, force: true });
   }
 });

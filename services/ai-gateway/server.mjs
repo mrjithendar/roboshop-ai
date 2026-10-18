@@ -5,6 +5,13 @@ import { serve, json, body, text, request, urls, context, HttpError } from '../s
 import { Store } from './store.mjs';
 import { OrderPublisher } from './events.mjs';
 import { clientAddress } from './proxy.mjs';
+import { connectMongo } from '../shared/mongo.mjs';
+import { readSettings } from '../shared/products.mjs';
+import { Auth, authCookie, cookieToken, publicUser, requireRole } from './auth.mjs';
+import { adminRoutes, withCatalogueLock } from './admin.mjs';
+const { db } = await connectMongo();
+const auth = new Auth(db);
+await auth.initialize();
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const store = new Store(process.env.DATA_DIR || resolve(root, '.data'));
@@ -23,8 +30,8 @@ function limit(req, ai = false) {
 }
 function session(req, res) {
   const existing = /(?:^|;\s*)rs_session=([a-f0-9-]{36})(?:;|$)/.exec(req.headers.cookie || '')?.[1];
-  const id = store.session(existing);
-  if (id !== existing) res.setHeader('set-cookie', `rs_session=${id}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800${publicOrigin.startsWith('https:') ? '; Secure' : ''}`);
+  const id = store.session(existing, req.user?.id || null);
+  if (id !== existing) res.setHeader('set-cookie', [...(res.getHeader('set-cookie') || []), `rs_session=${id}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800${publicOrigin.startsWith('https:') ? '; Secure' : ''}`]);
   return id;
 }
 async function catalogue() { return (await request(`${urls.catalogue}/api/products`)).products; }
@@ -67,6 +74,32 @@ serve('ai-gateway', 3000, async (req, res, url) => {
       if (req.headers.origin && req.headers.origin !== publicOrigin) throw new HttpError(403, 'Origin not allowed.');
       if (req.headers['sec-fetch-site'] === 'cross-site') throw new HttpError(403, 'Cross-site requests are not allowed.');
     }
+    req.user = await auth.current(cookieToken(req));
+    if (url.pathname === '/api/auth/me' && req.method === 'GET') return json(res, { user: req.user });
+    if (['/api/auth/register', '/api/auth/login'].includes(url.pathname) && req.method === 'POST') {
+      // Auth mutations require an exact browser origin, including login CSRF protection.
+      if (req.headers.origin !== publicOrigin) throw new HttpError(403, 'Origin not allowed.');
+      await auth.limit(clientAddress(req));
+      const data = await body(req);
+      const user = url.pathname.endsWith('/register') ? await auth.register(data) : await auth.login(data);
+      const token = await auth.issue(user);
+      await auth.logout(cookieToken(req));
+      authCookie(res, token, publicOrigin.startsWith('https:'));
+      req.user = publicUser(user); session(req, res);
+      return json(res, { user: req.user }, url.pathname.endsWith('/register') ? 201 : 200);
+    }
+    if (url.pathname === '/api/auth/logout' && req.method === 'POST') {
+      if (req.headers.origin !== publicOrigin) throw new HttpError(403, 'Origin not allowed.');
+      await auth.logout(cookieToken(req)); authCookie(res, null, publicOrigin.startsWith('https:'));
+      res.setHeader('set-cookie', [...res.getHeader('set-cookie'), `rs_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${publicOrigin.startsWith('https:') ? '; Secure' : ''}`]);
+      return json(res, { loggedOut: true });
+    }
+    if (url.pathname.startsWith('/api/admin/')) {
+      if (!['GET', 'HEAD'].includes(req.method) && req.headers.origin !== publicOrigin) throw new HttpError(403, 'Origin not allowed.');
+      return adminRoutes(req, res, url, { db, auth, store });
+    }
+    if (url.pathname === '/api/settings' && req.method === 'GET') return json(res, await readSettings(db));
+    if (url.pathname.startsWith('/api/payments/') && !['/api/payments/config'].includes(url.pathname)) requireRole(req.user);
     if (url.pathname.startsWith('/api/shipping/')) {
       const allowed = req.method === 'GET' && ['/api/shipping/countries', '/api/shipping/cities'].includes(url.pathname);
       const quoting = req.method === 'POST' && url.pathname === '/api/shipping/quote';
@@ -94,9 +127,12 @@ serve('ai-gateway', 3000, async (req, res, url) => {
     }
     if (req.method === 'POST' && url.pathname === '/api/payments/orders') {
       await body(req);
+      return withCatalogueLock(async () => {
+      const id = session(req, res), previous = store.pending(id);
+      if (!(await readSettings(db)).checkoutEnabled && !previous) throw new HttpError(503, 'New checkouts are temporarily paused. Existing payments can still be verified.');
       const settings = await paymentCall('config');
       if (!settings.enabled) throw new HttpError(503, settings.message);
-      const id = session(req, res), products = await catalogue(), previous = store.pending(id);
+      const products = await catalogue();
       let order = store.beginPayment(id, req.headers['idempotency-key'], products);
       if (order.status === 'paid') return json(res, { order: publicOrder(order) });
       if (order.status === 'payment_review' || (previous && order.status === 'creating')) throw new HttpError(409, 'Payment setup needs reconciliation. Contact the store with order ' + order.id + '.');
@@ -105,6 +141,7 @@ serve('ai-gateway', 3000, async (req, res, url) => {
         catch (error) { store.reviewPayment(order.id); throw error; }
       }
       return json(res, { order: publicOrder(order), checkout: { key: settings.keyId, order_id: order.razorpayOrderId, amount: Math.round(order.total * 100), currency: order.currency, name: 'RobotShop', description: `Order ${order.id}` }, mode: settings.mode }, 201);
+      });
     }
     if (req.method === 'POST' && url.pathname === '/api/payments/verify') {
       const data = await body(req), order = store.paymentOrder(data.orderId, session(req, res));
@@ -113,11 +150,12 @@ serve('ai-gateway', 3000, async (req, res, url) => {
       return json(res, publicOrder(result.verified ? store.markPaid(order.id, result) : order));
     }
     if (req.method === 'GET' && url.pathname === '/api/ready') {
+      try { await db.command({ ping: 1 }); } catch { throw new HttpError(503, 'Account database unavailable.'); }
       const result = await request(`${urls.sre}/api/ops`);
       return json(res, result, result.status === 'healthy' ? 200 : 503);
     }
     if (req.method === 'GET' && url.pathname === '/api/products') {
-      const products = (await catalogue()).map(p => ({ ...p, instock: store.available(p) }));
+      const products = (await catalogue()).filter(p => !p.archived).map(p => ({ ...p, instock: store.available(p) }));
       return json(res, { products, currency: 'EUR' });
     }
     if (req.method === 'GET' && url.pathname === '/api/recommendations') {
@@ -152,7 +190,8 @@ serve('ai-gateway', 3000, async (req, res, url) => {
   }
   if (req.method !== 'GET' && req.method !== 'HEAD') return;
   let path;
-  if (['/', '/index.html', '/app.js', '/styles.css'].includes(url.pathname)) path = resolve(root, 'services/frontend/dist', url.pathname === '/' ? 'index.html' : url.pathname.slice(1));
+  if (url.pathname === '/admin') url.pathname = '/admin.html';
+  if (['/', '/index.html', '/app.js', '/account.js', '/admin.js', '/admin.html', '/styles.css'].includes(url.pathname)) path = resolve(root, 'services/frontend/dist', url.pathname === '/' ? 'index.html' : url.pathname.slice(1));
   else if (/^\/images\/[a-zA-Z0-9_-]+\.png$/.test(url.pathname)) path = resolve(root, 'legacy/original-robotshop/web/static', url.pathname.slice(1));
   else return;
   try {

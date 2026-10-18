@@ -13,6 +13,7 @@ services:
       SRE_URL: http://sre-copilot:4104
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
       PAYMENT_URL: http://payment-service:4105
+      MONGODB_URL: mongodb://robotshop:${MONGO_APP_PASSWORD:?Set MONGO_APP_PASSWORD}@mongodb:27017/robotshop?authSource=robotshop
     init: true
     restart: unless-stopped
     read_only: true
@@ -34,6 +35,9 @@ services:
       options:
         max-size: 10m
         max-file: '3'
+    depends_on:
+      mongodb:
+        condition: service_healthy
   recommendation-service:
     build: .
     image: robotshop-ai:local
@@ -168,6 +172,7 @@ services:
       RABBITMQ_URL: amqp://${RABBITMQ_USERNAME:?Set RABBITMQ_USERNAME}:${RABBITMQ_PASSWORD:?Set
         RABBITMQ_PASSWORD}@rabbitmq:5672
       TRUST_PROXY: 'true'
+      MONGODB_URL: mongodb://robotshop:${MONGO_APP_PASSWORD:?Set MONGO_APP_PASSWORD}@mongodb:27017/robotshop?authSource=robotshop
     init: true
     restart: unless-stopped
     read_only: true
@@ -205,6 +210,8 @@ services:
       shipping-service:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      mongodb:
         condition: service_healthy
   otel-collector:
     image: otel/opentelemetry-collector:0.162.0-386
@@ -334,8 +341,13 @@ services:
     extends:
       file: services/nginx/compose.yml
       service: nginx
+  mongodb:
+    extends:
+      file: services/mongodb/compose.yml
+      service: mongodb
 volumes:
   shop-data: {}
   prometheus-data: {}
   shipping-postgres: {}
   rabbitmq-data: {}
+  mongo-data: {}

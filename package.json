@@ -20,10 +20,12 @@
     "test:nginx": "NGINX_TEST=true node --test tests/nginx.test.mjs",
     "frontend:build": "node scripts/build-frontend.mjs",
     "frontend:typecheck": "tsc -p services/frontend/tsconfig.json --noEmit",
-    "pretest:nginx": "npm run frontend:build"
+    "pretest:nginx": "npm run frontend:build",
+    "admin:bootstrap": "node --env-file-if-exists=.env scripts/bootstrap-admin.mjs"
   },
   "dependencies": {
-    "amqplib": "^2.2.0"
+    "amqplib": "^2.2.0",
+    "mongodb": "6.20.0"
   },
   "devDependencies": {
     "jsdom": "26.1.0",

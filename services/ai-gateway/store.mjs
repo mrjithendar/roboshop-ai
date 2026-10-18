@@ -15,14 +15,26 @@ export class Store {
     renameSync(`${this.file}.tmp`, this.file);
     this.state = next;
   }
-  session(id) {
+  session(id, userId = null) {
     const now = Date.now();
-    if (id && this.state.sessions[id]?.expires > now) return id;
+    const guestId = id, current = this.state.sessions[id];
+    if (current?.expires > now && (current.userId || null) === userId) return id;
+    if (userId) {
+      const existing = Object.entries(this.state.sessions).find(([, session]) => session.userId === userId);
+      if (existing) {
+        const next = structuredClone(this.state);
+        next.sessions[existing[0]].expires = now + 7 * 86400000;
+        this.save(next); return existing[0];
+      }
+    }
     const next = structuredClone(this.state);
-    for (const [key, value] of Object.entries(next.sessions)) if (value.expires <= now && !this.pending(key)) delete next.sessions[key];
+    for (const [key, value] of Object.entries(next.sessions)) if (value.expires <= now && !value.userId && !this.pending(key)) delete next.sessions[key];
     if (Object.keys(next.sessions).length >= 10000) throw new HttpError(503, 'Session capacity reached.');
     id = randomUUID();
-    next.sessions[id] = { items: {}, expires: now + 7 * 86400000 };
+    // Adopt a guest bag only on the first authenticated cart; never copy another account's bag.
+    const guest = userId && current && !current.userId && current.expires > now && !this.pending(guestId);
+    if (guest) delete next.sessions[guestId];
+    next.sessions[id] = { items: guest ? current.items : {}, ...(guest && current.shipping ? { shipping: current.shipping } : {}), userId, expires: now + 7 * 86400000 };
     this.save(next);
     return id;
   }

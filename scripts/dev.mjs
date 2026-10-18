@@ -24,6 +24,8 @@ for (const name of names) {
   if (name !== 'shipping-service') { delete env.SHIPPING_DATABASE_URL; delete env.SHIPPING_DB_CA_FILE; }
   if (name !== 'ai-gateway') delete env.RABBITMQ_URL;
   if (name !== 'shipping-service') for (const key of Object.keys(env)) if (/^(REDIS_|RABBITMQ_(HOST|PORT|USERNAME|PASSWORD|VHOST|TLS)|CACHE_ENABLED|MESSAGING_ENABLED)/.test(key)) delete env[key];
+  if (!['ai-gateway', 'product-ingestion'].includes(name)) { delete env.MONGODB_URL; delete env.MONGODB_DATABASE; }
+  for (const key of ['SUPERADMIN_EMAIL', 'SUPERADMIN_PASSWORD', 'SUPERADMIN_NAME', 'MONGO_ROOT_PASSWORD', 'MONGO_APP_PASSWORD']) delete env[key];
   // Compose bootstrap passwords are never needed by application processes.
   delete env.SHIPPING_DB_PASSWORD;
   delete env.SHIPPING_APP_PASSWORD;

@@ -1,3 +1,4 @@
+import { currentUser, initAccount, showLogin } from './account.js';
 export {};
 
 // ID selectors carry their actual DOM type; a missing element fails at startup.
@@ -107,8 +108,8 @@ function renderCart() {
   $('#cart-subtotal').textContent = money(cart.subtotal || 0);
   $('#cart-shipping').textContent = cart.shipping ? money(cart.shipping.cost) : 'Not calculated';
   $('#shipping-fields').disabled = Boolean(pendingOrder) || cartBusy;
-  $('#cart-total').textContent = money(cart.total); $('#checkout').disabled = cartBusy || !paymentConfig.enabled || !cart.items.length || (!pendingOrder && (!cart.shipping || shippingDirty)) || ['creating', 'payment_review'].includes(pendingOrder?.status || '');
-  $('#checkout').textContent = pendingOrder?.status === 'payment_pending' ? 'Resume secure payment ↗' : 'Pay securely ↗';
+  $('#cart-total').textContent = money(cart.total); $('#checkout').disabled = cartBusy || !currentUser && !cart.items.length || Boolean(currentUser) && ( !paymentConfig.enabled || !cart.items.length || (!pendingOrder && (!cart.shipping || shippingDirty)) || ['creating', 'payment_review'].includes(pendingOrder?.status || ''));
+  $('#checkout').textContent = !currentUser ? 'Log in to checkout' : pendingOrder?.status === 'payment_pending' ? 'Resume secure payment ↗' : 'Pay securely ↗';
   $('#check-payment').hidden = !pendingOrder;
   const rows = cart.items.map(p => {
     const row = el('div', 'cart-row'), info = el('div'), qty = el('div', 'quantity-control');
@@ -136,6 +137,7 @@ async function paymentResult(order: Order | null) {
   }
 }
 async function checkPayment() {
+  if (!currentUser) return;
   const id = pendingOrder?.id || paymentReference();
   if (id) {
     try { await paymentResult(await api<Order>(`/api/payments/status?orderId=${encodeURIComponent(id)}`)); return; }
@@ -175,6 +177,7 @@ $('#bag-button').addEventListener('click', async () => {
 });
 $('#check-payment').addEventListener('click', async () => { try { await checkPayment(); } catch (error) { $('#order-result').textContent = errorMessage(error); } });
 $('#checkout').addEventListener('click', async () => {
+  if (!currentUser) { showLogin(); return; }
   if (cartBusy || !paymentConfig.enabled) return;
   cartBusy = true; renderCart(); checkoutKey ||= crypto.randomUUID();
   try {
@@ -266,4 +269,15 @@ $('#shipping-form').addEventListener('submit', async event => {
   finally { cartBusy = false; renderCart(); }
 });
 
+await initAccount(async () => {
+  pendingOrder = null; checkoutKey = null; paymentReference(null);
+  cart = await api<Cart>('/api/cart'); renderCart();
+  await checkPayment();
+});
+await api<{ storeName: string; announcement: string; supportEmail: string; checkoutEnabled: boolean }>('/api/settings').then(settings => {
+  document.title = settings.storeName;
+  document.querySelectorAll<HTMLAnchorElement>('.wordmark').forEach(brand => { brand.textContent = settings.storeName; brand.setAttribute('aria-label', `${settings.storeName} home`); });
+  const announcement = document.querySelector('.announcement span'); if (announcement) announcement.textContent = settings.announcement;
+  const footer = document.querySelector('footer p'); if (footer && settings.supportEmail) footer.textContent = `Contact: ${settings.supportEmail}`;
+}).catch(() => {});
 await Promise.all([loadPaymentConfig(), loadProducts(), loadRecommendations(), api<Cart>('/api/cart').then(result => { cart = result; renderCart(); }).catch(() => toast('Your bag could not be loaded. Please try again.')), api<{ assistantMode: string }>('/api/status').then(result => { $('#assistant-mode').textContent = result.assistantMode === 'ai' ? 'AI assistant connected · grounded in the catalogue' : 'Catalogue search mode · no language model connected'; }).catch(() => {})]);

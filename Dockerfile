@@ -12,6 +12,7 @@ WORKDIR /app
 COPY --chown=node:node package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts
 COPY --chown=node:node services ./services
+COPY --chown=node:node scripts/bootstrap-admin.mjs ./scripts/bootstrap-admin.mjs
 COPY --from=frontend-build --chown=node:node /app/services/frontend/dist ./services/frontend/dist
 COPY --chown=node:node legacy/original-robotshop/web/static/images ./legacy/original-robotshop/web/static/images
 RUN mkdir -p /app/.data && chown node:node /app/.data

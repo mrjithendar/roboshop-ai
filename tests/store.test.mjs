@@ -43,3 +43,24 @@ test('cart isolation, persistence, authoritative totals and idempotent checkout'
     assert.equal(new Store(dir).pendingEvents().length, 0);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+
+test('account carts adopt a guest bag once and cannot be accessed with another account or a cart cookie alone', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'robotshop-account-store-'));
+  try {
+    const store = new Store(dir), guest = store.session();
+    store.update(guest, 'TEST', 1, products);
+    const alice = store.session(guest, 'alice');
+    assert.notEqual(alice, guest);
+    assert.equal(store.state.sessions[guest], undefined);
+    assert.equal(store.cart(alice, products).items.length, 1);
+    const bob = store.session(alice, 'bob');
+    assert.equal(store.cart(bob, products).items.length, 0);
+    const anonymous = store.session(alice);
+    assert.equal(store.cart(anonymous, products).items.length, 0);
+    store.state.sessions[alice].expires = 0;
+    const returned = store.session(undefined, 'alice');
+    assert.equal(returned, alice);
+    assert.equal(store.cart(returned, products).items[0].quantity, 1);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

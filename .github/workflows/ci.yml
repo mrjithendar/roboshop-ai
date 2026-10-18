@@ -10,6 +10,12 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     services:
+      mongodb:
+        image: mongo:8.0
+        ports: ["27017:27017"]
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1}).ok'"
+          --health-interval 5s --health-timeout 5s --health-retries 20
       redis:
         image: redis:7.4-alpine
         ports: ["6379:6379"]
@@ -32,6 +38,9 @@ jobs:
           --health-cmd "pg_isready -U shipping -d shipping_test"
           --health-interval 5s --health-timeout 3s --health-retries 10
     env:
+      MONGODB_URL: mongodb://127.0.0.1:27017
+      MONGO_ROOT_PASSWORD: ci-only-root
+      MONGO_APP_PASSWORD: ci-only-app
       SHIPPING_DATABASE_URL: postgresql://shipping:ci-local-only@127.0.0.1:5432/shipping_test
       SHIPPING_DB_TLS: "false"
       SHIPPING_DB_PASSWORD: ci-local-only

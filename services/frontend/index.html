@@ -15,6 +15,7 @@
   <header class="header">
     <a class="wordmark" href="/" aria-label="RobotShop home"><span class="brand-icon" aria-hidden="true">r.</span>robotshop<span class="brand-dot">®</span></a>
     <nav aria-label="Main navigation"><a href="#collection">The collection</a><button class="text-button" id="ask-nav">Meet your match <span>↗</span></button><button class="text-button" id="ops-button">System status</button></nav>
+    <button class="text-button" id="account-button">Log in</button><a id="admin-link" href="/admin" hidden>Admin panel</a><button class="text-button" id="logout-button" hidden>Log out</button>
     <button class="bag-button" id="bag-button" aria-label="Open shopping bag">Bag <span id="bag-count">0</span></button>
   </header>
   <main>
@@ -49,6 +50,7 @@
 <div class="cart-bottom"><div class="cart-total"><span>Items</span><strong id="cart-subtotal">€0.00</strong></div><div class="cart-total"><span>Shipping</span><strong id="cart-shipping">Not calculated</strong></div><div class="cart-total"><span>Total</span><strong id="cart-total">€0.00</strong></div><p id="payment-notice">Checking payment availability…</p><button class="button primary full-width" id="checkout" disabled>Pay securely <span>↗</span></button><button class="button secondary full-width" id="check-payment" hidden>Check payment status</button><p id="order-result" role="status"></p></div></dialog>
   <dialog id="product-dialog" class="product-dialog" aria-labelledby="detail-name"><button class="close-button detail-close" data-close="product-dialog" aria-label="Close product">×</button><div id="product-detail"></div></dialog>
   <dialog id="ops-dialog" class="ops-dialog" aria-labelledby="ops-title"><div class="dialog-heading"><div><p class="eyebrow">BEHIND THE SCENES</p><h2 id="ops-title">System status</h2></div><button class="close-button" data-close="ops-dialog" aria-label="Close system status">×</button></div><p>Live health probes and read-only runbook guidance.</p><div id="ops-content" aria-live="polite"></div><button class="button secondary" id="refresh-ops">Refresh status</button></dialog>
+  <dialog id="account-dialog" class="ops-dialog" aria-labelledby="account-title"><div class="dialog-heading"><h2 id="account-title">Your account</h2><button class="close-button" data-close="account-dialog" aria-label="Close account">×</button></div><form id="account-form" class="admin-form"><label>Action<select id="account-mode"><option value="login">Log in</option><option value="register">Create an account</option></select></label><label id="account-name-label" hidden>Name<input id="account-name" autocomplete="name" maxlength="100"></label><label>Email<input id="account-email" type="email" autocomplete="username" maxlength="254" required></label><label>Password<input id="account-password" type="password" autocomplete="current-password" minlength="12" maxlength="128" required></label><p>Use 12–128 characters. Login is required to checkout.</p><button class="button primary" id="account-submit">Continue</button><p id="account-status" role="status"></p></form></dialog>
   <div id="toast" class="toast" role="status" hidden></div>
 </body>
 </html>

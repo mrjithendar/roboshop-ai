@@ -112,7 +112,7 @@ export function serve(service, port, handler) {
       } finally {
         if (!['/health', '/metrics'].includes(route)) {
           // Route labels deliberately omit query strings, SKUs, cookies and prompts.
-          const safeRoute = ['/api/products', '/api/recommendations', '/api/chat', '/api/cart', '/api/orders', '/api/payment', '/api/payments', '/api/shipping', '/api/ops', '/api/status', '/api/ready'].includes(route) ? route : 'other';
+          const safeRoute = ['/api/auth', '/api/admin', '/api/settings', '/api/catalogue', '/api/products', '/api/recommendations', '/api/chat', '/api/cart', '/api/orders', '/api/payment', '/api/payments', '/api/shipping', '/api/ops', '/api/status', '/api/ready'].includes(route) ? route : 'other';
           const key = `route="${safeRoute}",status="${res.statusCode}"`;
           counts.set(key, (counts.get(key) || 0) + 1);
           requests++; duration += (Date.now() - start) / 1000;

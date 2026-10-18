@@ -1,9 +1,9 @@
-import { readFileSync } from 'node:fs';
 import { serve, json } from '../shared/runtime.mjs';
-import { normalizeProducts } from '../shared/catalogue.mjs';
-
-const file = process.env.CATALOGUE_FILE || new URL('./products.json', import.meta.url);
-const products = normalizeProducts(JSON.parse(readFileSync(file, 'utf8')));
+import { connectMongo } from '../shared/mongo.mjs';
+import { seedProducts, readProducts } from '../shared/products.mjs';
+const { db } = await connectMongo();
+await seedProducts(db);
 serve('product-ingestion', 4101, async (req, res, url) => {
-  if (req.method === 'GET' && url.pathname === '/api/products') json(res, { products, currency: 'EUR', source: 'legacy-catalogue-snapshot' });
+  if (req.method === 'GET' && url.pathname === '/api/products') return json(res, { products: await readProducts(db), currency: 'EUR', source: 'mongodb' });
+  if (req.method === 'GET' && url.pathname === '/api/catalogue/ready') { await db.command({ ping: 1 }); return json(res, { status: 'ok' }); }
 });

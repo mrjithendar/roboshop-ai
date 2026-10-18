@@ -4,7 +4,8 @@ import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
 
 const html = await readFile(new URL('../services/frontend/dist/index.html', import.meta.url), 'utf8');
-const script = (await readFile(new URL('../services/frontend/dist/app.js', import.meta.url), 'utf8')).replace(/^export \{\};?$/m, '');
+const accountScript = (await readFile(new URL('../services/frontend/dist/account.js', import.meta.url), 'utf8')).replace(/^export /gm, '');
+const script = accountScript + '\n' + (await readFile(new URL('../services/frontend/dist/app.js', import.meta.url), 'utf8')).replace(/^export \{\};?$/m, '').replace(/^import .*$/gm, '');
 const product = { sku: 'TEST', name: '<img src=x onerror=alert(1)>', price: 12, instock: 3, categories: ['robot'], description: 'Test robot', image: '/images/placeholder.png' };
 const cart = { items: [{ ...product, quantity: 1, lineTotal: 12 }], subtotal: 12, total: 15, shipping: { address: { recipient: 'Test', line1: 'Test street' }, city: { name: 'Hyderabad', country: 'IN' }, cost: 3, distanceKm: 60, quotedAt: new Date().toISOString() } };
 async function waitFor(check) {
@@ -24,6 +25,8 @@ function setup(t, handler = () => undefined) {
     const defaults = {
       '/api/products': { products: [product] }, '/api/recommendations': { products: [product] },
       '/api/cart': cart, '/api/payments/config': { enabled: true, message: 'Test payments' },
+      '/api/auth/me': { user: { id: 'customer', name: 'Customer', email: 'customer@example.com', role: 'customer' } },
+      '/api/settings': { storeName: 'RobotShop', announcement: 'Hello', supportEmail: '', checkoutEnabled: true },
       '/api/status': { assistantMode: 'catalogue-search' }, '/api/payments/current': { order: null },
       '/api/shipping/countries': { countries: [{ code: 'IN', name: 'India', cityCount: 10 }] },
     };
@@ -86,4 +89,15 @@ test('temporary payment status failures retain the order reference', async t => 
   await waitFor(() => ui.$('#order-result').textContent.includes('Payment service unavailable'));
   assert.equal(ui.w.localStorage.getItem('robotshop-payment-order'), 'pending-order');
   assert.ok(!ui.calls.includes('/api/payments/current'));
+});
+
+test('guest checkout opens login and does not load Razorpay', async t => {
+  const ui = setup(t, path => path === '/api/auth/me' ? { ok: true, status: 200, json: async () => ({ user: null }) } : undefined);
+  await ui.boot();
+  assert.equal(ui.$('#checkout').textContent, 'Log in to checkout');
+  ui.$('#checkout').click();
+  assert.equal(ui.$('#account-dialog').open, true);
+  assert.equal(ui.$('script[src*="checkout.razorpay"]'), null);
+  assert.ok(!ui.calls.includes('/api/payments/orders'));
+  assert.equal(ui.$('#admin-link').hidden, true);
 });

@@ -43,6 +43,7 @@ updates:
       - /
       - /services/redis
       - /services/rabbitmq
+      - /services/mongodb
       - /services/postgres
       - /services/nginx
     exclude-paths:
