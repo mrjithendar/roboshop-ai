@@ -1,7 +1,24 @@
-image:
-  repository: robotshop-ai
-  tag: local
-  pullPolicy: IfNotPresent
+imagePullPolicy: IfNotPresent
+# Each application has an independently versioned runtime image.
+serviceImages:
+  ai-gateway:
+    repository: robotshop-ai-gateway
+    tag: local
+  product-ingestion:
+    repository: robotshop-product-ingestion
+    tag: local
+  recommendation-service:
+    repository: robotshop-recommendation-service
+    tag: local
+  shopping-agent:
+    repository: robotshop-shopping-agent
+    tag: local
+  sre-copilot:
+    repository: robotshop-sre-copilot
+    tag: local
+  payment-service:
+    repository: robotshop-payment-service
+    tag: local
 publicOrigin: http://localhost:3000
 aiEnabled: false
 # Pre-create a Secret containing OPENAI_API_KEY and OPENAI_MODEL to enable AI.

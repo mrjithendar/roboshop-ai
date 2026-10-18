@@ -24,7 +24,7 @@ spec:
       containers:
         - name: nginx
           image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
           env:
             - name: GATEWAY_HOST
               value: "{{ .Release.Name }}-ai-gateway"

@@ -18,4 +18,12 @@ if (model.services['ai-gateway'].ports?.length) throw new Error('Gateway must re
 for (const service of ['nginx', 'redis', 'rabbitmq', 'shipping-db', 'mongodb']) {
   if (!model.services[service]) throw new Error(`Missing supporting service: ${service}`);
 }
+const applications = ['ai-gateway', 'product-ingestion', 'recommendation-service', 'shopping-agent', 'sre-copilot', 'payment-service'];
+const images = new Set();
+for (const name of applications) {
+  const service = model.services[name];
+  if (service?.build?.dockerfile !== `services/${name}/Dockerfile`) throw new Error(`${name}: expected dedicated Dockerfile`);
+  if (images.has(service.image)) throw new Error(`${name}: application images must be distinct`);
+  images.add(service.image);
+}
 console.log('Compose service definitions, build paths, mounts and gateway boundary validated.');

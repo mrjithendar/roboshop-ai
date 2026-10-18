@@ -228,3 +228,24 @@ There are no default admin credentials. Configure MongoDB, supply `SUPERADMIN_EM
 and `SUPERADMIN_PASSWORD` through your local environment, then run
 `npm run admin:bootstrap` once. See the [complete setup and permissions guide](docs/architecture/identity-and-admin.md)
 for native, Compose and Kubernetes setup. Keep passwords out of Git and chat.
+
+## Service container images
+
+Each Node microservice owns `services/<service>/Dockerfile` and its own image.
+Build from the repository root, for example:
+
+```sh
+docker build -f services/ai-gateway/Dockerfile -t robotshop-ai-gateway:local .
+docker compose build
+```
+
+Compose selects each service Dockerfile automatically. Java shipping and NGINX
+retain their dedicated Dockerfiles. NGINX compiles and serves the TypeScript
+frontend; backend images do not include frontend assets or other application services.
+Redis, RabbitMQ, MongoDB and PostgreSQL use their official images and existing
+service-specific Compose configuration.
+
+The MCP server is a standalone stdio image: build with
+`docker build -f services/mcp-server/Dockerfile -t robotshop-mcp-server:local .`
+and run with `docker run --rm -i` plus internal service URL environment variables
+and the appropriate Docker network. It does not expose an HTTP port.

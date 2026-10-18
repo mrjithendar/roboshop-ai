@@ -1,11 +1,10 @@
 name: robotshop-ai
 services:
   product-ingestion:
-    build: .
-    image: robotshop-ai:local
-    command:
-    - node
-    - services/product-ingestion/server.mjs
+    build:
+      context: .
+      dockerfile: services/product-ingestion/Dockerfile
+    image: robotshop-product-ingestion:local
     environment:
       INGESTION_URL: http://product-ingestion:4101
       RECOMMENDATION_URL: http://recommendation-service:4102
@@ -39,11 +38,10 @@ services:
       mongodb:
         condition: service_healthy
   recommendation-service:
-    build: .
-    image: robotshop-ai:local
-    command:
-    - node
-    - services/recommendation-service/server.mjs
+    build:
+      context: .
+      dockerfile: services/recommendation-service/Dockerfile
+    image: robotshop-recommendation-service:local
     environment:
       INGESTION_URL: http://product-ingestion:4101
       RECOMMENDATION_URL: http://recommendation-service:4102
@@ -76,11 +74,10 @@ services:
       product-ingestion:
         condition: service_healthy
   shopping-agent:
-    build: .
-    image: robotshop-ai:local
-    command:
-    - node
-    - services/shopping-agent/server.mjs
+    build:
+      context: .
+      dockerfile: services/shopping-agent/Dockerfile
+    image: robotshop-shopping-agent:local
     environment:
       INGESTION_URL: http://product-ingestion:4101
       RECOMMENDATION_URL: http://recommendation-service:4102
@@ -118,11 +115,10 @@ services:
       product-ingestion:
         condition: service_healthy
   sre-copilot:
-    build: .
-    image: robotshop-ai:local
-    command:
-    - node
-    - services/sre-copilot/server.mjs
+    build:
+      context: .
+      dockerfile: services/sre-copilot/Dockerfile
+    image: robotshop-sre-copilot:local
     environment:
       INGESTION_URL: http://product-ingestion:4101
       RECOMMENDATION_URL: http://recommendation-service:4102
@@ -153,11 +149,10 @@ services:
         max-size: 10m
         max-file: '3'
   ai-gateway:
-    build: .
-    image: robotshop-ai:local
-    command:
-    - node
-    - services/ai-gateway/server.mjs
+    build:
+      context: .
+      dockerfile: services/ai-gateway/Dockerfile
+    image: robotshop-ai-gateway:local
     environment:
       INGESTION_URL: http://product-ingestion:4101
       RECOMMENDATION_URL: http://recommendation-service:4102
@@ -236,11 +231,10 @@ services:
     ports:
     - 127.0.0.1:9090:9090
   payment-service:
-    build: .
-    image: robotshop-ai:local
-    command:
-    - node
-    - services/payment-service/server.mjs
+    build:
+      context: .
+      dockerfile: services/payment-service/Dockerfile
+    image: robotshop-payment-service:local
     environment:
       INGESTION_URL: http://product-ingestion:4101
       RECOMMENDATION_URL: http://recommendation-service:4102

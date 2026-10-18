@@ -1,6 +1,8 @@
 {{- $root := . -}}
 {{- $services := dict "ai-gateway" 3000 "product-ingestion" 4101 "recommendation-service" 4102 "shopping-agent" 4103 "sre-copilot" 4104 "payment-service" 4105 "shipping-service" 4106 -}}
 {{- range $name, $port := $services }}
+{{- $image := index $root.Values.serviceImages $name -}}
+{{- if eq $name "shipping-service" }}{{- $image = $root.Values.shipping.image -}}{{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -29,11 +31,8 @@ spec:
         fsGroup: 1000
       containers:
         - name: {{ $name }}
-          image: "{{ if eq $name "shipping-service" }}{{ $root.Values.shipping.image.repository }}:{{ $root.Values.shipping.image.tag }}{{ else }}{{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}{{ end }}"
-          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
-          {{- if ne $name "shipping-service" }}
-          command: [node, "services/{{ $name }}/server.mjs"]
-          {{- end }}
+          image: "{{ $image.repository }}:{{ $image.tag }}"
+          imagePullPolicy: {{ $root.Values.imagePullPolicy }}
           ports:
             - name: http
               containerPort: {{ $port }}

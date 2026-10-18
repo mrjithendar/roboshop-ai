@@ -5,10 +5,12 @@ frontend/edge server. Application pods use ClusterIP networking, non-root users,
 resource limits and health probes. The gateway has a persistent single-writer
 ledger and must remain at one replica with the Recreate strategy.
 
-Build and push three images from the repository root:
+Build each image from the repository root, then push it to your registry:
 
 ```sh
-docker build -t YOUR-REGISTRY/robotshop-ai:YOUR-TAG .
+for service in ai-gateway product-ingestion recommendation-service shopping-agent sre-copilot payment-service; do
+  docker build -f services/$service/Dockerfile -t YOUR-REGISTRY/robotshop-$service:YOUR-TAG .
+done
 docker build -f services/shipping-service/Dockerfile -t YOUR-REGISTRY/robotshop-shipping:YOUR-TAG .
 docker build -f services/nginx/Dockerfile -t YOUR-REGISTRY/robotshop-nginx:YOUR-TAG .
 ```
@@ -53,7 +55,7 @@ helm template robotshop infrastructure/helm/robotshop-ai \
   --set integrations.secretName=robotshop-integrations
 ```
 
-For deployment, provide these values plus your three image repositories/tags,
+For deployment, provide these values plus your per-service image repositories/tags (`serviceImages.<service>`, `shipping.image`, and `nginx.image`),
 `publicOrigin`, payment Secret, and storage class in your environment values file:
 
 ```sh

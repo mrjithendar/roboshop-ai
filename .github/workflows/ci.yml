@@ -71,5 +71,9 @@ jobs:
           NGINX_TEST_IMAGE: robotshop-nginx:ci
       - run: npm run evaluate
       - run: REDIS_PASSWORD=ci-config-only docker compose config --format json | node scripts/check-compose.mjs
-      - run: docker build --tag robotshop-ai:ci .
+      - name: Build independent Node service images
+        run: |
+          for service in ai-gateway product-ingestion recommendation-service shopping-agent sre-copilot payment-service mcp-server; do
+            docker build -f "services/$service/Dockerfile" --tag "robotshop-$service:ci" .
+          done
       - run: docker build -f services/shipping-service/Dockerfile --tag robotshop-shipping:ci .

@@ -21,7 +21,14 @@ updates:
       prefix: "chore(deps)"
 
   - package-ecosystem: docker
-    directory: /
+    directories:
+      - /services/ai-gateway
+      - /services/product-ingestion
+      - /services/recommendation-service
+      - /services/shopping-agent
+      - /services/sre-copilot
+      - /services/payment-service
+      - /services/mcp-server
     exclude-paths:
       - legacy/**
       - docker-compose.legacy.yml
@@ -53,7 +60,13 @@ updates:
     ignore:
       - dependency-name: robotshop-nginx
       - dependency-name: robotshop-shipping
-      - dependency-name: robotshop-ai
+      - dependency-name: robotshop-ai-gateway
+      - dependency-name: robotshop-product-ingestion
+      - dependency-name: robotshop-recommendation-service
+      - dependency-name: robotshop-shopping-agent
+      - dependency-name: robotshop-sre-copilot
+      - dependency-name: robotshop-payment-service
+      - dependency-name: robotshop-mcp-server
     schedule:
       interval: weekly
       day: monday

@@ -25,8 +25,9 @@ Compose deployment, extended by root `docker-compose.yml`. The Helm chart's `ngi
 Deployment uses this same image. There is intentionally one web-serving process:
 NGINX serves the frontend and proxies `/api/*` to the private gateway.
 
-The root Node Dockerfile also builds the frontend for direct gateway development
-and Helm deployments with NGINX disabled. Both paths use the same build script.
+Native development still serves the compiled frontend through the gateway.
+Container gateway images contain only backend code; keep NGINX enabled to serve
+the storefront in container deployments.
 `src/`, compiler configuration, and README files are not public routes.
 
 ```sh
