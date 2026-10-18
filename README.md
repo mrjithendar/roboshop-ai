@@ -7,10 +7,11 @@ is unchanged.
 
 ## Start locally
 
-Requires Node.js 24 or newer and PostgreSQL 17. Configure database connection URLs in `.env` as described in [shipping setup](services/shipping-service/README.md).
+Requires Node.js 24 or newer, Java 21 or newer, and PostgreSQL 17. Configure database connection URLs in `.env` as described in [shipping setup](services/shipping-service/README.md).
 
 ```sh
 npm ci
+npm run shipping:build
 npm run shipping:migrate
 npm run dev
 ```
@@ -110,11 +111,11 @@ dependency failure. Integration tests require permission to listen on localhost.
 Evaluations run offline; they are not live-model safety or quality certifications.
 
 GitHub Actions runs tests, evaluations, Compose validation, and an image build.
-[Dependabot](.github/dependabot.yml) checks the active npm, Docker, Docker Compose,
+[Dependabot](.github/dependabot.yml) checks the active npm, Gradle, Docker, Docker Compose,
 GitHub Actions and `/vpc` Terraform paths every Monday at 09:00 Asia/Kolkata. Minor
 and patch changes are grouped per ecosystem; major changes remain separate. The
 legacy snapshot and its launch file are excluded. The active npm package currently
-uses the `pg` PostgreSQL driver. Existing Terraform providers have no explicit
+has no third-party runtime dependencies; Java shipping dependencies are managed by Gradle. Existing Terraform providers have no explicit
 version constraints, limiting useful provider-update PRs until constraints/lockfiles
 are added as a separate infrastructure change.
 

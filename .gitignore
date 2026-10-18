@@ -17,3 +17,6 @@ crash.log
 .data/
 artifacts/
 *.log
+
+.gradle/
+**/build/

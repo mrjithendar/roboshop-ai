@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: shipping-service
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
+server:
+  address: ${HOST:127.0.0.1}
+  port: ${PORT:4106}
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+management:
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: prometheus
+      path-mapping:
+        prometheus: metrics
+  tracing:
+    enabled: ${SHIPPING_TRACING_ENABLED:false}
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+  metrics:
+    tags:
+      service: shipping-service

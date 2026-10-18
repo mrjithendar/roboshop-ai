@@ -9,7 +9,7 @@ import { once } from 'node:events';
 import { createHmac } from 'node:crypto';
 
 async function freePort() { const server = createServer(); server.listen(0, '127.0.0.1'); await once(server, 'listening'); const port = server.address().port; await new Promise(resolve => server.close(resolve)); return port; }
-test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency failure', { timeout: 30000 }, async () => {
+test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency failure', { timeout: 60000 }, async () => {
   const names = ['product-ingestion', 'recommendation-service', 'shopping-agent', 'sre-copilot', 'ai-gateway', 'payment-service', 'shipping-service'];
   const ports = await Promise.all(names.map(freePort));
   const base = `http://127.0.0.1:${ports[4]}`;
@@ -26,12 +26,12 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
   }
   try {
     for (let i = 0; i < names.length; i++) {
-      const child = spawn(process.execPath, [names[i] === 'payment-service' ? 'tests/fixtures/payment-server.mjs' : `services/${names[i]}/server.mjs`], { env: { ...env, PORT: String(ports[i]) }, stdio: ['ignore', 'pipe', 'pipe'] });
+      const child = spawn(names[i] === 'shipping-service' ? 'java' : process.execPath, names[i] === 'shipping-service' ? ['-jar', 'services/shipping-service/build/libs/shipping-service.jar'] : [names[i] === 'payment-service' ? 'tests/fixtures/payment-server.mjs' : `services/${names[i]}/server.mjs`], { env: { ...env, PORT: String(ports[i]) }, stdio: ['ignore', 'pipe', 'pipe'] });
       children.push(child); child.stdout.on('data', d => logs += d); child.stderr.on('data', d => logs += d);
     }
     for (const port of ports) {
       let ready = false;
-      for (let retry = 0; retry < 100; retry++) { try { if ((await fetch(`http://127.0.0.1:${port}/health`)).ok) { ready = true; break; } } catch {} await new Promise(r => setTimeout(r, 30)); }
+      for (let retry = 0; retry < 600; retry++) { try { if ((await fetch(`http://127.0.0.1:${port}/health`)).ok) { ready = true; break; } } catch {} await new Promise(r => setTimeout(r, 30)); }
       assert.ok(ready, logs);
     }
     assert.match(await (await fetch(base)).text(), /Find your kind of robot/);
@@ -55,12 +55,18 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     assert.equal((await call('/api/payments/config')).data.enabled, true);
     const orderOptions = { method: 'POST', headers: { 'idempotency-key': 'test-order-00000001' }, body: '{}' };
     assert.equal((await call('/api/payments/orders', orderOptions)).response.status, 400);
-    assert.equal((await call('/api/shipping/countries')).data.countries.length, 252);
+    const countries = (await call('/api/shipping/countries')).data.countries;
+    assert.equal(countries.length, 252);
+    assert.equal(countries.reduce((n,c)=>n+c.cityCount,0),34167);
+    assert.equal((await call('/api/shipping/cities?country=XX&q=City')).response.status,400);
+    assert.deepEqual((await call('/api/shipping/cities?country=IN&q=' + encodeURIComponent("'; DROP TABLE shipping.cities;--"))).data.cities,[]);
     const cities = (await call('/api/shipping/cities?country=IN&q=Hyderabad')).data.cities;
     assert.ok(cities.length);
     const destination = { cityId: cities[0].id, recipient: 'Integration Customer', line1: '123 Test Street', postalCode: '500001', cost: 0 };
     assert.equal((await call('/api/shipping/quote', { method: 'POST', body: JSON.stringify({ ...destination, cityId: -1 }) })).response.status, 400);
     const quote = await call('/api/shipping/quote', { method: 'POST', body: JSON.stringify(destination) });
+    assert.equal((await call('/api/shipping/quote', { method: 'POST', body: JSON.stringify({...destination,recipient:''}) })).response.status,400);
+    assert.equal((await call('/api/shipping/quote', { method: 'POST', body: JSON.stringify({...destination,line1:'bad\naddress'}) })).response.status,400);
     assert.equal(quote.response.status, 200); assert.ok(quote.data.shipping.cost > 0);
     assert.equal(quote.data.total, (8400 + Math.round(quote.data.shipping.cost * 100)) / 100);
     const order = await call('/api/payments/orders', orderOptions), retry = await call('/api/payments/orders', orderOptions);

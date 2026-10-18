@@ -29,14 +29,18 @@ spec:
         fsGroup: 1000
       containers:
         - name: {{ $name }}
-          image: "{{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}"
+          image: "{{ if eq $name "shipping-service" }}{{ $root.Values.shipping.image.repository }}:{{ $root.Values.shipping.image.tag }}{{ else }}{{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}{{ end }}"
           imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          {{- if ne $name "shipping-service" }}
           command: [node, "services/{{ $name }}/server.mjs"]
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ $port }}
           env:
             {{- if eq $name "shipping-service" }}
+            - name: SHIPPING_TRACING_ENABLED
+              value: {{ ne $root.Values.otelTracesEndpoint "" | quote }}
             - name: SHIPPING_DATABASE_URL
               valueFrom:
                 secretKeyRef:
@@ -115,7 +119,19 @@ spec:
               port: http
             timeoutSeconds: 5
           resources:
+            {{- if eq $name "shipping-service" }}
+            {{- toYaml $root.Values.shipping.resources | nindent 12 }}
+            {{- else }}
             {{- toYaml $root.Values.resources | nindent 12 }}
+            {{- end }}
+          {{- if eq $name "shipping-service" }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+          {{- end }}
           {{- if eq $name "ai-gateway" }}
           volumeMounts:
             - name: data

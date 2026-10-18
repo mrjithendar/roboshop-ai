@@ -266,16 +266,17 @@ services:
         max-size: 10m
         max-file: '3'
   shipping-service:
-    build: .
-    image: robotshop-ai:local
-    command:
-    - node
-    - services/shipping-service/server.mjs
+    build:
+      context: .
+      dockerfile: services/shipping-service/Dockerfile
+    image: robotshop-shipping:local
+    command: []
     environment:
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
       SHIPPING_DATABASE_URL: postgresql://shipping_app:${SHIPPING_APP_PASSWORD:?Set
         SHIPPING_APP_PASSWORD}@shipping-db:5432/shipping
       SHIPPING_DB_TLS: 'false'
+      SHIPPING_TRACING_ENABLED: 'true'
     init: true
     restart: unless-stopped
     read_only: true
@@ -285,13 +286,12 @@ services:
     - no-new-privileges:true
     healthcheck:
       test:
-      - CMD
-      - node
-      - -e
-      - fetch('http://127.0.0.1:4106/api/shipping/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:4106/api/shipping/ready
       interval: 10s
       timeout: 3s
       retries: 5
+      start_period: 30s
     logging:
       driver: json-file
       options:
@@ -300,6 +300,8 @@ services:
     depends_on:
       shipping-migrate:
         condition: service_completed_successfully
+    tmpfs:
+    - /tmp
   shipping-db:
     image: postgres:17-alpine
     environment:
@@ -321,18 +323,22 @@ services:
       timeout: 3s
       retries: 10
   shipping-migrate:
-    build: .
-    image: robotshop-ai:local
+    build:
+      context: .
+      dockerfile: services/shipping-service/Dockerfile
+    image: robotshop-shipping:local
     command:
-    - node
-    - services/shipping-service/migrate.mjs
+    - --migrate
     environment:
       SHIPPING_DATABASE_URL: postgresql://shipping:${SHIPPING_DB_PASSWORD:?Set SHIPPING_DB_PASSWORD}@shipping-db:5432/shipping
       SHIPPING_DB_TLS: 'false'
+      SHIPPING_TRACING_ENABLED: 'false'
     depends_on:
       shipping-db:
         condition: service_healthy
     restart: 'no'
+    tmpfs:
+    - /tmp
 volumes:
   shop-data: {}
   prometheus-data: {}

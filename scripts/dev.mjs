@@ -23,10 +23,11 @@ for (const name of names) {
   if (name === 'ai-gateway') env.ASSISTANT_AI_ENABLED = String(Boolean(env.OPENAI_API_KEY && env.OPENAI_MODEL));
   if (name !== 'shipping-service') { delete env.SHIPPING_DATABASE_URL; delete env.SHIPPING_DB_CA_FILE; }
   delete env.SHIPPING_MIGRATION_DATABASE_URL;
+  if (name === 'shipping-service') env.SHIPPING_TRACING_ENABLED = String(Boolean(env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT));
   if (name !== 'shopping-agent') for (const key of ['OPENAI_API_KEY', 'OPENAI_MODEL', 'LANGFUSE_PUBLIC_KEY', 'LANGFUSE_SECRET_KEY']) delete env[key];
   // PORT applies only to the public gateway; internal services use their defaults.
   if (name !== 'ai-gateway') delete env.PORT;
-  const child = spawn(process.execPath, [`services/${name}/server.mjs`], { cwd: root, env, stdio: 'inherit' });
+  const child = spawn(name === 'shipping-service' ? 'java' : process.execPath, name === 'shipping-service' ? ['-jar', 'services/shipping-service/build/libs/shipping-service.jar'] : [`services/${name}/server.mjs`], { cwd: root, env, stdio: 'inherit' });
   children.push(child);
   child.on('error', () => stop(1));
   child.on('exit', code => { if (!stopping) stop(code || 1); });

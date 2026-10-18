@@ -24,5 +24,15 @@ paymentMode: live
 
 # External managed PostgreSQL; runtime role should have SELECT only on shipping tables.
 shipping:
+  image:
+    repository: robotshop-shipping
+    tag: local
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
   databaseSecretName: ""
   migrationSecretName: ""

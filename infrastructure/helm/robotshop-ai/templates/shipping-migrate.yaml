@@ -18,8 +18,11 @@ spec:
         runAsUser: 1000
       containers:
         - name: migrate
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          command: [node, services/shipping-service/migrate.mjs]
+          image: "{{ .Values.shipping.image.repository }}:{{ .Values.shipping.image.tag }}"
+          args: ["--migrate"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           env:
             - name: SHIPPING_MIGRATION_DATABASE_URL
               valueFrom:
@@ -33,3 +36,7 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: [ALL]
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
