@@ -1,7 +1,7 @@
 # Extended by root Compose; paths are relative to this directory.
 services:
   mongodb:
-    image: mongo:8.0
+    image: mongo:8.2
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD}
