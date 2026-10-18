@@ -1,5 +1,3 @@
-# decisions
+# Architecture decisions
 
-Architecture decision records.
-
-Status: scaffold; implementation and configuration are pending.
+- [0001: Incremental local modernization](0001-local-platform.md)

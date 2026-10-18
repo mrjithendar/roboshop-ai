@@ -1,0 +1,116 @@
+{{- $root := . -}}
+{{- $services := dict "ai-gateway" 3000 "product-ingestion" 4101 "recommendation-service" 4102 "shopping-agent" 4103 "sre-copilot" 4104 -}}
+{{- range $name, $port := $services }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $root.Release.Name }}-{{ $name }}
+spec:
+  # The demo JSON ledger supports exactly one gateway writer.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $root.Release.Name }}
+      app.kubernetes.io/component: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ $root.Release.Name }}
+        app.kubernetes.io/component: {{ $name }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: {{ $name }}
+          image: "{{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}"
+          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          command: [node, "services/{{ $name }}/server.mjs"]
+          ports:
+            - name: http
+              containerPort: {{ $port }}
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: {{ $port | quote }}
+            - name: INGESTION_URL
+              value: "http://{{ $root.Release.Name }}-product-ingestion:4101"
+            - name: RECOMMENDATION_URL
+              value: "http://{{ $root.Release.Name }}-recommendation-service:4102"
+            - name: AGENT_URL
+              value: "http://{{ $root.Release.Name }}-shopping-agent:4103"
+            - name: SRE_URL
+              value: "http://{{ $root.Release.Name }}-sre-copilot:4104"
+            - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+              value: {{ $root.Values.otelTracesEndpoint | quote }}
+            {{- if eq $name "ai-gateway" }}
+            - name: PUBLIC_ORIGIN
+              value: {{ $root.Values.publicOrigin | quote }}
+            - name: ASSISTANT_AI_ENABLED
+              value: {{ $root.Values.aiEnabled | quote }}
+            {{- end }}
+          {{- if and (eq $name "shopping-agent") $root.Values.agentSecretName }}
+          envFrom:
+            - secretRef:
+                name: {{ $root.Values.agentSecretName }}
+          {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+          readinessProbe:
+            httpGet:
+              path: {{ if eq $name "ai-gateway" }}/api/ready{{ else }}/health{{ end }}
+              port: http
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml $root.Values.resources | nindent 12 }}
+          {{- if eq $name "ai-gateway" }}
+          volumeMounts:
+            - name: data
+              mountPath: /app/.data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ $root.Release.Name }}-data
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $root.Release.Name }}-{{ $name }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/instance: {{ $root.Release.Name }}
+    app.kubernetes.io/component: {{ $name }}
+  ports:
+    - port: {{ $port }}
+      targetPort: http
+      name: http
+{{- end }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-data
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- if .Values.persistence.storageClass }}
+  storageClassName: {{ .Values.persistence.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size }}

@@ -1,0 +1,19 @@
+image:
+  repository: robotshop-ai
+  tag: local
+  pullPolicy: IfNotPresent
+publicOrigin: http://localhost:3000
+aiEnabled: false
+# Pre-create a Secret containing OPENAI_API_KEY and OPENAI_MODEL to enable AI.
+agentSecretName: ""
+otelTracesEndpoint: ""
+persistence:
+  size: 1Gi
+  storageClass: ""
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
