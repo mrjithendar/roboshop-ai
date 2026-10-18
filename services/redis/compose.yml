@@ -2,7 +2,7 @@
 # Run Compose from the repository root; paths here are relative to this directory.
 services:
   redis:
-    image: redis:7.4-alpine
+    image: redis:8.10-alpine
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
     command:
