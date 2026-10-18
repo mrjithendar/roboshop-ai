@@ -10,6 +10,7 @@ import threading
 from datetime import datetime, timedelta, timezone
 
 from runtime import HttpError, now, trace_span
+from store import cents
 
 
 def timestamp(value):
@@ -47,7 +48,7 @@ class Customers:
         agent = "".join(c for c in agent[:512] if c.isprintable())
         instant = now()
         with trace_span(
-            "mongodb customer.login", attributes={"db.system.name": "mongodb"}
+            "mongodb customer.login", kind=3, attributes={"db.system.name": "mongodb"}
         ):
             self.db.customer_profiles.update_one(
                 {"_id": user_id},
@@ -90,7 +91,7 @@ class Customers:
             (user_id + json.dumps(address, sort_keys=True, ensure_ascii=False)).encode()
         ).hexdigest()
         with self.lock, trace_span(
-            "mongodb customer.address", attributes={"db.system.name": "mongodb"}
+            "mongodb customer.address", kind=3, attributes={"db.system.name": "mongodb"}
         ):
             self.db.customer_addresses.update_one(
                 {"_id": key},
@@ -122,6 +123,7 @@ class Customers:
             "currency": order["currency"],
             "subtotal": order["subtotal"],
             "total": order["total"],
+            "totalMinor": cents(order["total"]),
             "paidAt": timestamp(order["paidAt"]),
             "createdAt": timestamp(order["createdAt"]),
             "shipping": copy.deepcopy(order["shipping"]),
@@ -131,7 +133,9 @@ class Customers:
             ],
         }
         with trace_span(
-            "mongodb customer.purchase", attributes={"db.system.name": "mongodb"}
+            "mongodb customer.purchase",
+            kind=3,
+            attributes={"db.system.name": "mongodb"},
         ):
             # Immutable order snapshots and an order-ID key make replay safe.
             self.db.purchase_history.update_one(
@@ -193,7 +197,7 @@ class Customers:
 
     def profile(self, user_id):
         with trace_span(
-            "mongodb customer.profile", attributes={"db.system.name": "mongodb"}
+            "mongodb customer.profile", kind=3, attributes={"db.system.name": "mongodb"}
         ):
             doc = self.db.customer_profiles.find_one({"_id": user_id}, {"_id": 0}) or {}
             addresses = [
@@ -213,7 +217,7 @@ class Customers:
                             "$group": {
                                 "_id": "$currency",
                                 "orders": {"$sum": 1},
-                                "totalSpent": {"$sum": "$total"},
+                                "totalSpentMinor": {"$sum": "$totalMinor"},
                                 "lastPurchaseAt": {"$max": "$paidAt"},
                             }
                         },
@@ -224,7 +228,12 @@ class Customers:
                 "activity": doc,
                 "addresses": addresses,
                 "purchaseSummary": [
-                    {"currency": row.pop("_id"), **row} for row in totals
+                    {
+                        "currency": row.pop("_id"),
+                        "totalSpent": row["totalSpentMinor"] / 100,
+                        **row,
+                    }
+                    for row in totals
                 ],
             }
 

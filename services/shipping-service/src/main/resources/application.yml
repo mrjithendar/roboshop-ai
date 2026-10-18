@@ -55,6 +55,9 @@ management:
     sampling:
       probability: 1.0
   opentelemetry:
+    resource-attributes:
+      service.version: ${OTEL_SERVICE_VERSION:0.2.0}
+      deployment.environment.name: ${DEPLOYMENT_ENVIRONMENT:development}
     tracing:
       export:
         otlp:

@@ -53,9 +53,24 @@ test('super admin sees user access controls and bounded store configuration', as
   assert.match(ui.$('#admin-users').firstElementChild.textContent, /protected/);
   assert.equal(ui.$('#admin-users').firstElementChild.querySelector('select'), null);
   const role = ui.$('#admin-users select'); role.value = 'admin';
-  ui.$('#admin-users button').click();
+  [...ui.w.document.querySelectorAll('#admin-users button')].find(button => button.textContent === 'Save access').click();
   await new Promise(resolve => setTimeout(resolve, 10));
   const update = ui.calls.find(call => call.options.method === 'PATCH');
   assert.equal(update.path, '/api/admin/users/customer');
   assert.deepEqual(JSON.parse(update.options.body), { role: 'admin', disabled: false });
+});
+
+test('super-admin customer details are fetched only on explicit inspection', async t => {
+  const ui = setup(t, 'superadmin'); await ui.boot();
+  assert.ok(!ui.calls.some(call => call.path.endsWith('/profile')));
+  const original = ui.w.fetch;
+  ui.w.fetch = async (path, options) => {
+    if (path.endsWith('/profile')) { ui.calls.push({ path, options }); return { ok: true, json: async () => ({ activity: { lastLoginIp: '192.0.2.1', loginCount: 2 }, addresses: [] }) }; }
+    if (path.endsWith('/purchases')) { ui.calls.push({ path, options }); return { ok: true, json: async () => ({ purchases: [], next: null }) }; }
+    return original(path, options);
+  };
+  [...ui.w.document.querySelectorAll('#admin-users button')].find(button => button.textContent === 'Customer details').click();
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.match(ui.$('.customer-details').textContent, /192\.0\.2\.1/);
+  assert.equal(ui.$('.customer-details').hidden, false);
 });

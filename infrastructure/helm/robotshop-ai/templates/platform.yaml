@@ -95,6 +95,10 @@ spec:
               value: "http://{{ $root.Release.Name }}-payment-service:4105"
             - name: SRE_URL
               value: "http://{{ $root.Release.Name }}-sre-copilot:4104"
+            - name: OTEL_SERVICE_VERSION
+              value: {{ $image.tag | quote }}
+            - name: DEPLOYMENT_ENVIRONMENT
+              value: {{ $root.Values.deploymentEnvironment | quote }}
             - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
               value: {{ $root.Values.otelTracesEndpoint | quote }}
             {{- if or (eq $name "ai-gateway") (eq $name "payment-service") }}
@@ -127,6 +131,8 @@ spec:
                   name: {{ required "Set integrations.secretName for external Redis and RabbitMQ" $root.Values.integrations.secretName }}
                   key: RABBITMQ_URL
             {{- end }}
+            - name: LOGIN_ACTIVITY_RETENTION_DAYS
+              value: {{ $root.Values.loginActivityRetentionDays | quote }}
             - name: TRUST_PROXY
               value: {{ $root.Values.nginx.enabled | quote }}
             - name: ASSISTANT_AI_ENABLED

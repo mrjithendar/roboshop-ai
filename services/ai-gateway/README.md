@@ -37,3 +37,8 @@ once; the Java shipping consumer deduplicates event IDs.
 Additional endpoints are `/api/compare` (2–4 distinct SKUs) and authenticated
 `/api/recommendations/personalized` (cart categories). MCP tools call these and the
 same authenticated cart/admin endpoints; MCP never bypasses authorization.
+
+Private customer profiles, successful login metadata, saved addresses and immutable
+paid purchase history now live in MongoDB. The gateway retries pending history
+projections from its ledger. See [customer records](../../docs/architecture/customer-records.md)
+for access rules, retention, backfill behavior and the remaining single-writer limit.

@@ -13,6 +13,7 @@ import urllib.request
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+from functools import wraps
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 from http import HTTPStatus
@@ -69,12 +70,28 @@ def trace_span(name, kind=1, attributes=None, parent=None, service=None):
     start, status = time.time_ns(), 200
     try:
         yield context
-    except Exception:
-        status = 500
+    except Exception as error:
+        status = getattr(error, "status", 500)
         raise
     finally:
         telemetry(context["service"], context, start, name, status)
         ctx.reset(token)
+
+
+def database_operation(name):
+    def decorate(fn):
+        @wraps(fn)
+        def wrapped(*args, **kwargs):
+            with trace_span(
+                "mongodb " + name,
+                kind=3,
+                attributes={"db.system.name": "mongodb", "db.operation.name": name},
+            ):
+                return fn(*args, **kwargs)
+
+        return wrapped
+
+    return decorate
 
 
 def now():

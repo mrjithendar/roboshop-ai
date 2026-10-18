@@ -280,3 +280,15 @@ one: a process lock protects the ledger, but it is not a distributed database.
 Back up the ledger and MongoDB before deployment. The old Node auth/ledger modules
 are retained only under `tests/fixtures/previous-gateway` for compatibility tests;
 they are not shipped in production images.
+
+## Customer records and distributed tracing
+
+MongoDB now stores login timestamps, observed IP/browser metadata, recent login
+activity, saved validated shipping addresses and replay-safe paid purchase history.
+Customers can inspect their own records from the account dialog; the super admin
+can inspect customer details in the users panel. See [customer data and access
+rules](docs/architecture/customer-records.md).
+
+OpenTelemetry covers HTTP services, MCP tool calls, downstream requests and the
+RabbitMQ payment-to-shipping flow. Jaeger is available at `http://localhost:16686`
+when the Compose stack is running. See [tracing coverage and configuration](observability/opentelemetry/README.md).

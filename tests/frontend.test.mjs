@@ -101,3 +101,23 @@ test('guest checkout opens login and does not load Razorpay', async t => {
   assert.ok(!ui.calls.includes('/api/payments/orders'));
   assert.equal(ui.$('#admin-link').hidden, true);
 });
+
+test('account panel shows private history safely and clears it on logout', async t => {
+  const payloads = {
+    '/api/account/profile': { activity: { lastLoginAt: '2026-10-18T10:00:00Z', lastLoginIp: '192.0.2.1' }, addresses: [{ address: { recipient: 'Buyer', line1: '<img src=x onerror=alert(1)>', postalCode: '500001' }, city: { name: 'Hyderabad', country: 'India' } }] },
+    '/api/account/activity': { retentionDays: 90, events: [{ occurredAt: '2026-10-18T10:00:00Z', ipAddress: '192.0.2.1', userAgent: '<script>unsafe</script>' }] },
+    '/api/account/purchases': { purchases: [{ id: 'order-1', paidAt: '2026-10-18T10:00:00Z', total: 15, currency: 'EUR', items: [{ name: 'Robot', quantity: 1 }] }], next: null },
+    '/api/auth/logout': { loggedOut: true },
+  };
+  const ui = setup(t, path => Object.hasOwn(payloads, path) ? { ok: true, status: 200, json: async () => payloads[path] } : undefined);
+  await ui.boot(); ui.$('#account-button').click();
+  await waitFor(() => ui.$('#account-details').textContent.includes('order-1'));
+  assert.equal(ui.$('#account-form').hidden, true);
+  assert.match(ui.$('#account-details').textContent, /192\.0\.2\.1/);
+  assert.match(ui.$('#account-details').textContent, /<img/);
+  assert.equal(ui.$('#account-details img'), null);
+  assert.equal(ui.$('#account-details script'), null);
+  ui.$('#logout-button').click();
+  await waitFor(() => ui.$('#account-details').hidden);
+  assert.equal(ui.$('#account-details').textContent, '');
+});

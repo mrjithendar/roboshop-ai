@@ -226,6 +226,40 @@ class MCPTests(unittest.TestCase):
 
 
 class RuntimeTests(unittest.TestCase):
+    def test_trace_context_parent_sampling_and_no_arguments(self):
+        import runtime
+
+        captured = []
+        with patch(
+            "runtime.telemetry", side_effect=lambda *args: captured.append(args)
+        ):
+            with runtime.trace_span(
+                "mcp.tool search_products",
+                service="mcp-server",
+                parent="00-" + "a" * 32 + "-" + "b" * 16 + "-00",
+            ) as parent:
+                with runtime.trace_span("HTTP GET", kind=3) as child:
+                    self.assertEqual(child["traceId"], "a" * 32)
+                    self.assertEqual(child["parentSpanId"], parent["spanId"])
+                    self.assertEqual(child["flags"], "00")
+                    self.assertEqual(child["attributes"], {})
+            self.assertEqual(len(captured), 2)
+        invalid = runtime.trace_context("00-" + "0" * 32 + "-" + "0" * 16 + "-01")
+        self.assertNotEqual(invalid["traceId"], "0" * 32)
+        self.assertNotIn("parentSpanId", invalid)
+
+    def test_unsampled_spans_do_not_export(self):
+        import runtime
+
+        with patch.dict(
+            os.environ,
+            {
+                "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "http://collector.invalid/v1/traces"
+            },
+        ), patch.object(runtime.exports, "submit") as submit:
+            runtime.telemetry("test", {"flags": "00"}, 0, "HTTP GET", 200)
+            submit.assert_not_called()
+
     def test_invalid_body_and_trace(self):
         app = application("test", lambda req: req.body())
         captured = {}

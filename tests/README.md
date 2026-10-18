@@ -66,3 +66,9 @@ MCP validation/auth forwarding and HTTP input validation. `npm test` runs Python
 unit tests before the Node test harness, which launches the actual Python gateway,
 agent and MCP for MongoDB and full HTTP tests. Previous Node modules under
 `fixtures/previous-gateway` are compatibility references, not service runtimes.
+
+Customer metadata tests use isolated MongoDB databases and verify retention filters,
+address bounds, replay-safe purchase snapshots, account isolation and pagination.
+The full integration test also asserts actual Java OTLP protobuf export and
+RabbitMQ consumer linkage to the payment trace; private addresses and prompts
+must be absent from all captured telemetry payloads.

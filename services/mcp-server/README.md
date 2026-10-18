@@ -27,3 +27,7 @@ MCP does not manage login or refresh tokens. Use the web login flow to establish
 session. Requests go only to the operator-configured gateway, not arbitrary URLs
 provided by tool arguments. For containers, use the Compose network and
 `GATEWAY_URL=http://ai-gateway:3000`; use `docker run --rm -i`, without a TTY.
+
+Tool and downstream HTTP spans export via `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`.
+Arguments, results and session tokens are excluded. The optional Compose `tools`
+profile supplies the internal collector endpoint for stdio runs.

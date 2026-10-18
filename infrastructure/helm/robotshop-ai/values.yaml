@@ -23,7 +23,9 @@ publicOrigin: http://localhost:3000
 aiEnabled: false
 # Pre-create a Secret containing OPENAI_API_KEY and OPENAI_MODEL to enable AI.
 agentSecretName: ""
-otelTracesEndpoint: ""
+otelTracesEndpoint: http://otel-collector:4318/v1/traces
+deploymentEnvironment: production
+loginActivityRetentionDays: 90
 persistence:
   size: 1Gi
   storageClass: ""

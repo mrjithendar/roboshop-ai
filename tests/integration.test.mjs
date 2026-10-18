@@ -22,10 +22,10 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
   const base = `http://127.0.0.1:${edgePort || ports[4]}`;
   let edge;
   const dir = mkdtempSync(join(tmpdir(), 'robotshop-integration-'));
-  const children = [], traces = []; let logs = '';
-  const receiver = createServer(async (req, res) => { let data = ''; for await (const part of req) data += part; traces.push(JSON.parse(data)); res.writeHead(200, { 'content-type': 'application/json' }); res.end('{}'); });
+  const children = [], traces = [], binaryTraces = []; let logs = '';
+  const receiver = createServer(async (req, res) => { const chunks = []; for await (const part of req) chunks.push(part); const data = Buffer.concat(chunks); if (req.headers['content-type']?.includes('json')) { traces.push(JSON.parse(data)); res.writeHead(200, { 'content-type': 'application/json' }); res.end('{}'); } else { binaryTraces.push(data); res.writeHead(200, { 'content-type': 'application/x-protobuf' }); res.end(); } });
   receiver.listen(0, '127.0.0.1'); await once(receiver, 'listening');
-  const env = { ...process.env, MONGODB_DATABASE: mongoDatabase, HOST: '127.0.0.1', TRUST_PROXY: edgePort ? 'true' : 'false', INGESTION_URL: `http://127.0.0.1:${ports[0]}`, RECOMMENDATION_URL: `http://127.0.0.1:${ports[1]}`, AGENT_URL: `http://127.0.0.1:${ports[2]}`, SRE_URL: `http://127.0.0.1:${ports[3]}`, DATA_DIR: dir, PUBLIC_ORIGIN: base, GATEWAY_URL: base, PAYMENT_URL: `http://127.0.0.1:${ports[5]}`, SHIPPING_URL: `http://127.0.0.1:${ports[6]}`, PAYMENT_SERVICE_TOKEN: 'integration-internal-token', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', RAZORPAY_WEBHOOK_SECRET: '', OPENAI_API_KEY: '', OPENAI_MODEL: '', LANGFUSE_BASE_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `http://127.0.0.1:${receiver.address().port}/v1/traces` };
+  const env = { ...process.env, SHIPPING_TRACING_ENABLED: 'true', OTEL_BSP_SCHEDULE_DELAY: '500', MONGODB_DATABASE: mongoDatabase, HOST: '127.0.0.1', TRUST_PROXY: edgePort ? 'true' : 'false', INGESTION_URL: `http://127.0.0.1:${ports[0]}`, RECOMMENDATION_URL: `http://127.0.0.1:${ports[1]}`, AGENT_URL: `http://127.0.0.1:${ports[2]}`, SRE_URL: `http://127.0.0.1:${ports[3]}`, DATA_DIR: dir, PUBLIC_ORIGIN: base, GATEWAY_URL: base, PAYMENT_URL: `http://127.0.0.1:${ports[5]}`, SHIPPING_URL: `http://127.0.0.1:${ports[6]}`, PAYMENT_SERVICE_TOKEN: 'integration-internal-token', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', RAZORPAY_WEBHOOK_SECRET: '', OPENAI_API_KEY: '', OPENAI_MODEL: '', LANGFUSE_BASE_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `http://127.0.0.1:${receiver.address().port}/v1/traces` };
   let cookie; const cookieJar = new Map();
   async function call(path, options = {}, useCookie = true) {
     const response = await fetch(`${base}${path}`, { ...options, headers: { 'content-type': 'application/json', origin: base, ...(useCookie && cookie ? { cookie } : {}), ...options.headers } });
@@ -90,7 +90,9 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     assert.equal((await call('/api/cart')).data.items.length, 1);
     const webhook = JSON.stringify({ event: 'payment.captured', payload: { payment: { entity: { order_id: 'order_INTEGRATION', id: 'pay_INTEGRATION' } } } });
     const webhookSignature = createHmac('sha256', 'test-webhook-secret').update(webhook).digest('hex');
-    assert.equal((await call('/api/payments/webhook', { method: 'POST', headers: { 'x-razorpay-signature': webhookSignature }, body: webhook })).response.status, 200);
+    const capturedWebhook = await call('/api/payments/webhook', { method: 'POST', headers: { 'x-razorpay-signature': webhookSignature }, body: webhook });
+    assert.equal(capturedWebhook.response.status, 200);
+    const paidTrace = capturedWebhook.response.headers.get('x-request-id');
     assert.equal((await call('/api/payments/webhook', { method: 'POST', headers: { 'x-razorpay-signature': '0'.repeat(64) }, body: webhook })).response.status, 400);
     assert.equal((await call('/api/payments/status?orderId=' + order.data.order.id)).data.status, 'paid');
     verification.razorpay_signature = createHmac('sha256', 'test-payment-secret').update('order_INTEGRATION|pay_INTEGRATION').digest('hex');
@@ -98,6 +100,14 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     assert.equal(verified.data.status, 'paid'); assert.equal(verified.data.paymentCaptured, true);
     assert.equal((await call('/api/payments/verify', { method: 'POST', body: JSON.stringify(verification) })).data.id, order.data.order.id);
     assert.equal((await call('/api/cart')).data.items.length, 0);
+    let history;
+    for (let retry = 0; retry < 100; retry++) { history = (await call('/api/account/purchases')).data; if (history.purchases?.length) break; await new Promise(r => setTimeout(r, 50)); }
+    assert.equal(history.purchases.length, 1);
+    assert.equal(history.purchases[0].id, order.data.order.id);
+    assert.equal(history.purchases[0].shipping.address.line1, destination.line1);
+    assert.ok(!JSON.stringify(history).includes('razorpay'));
+    assert.equal((await call('/api/account/profile')).data.addresses.length, 1);
+
     if (env.RABBITMQ_URL) {
       let published=false;
       for(let retry=0;retry<100;retry++) {
@@ -156,6 +166,17 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     mcp.stdin.end([{ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'test', version: '1' } } }, { jsonrpc: '2.0', id: 2, method: 'tools/list' }, { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'search_products', arguments: { query: 'mining' } } }, { jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'execute_shell', arguments: {} } }].map(m => JSON.stringify(m)).join('\n') + '\n');
     await once(mcp, 'exit'); const replies = output.trim().split('\n').map(JSON.parse);
     assert.equal(replies[1].result.tools.length, 15); assert.equal(replies[2].result.isError, false); assert.equal(replies[3].error.code, -32602);
+    const serviceNames = new Set(traces.flatMap(t => t.resourceSpans.map(r => r.resource.attributes.find(a => a.key === 'service.name')?.value.stringValue)));
+    for (const service of ['ai-gateway', 'shopping-agent', 'product-ingestion', 'recommendation-service', 'sre-copilot', 'payment-service', 'mcp-server']) assert.ok(serviceNames.has(service), `Missing spans for ${service}`);
+    assert.ok(traces.some(t => t.resourceSpans.some(r => r.scopeSpans.some(s => s.spans.some(span => span.kind === 3 && span.parentSpanId)))), 'outbound client spans');
+    for (let retry = 0; retry < 160 && !binaryTraces.some(b => b.includes(Buffer.from('shipping-service'))); retry++) await new Promise(r => setTimeout(r, 50));
+    assert.ok(binaryTraces.some(b => b.includes(Buffer.from('shipping-service'))), 'Java shipping must export OTLP spans');
+    if (env.RABBITMQ_URL) {
+      assert.ok(binaryTraces.some(b => b.includes(Buffer.from(paidTrace, 'hex')) && b.includes(Buffer.from('robotshop.shipping.orders'))), 'Rabbit consumer must continue the payment trace');
+      assert.ok(traces.some(t => t.resourceSpans.some(r => r.scopeSpans.some(s => s.spans.some(span => span.kind === 4 && span.traceId === paidTrace)))), 'Rabbit producer span must continue the payment trace');
+    }
+    const telemetry = JSON.stringify(traces) + binaryTraces.map(b => b.toString()).join('');
+    for (const secret of [destination.line1, destination.recipient, 'security under 1000', 'integration@example.com', 'rs_auth=']) assert.ok(!telemetry.includes(secret), `Private data appeared in telemetry: ${secret}`);
     children[0].kill('SIGTERM'); await once(children[0], 'exit');
     assert.equal((await call('/api/ready')).response.status, 503);
     assert.equal((await call('/api/ops')).data.status, 'degraded');

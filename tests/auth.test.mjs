@@ -42,6 +42,7 @@ test('MongoDB accounts, one super admin, server-side roles, persistent sessions 
     await start('product-ingestion', cataloguePort); let gateway = await start('ai-gateway', gatewayPort);
     const customer = browser(), other = browser(), admin = browser();
     assert.equal((await customer.call('/api/admin/products')).status, 401);
+    assert.equal((await customer.call('/api/account/profile')).status, 401);
     assert.equal((await customer.call('/api/payments/orders', 'POST', {})).status, 401);
     assert.equal((await customer.call('/api/recommendations/personalized')).status, 401);
     const comparison = await customer.call('/api/compare?skus=RED,RMC');
@@ -53,7 +54,12 @@ test('MongoDB accounts, one super admin, server-side roles, persistent sessions 
     assert.equal((await customer.call('/api/cart', 'POST', { sku: 'RMC', quantity: 1 })).status, 200);
     const guestCookie = customer.cookies.get('rs_session');
     const registered = await customer.call('/api/auth/register', 'POST', { email: 'Alice@Example.com', name: 'Alice', password });
-    assert.equal(registered.status, 201); assert.equal(registered.data.user.role, 'customer');
+    assert.equal(registered.status, 201);
+    const profile = await customer.call('/api/account/profile');
+    assert.equal(profile.data.activity.loginCount, 1);
+    assert.equal(profile.data.activity.lastLoginIp, '127.0.0.1');
+    assert.ok(profile.data.activity.lastLoginAt);
+    assert.equal((await customer.call('/api/account/activity')).data.events.length, 1); assert.equal(registered.data.user.role, 'customer');
     assert.match(registered.headers.get('set-cookie'), /HttpOnly/); assert.match(registered.headers.get('set-cookie'), /SameSite=Strict/);
     assert.ok(!JSON.stringify(registered.data).includes('password'));
     assert.notEqual(customer.cookies.get('rs_session'), guestCookie);
@@ -85,6 +91,8 @@ test('MongoDB accounts, one super admin, server-side roles, persistent sessions 
     assert.equal((await mcpCall(other.cookies.get('rs_auth'), 'update_cart', { sku: 'RED', quantity: 1 })).isError, false);
     assert.equal((await mcpCall(admin.cookies.get('rs_auth'), 'admin_get_settings')).isError, false);
     assert.equal((await mcpCall(admin.cookies.get('rs_auth'), 'admin_set_user_access', { userId: superUser.id, role: 'admin', disabled: false })).isError, true);
+    assert.equal((await customer.call(`/api/admin/users/${superUser.id}/profile`)).status, 403);
+    assert.equal((await admin.call(`/api/admin/users/${stored._id}/profile`)).data.activity.loginCount, 1);
     const oldCustomerToken = customer.cookies.get('rs_auth');
     assert.equal((await admin.call(`/api/admin/users/${stored._id}`, 'PATCH', { role: 'admin', disabled: false })).status, 200);
     assert.equal((await customer.call('/api/auth/me')).data.user, null);

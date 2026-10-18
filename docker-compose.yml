@@ -11,6 +11,9 @@ services:
       AGENT_URL: http://shopping-agent:4103
       SRE_URL: http://sre-copilot:4104
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+      OTEL_SERVICE_VERSION: ${OTEL_SERVICE_VERSION:-0.2.0}
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
       PAYMENT_URL: http://payment-service:4105
       MONGODB_URL: mongodb://robotshop:${MONGO_APP_PASSWORD:?Set MONGO_APP_PASSWORD}@mongodb:27017/robotshop?authSource=robotshop
     init: true
@@ -48,6 +51,9 @@ services:
       AGENT_URL: http://shopping-agent:4103
       SRE_URL: http://sre-copilot:4104
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+      OTEL_SERVICE_VERSION: ${OTEL_SERVICE_VERSION:-0.2.0}
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
       PAYMENT_URL: http://payment-service:4105
     init: true
     restart: unless-stopped
@@ -84,6 +90,9 @@ services:
       AGENT_URL: http://shopping-agent:4103
       SRE_URL: http://sre-copilot:4104
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+      OTEL_SERVICE_VERSION: ${OTEL_SERVICE_VERSION:-0.2.0}
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-}
       LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-}
@@ -125,6 +134,9 @@ services:
       AGENT_URL: http://shopping-agent:4103
       SRE_URL: http://sre-copilot:4104
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+      OTEL_SERVICE_VERSION: ${OTEL_SERVICE_VERSION:-0.2.0}
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
       PAYMENT_URL: http://payment-service:4105
       SHIPPING_URL: http://shipping-service:4106
     init: true
@@ -159,6 +171,9 @@ services:
       AGENT_URL: http://shopping-agent:4103
       SRE_URL: http://sre-copilot:4104
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+      OTEL_SERVICE_VERSION: ${OTEL_SERVICE_VERSION:-0.2.0}
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:3000}
       ASSISTANT_AI_ENABLED: ${ASSISTANT_AI_ENABLED:-false}
       PAYMENT_URL: http://payment-service:4105
@@ -167,6 +182,7 @@ services:
       RABBITMQ_URL: amqp://${RABBITMQ_USERNAME:?Set RABBITMQ_USERNAME}:${RABBITMQ_PASSWORD:?Set
         RABBITMQ_PASSWORD}@rabbitmq:5672
       TRUST_PROXY: 'true'
+      LOGIN_ACTIVITY_RETENTION_DAYS: ${LOGIN_ACTIVITY_RETENTION_DAYS:-90}
       MONGODB_URL: mongodb://robotshop:${MONGO_APP_PASSWORD:?Set MONGO_APP_PASSWORD}@mongodb:27017/robotshop?authSource=robotshop
     init: true
     restart: unless-stopped
@@ -241,6 +257,9 @@ services:
       AGENT_URL: http://shopping-agent:4103
       SRE_URL: http://sre-copilot:4104
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+      OTEL_SERVICE_VERSION: ${OTEL_SERVICE_VERSION:-0.2.0}
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
       PAYMENT_URL: http://payment-service:4105
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
@@ -277,10 +296,13 @@ services:
     command: []
     environment:
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+      OTEL_SERVICE_VERSION: ${OTEL_SERVICE_VERSION:-0.2.0}
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
       SHIPPING_DATABASE_URL: postgresql://shipping_app:${SHIPPING_APP_PASSWORD:?Set
         SHIPPING_APP_PASSWORD}@shipping-db:5432/shipping
       SHIPPING_DB_TLS: 'false'
-      SHIPPING_TRACING_ENABLED: 'true'
+      SHIPPING_TRACING_ENABLED: ${SHIPPING_TRACING_ENABLED:-true}
       CACHE_ENABLED: 'true'
       REDIS_HOST: redis
       REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
@@ -335,6 +357,25 @@ services:
     extends:
       file: services/nginx/compose.yml
       service: nginx
+  mcp-server:
+    profiles: [tools]
+    build:
+      context: .
+      dockerfile: services/mcp-server/Dockerfile
+    image: robotshop-mcp-server:local
+    stdin_open: true
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      GATEWAY_URL: http://ai-gateway:3000
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:3000}
+      MCP_SESSION_TOKEN: ${MCP_SESSION_TOKEN:-}
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+      OTEL_SERVICE_VERSION: ${OTEL_SERVICE_VERSION:-0.2.0}
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
   mongodb:
     extends:
       file: services/mongodb/compose.yml

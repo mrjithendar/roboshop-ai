@@ -8,7 +8,7 @@ import uuid
 from datetime import timedelta, datetime, timezone
 from pymongo import MongoClient, ReturnDocument
 from pymongo.errors import DuplicateKeyError
-from runtime import HttpError, text, now
+from runtime import HttpError, text, now, database_operation
 
 
 def connect_mongo():
@@ -116,6 +116,7 @@ class Auth:
         finally:
             self.slots.release()
 
+    @database_operation("auth.limit")
     def limit(self, address):
         window = int(time.time() // 900)
         row = self.db.auth_limits.find_one_and_update(
@@ -134,6 +135,7 @@ class Auth:
         if row["count"] > 20:
             raise HttpError(429, "Too many login attempts. Please try again later.")
 
+    @database_operation("auth.register")
     def register(self, data):
         if set(data) - {"name", "email", "password"}:
             raise HttpError(400, "Only name, email and password are accepted.")
@@ -155,6 +157,7 @@ class Auth:
             )
         return user
 
+    @database_operation("auth.login")
     def login(self, data):
         email = email_address(data.get("email"))
         password = data.get("password")
@@ -168,6 +171,7 @@ class Auth:
             raise HttpError(401, "Invalid email or password.")
         return user
 
+    @database_operation("auth.issue")
     def issue(self, user):
         token = secrets.token_hex(32)
         self.sessions.insert_one(
@@ -180,6 +184,7 @@ class Auth:
         )
         return token
 
+    @database_operation("auth.current")
     def current(self, token):
         if not token:
             return None
@@ -197,10 +202,12 @@ class Auth:
         )
         return public_user(user) if user else None
 
+    @database_operation("auth.logout")
     def logout(self, token):
         if token:
             self.sessions.delete_one({"_id": digest(token)})
 
+    @database_operation("auth.change_user")
     def change_user(self, actor, id, data):
         require_role(actor, ["superadmin"])
         if (
