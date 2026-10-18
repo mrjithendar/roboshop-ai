@@ -317,31 +317,9 @@ services:
     tmpfs:
     - /tmp
   shipping-db:
-<<<<<<< HEAD
     extends:
       file: services/postgres/compose.yml
       service: shipping-db
-=======
-    image: postgres:18-alpine
-    environment:
-      POSTGRES_DB: shipping
-      POSTGRES_USER: shipping
-      POSTGRES_PASSWORD: ${SHIPPING_DB_PASSWORD:?Set SHIPPING_DB_PASSWORD}
-      SHIPPING_APP_PASSWORD: ${SHIPPING_APP_PASSWORD:?Set SHIPPING_APP_PASSWORD}
-    volumes:
-    - shipping-postgres:/var/lib/postgresql/data
-    - ./services/postgres/10-shipping-role.sh:/docker-entrypoint-initdb.d/10-shipping-role.sh:ro
-    ports:
-    - 127.0.0.1:5432:5432
-    restart: unless-stopped
-    healthcheck:
-      test:
-      - CMD-SHELL
-      - pg_isready -U shipping -d shipping
-      interval: 5s
-      timeout: 3s
-      retries: 10
->>>>>>> baab61f5e68d12d83373f2d359378bab680eecbf
   shipping-migrate:
     build:
       context: .
