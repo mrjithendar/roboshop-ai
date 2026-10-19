@@ -24,8 +24,8 @@ PASSWORD_KEYS = ['MONGO_ROOT_PASSWORD', 'MONGO_APP_PASSWORD', 'SHIPPING_DB_PASSW
 def render(output, prefix, tag, public_origin):
     if not re.fullmatch(r'[a-z0-9][a-z0-9./:_-]*[a-z0-9]', prefix):
         raise ValueError('Invalid IMAGE_PREFIX.')
-    if not re.fullmatch(r'[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}', tag):
-        raise ValueError('Invalid IMAGE_TAG.')
+    if tag != 'local':
+        raise ValueError('Application image tag must be local.')
     if not re.fullmatch(r'https?://[a-zA-Z0-9.-]+(?::[0-9]+)?', public_origin):
         raise ValueError('PUBLIC_ORIGIN must be an HTTP(S) origin without a path.')
     output.mkdir(parents=True, exist_ok=True)

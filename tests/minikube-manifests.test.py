@@ -18,6 +18,30 @@ spec.loader.exec_module(deploy)
 
 
 class ManifestTests(unittest.TestCase):
+    def test_build_compose_and_renderer_agree_despite_stale_tag(self):
+        env={**os.environ,'IMAGE_TAG':'roboshop-path-v1','IMAGE_PREFIX':'robotshop'}
+        output=subprocess.check_output(['bash',str(ROOT/'build-images.sh'),'--dry-run'],env=env,text=True)
+        built={line.split()[1] for line in output.splitlines() if line.startswith('Building ')}
+        with tempfile.TemporaryDirectory() as tmp:
+            subprocess.run(['python3',str(ROOT/'minikube/robotshop/deployment.py'),'render','--output',tmp],env=env,check=True)
+            rendered=set((Path(tmp)/'images.txt').read_text().splitlines())
+        composed=set()
+        checked_in=set()
+        for name in deploy.APPS:
+            config=yaml.safe_load((ROOT/'services'/name/'compose.yml').read_text())
+            composed.update(item['image'].replace('${IMAGE_PREFIX:-robotshop}','robotshop') for item in config['services'].values() if 'image' in item)
+            docs=yaml.safe_load_all((ROOT/'services'/name/(name+'-minikube.yaml')).read_text())
+            for item in docs:
+                if item['kind']=='Deployment':
+                    container=item['spec']['template']['spec']['containers'][0]
+                    checked_in.add(container['image'])
+                    self.assertEqual(container['imagePullPolicy'],'IfNotPresent')
+        self.assertEqual(len(built),10)
+        self.assertEqual(built,rendered)
+        self.assertEqual(built,composed)
+        self.assertEqual(built,checked_in)
+        self.assertTrue(all(image.endswith(':local') for image in built))
+
     def test_every_runnable_service_has_manifest(self):
         runnable = {p.parent.name for p in (ROOT / 'services').glob('*/compose.yml') if p.parent.name != 'common'}
         self.assertEqual(runnable, set(deploy.SERVICES))
@@ -69,14 +93,14 @@ class ManifestTests(unittest.TestCase):
 
     def test_image_overrides_and_origin(self):
         with tempfile.TemporaryDirectory() as tmp:
-            deploy.render(Path(tmp),'registry.example.com/team/robotshop','v2','https://shop.example.com')
+            deploy.render(Path(tmp),'registry.example.com/team/robotshop','local','https://shop.example.com')
             docs=list(yaml.safe_load_all((Path(tmp)/'shipping-service-minikube.yaml').read_text()))
             pod=next(x for x in docs if x['kind']=='Deployment')['spec']['template']['spec']
-            self.assertEqual(pod['containers'][0]['image'],'registry.example.com/team/robotshop-shipping:v2')
+            self.assertEqual(pod['containers'][0]['image'],'registry.example.com/team/robotshop-shipping:local')
             self.assertEqual(len((Path(tmp)/'images.txt').read_text().splitlines()),10)
             self.assertEqual(list(yaml.safe_load_all((Path(tmp)/'config.yaml').read_text()))[1]['data']['PUBLIC_ORIGIN'],'https://shop.example.com')
 
-    def run_wrapper(self, fail_service=''):
+    def run_wrapper(self, fail_service='', load_images=False):
         with tempfile.TemporaryDirectory() as tmp:
             home=Path(tmp)
             shutil.copytree(ROOT/'minikube/robotshop',home/'minikube/robotshop')
@@ -97,8 +121,12 @@ class ManifestTests(unittest.TestCase):
                 ' *"rollout status deployment/shipping-db"*) exit "${ROLLOUT_EXIT:-0}";;\n'
                 'esac\n')
             tool.chmod(0o755)
-            result=subprocess.run(['bash',str(home/'deploy-minikube.sh')],text=True,capture_output=True,
-                env={**os.environ,'HOME':str(home),'KUBE_CONTEXT':'selected-cluster',
+            for name in ('docker','minikube'):
+                mock=bindir/name
+                mock.write_text('#!/bin/sh\necho "'+name+' $*" >> "$TEST_LOG"\n')
+                mock.chmod(0o755)
+            result=subprocess.run(['bash',str(home/'deploy-minikube.sh')]+(['--load-images'] if load_images else []),text=True,capture_output=True,
+                env={**os.environ,'HOME':str(home),'KUBE_CONTEXT':'selected-cluster','PROFILE':'selected-cluster',
                      'PYTHONPATH':str(Path(yaml.__file__).resolve().parent.parent),
                      'TEST_LOG':str(home/'calls'),'ROLLOUT_EXIT':'1' if fail_service else '0'})
             self.assertTrue((home/'calls').exists(), result.stderr)
@@ -113,6 +141,17 @@ class ManifestTests(unittest.TestCase):
         self.assertLess(calls.index('rollout status deployment/shipping-db'),calls.index('rollout status deployment/shipping-service'))
         self.assertLess(calls.index('rollout status deployment/ai-gateway'),calls.index('rollout status deployment/nginx'))
         self.assertIn('rollout status statefulset/rabbitmq',calls)
+
+    def test_loaded_images_restart_only_application_workloads(self):
+        result,calls=self.run_wrapper(load_images=True)
+        self.assertEqual(result.returncode,0,result.stderr)
+        loads=[line for line in calls.splitlines() if 'image load' in line]
+        self.assertEqual(len(loads),10)
+        self.assertTrue(all('--daemon --overwrite=true' in line and line.endswith(':local') for line in loads))
+        restarts=[line for line in calls.splitlines() if 'rollout restart' in line]
+        self.assertEqual(len(restarts),10)
+        self.assertNotIn('rollout restart deployment/shipping-db',calls)
+        self.assertLess(calls.index('image load'),calls.index('rollout restart'))
 
     def test_wrapper_stops_on_failed_database(self):
         result,calls=self.run_wrapper('shipping-db')

@@ -55,10 +55,14 @@ k wait --for=condition=Ready clusterissuer/letsencrypt-prod --timeout=60s
 if [[ "$load_images" == true ]]; then
   [[ "$KUBE_CONTEXT" == "$PROFILE" ]] || fail '--load-images requires the selected local profile and context to match.'
   command -v minikube >/dev/null || fail 'minikube is required for --load-images; run on the Minikube host.'
+  command -v docker >/dev/null || fail 'Docker is required to load locally built images.'
+  while IFS= read -r image; do
+    docker image inspect "$image" >/dev/null 2>&1 || fail "Missing local image $image. Run bash build-images.sh first."
+  done < "$temp/images.txt"
   minikube -p "$PROFILE" status >/dev/null
   while IFS= read -r image; do
     echo "Loading $image into $PROFILE..."
-    minikube -p "$PROFILE" image load "$image"
+    minikube -p "$PROFILE" image load --daemon --overwrite=true "$image"
   done < "$temp/images.txt"
 fi
 echo "Deploying RobotShop into context=$KUBE_CONTEXT namespace=robotshop-ai"
@@ -71,6 +75,10 @@ for service in "${services[@]}"; do
   workload="deployment/$service"
   [[ "$service" != postgres ]] || workload=deployment/shipping-db
   [[ "$service" != rabbitmq ]] || workload=statefulset/rabbitmq
+  # A mutable :local tag leaves the pod template unchanged after a rebuild.
+  if [[ "$load_images" == true && -f "$ROOT/services/$service/Dockerfile" ]]; then
+    k -n robotshop-ai rollout restart "$workload"
+  fi
   if ! k -n robotshop-ai rollout status "$workload" --timeout=10m; then
     name="${workload#*/}"
     k --request-timeout=15s -n robotshop-ai get pods,pvc || true

@@ -119,3 +119,7 @@ The installer stops at the first failing rollout and prints diagnostics. Fix the
 - **Database login failure:** restore the Secret matching the original data; do not generate new passwords over old volumes.
 - **Config changes not reflected:** environment and subPath-mounted configuration may require `kubectl rollout restart deployment/NAME` (or `statefulset/rabbitmq`) after applying changes.
 - **Shipping starts slowly:** initial location migration/import can take time; startup/readiness checks allow a ten-minute rollout window.
+
+### Rebuilding the same local tag
+
+`bash build-images.sh` and `bash deploy-minikube.sh --load-images` always use matching `:local` application images. An old exported `IMAGE_TAG` is ignored. The loader checks that all ten images exist in host Docker, explicitly overwrites Minikube's cached tags from that daemon, then restarts each application deployment and waits for readiness. Databases and infrastructure are not restarted by this image refresh. Run the loader on the Minikube host. Deployment without `--load-images` does not refresh cached images or force restarts.
