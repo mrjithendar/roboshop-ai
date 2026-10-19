@@ -553,6 +553,7 @@ class Gateway:
             "/admin.html",
             "/product.html",
             "/product.js",
+            "/paths.js",
             "/challenge.js",
             "/app.js",
             "/account.js",
@@ -564,6 +565,8 @@ class Gateway:
                 / "services/frontend/dist"
                 / ("index.html" if path == "/" else path[1:])
             )
+        elif re.fullmatch(r"/illustrations/(robot|kit|component|accessory)\.svg", path):
+            file = ROOT / "services/frontend/dist" / path[1:]
         elif re.fullmatch("/images/[a-zA-Z0-9_-]+\.png", path):
             file = ROOT / "legacy/original-robotshop/web/static" / path[1:]
         else:
@@ -580,6 +583,7 @@ class Gateway:
                             ".js": "text/javascript; charset=utf-8",
                             ".css": "text/css; charset=utf-8",
                             ".png": "image/png",
+                            ".svg": "image/svg+xml",
                         }[file.suffix],
                     ),
                     (

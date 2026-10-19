@@ -1,4 +1,4 @@
-import { appPath, basePath } from './paths.js';
+import { appPath, basePath, productImage, canPurchase } from './paths.js';
 import { currentUser, initAccount, showLogin } from './account.js';
 interface Product { sku: string; slug: string; name: string; description: string; image: string; manufacturer?: string; model?: string; productType?: string; categories: string[]; price: number; currency: string; priceType: string; showcase: boolean; synthetic?: boolean; instock: number; specifications?: Record<string, string>; includedItems?: string[]; requiredAccessories?: string[]; compatibility?: string[]; packageNote?: string; priceCheckedAt?: string; sources?: { label: string; url: string }[]; imageAttribution?: { credit: string } }
 interface Review { id: string; title: string; body: string; rating: number; author: string; createdAt: string; synthetic: boolean; verifiedPurchase: boolean; status: string }
@@ -14,28 +14,78 @@ const slug = location.pathname.slice(basePath.length).split('/')[2];
 const endpoint = `/api/products/${encodeURIComponent(slug || '')}`;
 let cursor: string | null = null, mine: Review | null = null, product: Product | null = null, generation = 0;
 const price = (p: Product) => p.priceType === 'on-request' ? 'Price on request' : `${new Intl.NumberFormat(undefined, { style: 'currency', currency: p.currency || 'EUR' }).format(p.price)}${p.showcase ? ' · reference price, not a store offer' : ''}`;
+function link(text: string, path: string, className = ''): HTMLAnchorElement {
+  const node = element('a', text); node.href = appPath(path); node.className = className; return node;
+}
+function picture(p: Product): HTMLImageElement {
+  const img = element('img'); img.src = productImage(p); img.alt = p.image === '/images/placeholder.png' ? `${p.productType || 'Robotics'} category illustration, not a photograph of ${p.name}` : p.name;
+  img.width = 640; img.height = 520;
+  img.addEventListener('error', () => { img.src = productImage({ image: '', productType: p.productType }); }, { once: true }); return img;
+}
 function render(p: Product, related: Product[]): void {
   document.title = `${p.name} · RobotShop`;
   const panel = get('product-content'); panel.replaceChildren();
-  const grid = element('div'); grid.className = 'product-detail-grid'; const copy = element('div');
-  const figure = element('figure'), img = element('img'); img.src = appPath(p.image); img.alt = p.showcase ? `Placeholder for ${p.name}; product photograph not licensed` : p.name; img.className = 'detail-image';
-  img.addEventListener('error', () => { img.src = appPath('/images/placeholder.png'); }, { once: true });
-  figure.append(img, element('figcaption', p.imageAttribution?.credit || 'Product illustration'));
-  copy.append(element('p', `${p.manufacturer || ''} · ${p.productType || 'Product'}`), element('h1', p.name), element('p', p.description), element('p', price(p)), element('p', p.showcase ? 'Showcase only · availability and fulfilment are simulated. No real-money checkout.' : `${p.instock} available`));
-  if (p.priceCheckedAt) copy.append(element('p', `Source checked ${new Date(p.priceCheckedAt).toLocaleDateString()}. Prices may have changed; confirm taxes, shipping and bundle with the source.`));
-  if (!p.showcase && !p.synthetic && p.currency === 'EUR' && p.priceType === 'sale') {
-    const label = element('label', 'Quantity '), qty = element('input'); qty.type = 'number'; qty.min = '1'; qty.max = String(Math.min(20, p.instock)); qty.value = '1'; label.append(qty);
-    const add = element('button', 'Add to bag'); add.disabled = p.instock < 1;
-    add.addEventListener('click', async () => { add.disabled = true; try { const cart = await api<{ items: { sku: string; quantity: number }[] }>('/api/cart'); const selected = Number(qty.value); if (!Number.isInteger(selected) || selected < 1 || selected > 20) throw new Error('Choose a quantity from 1 to 20.'); const quantity = selected + (cart.items.find(i => i.sku === p.sku)?.quantity || 0); await api('/api/cart', 'POST', { sku: p.sku, quantity }); get('product-status').textContent = 'Added to bag. Open Collection & bag to checkout.'; } catch (e) { get('product-status').textContent = error(e); } finally { add.disabled = p.instock < 1; } }); copy.append(label, add);
+  const breadcrumb = element('nav'); breadcrumb.className = 'product-breadcrumb'; breadcrumb.setAttribute('aria-label', 'Breadcrumb'); breadcrumb.append(link('Collection', '/'), element('span', '/'), element('span', p.name));
+  const grid = element('div'); grid.className = 'product-detail-grid';
+  const figure = element('figure'); figure.className = 'product-gallery'; const img = picture(p); img.className = 'detail-image';
+  figure.append(img, element('figcaption', p.image === '/images/placeholder.png' ? 'Category illustration · see official sources for exact product appearance.' : p.imageAttribution?.credit || 'Product illustration'));
+  const copy = element('div'); copy.className = 'purchase-panel';
+  const eyebrow = element('p', [p.manufacturer, p.productType || 'Robotics'].filter(Boolean).join(' / ')); eyebrow.className = 'eyebrow';
+  const description = element('p', p.description); description.className = 'product-summary';
+  const priceText = element('p', price(p)); priceText.className = 'detail-price';
+  const available = canPurchase(p), stock = Math.max(0, Math.floor(p.instock || 0));
+  const status = element('p', available ? stock > 0 ? `In stock · ${stock} available` : 'Currently out of stock' : 'Showcase · not available to purchase'); status.className = 'availability ' + (available && stock > 0 ? 'in-stock' : '');
+  copy.append(eyebrow, element('h1', p.name), element('p', `SKU ${p.sku}${p.model ? ` · Model ${p.model}` : ''}`), description, priceText, status);
+  if (available) {
+    const form = element('form'); form.className = 'purchase-actions';
+    const label = element('label', 'Quantity'); const qty = element('input'); qty.type = 'number'; qty.min = '1'; qty.max = String(Math.min(20, stock)); qty.value = '1'; qty.required = true; qty.disabled = stock < 1; label.append(qty);
+    const add = element('button', stock > 0 ? 'Add to cart' : 'Out of stock'); add.className = 'button primary'; add.disabled = stock < 1;
+    const feedback = element('p'); feedback.className = 'purchase-feedback'; feedback.setAttribute('role','status'); feedback.setAttribute('aria-live','polite');
+    const cartLink = link('View cart & checkout →', '/?cart=1', 'cart-checkout-link'); cartLink.hidden = true;
+    form.addEventListener('submit', async event => {
+      event.preventDefault(); add.disabled = true; add.textContent = 'Adding…'; feedback.textContent = ''; cartLink.hidden = true;
+      try {
+        const selected = Number(qty.value);
+        if (!Number.isInteger(selected) || selected < 1 || selected > Math.min(20, stock)) throw new Error('Choose a quantity within the available stock (maximum 20).');
+        const cart = await api<{ items: { sku: string; quantity: number }[] }>('/api/cart');
+        const quantity = selected + (cart.items.find(item => item.sku === p.sku)?.quantity || 0);
+        if (quantity > Math.min(20, stock)) throw new Error('Your cart already contains this product. Reduce the quantity or review your cart.');
+        await api('/api/cart', 'POST', { sku: p.sku, quantity });
+        feedback.textContent = `${selected} × ${p.name} added to your cart.`; cartLink.hidden = false;
+      } catch (e) { feedback.textContent = error(e); }
+      finally { add.disabled = stock < 1; add.textContent = 'Add to cart'; }
+    });
+    form.append(label, add, feedback, cartLink); copy.append(form);
+    const note = element('p', 'Shipping is calculated at checkout. Sign in to complete your purchase.'); note.className = 'purchase-note'; copy.append(note);
+  } else {
+    const notice = element('div'); notice.className = 'showcase-panel'; notice.append(element('h3', 'Explore this product'), element('p', 'This is an informational listing. Reference prices and simulated stock are not a sale offer.'));
+    const source = (p.sources || []).find(source => { try { return new URL(source.url).protocol === 'https:'; } catch { return false; } });
+    if (source) { const official = element('a', 'View official product ↗'); official.href = source.url; official.target = '_blank'; official.rel = 'noopener noreferrer'; official.className = 'button secondary'; notice.append(official); }
+    copy.append(notice);
   }
-  grid.append(figure, copy); panel.append(grid, element('h2', 'Specifications'));
-  const spec = element('dl'); for (const [k, v] of Object.entries(p.specifications || {})) spec.append(element('dt', k), element('dd', v)); panel.append(spec);
-  for (const [title, values] of [['Included items', p.includedItems], ['Required accessories', p.requiredAccessories], ['Compatibility', p.compatibility]] as const) { panel.append(element('h2', title)); const list = element('ul'); for (const value of values || ['Consult the product documentation.']) list.append(element('li', value)); panel.append(list); }
-  panel.append(element('p', p.packageNote || ''), element('h2', 'Official sources'));
-  for (const source of p.sources || []) { try { const url = new URL(source.url); if (url.protocol !== 'https:') continue; const a = element('a', source.label); a.href = url.href; a.rel = 'noopener noreferrer'; const paragraph = element('p'); paragraph.append(a); panel.append(paragraph); } catch { /* Invalid source omitted. */ } }
-  const recommendations = get('related-products'); recommendations.replaceChildren(element('h2', 'Related products'));
-  for (const r of related) { const link = element('a', `${r.name} · ${price(r)}`); link.href = appPath(`/products/${encodeURIComponent(r.slug || r.sku.toLowerCase())}`); const paragraph = element('p'); paragraph.append(link); recommendations.append(paragraph); }
+  grid.append(figure, copy); panel.append(breadcrumb, grid);
+  const details = element('div'); details.className = 'product-information';
+  const specifications = element('section'); specifications.className = 'information-card'; specifications.append(element('h2', 'Technical specifications'));
+  const spec = element('dl'); for (const [key, value] of Object.entries(p.specifications || {})) spec.append(element('dt', key), element('dd', value));
+  if (!spec.children.length) specifications.append(element('p', 'Detailed specifications are not yet available.')); else specifications.append(spec);
+  details.append(specifications);
+  const included = element('section'); included.className = 'information-card';
+  for (const [title, values] of [['What’s included', p.includedItems], ['Required accessories', p.requiredAccessories], ['Compatibility', p.compatibility]] as const) {
+    if (!values?.length) continue; included.append(element('h2', title)); const list = element('ul'); values.forEach(value => list.append(element('li', value))); included.append(list);
+  }
+  if (p.packageNote) included.append(element('p', p.packageNote)); if (included.children.length) details.append(included);
+  const sources = element('section'); sources.className = 'product-sources'; sources.append(element('h2', 'Product documentation'));
+  for (const source of p.sources || []) { try { const url = new URL(source.url); if (url.protocol !== 'https:') continue; const a = element('a', `${source.label} ↗`); a.href = url.href; a.rel = 'noopener noreferrer'; a.target = '_blank'; sources.append(a); } catch { /* Invalid source omitted. */ } }
+  if (p.priceCheckedAt) sources.append(element('p', `Reference information checked ${new Date(p.priceCheckedAt).toLocaleDateString()}. Confirm current pricing and specifications with the manufacturer.`));
+  panel.append(details); if ((p.sources || []).length) panel.append(sources);
+  const recommendations = get('related-products'); recommendations.replaceChildren(); recommendations.hidden = !related.length;
+  if (related.length) {
+    recommendations.append(element('h2', 'Explore related products')); const cards = element('div'); cards.className = 'related-grid';
+    for (const r of related) { const card = link('', `/products/${encodeURIComponent(r.slug || r.sku.toLowerCase())}`, 'related-card'); const image = picture(r); image.loading = 'lazy'; card.append(image, element('span', r.manufacturer || r.productType || 'Robotics'), element('h3', r.name), element('p', price(r))); cards.append(card); }
+    recommendations.append(cards);
+  }
 }
+
 async function loadReviews(append = false): Promise<void> {
   const current = ++generation, kind = get<HTMLSelectElement>('review-kind').value;
   get<HTMLButtonElement>('more-reviews').disabled = true;
@@ -43,6 +93,7 @@ async function loadReviews(append = false): Promise<void> {
     const result = await api<Page>(endpoint + '/reviews?' + new URLSearchParams({ kind, after: append ? cursor || '' : '' }));
     if (current !== generation) return;
     if (!append) get('review-list').replaceChildren();
+    if (!append && !result.reviews.length) get('review-list').append(element('p', 'No reviews yet. Share your experience with this product.'));
     get('rating-summary').textContent = `${kind === 'demo' ? 'Synthetic demo' : 'Real customer'} ratings: ${result.summary.count} reviews${result.summary.average === null ? '' : ` · ${result.summary.average.toFixed(1)}/5`}`;
     for (const review of result.reviews) { const article = element('article'); article.className = 'review'; article.append(element('h3', `${review.rating}/5 · ${review.title}`), element('p', `${review.synthetic ? 'SYNTHETIC DEMO REVIEW' : review.author}${review.verifiedPurchase ? ' · Verified purchase' : ''} · ${new Date(review.createdAt).toLocaleDateString()}`), element('p', review.body)); get('review-list').append(article); }
     cursor = result.next; get('more-reviews').hidden = !cursor;

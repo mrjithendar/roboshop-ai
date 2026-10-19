@@ -4,8 +4,9 @@ import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
 
 const html = await readFile(new URL('../services/frontend/dist/index.html', import.meta.url), 'utf8');
-const accountScript = (await readFile(new URL('../services/frontend/dist/account.js', import.meta.url), 'utf8')).replace(/^export /gm, '');
-const script = accountScript + '\n' + (await readFile(new URL('../services/frontend/dist/app.js', import.meta.url), 'utf8')).replace(/^export \{\};?$/m, '').replace(/^import .*$/gm, '');
+const accountScript = (await readFile(new URL('../services/frontend/dist/account.js', import.meta.url), 'utf8')).replace(/^export /gm, '').replace(/^import .*$/gm, '');
+const pathsScript = (await readFile(new URL('../services/frontend/dist/paths.js', import.meta.url), 'utf8')).replace(/^export /gm, '').replaceAll('import.meta.url', JSON.stringify('https://shop.example/paths.js'));
+const script = pathsScript + '\n' + accountScript + '\n' + (await readFile(new URL('../services/frontend/dist/app.js', import.meta.url), 'utf8')).replace(/^export \{\};?$/m, '').replace(/^import .*$/gm, '');
 const product = { sku: 'TEST', name: '<img src=x onerror=alert(1)>', price: 12, instock: 3, categories: ['robot'], description: 'Test robot', image: '/images/placeholder.png' };
 const cart = { items: [{ ...product, quantity: 1, lineTotal: 12 }], subtotal: 12, total: 15, shipping: { address: { recipient: 'Test', line1: 'Test street' }, city: { name: 'Hyderabad', country: 'IN' }, cost: 3, distanceKm: 60, quotedAt: new Date().toISOString() } };
 async function waitFor(check) {

@@ -1,4 +1,4 @@
-import { rm, mkdir, copyFile } from 'node:fs/promises';
+import { rm, mkdir, copyFile, cp } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -9,3 +9,5 @@ if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status || 1);
 await mkdir(new URL('dist/', frontend), { recursive: true });
 await Promise.all(['index.html', 'admin.html', 'product.html', 'styles.css'].map(name => copyFile(new URL(name, frontend), new URL(`dist/${name}`, frontend))));
+
+await cp(new URL('illustrations/', frontend), new URL('dist/illustrations/', frontend), { recursive: true });

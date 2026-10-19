@@ -53,3 +53,13 @@ login for anonymous users. `/admin` provides product editing to admins and expos
 user-access/settings sections only to super admins. UI visibility is a convenience;
 the gateway independently authorizes every privileged request. Tests in
 `tests/admin-ui.test.mjs` exercise all three role views.
+
+## Product pages and imagery
+
+`src/product.ts` renders responsive product details, stock and price, quantity selection, cart feedback, specifications, documentation, related cards, and reviews. `src/paths.ts` shares URL resolution, image fallback and purchase eligibility with the storefront. Legacy sale products default missing currency/type to EUR/sale; showcase or synthetic products remain informational. No catalogue prices or inventory are invented. Checkout still requires login.
+
+Original SVG category illustrations in `illustrations/` replace the common placeholder. They are explicitly labelled illustrations rather than actual product photographs. Supplied product images are preserved. Use licensed product-specific photos when available. Both NGINX layers and native gateway development serve these assets.
+
+Verify: `npm run frontend:build`, then `node --test tests/frontend.test.mjs tests/frontend-paths.test.mjs tests/product-page.test.mjs` and `npm run test:nginx`.
+
+Deploy on the Minikube host after syncing changes: `bash build-images.sh` then `bash deploy-minikube.sh --load-images`. Frontend and NGINX must both be rebuilt for the new illustration routes. No data migration is required.
