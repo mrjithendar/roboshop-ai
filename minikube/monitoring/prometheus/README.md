@@ -33,7 +33,9 @@ Use HTTPS directly; this chart does not create an HTTP redirect. The deployment 
 
 ## Metrics and Grafana
 
-Prometheus initially **scrapes itself only**. Check **Status → Target health**, or run `up` in its query interface. Installing Prometheus alone does not install node-exporter, kube-state-metrics, or instrument WordPress/MySQL/Redis.
+Prometheus scrapes itself plus **kubelet and cAdvisor on every discovered node**. Check **Status → Target health** or query `up`. `kubernetesMetrics.enabled` controls node discovery, the service account and its RBAC. Scraping uses the Kubernetes API proxy with the service-account token and cluster CA verification. The service account can list/watch nodes and GET their proxy endpoints; it does not read Secrets.
+
+Metrics Server remains separate: it supplies `kubectl top`, not Prometheus storage. cAdvisor supplies pod/container CPU and memory (including WordPress/MySQL/Redis containers). This chart does not install node-exporter or kube-state-metrics, so imported dashboards requiring `node_*` or `kube_*` series can still be empty. Application request counts, database queries and cache-hit metrics require application instrumentation or dedicated exporters.
 
 Add actual cluster-reachable application/exporter endpoints under `extraScrapeConfigs` in `values.yaml`, then rerun the installer. For example, only if that Service and metrics endpoint exist:
 
@@ -106,3 +108,29 @@ kubectl -n monitoring describe pods -l app=robotshop-prometheus
 ```
 
 Only this init container runs as root, with a read-only root filesystem and the capabilities needed to repair the data mount. The main server remains non-root. On storage that already supplies correct permissions, or a cluster policy that disallows root init containers, set `volumePermissions.enabled: false` and arrange ownership through your storage administrator/driver instead. Recursive permission repair may take time on a large existing volume.
+
+### Useful queries
+
+Select **Table** to inspect current values, or **Graph** for history. New CPU rate series need at least two samples (about a minute at the 30-second scrape interval).
+
+```promql
+up
+```
+
+Container CPU cores used per pod:
+
+```promql
+sum by (namespace, pod) (
+  rate(container_cpu_usage_seconds_total{job="kubernetes-cadvisor",container!="",container!="POD",pod!=""}[5m])
+)
+```
+
+Container working-set memory in MiB per pod:
+
+```promql
+sum by (namespace, pod) (
+  container_memory_working_set_bytes{job="kubernetes-cadvisor",container!="",container!="POD",pod!=""}
+) / 1024 / 1024
+```
+
+These queries also work in Grafana Explore with the Prometheus data source. If `up` is zero for a target, open Target health and inspect its last scrape error. If `up` is one but a specific dashboard has no data, check the metric names and label filters it expects.

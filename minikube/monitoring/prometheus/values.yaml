@@ -6,6 +6,9 @@ volumePermissions:
   image: busybox:1.37.0
 retentionTime: 7d
 retentionSize: 4GB
+# Discover nodes and collect kubelet/container metrics through the authenticated API proxy.
+kubernetesMetrics:
+  enabled: true
 # Add Kubernetes-reachable scrape jobs here. Docker Compose DNS is separate.
 extraScrapeConfigs: []
 # Example:

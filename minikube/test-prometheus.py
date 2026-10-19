@@ -27,6 +27,15 @@ class PrometheusTests(unittest.TestCase):
         self.assertEqual(container['readinessProbe']['httpGet']['path'], '/prometheus/-/ready')
         config = yaml.safe_load(items['ConfigMap']['data']['prometheus.yml'])
         self.assertEqual(config['scrape_configs'][0]['metrics_path'], '/prometheus/metrics')
+        jobs = {j['job_name']: j for j in config['scrape_configs']}
+        for name, suffix in [('kubernetes-kubelet', 'metrics'), ('kubernetes-cadvisor', 'metrics/cadvisor')]:
+            job = jobs[name]
+            self.assertEqual(job['scheme'], 'https')
+            self.assertNotIn('insecure_skip_verify', job['tls_config'])
+            self.assertEqual(job['relabel_configs'][-1]['replacement'], '/api/v1/nodes/$1/proxy/' + suffix)
+        role = items['ClusterRole']
+        self.assertFalse(any('secrets' in rule['resources'] for rule in role['rules']))
+        self.assertEqual(items['ClusterRoleBinding']['subjects'][0]['namespace'], 'monitoring')
         self.assertEqual(items['Service']['spec']['type'], 'ClusterIP')
         self.assertEqual(items['PersistentVolumeClaim']['spec']['resources']['requests']['storage'], '5Gi')
         grafana = yaml.safe_load((ROOT / 'monitoring/grafana/values.yaml').read_text())
