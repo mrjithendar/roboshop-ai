@@ -22,7 +22,7 @@
     "frontend:typecheck": "npm --prefix services/frontend run typecheck",
     "pretest:nginx": "npm run frontend:build",
     "admin:bootstrap": "node --env-file-if-exists=.env scripts/run-python.mjs services/ai-gateway/bootstrap.py",
-    "test:python": "node scripts/run-python.mjs -m unittest discover -s tests/python -v"
+    "test:python": "node scripts/run-python.mjs -m unittest discover -s tests/python -v && node scripts/run-python.mjs -m unittest discover -s services/ai-gateway/tests -v"
   },
   "dependencies": {
     "amqplib": "^2.2.0",

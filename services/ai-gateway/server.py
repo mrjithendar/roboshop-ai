@@ -13,6 +13,7 @@ STATIC_ROOT = Path(os.environ["FRONTEND_DIST"]).resolve() if os.getenv("FRONTEND
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
 from runtime import HttpError, serve, request, upstream, text, configure_telemetry
 from customers import Customers
+from user_profile import read_profile, update_profile, update_photo
 from auth import Auth, connect_mongo, public_user, require_role
 from admin import routes as admin_routes, settings
 from store import Store, cents
@@ -260,16 +261,31 @@ class Gateway:
             return self.reviews.moderate(match[1], req.user, req.body())
         if path.startswith("/api/account/"):
             require_role(req.user)
-            if method != "GET":
-                return
+            user_id = req.user["id"]
             if path == "/api/account/profile":
-                return self.customers.profile(req.user["id"])
-            if path == "/api/account/purchases":
-                return self.customers.purchases(
-                    req.user["id"], req.query.get("cursor", "")
-                )
-            if path == "/api/account/activity":
-                return self.customers.activity(req.user["id"])
+                if method == "GET":
+                    return {**self.customers.profile(user_id), **read_profile(self.db, user_id)}
+                if method == "PUT":
+                    return update_profile(self.db, user_id, req.body())
+            if path == "/api/account/photo" and method == "PUT":
+                return update_photo(self.db, user_id, req.body())
+            if path == "/api/account/addresses" and method == "POST":
+                data = req.body()
+                if set(data) != {"cityId", "recipient", "line1", "postalCode"}:
+                    raise HttpError(400, "Send a city and delivery address.")
+                shipping = upstream(self.urls["shipping"] + "/api/shipping/quote", data, timeout=5)
+                self.customers.save_address(user_id, shipping)
+                return {"addresses": self.customers.profile(user_id)["addresses"]}
+            address = re.fullmatch(r"/api/account/addresses/([a-f0-9]{64})", path)
+            if address and method == "DELETE":
+                deleted = self.db.customer_addresses.delete_one({"_id": address[1], "userId": user_id})
+                if not deleted.deleted_count:
+                    raise HttpError(404, "Address not found.")
+                return {"deleted": True}
+            if path == "/api/account/purchases" and method == "GET":
+                return self.customers.purchases(user_id, req.query.get("cursor", ""))
+            if path == "/api/account/activity" and method == "GET":
+                return self.customers.activity(user_id)
             return
         customer = re.fullmatch(
             r"/api/admin/users/([a-f0-9-]{36})/(profile|purchases|activity)", path
@@ -572,6 +588,8 @@ class Gateway:
         if req.method not in ("GET", "HEAD"):
             return
         path = "/admin.html" if req.path == "/admin" else req.path
+        if path in ("/account", "/account/"):
+            path = "/profile.html"
         if path in ("/cart", "/cart/", "/checkout", "/checkout/"):
             path = "/checkout.html"
         if re.fullmatch(r"/products/[a-z0-9][a-z0-9-]{0,99}", path):
@@ -582,6 +600,8 @@ class Gateway:
             "/admin.html",
             "/product.html",
             "/checkout.html",
+            "/profile.html",
+            "/profile.js",
             "/checkout.js",
             "/product.js",
             "/paths.js",

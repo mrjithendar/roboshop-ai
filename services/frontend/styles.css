@@ -192,3 +192,32 @@
  .checkout-body .quantity-control button{width:44px;height:44px}.checkout-body .cart-row>:last-child{grid-column:2;justify-self:start}
  .checkout-footer p{display:block;width:100%}.checkout-footer{padding-bottom:24px}
 }
+
+/* Customer account: service-owned profile, addresses, orders and security activity. */
+.profile-body{background:#f3f5f7;color:#172b3a}
+.profile-layout{max-width:1248px;margin:auto;padding:36px 24px 64px}
+.profile-heading{margin-bottom:28px}.profile-heading h1{font-size:36px;line-height:1.2;letter-spacing:-1px;margin:10px 0;font-weight:650}
+.profile-heading>p:last-child,.profile-help{color:#607582;font-size:14px;line-height:1.7}
+.profile-shell{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;align-items:start}
+.profile-sidebar,.profile-card{background:#fff;border:1px solid #dce2e7;border-radius:12px;padding:28px;min-width:0}
+.profile-sidebar{position:sticky;top:24px;padding:24px}.profile-identity{text-align:center;overflow-wrap:anywhere}
+.profile-avatar{width:104px;height:104px;display:grid;place-items:center;margin:0 auto 18px;background:#dfede7;color:#195b46;border-radius:50%;overflow:hidden;font-size:32px;font-weight:700}
+.profile-avatar img{width:100%;height:100%;object-fit:cover}.profile-identity h2{font-size:21px;font-weight:650;letter-spacing:-.5px;margin:12px 0}
+.profile-identity p{font-size:12px;line-height:1.6;color:#607582}.profile-sidebar nav{display:grid;gap:6px;margin-top:24px;border-top:1px solid #e4e9eb;padding-top:16px}
+.profile-sidebar nav a{font-size:13px;padding:14px 8px;min-height:44px;border-radius:6px}.profile-sidebar nav a:hover{background:#edf5f1;color:#185d48}
+.profile-panels{display:grid;gap:24px;min-width:0}.profile-card{scroll-margin-top:24px}.profile-card h2{font-size:22px;font-weight:650;letter-spacing:-.5px;margin:0 0 12px}
+.profile-card h3{font-size:15px;line-height:1.5;margin:0 0 8px}.profile-card p{overflow-wrap:anywhere}.profile-form{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px}
+.profile-form label{display:grid;gap:8px;align-content:start;font-size:13px;font-weight:600;min-width:0}
+.profile-form input,.profile-form select,.profile-form textarea{min-height:46px;max-width:none;width:100%;border:1px solid #b9c8ce;border-radius:6px;padding:12px;background:#fff;font-size:16px;color:#172b3a}
+.profile-form small{font-size:11px;font-weight:400;color:#667985;line-height:1.6}.profile-wide,.profile-form-actions{grid-column:1/-1}
+.profile-form-actions{display:flex;gap:18px;align-items:center;flex-wrap:wrap}.profile-form-actions p{font-size:13px;margin:0}
+.profile-body .button.primary{background:#185d48;color:#fff}.profile-body .button{min-height:46px}.profile-photo-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;border-bottom:1px solid #e2e8eb;padding:16px 0 24px}
+.profile-photo-controls>p{width:100%;margin:0;font-size:12px;line-height:1.6;color:#607582}.profile-photo-controls .text-button{min-height:44px;font-size:13px;text-decoration:underline}
+.profile-photo-controls label:focus-within{outline:3px solid #34705c;outline-offset:3px}
+.profile-addresses{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0}.profile-address,.profile-order,.profile-login-event{border:1px solid #dfe7e8;border-radius:8px;padding:18px;min-width:0;overflow-wrap:anywhere}
+.profile-address p,.profile-order p,.profile-order li,.profile-login-event p{font-size:13px;line-height:1.7;color:#526b78;margin:6px 0}
+.profile-address button{min-height:44px;font-size:12px;text-decoration:underline;color:#185d48}.profile-card summary{cursor:pointer;min-height:44px;padding:12px 0;font-size:14px;font-weight:600;color:#185d48}
+#profile-orders,#profile-activity{display:grid;gap:14px;margin:20px 0}.profile-order strong{display:block;margin:10px 0}.profile-order small,.profile-login-event small{font-size:12px;line-height:1.7;color:#687c87}
+#address-status,#orders-status,#profile-save-status{font-size:13px;line-height:1.7;overflow-wrap:anywhere}
+@media(max-width:850px){.profile-shell{grid-template-columns:minmax(0,1fr)}.profile-sidebar{position:static}.profile-sidebar nav{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}.profile-identity{max-width:100%}}
+@media(max-width:600px){.profile-layout{padding:24px 16px 40px}.profile-heading h1{font-size:30px}.profile-card{padding:20px}.profile-form,.profile-addresses{grid-template-columns:minmax(0,1fr)}.profile-form-actions{align-items:stretch;flex-direction:column}.profile-form-actions .button{width:100%}.profile-sidebar nav a{padding:12px;font-size:12px}}

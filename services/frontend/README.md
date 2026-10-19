@@ -65,3 +65,11 @@ Rebuild and deploy the frontend, gateway and NGINX changes together using the ro
 ## Independent service build
 
 Run `docker build -t robotshop-frontend:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+
+## My account page
+
+`/account` (`/roboshop/account` behind the Minikube ingress) uses `profile.html` and `src/profile.ts`. The page contains editable personal/contact details, a profile photo, saved delivery addresses, paginated purchase history and recent login activity. Every storefront, product and checkout header includes a My account link.
+
+The client crops uploads to a small JPEG before sending them; the gateway independently validates and normalizes the image. Photos and profile edits persist in MongoDB. Email and roles are read-only here. Address changes do not silently replace checkout shipping details. The page clears private data when the user signs out.
+
+Rebuild/deploy frontend, gateway and NGINX together for the new routes and image-processing dependency. No data reset or account migration is required.

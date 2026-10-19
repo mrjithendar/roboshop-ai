@@ -46,3 +46,13 @@ for access rules, retention, backfill behavior and the remaining single-writer l
 ## Independent service build
 
 Run `docker build -t robotshop-ai-gateway:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+
+## Customer profile API
+
+Authenticated customers can read `GET /api/account/profile`, update editable personal fields with `PUT /api/account/profile`, and upload/remove their picture with `PUT /api/account/photo`. Profiles are stored on the MongoDB user record; login metadata stays in the existing customer activity collections. Email, role, disabled state and login metadata cannot be changed through these endpoints.
+
+Photos arrive as bounded JPEG/PNG/WebP data URLs. The gateway uses Pillow to verify, crop to 128×128, remove metadata and re-encode JPEG before storing. Empty `image` removes the photo. External URLs, SVG, oversized and multi-frame images are rejected. The existing request-size limit stays unchanged.
+
+`POST /api/account/addresses` validates a destination through shipping before saving it; `DELETE /api/account/addresses/<id>` removes only the signed-in user's address. Address-book edits do not change existing orders or current checkout shipping quotes. No database migration is needed.
+
+Run the profile security tests with `python -m unittest discover -s tests -v` from this service directory after installing `requirements.txt` and the test dependency `mongomock`.
