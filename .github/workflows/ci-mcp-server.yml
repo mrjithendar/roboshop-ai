@@ -2,8 +2,8 @@ name: mcp-server image
 
 on:
   workflow_dispatch:
-  push:
-    branches: [master, main]
+  # push:
+  #   branches: [master, main]
     # paths:
     #   - 'services/mcp-server/**'
     #   - '.dockerignore'
