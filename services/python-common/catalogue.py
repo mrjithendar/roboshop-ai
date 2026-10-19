@@ -26,10 +26,11 @@ def retrieve(products, query):
         query,
         re.I,
     )
+    currencies = {p.get("currency", "EUR") for p in products if not p.get("archived")}
     currency = (
         "USD"
         if "$" in query or re.search(r"\bUSD\b", query, re.I)
-        else "INR" if "₹" in query or re.search(r"\bINR\b", query, re.I) else "EUR"
+        else "INR" if "₹" in query or re.search(r"\bINR\b", query, re.I) else "EUR" if "€" in query or re.search(r"\bEUR\b", query, re.I) else next(iter(currencies)) if len(currencies) == 1 else "EUR"
     )
     budget = float(match[1].replace(",", "")) if match else None
     words = [

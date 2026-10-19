@@ -11,10 +11,9 @@ On the Minikube host after syncing this code:
 ```bash
 bash build-images.sh
 bash deploy-minikube.sh
-kubectl -n robotshop-ai exec deployment/product-ingestion -- node services/product-ingestion/publish-catalogue.mjs
 ```
 
-The explicit publish command inserts the twenty products and archives older listings without deleting historical records. Reruns preserve administrator edits, stock and prices. Existing payment records retain their original amounts and currency.
+After all updated applications are ready, the deploy script runs the one-time catalogue publication. It inserts twenty products and archives older listings without deleting historical records. A migration marker prevents later releases from overwriting administrator edits, stock or prices, or archiving newly added products. `--manifests-only` does not publish a catalogue. Existing payment records retain their original amounts and currency.
 
 The cart supports USD and legacy EUR sale items, never both currencies in one cart. Shipping retains the distance tariff of 0.05 per kilometre, denominated in the cart's currency; it is a separate tariff, not an exchange-rate conversion. Quotes with mismatched currency are rejected. Razorpay orders use the cart currency and integer minor units. Actual payments require working merchant credentials and the corresponding currency enabled in the Razorpay account.
 

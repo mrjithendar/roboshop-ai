@@ -23,7 +23,8 @@ export function rank(products, { query = '', budget, category, exclude = [], lim
   if (typeof query !== 'string' || query.length > 1000) throw new HttpError(400, 'Invalid search query.');
   if (budget !== undefined && (!Number.isFinite(budget) || budget < 0)) throw new HttpError(400, 'Budget must be a nonnegative number.');
   if (!Number.isInteger(limit) || limit < 1 || limit > 50) throw new HttpError(400, 'Limit must be between 1 and 50.');
-  const currency = /\$|\bUSD\b/i.test(query) ? 'USD' : /₹|\bINR\b/i.test(query) ? 'INR' : 'EUR';
+  const currencies = [...new Set(products.filter(p => !p.archived).map(p => p.currency || 'EUR'))];
+  const currency = /\$|\bUSD\b/i.test(query) ? 'USD' : /₹|\bINR\b/i.test(query) ? 'INR' : /€|\bEUR\b/i.test(query) ? 'EUR' : currencies.length === 1 ? currencies[0] : 'EUR';
   const words = tokens(query);
   const synonyms = { guard: ['security', 'protection'], guarding: ['security', 'protection'], protect: ['security', 'protection'], safety: ['security', 'protection'], medical: ['medical', 'surgery'], doctor: ['medical', 'surgery'], gardening: ['vegetation', 'harvester'], mining: ['mining', 'minerals'], monitoring: ['observability'], cheap: [], affordable: [] };
   const terms = words.flatMap(w => [w, ...(synonyms[w] || [])]);

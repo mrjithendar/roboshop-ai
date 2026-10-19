@@ -176,6 +176,7 @@ class ManifestTests(unittest.TestCase):
         self.assertLess(calls.index('rollout status deployment/shipping-db'),calls.index('rollout status deployment/shipping-service'))
         self.assertLess(calls.index('rollout status deployment/ai-gateway'),calls.index('rollout status deployment/nginx'))
         self.assertIn('rollout status statefulset/rabbitmq',calls)
+        self.assertLess(calls.index('rollout status deployment/mcp-server'),calls.index('publish-catalogue.mjs'))
 
     def test_loaded_images_restart_only_application_workloads(self):
         result,calls=self.run_wrapper(load_images=True)
@@ -194,6 +195,7 @@ class ManifestTests(unittest.TestCase):
         self.assertNotIn('image load',calls)
         self.assertNotIn('rollout restart',calls)
         self.assertIn('MANIFESTS ONLY',result.stdout)
+        self.assertNotIn('publish-catalogue.mjs',calls)
 
     def test_registry_mode_restarts_without_local_image_loading(self):
         result,calls=self.run_wrapper(mode='--registry-images')

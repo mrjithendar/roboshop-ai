@@ -258,3 +258,4 @@ class CurrencyTests(unittest.TestCase):
             with self.assertRaises(HttpError): store.set_shipping(session,{'cost':5,'currency':'EUR'},rows)
             cart=store.set_shipping(session,{'cost':5,'currency':'USD'},rows)
             self.assertEqual(cart['total'],403)
+            self.assertTrue(retrieve([usd],'under 200'))

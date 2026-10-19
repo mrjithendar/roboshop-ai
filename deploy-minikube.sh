@@ -120,6 +120,10 @@ for service in "${services[@]}"; do
   echo "[$step/${#services[@]}] Ready: $service"
 done
 k -n robotshop-ai get pods -o 'custom-columns=NAME:.metadata.name,NODE:.spec.nodeName,IMAGE:.spec.containers[0].image,IMAGE_ID:.status.containerStatuses[0].imageID'
+if [[ "$load_images" == true || "$registry_images" == true ]]; then
+  echo 'Publishing the merchant catalogue once all updated services are ready...'
+  k --request-timeout=60s -n robotshop-ai exec deployment/product-ingestion -- node services/product-ingestion/publish-catalogue.mjs
+fi
 k -n robotshop-ai get pods,svc,pvc
 k apply -f "$temp/ingress.yaml"
 if ! k -n robotshop-ai wait --for=condition=Ready certificate/jithendar-com --timeout=180s; then
