@@ -1,3 +1,5 @@
+Product imports, seed data and catalogue migrations live here. Normal application reads use [`catalogue-service`](../catalogue-service/README.md). The read endpoints below remain for older clients configured with `INGESTION_URL`.
+
 # Product ingestion
 
 Port 4101 serves `GET /api/products` from MongoDB. Configure `MONGODB_URL` and optional `MONGODB_DATABASE` (default `robotshop`). `GET /api/catalogue/ready` checks MongoDB.

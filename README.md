@@ -370,7 +370,7 @@ The Minikube storefront uses **https://jithendar.com/roboshop/**, with Let's Enc
 bash build-images.sh --local
 ```
 
-Builds all eleven active application Dockerfiles as `robotshop-<service>:local` (shipping uses `robotshop-shipping:local`). `IMAGE_TAG` is ignored; `IMAGE_PREFIX` remains configurable. Builds run sequentially with full Docker output and stop on the first failure. Reruns reuse completed layers. Redis, RabbitMQ, databases and observability components use official upstream images.
+Builds all twelve active application Dockerfiles as `robotshop-<service>:local` (shipping uses `robotshop-shipping:local`). `IMAGE_TAG` is ignored; `IMAGE_PREFIX` remains configurable. Builds run sequentially with full Docker output and stop on the first failure. Reruns reuse completed layers. Redis, RabbitMQ, databases and observability components use official upstream images.
 
 Every build removes the previous application `:local` image tags and rebuilds with `--no-cache`. Running containers are not stopped; Docker retains layers still used by containers. Infrastructure images and unrelated images are untouched. Use `--pull` to also refresh base images. A failed build leaves already completed images available, but the next run starts fresh for all applications.
 
@@ -379,3 +379,5 @@ Preview cleanup and builds without Docker: `bash build-images.sh --local --dry-r
 The twenty-model USD catalogue, concept renders, and isolated 1,000-profile/3,000-review import are documented in [the catalogue deployment guide](docs/demo-scenarios/merchant-catalogue.md).
 
 Minikube releases: `bash deploy-minikube.sh` now loads freshly built `:local` images and restarts applications by default. Run it on the Minikube host after `bash build-images.sh`. Use `--manifests-only` only for configuration changes without an image refresh, or `--registry-images` for published images from a remote client. Deployments proceed sequentially; wait for the final success message before checking the new frontend.
+
+The [catalogue service](services/catalogue-service/README.md) serves MongoDB product listings, SKU lookup, categories and search on port 4108. Product ingestion handles seed/import/migration jobs. Application readers use `CATALOGUE_URL`; build and deploy scripts include `robotshop-catalogue-service:local`.

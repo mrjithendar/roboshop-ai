@@ -3,7 +3,8 @@
 ```mermaid
 flowchart LR
   Browser[Responsive storefront] --> Gateway[AI gateway :3000]
-  Gateway --> Catalog[Product ingestion :4101]
+  Gateway --> Catalog[Catalogue service :4108]
+  Ingest[Product ingestion :4101] --> Mongo
   Gateway --> Recs[Recommendations :4102]
   Gateway --> Agent[Shopping agent :4103]
   Gateway --> Payment[Payment service :4105]

@@ -42,7 +42,7 @@ def handle(req):
         return unconfigured()
     message = text(data.get("message"))
     products = request(
-        os.getenv("INGESTION_URL", "http://127.0.0.1:4101") + "/api/products"
+        os.getenv("CATALOGUE_URL", os.getenv("INGESTION_URL", "http://127.0.0.1:4108")) + "/api/products"
     )["products"]
     unavailable = data.get("unavailableSkus", [])
     if (

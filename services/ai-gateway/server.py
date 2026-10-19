@@ -67,7 +67,7 @@ class Gateway:
         self.urls = {
             k: os.getenv(env, default)
             for k, env, default in [
-                ("catalogue", "INGESTION_URL", "http://127.0.0.1:4101"),
+                ("catalogue", "CATALOGUE_URL", os.getenv("INGESTION_URL", "http://127.0.0.1:4108")),
                 ("recommendations", "RECOMMENDATION_URL", "http://127.0.0.1:4102"),
                 ("agent", "AGENT_URL", "http://127.0.0.1:4103"),
                 ("sre", "SRE_URL", "http://127.0.0.1:4104"),
@@ -202,6 +202,14 @@ class Gateway:
             if shipping:
                 self.customers.save_address(req.user["id"], shipping)
             return {"user": req.user}, 201 if path.endswith("/register") else 200, []
+        if method == "GET" and (path == "/api/catalogue/categories" or re.fullmatch(r"/api/catalogue/(?:product|category|search)/[^/]+", path)):
+            result = upstream(self.urls["catalogue"] + path)
+            def available(row):
+                return {**row, "instock": self.store.available(row)}
+            with self.store.lock:
+                if isinstance(result, list):
+                    return [available(row) if isinstance(row, dict) and "sku" in row else row for row in result]
+                return available(result) if isinstance(result, dict) and "sku" in result else result
         match = re.fullmatch(
             r"/api/products/([a-z0-9][a-z0-9-]{0,99})(/reviews(?:/mine)?)?", path
         )

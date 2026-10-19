@@ -1,0 +1,25 @@
+name: catalogue-service image
+
+on:
+  workflow_dispatch:
+  # push:
+  #   branches: [master, main]
+  #   paths:
+  #     - 'services/catalogue-service/**'
+  #     - '.dockerignore'
+  #     - '.github/workflows/ci-catalogue-service.yml'
+  #     - '.github/workflows/publish-ecr.yml'
+  #     - 'services/shared/**'
+  #     - 'package.json'
+  #     - 'package-lock.json'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    uses: ./.github/workflows/publish-ecr.yml
+    with:
+      service: catalogue-service

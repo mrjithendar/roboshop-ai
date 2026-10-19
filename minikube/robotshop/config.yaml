@@ -18,7 +18,7 @@ data:
   PAYMENT_MODE: test
   MONGODB_DATABASE: robotshop
   CART_URL: http://cart-service:4107
-  INGESTION_URL: http://product-ingestion:4101
+  CATALOGUE_URL: http://catalogue-service:4108
   RECOMMENDATION_URL: http://recommendation-service:4102
   AGENT_URL: http://shopping-agent:4103
   SRE_URL: http://sre-copilot:4104

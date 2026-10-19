@@ -12,7 +12,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 SERVICES = ['mongodb', 'postgres', 'redis', 'rabbitmq', 'jaeger', 'otel-collector',
-            'product-ingestion', 'recommendation-service', 'shopping-agent',
+            'product-ingestion', 'catalogue-service', 'recommendation-service', 'shopping-agent',
             'sre-copilot', 'payment-service', 'shipping-service', 'ai-gateway',
             'frontend', 'nginx', 'mcp-server', 'cart-service']
 APPS = {name for name in SERVICES if (ROOT / 'services' / name / 'Dockerfile').is_file()}
