@@ -1,0 +1,88 @@
+# Minikube sandbox deployment; apply with ./deploy-minikube.sh.
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-ingestion
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  selector:
+    app: product-ingestion
+  ports:
+  - name: p4101
+    port: 4101
+    targetPort: 4101
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-ingestion
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product-ingestion
+  template:
+    metadata:
+      labels:
+        app: product-ingestion
+        app.kubernetes.io/part-of: robotshop-ai
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: product-ingestion
+        image: robotshop-product-ingestion:local
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MONGO_APP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-secrets
+              key: MONGO_APP_PASSWORD
+        - name: MONGODB_URL
+          value: mongodb://robotshop:$(MONGO_APP_PASSWORD)@mongodb:27017/robotshop?authSource=robotshop
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        ports:
+        - containerPort: 4101
+        envFrom:
+        - configMapRef:
+            name: robotshop-config
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        startupProbe:
+          httpGet: &id001
+            path: /health
+            port: 4101
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 120
+        livenessProbe:
+          httpGet: *id001
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 5
+        readinessProbe:
+          httpGet: *id001
+          timeoutSeconds: 3
+      volumes:
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate

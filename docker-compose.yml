@@ -29,10 +29,6 @@ services:
     extends:
       file: services/jaeger/compose.yml
       service: jaeger
-  prometheus:
-    extends:
-      file: services/prometheus/compose.yml
-      service: prometheus
   payment-service:
     extends:
       file: services/payment-service/compose.yml
@@ -71,7 +67,6 @@ services:
       service: mongodb
 volumes:
   shop-data: {}
-  prometheus-data: {}
   shipping-postgres: {}
   rabbitmq-data: {}
   mongo-data: {}

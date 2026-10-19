@@ -1,0 +1,143 @@
+# Minikube sandbox deployment; apply with ./deploy-minikube.sh.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shipping-db-init
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+data:
+  10-shipping-role.sh: '#!/bin/sh
+
+    set -eu
+
+    psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --set ON_ERROR_STOP=1
+    <<''SQL''
+
+    \getenv app_password SHIPPING_APP_PASSWORD
+
+    CREATE ROLE shipping_app LOGIN PASSWORD :''app_password'';
+
+    CREATE SCHEMA shipping AUTHORIZATION shipping;
+
+    GRANT USAGE ON SCHEMA shipping TO shipping_app;
+
+    ALTER DEFAULT PRIVILEGES FOR ROLE shipping IN SCHEMA shipping GRANT SELECT ON
+    TABLES TO shipping_app;
+
+    SQL
+
+    '
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shipping-postgres
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shipping-db
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  selector:
+    app: shipping-db
+  ports:
+  - name: p5432
+    port: 5432
+    targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shipping-db
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shipping-db
+  template:
+    metadata:
+      labels:
+        app: shipping-db
+        app.kubernetes.io/part-of: robotshop-ai
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: shipping-db
+        image: postgres:18-alpine
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: POSTGRES_DB
+          value: shipping
+        - name: POSTGRES_USER
+          value: shipping
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-secrets
+              key: SHIPPING_DB_PASSWORD
+        - name: SHIPPING_APP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-secrets
+              key: SHIPPING_APP_PASSWORD
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 384Mi
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql
+        - name: init
+          mountPath: /docker-entrypoint-initdb.d
+          readOnly: true
+        startupProbe:
+          tcpSocket: &id001
+            port: 5432
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 120
+        livenessProbe:
+          tcpSocket: *id001
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 5
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - shipping
+            - -d
+            - shipping
+          timeoutSeconds: 3
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: shipping-postgres
+      - name: init
+        configMap:
+          name: shipping-db-init
+          defaultMode: 365
+  strategy:
+    type: Recreate

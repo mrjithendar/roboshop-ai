@@ -1,0 +1,127 @@
+# Minikube sandbox deployment; apply with ./deploy-minikube.sh.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongodb-init
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+data:
+  10-app-user.js: '// Official Mongo image runs this only on an empty data volume.
+
+    const application = db.getSiblingDB(''robotshop'');
+
+    application.createUser({ user: ''robotshop'', pwd: process.env.MONGO_APP_PASSWORD,
+    roles: [{ role: ''readWrite'', db: ''robotshop'' }] });
+
+    '
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-data
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  selector:
+    app: mongodb
+  ports:
+  - name: p27017
+    port: 27017
+    targetPort: 27017
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+        app.kubernetes.io/part-of: robotshop-ai
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: mongodb
+        image: mongo:8.2
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: root
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-secrets
+              key: MONGO_ROOT_PASSWORD
+        - name: MONGO_APP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-secrets
+              key: MONGO_APP_PASSWORD
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        ports:
+        - containerPort: 27017
+        volumeMounts:
+        - name: data
+          mountPath: /data/db
+        - name: init
+          mountPath: /docker-entrypoint-initdb.d
+          readOnly: true
+        startupProbe:
+          tcpSocket: &id001
+            port: 27017
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 120
+        livenessProbe:
+          tcpSocket: *id001
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 5
+        readinessProbe:
+          exec:
+            command:
+            - mongosh
+            - --quiet
+            - --eval
+            - 'quit(db.adminCommand({ping:1}).ok ? 0 : 1)'
+          timeoutSeconds: 5
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: mongodb-data
+      - name: init
+        configMap:
+          name: mongodb-init
+          defaultMode: 365
+  strategy:
+    type: Recreate

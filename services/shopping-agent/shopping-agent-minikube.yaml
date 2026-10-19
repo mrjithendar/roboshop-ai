@@ -1,0 +1,88 @@
+# Minikube sandbox deployment; apply with ./deploy-minikube.sh.
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopping-agent
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  selector:
+    app: shopping-agent
+  ports:
+  - name: p4103
+    port: 4103
+    targetPort: 4103
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopping-agent
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shopping-agent
+  template:
+    metadata:
+      labels:
+        app: shopping-agent
+        app.kubernetes.io/part-of: robotshop-ai
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: shopping-agent
+        image: robotshop-shopping-agent:local
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: LLM_SERVICE_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-secrets
+              key: LLM_SERVICE_TOKEN
+        - name: OLLAMA_ENDPOINTS_JSON
+          value: '{}'
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        ports:
+        - containerPort: 4103
+        envFrom:
+        - configMapRef:
+            name: robotshop-config
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        startupProbe:
+          httpGet: &id001
+            path: /health
+            port: 4103
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 120
+        livenessProbe:
+          httpGet: *id001
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 5
+        readinessProbe:
+          httpGet: *id001
+          timeoutSeconds: 3
+      volumes:
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate

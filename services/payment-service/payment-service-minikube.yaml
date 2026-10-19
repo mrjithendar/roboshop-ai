@@ -1,0 +1,104 @@
+# Minikube sandbox deployment; apply with ./deploy-minikube.sh.
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  selector:
+    app: payment-service
+  ports:
+  - name: p4105
+    port: 4105
+    targetPort: 4105
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+        app.kubernetes.io/part-of: robotshop-ai
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: payment-service
+        image: robotshop-payment-service:local
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: PAYMENT_SERVICE_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-secrets
+              key: PAYMENT_SERVICE_TOKEN
+        - name: RAZORPAY_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-secrets
+              key: RAZORPAY_KEY_ID
+              optional: true
+        - name: RAZORPAY_KEY_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-secrets
+              key: RAZORPAY_KEY_SECRET
+              optional: true
+        - name: RAZORPAY_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-secrets
+              key: RAZORPAY_WEBHOOK_SECRET
+              optional: true
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        ports:
+        - containerPort: 4105
+        envFrom:
+        - configMapRef:
+            name: robotshop-config
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        startupProbe:
+          httpGet: &id001
+            path: /health
+            port: 4105
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 120
+        livenessProbe:
+          httpGet: *id001
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 5
+        readinessProbe:
+          httpGet: *id001
+          timeoutSeconds: 3
+      volumes:
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate

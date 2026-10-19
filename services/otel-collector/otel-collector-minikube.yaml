@@ -1,0 +1,97 @@
+# Minikube sandbox deployment; apply with ./deploy-minikube.sh.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+data:
+  config.yaml: "receivers:\n  otlp:\n    protocols:\n      http:\n        endpoint:\
+    \ 0.0.0.0:4318\nprocessors:\n  memory_limiter:\n    check_interval: 1s\n    limit_mib:\
+    \ 128\n  attributes/privacy:\n    actions:\n      - key: url.full\n        action:\
+    \ delete\n      - key: url.query\n        action: delete\n      - key: http.url\n\
+    \        action: delete\n      - key: http.target\n        action: delete\n  \
+    \    - key: client.address\n        action: delete\n      - key: network.peer.address\n\
+    \        action: delete\n      - key: enduser.id\n        action: delete\n   \
+    \   - key: db.statement\n        action: delete\n      - key: db.query.text\n\
+    \        action: delete\n  batch:\n    timeout: 2s\nexporters:\n  otlphttp/jaeger:\n\
+    \    endpoint: http://jaeger:4318\nservice:\n  pipelines:\n    traces:\n     \
+    \ receivers: [otlp]\n      processors: [memory_limiter, attributes/privacy, batch]\n\
+    \      exporters: [otlphttp/jaeger]\n"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  selector:
+    app: otel-collector
+  ports:
+  - name: p4318
+    port: 4318
+    targetPort: 4318
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+        app.kubernetes.io/part-of: robotshop-ai
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: otel-collector
+        image: otel/opentelemetry-collector:0.162.0-386
+        imagePullPolicy: IfNotPresent
+        env: []
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        ports:
+        - containerPort: 4318
+        args:
+        - --config=/etc/otelcol/config.yaml
+        volumeMounts:
+        - name: config
+          mountPath: /etc/otelcol
+          readOnly: true
+        startupProbe:
+          tcpSocket: &id001
+            port: 4318
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 120
+        livenessProbe:
+          tcpSocket: *id001
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 5
+        readinessProbe:
+          tcpSocket: *id001
+          timeoutSeconds: 3
+      volumes:
+      - name: config
+        configMap:
+          name: otel-collector-config
+          defaultMode: 365
+  strategy:
+    type: Recreate
