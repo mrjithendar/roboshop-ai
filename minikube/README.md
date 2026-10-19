@@ -192,3 +192,11 @@ If local import says the profile has no public API binding, read the actual bind
 - `kubeconfig.py`: validates the exported JSON, sets the public endpoint and preserves TLS certificate verification. It performs no SSH or Kubernetes calls.
 
 Keep both files together. Normal usage remains `sh minikube/kubeconfig.sh`. To see the Python helper's arguments, run `python3 minikube/kubeconfig.py --help`.
+
+## Install cert-manager and Let's Encrypt
+
+```bash
+bash minikube/deploy-cert-manager.sh
+```
+
+This installs cert-manager with Helm and configures `letsencrypt-staging` and `letsencrypt-prod` ClusterIssuers. It follows the selected Minikube profile. See [cert-manager setup](cert-manager/README.md) for the email/ingress settings, `jithendar.com` certificate example and troubleshooting. An ingress controller and public port 80 are required before requesting certificates; this command does not deploy the website.

@@ -1,0 +1,12 @@
+email: jithendardharmapuri@gmail.com
+# Must match the installed ingress controller's IngressClass.
+ingressClassName: traefik
+issuers:
+  staging:
+    name: letsencrypt-staging
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    accountSecret: letsencrypt-staging-account-key
+  production:
+    name: letsencrypt-prod
+    server: https://acme-v02.api.letsencrypt.org/directory
+    accountSecret: letsencrypt-prod-account-key
