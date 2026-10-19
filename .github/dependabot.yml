@@ -21,7 +21,14 @@ updates:
       prefix: "chore(deps)"
 
   - package-ecosystem: docker
-    directory: /
+    directories:
+      - /services/ai-gateway
+      - /services/product-ingestion
+      - /services/recommendation-service
+      - /services/shopping-agent
+      - /services/sre-copilot
+      - /services/payment-service
+      - /services/mcp-server
     exclude-paths:
       - legacy/**
       - docker-compose.legacy.yml
@@ -39,7 +46,13 @@ updates:
       prefix: "chore(deps)"
 
   - package-ecosystem: docker-compose
-    directory: /
+    directories:
+      - /
+      - /services/redis
+      - /services/rabbitmq
+      - /services/mongodb
+      - /services/postgres
+      - /services/nginx
     exclude-paths:
       - legacy/**
       - docker-compose.legacy.yml
@@ -47,7 +60,13 @@ updates:
     ignore:
       - dependency-name: robotshop-nginx
       - dependency-name: robotshop-shipping
-      - dependency-name: robotshop-ai
+      - dependency-name: robotshop-ai-gateway
+      - dependency-name: robotshop-product-ingestion
+      - dependency-name: robotshop-recommendation-service
+      - dependency-name: robotshop-shopping-agent
+      - dependency-name: robotshop-sre-copilot
+      - dependency-name: robotshop-payment-service
+      - dependency-name: robotshop-mcp-server
     schedule:
       interval: weekly
       day: monday
@@ -117,7 +136,7 @@ updates:
       prefix: "chore(deps)"
 
   - package-ecosystem: docker
-    directory: /infrastructure/nginx
+    directory: /services/nginx
     schedule:
       interval: weekly
       day: monday
@@ -125,3 +144,14 @@ updates:
       timezone: Asia/Kolkata
     commit-message:
       prefix: "chore(deps)"
+
+  - package-ecosystem: pip
+    directories:
+      - /services/ai-gateway
+      - /services/shopping-agent
+    schedule:
+      interval: weekly
+    groups:
+      python-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]

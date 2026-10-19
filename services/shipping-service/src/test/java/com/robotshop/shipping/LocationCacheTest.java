@@ -1,7 +1,7 @@
 package com.robotshop.shipping;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.*;
 import java.time.Duration;

@@ -1,26 +1,39 @@
-pipeline { 
-
+pipeline {
     agent any
     options { disableConcurrentBuilds() }
-
     environment {
-        tfDir = "terraform"
-        region = "us-east-1"
-        AWSCreds = credentials('awsCreds')
-        AWS_ACCESS_KEY_ID = "${AWSCreds_USR}"
-        AWS_SECRET_ACCESS_KEY = "${AWSCreds_PSW}"
-        AWS_DEFAULT_REGION = "us-east-1"
+        TF_IN_AUTOMATION = 'true'
     }
-
-    stages { 
-        stage ('Creating AWS VPC DKODE Applications') { 
+    // Use an IAM role on the Jenkins agent; do not put AWS keys in this file.
+    stages {
+        stage('Validate and plan VPC') {
             steps {
-                sh "terraform --version"
-                sh "terraform init -reconfigure"
-                sh "terraform validate"
-                sh "terraform plan -var-file=vars/dev.tfvars -out=planfile"
-                sh "terraform apply planfile"
+                dir('vpc') {
+                    sh 'terraform fmt -check'
+                    sh 'terraform init -input=false'
+                    sh 'terraform validate'
+                    sh 'terraform plan -input=false -var-file=vars/dev.tfvars -out=plan.tfplan'
+                }
             }
-        } 
-    } 
-} 
+        }
+        stage('Review VPC plan') {
+            steps {
+                input message: 'Review the Terraform plan above. Apply this VPC plan?', ok: 'Apply'
+            }
+        }
+        stage('Apply VPC plan') {
+            steps {
+                dir('vpc') {
+                    sh 'terraform apply -input=false plan.tfplan'
+                }
+            }
+        }
+    }
+    post {
+        always {
+            dir('vpc') {
+                sh 'rm -f plan.tfplan'
+            }
+        }
+    }
+}

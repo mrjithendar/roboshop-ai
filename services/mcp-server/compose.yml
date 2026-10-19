@@ -1,0 +1,17 @@
+# Extended by root docker-compose.yml; run Compose from the repository root.
+services:
+  mcp-server:
+    extends:
+      file: ../common/compose.yml
+      service: telemetry
+    profiles: [tools]
+    image: ${IMAGE_PREFIX:-robotshop}-mcp-server:${IMAGE_TAG:-local}
+    stdin_open: true
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      GATEWAY_URL: http://ai-gateway:3000
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:3000}
+      MCP_SESSION_TOKEN: ${MCP_SESSION_TOKEN:-}

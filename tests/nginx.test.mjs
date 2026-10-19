@@ -9,7 +9,7 @@ import { execFileSync } from 'node:child_process';
 import https from 'node:https';
 import { createHmac } from 'node:crypto';
 import { startNginx } from './helpers/nginx.mjs';
-import { clientAddress } from '../services/ai-gateway/proxy.mjs';
+import { clientAddress } from './fixtures/previous-gateway/proxy.mjs';
 
 async function listen(server) { server.listen(0,'127.0.0.1'); await once(server,'listening'); return server.address().port; }
 test('gateway uses forwarding headers only when configured behind its trusted proxy',()=>{
@@ -33,10 +33,12 @@ test('NGINX serves assets and safely proxies API requests', { skip: process.env.
     edge=await startNginx({port,gatewayPort,directory:dir});
     let r=await fetch(base); assert.match(await r.text(),/Find your kind of robot/); assert.equal(r.headers.get('cache-control'),'no-cache');
     assert.match(r.headers.get('content-security-policy'),/checkout.razorpay.com/);
-    for(const [path,type] of [['/app.js','javascript'],['/styles.css','css'],['/images/STAN-1.png','image/png']]) {
-      r=await fetch(base+path); assert.equal(r.status,200); assert.ok(r.headers.get('content-type').includes(type)); assert.match(r.headers.get('cache-control'),/public/); assert.equal(r.headers.get('x-content-type-options'),'nosniff');
+    for(const [path,type] of [['/products/arduino-alvik','html'],['/product.js','javascript'],['/app.js','javascript'],['/account.js','javascript'],['/admin.js','javascript'],['/admin','html'],['/styles.css','css'],['/images/STAN-1.png','image/png']]) {
+      r=await fetch(base+path); assert.equal(r.status,200); assert.ok(r.headers.get('content-type').includes(type)); assert.match(r.headers.get('cache-control'),path === '/admin' || path.startsWith('/products/') ? /no-store/ : /public/); assert.equal(r.headers.get('x-content-type-options'),'nosniff');
     }
-    for(const path of ['/.env','/metrics','/missing.js','/services/ai-gateway/store.mjs']) assert.equal((await fetch(base+path)).status,404);
+    r=await fetch(base+'/products/arduino-alvik'); assert.match(await r.text(), /product-main/);
+    assert.match((await fetch(base+'/app.js')).headers.get('cache-control'), /max-age=0, must-revalidate/);
+    for(const path of ['/products/private/file','/products/private.js','/.env','/metrics','/missing.js','/src/app.ts','/tsconfig.json','/README.md','/services/ai-gateway/store.mjs']) assert.equal((await fetch(base+path)).status,404);
     r=await fetch(base+'/api/cart?test=secret-query',{headers:{cookie:'rs_session=existing','x-real-ip':'198.51.100.9','x-forwarded-for':'198.51.100.9'}});
     assert.equal(r.status,200); assert.equal(r.headers.get('cache-control'),'no-store'); assert.match(r.headers.get('set-cookie'),/HttpOnly/);
     assert.equal(seen.url,'/api/cart?test=secret-query'); assert.equal(seen.headers.cookie,'rs_session=existing');

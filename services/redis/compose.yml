@@ -1,0 +1,23 @@
+# Service definition consumed by the root docker-compose.yml via extends.
+# Run Compose from the repository root; paths here are relative to this directory.
+services:
+  redis:
+    image: redis:8.10-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    command:
+    - sh
+    - -c
+    - exec redis-server /usr/local/etc/redis/redis.conf --requirepass "$$REDIS_PASSWORD"
+    restart: unless-stopped
+    ports:
+    - 127.0.0.1:6379:6379
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+    - ./redis.conf:/usr/local/etc/redis/redis.conf:ro

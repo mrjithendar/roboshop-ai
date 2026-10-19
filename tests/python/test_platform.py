@@ -1,0 +1,244 @@
+import importlib.util
+import io
+import json
+import os
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path[:0] = [
+    str(ROOT / "services/python-common"),
+    str(ROOT / "services/ai-gateway"),
+    str(ROOT / "services/shopping-agent"),
+]
+from agent import answer
+from catalogue import retrieve
+from store import Store, cents
+from auth import hash_password, verify
+from runtime import HttpError, application
+
+spec = importlib.util.spec_from_file_location(
+    "mcp_server", ROOT / "services/mcp-server/server.py"
+)
+mcp = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mcp)
+PRODUCTS = json.loads(
+    (ROOT / "tests/fixtures/catalogue/fictional-products.json").read_text()
+)
+
+
+class AgentTests(unittest.TestCase):
+    def test_offline(self):
+        result = answer(PRODUCTS, "security under 1000")
+        self.assertEqual(result["mode"], "not-configured")
+        self.assertEqual(result["products"], [])
+
+    def test_unavailable_and_budget(self):
+        self.assertEqual(retrieve(PRODUCTS, "security under 5"), [])
+        self.assertTrue(all(p["instock"] > 0 for p in retrieve(PRODUCTS, "")))
+        self.assertEqual(
+            retrieve([p for p in PRODUCTS if p["sku"] != "RED"], "security under 1000"),
+            [],
+        )
+
+
+class StoreTests(unittest.TestCase):
+    def test_cart_ownership_and_payment(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = Store(directory)
+            guest = store.session(None)
+            store.update(guest, "RMC", 2, PRODUCTS)
+            account = store.session(guest, "alice")
+            self.assertNotEqual(account, guest)
+            other = store.session(account, "bob")
+            self.assertEqual(store.cart(other, PRODUCTS)["items"], [])
+            from runtime import iso
+
+            store.set_shipping(account, {"cost": 5, "quotedAt": iso()}, PRODUCTS)
+            order = store.begin_payment(account, "a" * 20, PRODUCTS)
+            self.assertEqual(
+                store.begin_payment(account, "a" * 20, PRODUCTS)["id"], order["id"]
+            )
+            provider = {
+                "orderId": "provider-1",
+                "amount": cents(order["total"]),
+                "currency": "EUR",
+            }
+            store.attach_payment(order["id"], provider)
+            with self.assertRaises(HttpError):
+                store.mark_paid(
+                    order["id"],
+                    provider | {"verified": True, "paymentId": "p", "amount": 1},
+                )
+            paid = store.mark_paid(
+                order["id"], provider | {"verified": True, "paymentId": "payment-1"}
+            )
+            self.assertEqual(paid["status"], "paid")
+            self.assertEqual(len(store.pending_events()), 1)
+            store.mark_paid(
+                order["id"], provider | {"verified": True, "paymentId": "payment-1"}
+            )
+            self.assertEqual(store.state["sold"]["RMC"], 2)
+            self.assertEqual(Store(directory).state, store.state)
+            store.event_published(store.pending_events()[0]["eventId"])
+            self.assertEqual(store.pending_events(), [])
+
+    def test_password_compatibility(self):
+        import subprocess
+
+        encoded = subprocess.check_output(
+            [
+                "node",
+                "--input-type=module",
+                "-e",
+                "import {scryptSync} from 'node:crypto'; console.log('scrypt:0123456789abcdef:'+scryptSync('long-test-password','0123456789abcdef',64,{N:32768,r:8,p:3,maxmem:64*1024*1024}).toString('hex'))",
+            ],
+            text=True,
+        ).strip()
+        self.assertTrue(verify("long-test-password", encoded))
+        self.assertFalse(verify("wrong", encoded))
+        self.assertTrue(
+            verify("long-test-password", hash_password("long-test-password"))
+        )
+
+
+class MCPTests(unittest.TestCase):
+    def setUp(self):
+        self.calls = []
+
+        def fake(*a, **kw):
+            self.calls.append((a, kw))
+            return {"ok": True}
+
+        self.server = mcp.MCP(fake)
+        self.server.handle({"jsonrpc": "2.0", "id": 1, "method": "initialize"})
+
+    def call(self, name, args={}):
+        return self.server.handle(
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {"name": name, "arguments": args},
+            }
+        )
+
+    def test_read_tools(self):
+        self.assertFalse(
+            self.call("compare_products", {"skus": ["RED", "RMC"]})["result"]["isError"]
+        )
+        self.assertIn("skus=RED%2CRMC", self.calls[0][0][0])
+        self.assertTrue(
+            self.call("compare_products", {"skus": ["RED", "RED"]})["result"]["isError"]
+        )
+        self.assertTrue(
+            self.call("search_products", {"query": "x", "url": "http://evil"})[
+                "result"
+            ]["isError"]
+        )
+
+    def test_mutation_requires_session_and_forwards_role_checks(self):
+        with patch.dict(os.environ, {"MCP_SESSION_TOKEN": ""}):
+            self.assertTrue(
+                self.call("update_cart", {"sku": "RMC", "quantity": 1})["result"][
+                    "isError"
+                ]
+            )
+        with patch.dict(os.environ, {"MCP_SESSION_TOKEN": "a" * 64}):
+            self.assertFalse(
+                self.call("update_cart", {"sku": "RMC", "quantity": 1})["result"][
+                    "isError"
+                ]
+            )
+        self.assertEqual(self.calls[0][0][2]["cookie"], "rs_auth=" + "a" * 64)
+        self.assertEqual(self.calls[0][1]["method"], "POST")
+        self.assertEqual(self.call("execute_shell")["error"]["code"], -32602)
+
+    def test_sensitive_schema(self):
+        self.assertTrue(
+            self.call("admin_update_settings", {"secret": "abc"})["result"]["isError"]
+        )
+        self.assertTrue(
+            self.call(
+                "admin_set_user_access",
+                {"userId": "a" * 36, "role": "superadmin", "disabled": False},
+            )["result"]["isError"]
+        )
+
+    def test_protocol(self):
+        self.assertEqual(
+            mcp.MCP().handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})[
+                "error"
+            ]["code"],
+            -32002,
+        )
+        self.assertIsNone(
+            self.server.handle(
+                {"jsonrpc": "2.0", "method": "notifications/initialized"}
+            )
+        )
+
+
+class RuntimeTests(unittest.TestCase):
+    def test_trace_context_parent_sampling_and_no_arguments(self):
+        import runtime
+
+        captured = []
+        with patch(
+            "runtime.telemetry", side_effect=lambda *args: captured.append(args)
+        ):
+            with runtime.trace_span(
+                "mcp.tool search_products",
+                service="mcp-server",
+                parent="00-" + "a" * 32 + "-" + "b" * 16 + "-00",
+            ) as parent:
+                with runtime.trace_span("HTTP GET", kind=3) as child:
+                    self.assertEqual(child["traceId"], "a" * 32)
+                    self.assertEqual(child["parentSpanId"], parent["spanId"])
+                    self.assertEqual(child["flags"], "00")
+                    self.assertEqual(child["attributes"], {})
+            self.assertEqual(len(captured), 2)
+        invalid = runtime.trace_context("00-" + "0" * 32 + "-" + "0" * 16 + "-01")
+        self.assertNotEqual(invalid["traceId"], "0" * 32)
+        self.assertNotIn("parentSpanId", invalid)
+
+    def test_unsampled_spans_do_not_export(self):
+        import runtime
+
+        with patch.dict(
+            os.environ,
+            {
+                "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "http://collector.invalid/v1/traces"
+            },
+        ), patch.object(runtime.exports, "submit") as submit:
+            runtime.telemetry("test", {"flags": "00"}, 0, "HTTP GET", 200)
+            submit.assert_not_called()
+
+    def test_invalid_body_and_trace(self):
+        app = application("test", lambda req: req.body())
+        captured = {}
+
+        def start(status, headers):
+            captured.update(status=status, headers=dict(headers))
+
+        with patch("runtime.telemetry"):
+            result = app(
+                {
+                    "REQUEST_METHOD": "POST",
+                    "PATH_INFO": "/api/chat",
+                    "CONTENT_TYPE": "application/json",
+                    "CONTENT_LENGTH": "2",
+                    "wsgi.input": io.BytesIO(b"[]"),
+                    "HTTP_TRACEPARENT": "00-" + "a" * 32 + "-" + "b" * 16 + "-01",
+                },
+                start,
+            )
+        self.assertTrue(captured["status"].startswith("400"))
+        self.assertEqual(captured["headers"]["X-Request-ID"], "a" * 32)
+
+
+if __name__ == "__main__":
+    unittest.main()

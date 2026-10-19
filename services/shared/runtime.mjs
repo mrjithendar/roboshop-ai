@@ -20,11 +20,16 @@ export function json(res, value, status = 200) {
 }
 export async function body(req, limit = 16384) {
   if (!req.headers['content-type']?.startsWith('application/json')) throw new HttpError(415, 'Use application/json.');
-  let raw = '';
+  const chunks = [];
+  let size = 0;
   for await (const chunk of req) {
-    raw += chunk;
-    if (Buffer.byteLength(raw) > limit) throw new HttpError(413, 'Request is too large.');
+    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    size += bytes.length;
+    if (size > limit) throw new HttpError(413, 'Request is too large.');
+    chunks.push(bytes);
   }
+  // Decode once: UTF-8 characters can span TCP chunks (e.g. worldwide addresses).
+  const raw = Buffer.concat(chunks).toString('utf8');
   try {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error();
@@ -35,21 +40,32 @@ export function text(value, name, max = 1000) {
   if (typeof value !== 'string' || !value.trim() || value.length > max) throw new HttpError(400, `${name} must contain 1–${max} characters.`);
   return value.trim();
 }
+export async function clientSpan(name, work, attributes = {}) {
+  const parent = context.getStore();
+  const ctx = { traceId: parent?.traceId || randomBytes(16).toString('hex'), spanId: randomBytes(8).toString('hex'), parentSpanId: parent?.spanId, flags: parent?.flags || '01', service: parent?.service || process.env.OTEL_SERVICE_NAME || 'robotshop', kind: 3, attributes: {} };
+  const start = Date.now(); let status = 200;
+  return context.run(ctx, async () => {
+    try { return await work(ctx); }
+    catch (error) { status = error.status || 503; throw error; }
+    finally { exportSpan(ctx.service, ctx, start, name, status, attributes); }
+  });
+}
 export async function request(url, options = {}) {
-  const ctx = context.getStore();
-  const headers = { 'content-type': 'application/json', ...options.headers };
-  if (ctx) headers.traceparent = `00-${ctx.traceId}-${ctx.spanId}-01`;
-  try {
-    const response = await fetch(url, { ...options, headers, signal: options.signal || AbortSignal.timeout(12000) });
-    if (!response.ok) throw new HttpError(502, 'A dependent service is unavailable.');
-    return await response.json();
-  } catch (e) {
-    if (e instanceof HttpError) throw e;
-    throw new HttpError(503, 'A dependent service is unavailable. Please try again.');
-  }
+  return clientSpan(`HTTP ${options.method || 'GET'}`, async ctx => {
+    const headers = { 'content-type': 'application/json', ...options.headers, traceparent: `00-${ctx.traceId}-${ctx.spanId}-${ctx.flags}` };
+    try {
+      const response = await fetch(url, { ...options, headers, signal: options.signal || AbortSignal.timeout(12000) });
+      if (!response.ok) throw new HttpError(502, 'A dependent service is unavailable.');
+      return await response.json();
+    } catch (e) {
+      if (e instanceof HttpError) throw e;
+      throw new HttpError(503, 'A dependent service is unavailable. Please try again.');
+    }
+  }, { 'server.address': new URL(url).hostname, 'http.request.method': options.method || 'GET' });
 }
 let pendingExports = 0;
 export function exportSpan(service, ctx, start, name, status, attributes = {}) {
+  if (process.env.OTEL_SDK_DISABLED === 'true' || ctx.flags === '00') return;
   const endpoint = process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
   const lf = process.env.LANGFUSE_BASE_URL;
   const targets = [];
@@ -61,8 +77,8 @@ export function exportSpan(service, ctx, start, name, status, attributes = {}) {
     }]);
   }
   if (!targets.length || pendingExports >= 32) return;
-  const payload = { resourceSpans: [{ resource: { attributes: [{ key: 'service.name', value: { stringValue: service } }] }, scopeSpans: [{ scope: { name: 'robotshop.manual', version: '0.1.0' }, spans: [{
-    traceId: ctx.traceId, spanId: ctx.spanId, ...(ctx.parentSpanId ? { parentSpanId: ctx.parentSpanId } : {}), name, kind: 2,
+  const payload = { resourceSpans: [{ resource: { attributes: [{ key: 'service.name', value: { stringValue: service } }, { key: 'service.version', value: { stringValue: process.env.OTEL_SERVICE_VERSION || '0.2.0' } }, { key: 'deployment.environment.name', value: { stringValue: process.env.DEPLOYMENT_ENVIRONMENT || 'development' } }] }, scopeSpans: [{ scope: { name: 'robotshop.manual', version: '0.1.0' }, spans: [{
+    traceId: ctx.traceId, spanId: ctx.spanId, ...(ctx.parentSpanId ? { parentSpanId: ctx.parentSpanId } : {}), name, kind: ctx.kind || 2, flags: 1,
     startTimeUnixNano: String(BigInt(start) * 1000000n), endTimeUnixNano: String(BigInt(Date.now()) * 1000000n),
     status: { code: status >= 500 ? 2 : 1 },
     attributes: Object.entries({ 'http.response.status_code': status, ...attributes }).map(([key, value]) => ({ key, value: typeof value === 'number' ? { intValue: String(value) } : { stringValue: String(value) } })),
@@ -80,8 +96,9 @@ export function serve(service, port, handler) {
   let duration = 0, requests = 0;
   const server = http.createServer(async (req, res) => {
     const start = Date.now();
-    const incoming = /^00-([a-f0-9]{32})-([a-f0-9]{16})-0[01]$/.exec(req.headers.traceparent || '');
-    const ctx = { traceId: incoming?.[1] || randomBytes(16).toString('hex'), spanId: randomBytes(8).toString('hex'), parentSpanId: incoming?.[2], attributes: {} };
+    let incoming = /^00-([a-f0-9]{32})-([a-f0-9]{16})-(0[01])$/.exec(req.headers.traceparent || '');
+    if (incoming && (/^0+$/.test(incoming[1]) || /^0+$/.test(incoming[2]))) incoming = null;
+    const ctx = { traceId: incoming?.[1] || randomBytes(16).toString('hex'), spanId: randomBytes(8).toString('hex'), parentSpanId: incoming?.[2], flags: incoming?.[3] || '01', service, attributes: {} };
     res.setHeader('x-request-id', ctx.traceId);
     res.setHeader('x-content-type-options', 'nosniff');
     res.setHeader('referrer-policy', 'same-origin');
@@ -107,7 +124,7 @@ export function serve(service, port, handler) {
       } finally {
         if (!['/health', '/metrics'].includes(route)) {
           // Route labels deliberately omit query strings, SKUs, cookies and prompts.
-          const safeRoute = ['/api/products', '/api/recommendations', '/api/chat', '/api/cart', '/api/orders', '/api/payment', '/api/payments', '/api/shipping', '/api/ops', '/api/status', '/api/ready'].includes(route) ? route : 'other';
+          const safeRoute = ['/api/auth', '/api/admin', '/api/settings', '/api/catalogue', '/api/products', '/api/recommendations', '/api/chat', '/api/cart', '/api/orders', '/api/payment', '/api/payments', '/api/shipping', '/api/ops', '/api/status', '/api/ready'].includes(route) ? route : 'other';
           const key = `route="${safeRoute}",status="${res.statusCode}"`;
           counts.set(key, (counts.get(key) || 0) + 1);
           requests++; duration += (Date.now() - start) / 1000;

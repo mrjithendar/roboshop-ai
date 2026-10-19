@@ -1,434 +1,77 @@
+# Service settings live in services/<name>/compose.yml.
 name: robotshop-ai
 services:
   product-ingestion:
-    build: .
-    image: robotshop-ai:local
-    command:
-    - node
-    - services/product-ingestion/server.mjs
-    environment:
-      INGESTION_URL: http://product-ingestion:4101
-      RECOMMENDATION_URL: http://recommendation-service:4102
-      AGENT_URL: http://shopping-agent:4103
-      SRE_URL: http://sre-copilot:4104
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
-      PAYMENT_URL: http://payment-service:4105
-    init: true
-    restart: unless-stopped
-    read_only: true
-    cap_drop:
-    - ALL
-    security_opt:
-    - no-new-privileges:true
-    healthcheck:
-      test:
-      - CMD
-      - node
-      - -e
-      - fetch('http://127.0.0.1:4101/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: '3'
+    extends:
+      file: services/product-ingestion/compose.yml
+      service: product-ingestion
   recommendation-service:
-    build: .
-    image: robotshop-ai:local
-    command:
-    - node
-    - services/recommendation-service/server.mjs
-    environment:
-      INGESTION_URL: http://product-ingestion:4101
-      RECOMMENDATION_URL: http://recommendation-service:4102
-      AGENT_URL: http://shopping-agent:4103
-      SRE_URL: http://sre-copilot:4104
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
-      PAYMENT_URL: http://payment-service:4105
-    init: true
-    restart: unless-stopped
-    read_only: true
-    cap_drop:
-    - ALL
-    security_opt:
-    - no-new-privileges:true
-    healthcheck:
-      test:
-      - CMD
-      - node
-      - -e
-      - fetch('http://127.0.0.1:4102/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: '3'
-    depends_on:
-      product-ingestion:
-        condition: service_healthy
+    extends:
+      file: services/recommendation-service/compose.yml
+      service: recommendation-service
   shopping-agent:
-    build: .
-    image: robotshop-ai:local
-    command:
-    - node
-    - services/shopping-agent/server.mjs
-    environment:
-      INGESTION_URL: http://product-ingestion:4101
-      RECOMMENDATION_URL: http://recommendation-service:4102
-      AGENT_URL: http://shopping-agent:4103
-      SRE_URL: http://sre-copilot:4104
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OPENAI_MODEL: ${OPENAI_MODEL:-}
-      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-}
-      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
-      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
-      PAYMENT_URL: http://payment-service:4105
-    init: true
-    restart: unless-stopped
-    read_only: true
-    cap_drop:
-    - ALL
-    security_opt:
-    - no-new-privileges:true
-    healthcheck:
-      test:
-      - CMD
-      - node
-      - -e
-      - fetch('http://127.0.0.1:4103/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: '3'
-    depends_on:
-      product-ingestion:
-        condition: service_healthy
+    extends:
+      file: services/shopping-agent/compose.yml
+      service: shopping-agent
   sre-copilot:
-    build: .
-    image: robotshop-ai:local
-    command:
-    - node
-    - services/sre-copilot/server.mjs
-    environment:
-      INGESTION_URL: http://product-ingestion:4101
-      RECOMMENDATION_URL: http://recommendation-service:4102
-      AGENT_URL: http://shopping-agent:4103
-      SRE_URL: http://sre-copilot:4104
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
-      PAYMENT_URL: http://payment-service:4105
-      SHIPPING_URL: http://shipping-service:4106
-    init: true
-    restart: unless-stopped
-    read_only: true
-    cap_drop:
-    - ALL
-    security_opt:
-    - no-new-privileges:true
-    healthcheck:
-      test:
-      - CMD
-      - node
-      - -e
-      - fetch('http://127.0.0.1:4104/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: '3'
+    extends:
+      file: services/sre-copilot/compose.yml
+      service: sre-copilot
   ai-gateway:
-    build: .
-    image: robotshop-ai:local
-    command:
-    - node
-    - services/ai-gateway/server.mjs
-    environment:
-      INGESTION_URL: http://product-ingestion:4101
-      RECOMMENDATION_URL: http://recommendation-service:4102
-      AGENT_URL: http://shopping-agent:4103
-      SRE_URL: http://sre-copilot:4104
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
-      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:3000}
-      ASSISTANT_AI_ENABLED: ${ASSISTANT_AI_ENABLED:-false}
-      PAYMENT_URL: http://payment-service:4105
-      PAYMENT_SERVICE_TOKEN: ${PAYMENT_SERVICE_TOKEN:-}
-      SHIPPING_URL: http://shipping-service:4106
-      RABBITMQ_URL: amqp://${RABBITMQ_USERNAME:?Set RABBITMQ_USERNAME}:${RABBITMQ_PASSWORD:?Set
-        RABBITMQ_PASSWORD}@rabbitmq:5672
-      TRUST_PROXY: 'true'
-    init: true
-    restart: unless-stopped
-    read_only: true
-    cap_drop:
-    - ALL
-    security_opt:
-    - no-new-privileges:true
-    healthcheck:
-      test:
-      - CMD
-      - node
-      - -e
-      - fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: '3'
-    volumes:
-    - shop-data:/app/.data
-    depends_on:
-      product-ingestion:
-        condition: service_healthy
-      recommendation-service:
-        condition: service_healthy
-      shopping-agent:
-        condition: service_healthy
-      sre-copilot:
-        condition: service_healthy
-      payment-service:
-        condition: service_healthy
-      shipping-service:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+    extends:
+      file: services/ai-gateway/compose.yml
+      service: ai-gateway
   otel-collector:
-    image: otel/opentelemetry-collector:0.162.0-386
-    command:
-    - --config=/etc/otelcol/config.yaml
-    volumes:
-    - ./observability/opentelemetry/collector.yaml:/etc/otelcol/config.yaml:ro
-    ports:
-    - 127.0.0.1:4318:4318
-    depends_on:
-    - jaeger
+    extends:
+      file: services/otel-collector/compose.yml
+      service: otel-collector
   jaeger:
-    image: cr.jaegertracing.io/jaegertracing/jaeger:2.22.0
-    ports:
-    - 127.0.0.1:16686:16686
+    extends:
+      file: services/jaeger/compose.yml
+      service: jaeger
   prometheus:
-    image: prom/prometheus:v3.15.0
-    volumes:
-    - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    - ./observability/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
-    - prometheus-data:/prometheus
-    ports:
-    - 127.0.0.1:9090:9090
+    extends:
+      file: services/prometheus/compose.yml
+      service: prometheus
   payment-service:
-    build: .
-    image: robotshop-ai:local
-    command:
-    - node
-    - services/payment-service/server.mjs
-    environment:
-      INGESTION_URL: http://product-ingestion:4101
-      RECOMMENDATION_URL: http://recommendation-service:4102
-      AGENT_URL: http://shopping-agent:4103
-      SRE_URL: http://sre-copilot:4104
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
-      PAYMENT_URL: http://payment-service:4105
-      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
-      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
-      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
-      PAYMENT_SERVICE_TOKEN: ${PAYMENT_SERVICE_TOKEN:-}
-      PAYMENT_MODE: ${PAYMENT_MODE:-live}
-      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:3000}
-    init: true
-    restart: unless-stopped
-    read_only: true
-    cap_drop:
-    - ALL
-    security_opt:
-    - no-new-privileges:true
-    healthcheck:
-      test:
-      - CMD
-      - node
-      - -e
-      - fetch('http://127.0.0.1:4105/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: '3'
+    extends:
+      file: services/payment-service/compose.yml
+      service: payment-service
   shipping-service:
-    build:
-      context: .
-      dockerfile: services/shipping-service/Dockerfile
-    image: robotshop-shipping:local
-    command: []
-    environment:
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
-      SHIPPING_DATABASE_URL: postgresql://shipping_app:${SHIPPING_APP_PASSWORD:?Set
-        SHIPPING_APP_PASSWORD}@shipping-db:5432/shipping
-      SHIPPING_DB_TLS: 'false'
-      SHIPPING_TRACING_ENABLED: 'true'
-      CACHE_ENABLED: 'true'
-      REDIS_HOST: redis
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
-      MESSAGING_ENABLED: 'true'
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:?Set RABBITMQ_USERNAME}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}
-    init: true
-    restart: unless-stopped
-    read_only: true
-    cap_drop:
-    - ALL
-    security_opt:
-    - no-new-privileges:true
-    healthcheck:
-      test:
-      - CMD-SHELL
-      - wget -q -O /dev/null http://127.0.0.1:4106/api/shipping/ready
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 30s
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: '3'
-    depends_on:
-      shipping-migrate:
-        condition: service_completed_successfully
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    tmpfs:
-    - /tmp
+    extends:
+      file: services/shipping-service/compose.yml
+      service: shipping-service
   shipping-db:
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_DB: shipping
-      POSTGRES_USER: shipping
-      POSTGRES_PASSWORD: ${SHIPPING_DB_PASSWORD:?Set SHIPPING_DB_PASSWORD}
-      SHIPPING_APP_PASSWORD: ${SHIPPING_APP_PASSWORD:?Set SHIPPING_APP_PASSWORD}
-    volumes:
-    - shipping-postgres:/var/lib/postgresql/data
-    - ./infrastructure/postgres/10-shipping-role.sh:/docker-entrypoint-initdb.d/10-shipping-role.sh:ro
-    ports:
-    - 127.0.0.1:5432:5432
-    restart: unless-stopped
-    healthcheck:
-      test:
-      - CMD-SHELL
-      - pg_isready -U shipping -d shipping
-      interval: 5s
-      timeout: 3s
-      retries: 10
-  shipping-migrate:
-    build:
-      context: .
-      dockerfile: services/shipping-service/Dockerfile
-    image: robotshop-shipping:local
-    command:
-    - --migrate
-    environment:
-      SHIPPING_DATABASE_URL: postgresql://shipping:${SHIPPING_DB_PASSWORD:?Set SHIPPING_DB_PASSWORD}@shipping-db:5432/shipping
-      SHIPPING_DB_TLS: 'false'
-      SHIPPING_TRACING_ENABLED: 'false'
-    depends_on:
-      shipping-db:
-        condition: service_healthy
-    restart: 'no'
-    tmpfs:
-    - /tmp
+    extends:
+      file: services/postgres/compose.yml
+      service: shipping-db
   redis:
-    image: redis:7.4-alpine
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
-    command:
-    - sh
-    - -c
-    - exec redis-server --requirepass "$$REDIS_PASSWORD" --maxmemory 128mb --maxmemory-policy
-      allkeys-lru --appendonly no --save ""
-    restart: unless-stopped
-    ports:
-    - 127.0.0.1:6379:6379
-    healthcheck:
-      test:
-      - CMD-SHELL
-      - REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG
-      interval: 5s
-      timeout: 3s
-      retries: 10
+    extends:
+      file: services/redis/compose.yml
+      service: redis
   rabbitmq:
-    image: rabbitmq:4.1-management-alpine
-    hostname: robotshop-rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:?Set RABBITMQ_USERNAME}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}
-    volumes:
-    - rabbitmq-data:/var/lib/rabbitmq
-    ports:
-    - 127.0.0.1:5672:5672
-    - 127.0.0.1:15672:15672
-    restart: unless-stopped
-    healthcheck:
-      test:
-      - CMD
-      - rabbitmq-diagnostics
-      - -q
-      - ping
-      interval: 10s
-      timeout: 5s
-      retries: 12
+    extends:
+      file: services/rabbitmq/compose.yml
+      service: rabbitmq
+  frontend:
+    extends:
+      file: services/frontend/compose.yml
+      service: frontend
   nginx:
-    build:
-      context: .
-      dockerfile: infrastructure/nginx/Dockerfile
-    image: robotshop-nginx:local
-    environment:
-      GATEWAY_HOST: ai-gateway
-      GATEWAY_PORT: '3000'
-    ports:
-    - 127.0.0.1:3000:8080
-    depends_on:
-      ai-gateway:
-        condition: service_healthy
-    init: true
-    restart: unless-stopped
-    read_only: true
-    tmpfs:
-    - /tmp
-    cap_drop:
-    - ALL
-    security_opt:
-    - no-new-privileges:true
-    healthcheck:
-      test:
-      - CMD-SHELL
-      - wget -q -O /dev/null http://127.0.0.1:8080/health
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: '3'
+    extends:
+      file: services/nginx/compose.yml
+      service: nginx
+  mcp-server:
+    extends:
+      file: services/mcp-server/compose.yml
+      service: mcp-server
+  mongodb:
+    extends:
+      file: services/mongodb/compose.yml
+      service: mongodb
 volumes:
   shop-data: {}
   prometheus-data: {}
   shipping-postgres: {}
   rabbitmq-data: {}
+  mongo-data: {}

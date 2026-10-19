@@ -1,17 +1,33 @@
-# Read-only MCP adapter
+# Python MCP server
 
-Start the platform first, then configure a local MCP client to run:
+Run `npm run mcp`, or configure an MCP client with the Python interpreter and
+absolute path to `services/mcp-server/server.py`. The process uses stdio JSON-RPC;
+stdout contains protocol responses only. No third-party packages are required.
 
-```json
-{
-  "command": "node",
-  "args": ["/absolute/path/to/robotshop-ai/services/mcp-server/server.mjs"]
-}
-```
+Set `GATEWAY_URL` to the gateway's reachable internal URL. Public tools search and
+compare products, list shipping countries/cities, and inspect service health.
+Availability comes from the gateway, including reserved/sold quantities.
 
-The stdio transport uses newline-delimited JSON-RPC and protocol version 2025-11-25.
-It supports initialize, ping, tools/list and tools/call. Tools: `search_products`
-(`query` string) and `service_health` (empty object). No order, payment or shell tools.
-RECOMMENDATION_URL and SRE_URL select internal services when using other ports.
-Do not run with npm as a client's protocol command: npm's banner is not JSON-RPC.
-Search uses imported catalogue availability, not the gateway's demo order ledger.
+Account tools read/update the cart and return cart-based recommendations. Admin
+tools list/create/update products; super-admin tools list users, change user access,
+and read/update public store settings. All 15 tools have strict input schemas.
+Mutation tools are marked destructive and should be invoked only after the user
+requests the specific change. Tools cannot execute shell commands or take payments.
+
+For protected tools, configure `MCP_SESSION_TOKEN` through the client's secret
+injection facility with the value of an existing `rs_auth` session. Never commit
+it, paste it into prompts, or put it in command-line arguments. Set `PUBLIC_ORIGIN`
+to the store's exact origin for authenticated mutations. The gateway validates the
+session and role on every request: customers cannot use admin tools, admins cannot
+change roles/settings, and the super-admin account remains protected. Sessions
+expire after eight hours and are revoked on logout or access changes. No elevated
+service identity or arbitrary cookie/header override is provided.
+
+MCP does not manage login or refresh tokens. Use the web login flow to establish a
+session. Requests go only to the operator-configured gateway, not arbitrary URLs
+provided by tool arguments. For containers, use the Compose network and
+`GATEWAY_URL=http://ai-gateway:3000`; use `docker run --rm -i`, without a TTY.
+
+Tool and downstream HTTP spans export via `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`.
+Arguments, results and session tokens are excluded. The optional Compose `tools`
+profile supplies the internal collector endpoint for stdio runs.

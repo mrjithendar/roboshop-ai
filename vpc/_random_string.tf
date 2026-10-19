@@ -1,5 +1,1 @@
-# Generate Random String
-resource "random_string" "suffix" {
-  length  = 5
-  special = false
-}
+# AZs are explicitly configured; resource naming does not require random suffixes.

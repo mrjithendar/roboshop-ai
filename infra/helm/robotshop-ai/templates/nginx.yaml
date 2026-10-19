@@ -1,0 +1,100 @@
+{{- if .Values.nginx.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-nginx
+spec:
+  replicas: {{ .Values.nginx.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: nginx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: nginx
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+      containers:
+        - name: nginx
+          image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.tag }}"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          env:
+            - name: FRONTEND_HOST
+              value: "{{ .Release.Name }}-frontend"
+            - name: FRONTEND_PORT
+              value: "8080"
+            - name: GATEWAY_HOST
+              value: "{{ .Release.Name }}-ai-gateway"
+            - name: GATEWAY_PORT
+              value: "3000"
+            - name: NGINX_TLS
+              value: {{ not (empty .Values.nginx.tlsSecretName) | quote }}
+            - name: NGINX_SERVER_NAME
+              value: {{ .Values.nginx.serverName | quote }}
+          ports:
+            - name: http
+              containerPort: 8080
+            {{- if .Values.nginx.tlsSecretName }}
+            - name: https
+              containerPort: 8443
+            {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: {{ if .Values.nginx.tlsSecretName }}https{{ else }}http{{ end }}
+              scheme: {{ if .Values.nginx.tlsSecretName }}HTTPS{{ else }}HTTP{{ end }}
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.nginx.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- if .Values.nginx.tlsSecretName }}
+            - name: tls
+              mountPath: /etc/nginx/tls
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if .Values.nginx.tlsSecretName }}
+        - name: tls
+          secret:
+            secretName: {{ .Values.nginx.tlsSecretName }}
+        {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-nginx
+spec:
+  type: {{ .Values.nginx.serviceType }}
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: nginx
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+    {{- if .Values.nginx.tlsSecretName }}
+    - name: https
+      port: 443
+      targetPort: https
+    {{- end }}
+{{- end }}

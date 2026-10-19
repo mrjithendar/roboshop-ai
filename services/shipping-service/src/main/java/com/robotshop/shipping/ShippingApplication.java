@@ -8,10 +8,10 @@ import com.zaxxer.hikari.HikariDataSource;
 @SpringBootApplication
 public class ShippingApplication {
     public static void main(String[] args) throws Exception {
-        if (java.util.Arrays.asList(args).contains("--migrate")) {
-            try (var pool = Database.pool(true)) { Migrator.run(pool); }
-            return;
-        }
+        // Schema and location seed belong to shipping startup, not a separate service.
+        // Migrator serializes concurrent starts with a PostgreSQL advisory lock.
+        // Fail before opening HTTP or consuming messages if initialization fails.
+        try (var pool = Database.pool(true)) { Migrator.run(pool); }
         SpringApplication.run(ShippingApplication.class, args);
     }
     @Bean(destroyMethod = "close")

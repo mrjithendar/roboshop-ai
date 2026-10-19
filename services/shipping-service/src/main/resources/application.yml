@@ -22,6 +22,7 @@ spring:
       enabled: ${RABBITMQ_TLS:false}
     listener:
       simple:
+        observation-enabled: true
         auto-startup: ${MESSAGING_ENABLED:false}
         prefetch: 10
         default-requeue-rejected: false
@@ -53,9 +54,18 @@ management:
     enabled: ${SHIPPING_TRACING_ENABLED:false}
     sampling:
       probability: 1.0
-  otlp:
+  opentelemetry:
+    resource-attributes:
+      service.version: ${OTEL_SERVICE_VERSION:0.2.0}
+      deployment.environment.name: ${DEPLOYMENT_ENVIRONMENT:development}
     tracing:
-      endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+    logging:
+      export:
+        otlp:
+          enabled: false
   metrics:
     tags:
       service: shipping-service

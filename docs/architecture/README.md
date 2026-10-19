@@ -12,7 +12,7 @@ flowchart LR
   Gateway --> Ledger[(Single-writer order ledger)]
   Recs --> Catalog
   Agent --> Catalog
-  Agent -. optional .-> OpenAI[OpenAI Responses API]
+  Agent -. selected by superadmin .-> LLM[Bedrock Converse or approved Ollama]
   MCP[Stdio MCP client adapter] --> Recs
   MCP --> Ops
   Services[HTTP service spans] --> Collector[OTLP collector]

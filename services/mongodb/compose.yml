@@ -1,0 +1,25 @@
+# Extended by root Compose; paths are relative to this directory.
+services:
+  mongodb:
+    image: mongo:8.2
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?Set MONGO_APP_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+      - ./10-app-user.js:/docker-entrypoint-initdb.d/10-app-user.js:ro
+    ports:
+      - 127.0.0.1:27017:27017
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'mongosh --quiet --eval ''db.adminCommand({ping:1}).ok'' | grep -q 1']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'

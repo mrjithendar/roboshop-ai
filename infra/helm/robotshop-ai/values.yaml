@@ -1,0 +1,113 @@
+imagePullPolicy: IfNotPresent
+# Each application has an independently versioned runtime image.
+serviceImages:
+  ai-gateway:
+    repository: robotshop-ai-gateway
+    tag: local
+  product-ingestion:
+    repository: robotshop-product-ingestion
+    tag: local
+  recommendation-service:
+    repository: robotshop-recommendation-service
+    tag: local
+  shopping-agent:
+    repository: robotshop-shopping-agent
+    tag: local
+  sre-copilot:
+    repository: robotshop-sre-copilot
+    tag: local
+  payment-service:
+    repository: robotshop-payment-service
+    tag: local
+publicOrigin: http://localhost:3000
+# Provider selection lives only in MongoDB and defaults to none.
+llm:
+  serviceSecretName: "" # Existing Secret with LLM_SERVICE_TOKEN (32+ characters).
+  ollamaEndpoints: {} # Example: private-ec2: http://10.0.1.25:11434
+  workloadIdentityEnabled: false
+  serviceAccountAnnotations: {} # IRSA annotations, or associate Pod Identity externally.
+  langfuseSecretName: "" # Optional LANGFUSE_BASE_URL/PUBLIC_KEY/SECRET_KEY only.
+  networkPolicyEnabled: true
+otelTracesEndpoint: http://otel-collector:4318/v1/traces
+deploymentEnvironment: production
+loginActivityRetentionDays: 90
+persistence:
+  size: 1Gi
+  storageClass: ""
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# Secret holds PAYMENT_SERVICE_TOKEN and the three RAZORPAY_* settings.
+paymentSecretName: ""
+paymentMode: live
+
+# External managed PostgreSQL; runtime role needs SELECT on shipping tables and INSERT on shipment_requests.
+shipping:
+  image:
+    repository: robotshop-shipping
+    tag: local
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+  databaseSecretName: ""
+  # Owner credentials used by shipping itself during startup; no separate Job.
+  migrationSecretName: ""
+
+# Managed Redis/RabbitMQ with TLS. Credentials and endpoints come from an existing Secret.
+integrations:
+  enabled: true
+  secretName: ""
+
+nginx:
+  enabled: true
+  image:
+    repository: robotshop-nginx
+    tag: local
+  replicas: 2
+  serviceType: ClusterIP
+  # Leave TLS termination to the cluster ingress/load balancer by default.
+  tlsSecretName: ""
+  serverName: localhost
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+# Existing Secret with MONGODB_URL; use verified TLS for remote MongoDB.
+mongodb:
+  secretName: ""
+  database: robotshop
+
+frontend:
+  replicas: 1
+  image:
+    repository: robotshop-frontend
+    tag: local
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 250m
+      memory: 64Mi
+
+# Only ai-gateway receives the provider secret. Production registration fails closed without protection.
+registration:
+  provider: disabled
+  siteKey: ""
+  hostname: ""
+  secretName: ""
+  # Explicit peer CIDRs for the NGINX proxies; untrusted X-Real-IP is ignored.
+  trustedProxyCidrs: ""

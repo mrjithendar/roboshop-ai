@@ -1,7 +1,7 @@
 package com.robotshop.shipping;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
