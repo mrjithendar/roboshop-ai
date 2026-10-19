@@ -127,3 +127,7 @@ The installer stops at the first failing rollout and prints diagnostics. Fix the
 ### Shipping exits while binding the Redis port
 
 If the previous container log reports `spring.data.redis.port` cannot parse `tcp://...:6379`, Kubernetes service-link variables collided with the application's `REDIS_PORT` setting. The manifests disable service links and shipping explicitly sets `REDIS_PORT=6379` and `RABBITMQ_PORT=5672`. Apply the updated shipping manifest or rerun the deployment script; no image rebuild or database reset is needed. Service discovery continues using Kubernetes DNS.
+
+### HTTPS returns 502 with NGINX "Host not found"
+
+Check `kubectl -n robotshop-ai logs deployment/nginx`. The NGINX Minikube manifest uses `ai-gateway.robotshop-ai.svc.cluster.local` and `frontend.robotshop-ai.svc.cluster.local` for its upstreams. Keep these namespace-qualified names: the runtime NGINX resolver does not expand short names using the pod's DNS search domains. The deployment renderer preserves these settings, and applying the updated manifest updates the pod automatically. Compose continues using its own Docker service names.

@@ -41,6 +41,7 @@ spec:
         env:
         - name: FRONTEND_BASE_PATH
           value: /roboshop
+        # NGINX runtime DNS resolution needs full Kubernetes service names.
         - name: GATEWAY_HOST
           value: ai-gateway.robotshop-ai.svc.cluster.local
         - name: GATEWAY_PORT

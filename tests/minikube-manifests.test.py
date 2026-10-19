@@ -18,6 +18,18 @@ spec.loader.exec_module(deploy)
 
 
 class ManifestTests(unittest.TestCase):
+    def test_rendered_nginx_uses_namespace_qualified_upstreams(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            deploy.render(Path(tmp),'robotshop','local','https://jithendar.com')
+            docs=list(yaml.safe_load_all((Path(tmp)/'nginx-minikube.yaml').read_text()))
+            workload=next(item for item in docs if item['kind']=='Deployment')
+            env={item['name']:item.get('value') for item in workload['spec']['template']['spec']['containers'][0]['env']}
+            self.assertEqual(env['GATEWAY_HOST'],'ai-gateway.robotshop-ai.svc.cluster.local')
+            self.assertEqual(env['FRONTEND_HOST'],'frontend.robotshop-ai.svc.cluster.local')
+            self.assertEqual(env['GATEWAY_PORT'],'3000')
+            self.assertEqual(env['FRONTEND_PORT'],'8080')
+
+
     def test_build_compose_and_renderer_agree_despite_stale_tag(self):
         env={**os.environ,'IMAGE_TAG':'roboshop-path-v1','IMAGE_PREFIX':'robotshop'}
         output=subprocess.check_output(['bash',str(ROOT/'build-images.sh'),'--dry-run'],env=env,text=True)
