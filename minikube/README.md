@@ -255,3 +255,15 @@ Installs Metrics Server in `kube-system` for `kubectl top` and resource-based HP
 From the repository root, use `bash deploy-minikube.sh` to apply each service's `*-minikube.yaml` in dependency order. See [application deployment](robotshop/README.md) for building/loading images, remote deployment and configuration.
 
 RobotShop is served at **https://jithendar.com/roboshop/** using the root `deploy-minikube.sh` script. See [HTTPS routing and rebuild instructions](robotshop/README.md#https-access-at-jithendarcomroboshop). WordPress continues serving the domain root.
+
+### Use the downloaded kubeconfig without exporting it
+
+From the repository root:
+
+```bash
+bash kubectl.sh get nodes
+bash kubectl.sh -n robotshop-ai get pods
+bash deploy-minikube.sh
+```
+
+`kubectl.sh` uses `~/.kube/vultr-minikube.json` and fails clearly if it is missing. The deployment script also selects this file when present; on the Minikube host it falls back to the usual kubectl configuration. Both respect an existing `KUBECONFIG`. Neither changes your shell or overwrites `~/.kube/config`. Plain `kubectl` commands still use your shell's configuration.

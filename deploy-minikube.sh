@@ -31,6 +31,11 @@ if [[ -n "$render_output" ]]; then
   echo "Manifests rendered in $render_output. No cluster changes made."
   exit 0
 fi
+# Prefer the downloaded Vultr config without changing the caller's shell.
+# An explicit KUBECONFIG always takes precedence; otherwise fall back to kubectl defaults.
+if [[ -z "${KUBECONFIG:-}" && -f "$HOME/.kube/vultr-minikube.json" ]]; then
+  export KUBECONFIG="$HOME/.kube/vultr-minikube.json"
+fi
 command -v kubectl >/dev/null || fail 'kubectl is required.'
 PROFILE="${PROFILE:-mk4}"
 [[ "$PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || fail 'Invalid PROFILE.'
