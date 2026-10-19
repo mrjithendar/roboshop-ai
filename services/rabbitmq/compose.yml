@@ -2,7 +2,7 @@
 # Run Compose from the repository root; paths here are relative to this directory.
 services:
   rabbitmq:
-    image: rabbitmq:4.1-management-alpine
+    image: rabbitmq:4.3-management-alpine
     hostname: robotshop-rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-robotshop}
