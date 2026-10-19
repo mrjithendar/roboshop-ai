@@ -11,13 +11,44 @@ fail() { echo "ERROR: $*" >&2; exit 1; }
 usage() {
   echo 'Usage: bash minikube/install.sh [install|start|status|stop]'
   echo 'Overrides: PROFILE, NODES, CPUS, MEMORY (MiB/node), INSTALL_DIR'
+  echo 'Linux root sessions delegate to MINIKUBE_USER (default robotshop).'
   echo 'Optional download pins: MINIKUBE_VERSION=vX.Y.Z, KUBECTL_VERSION=vX.Y.Z'
 }
 case "$ACTION" in -h|--help|help) usage; exit 0 ;; install|start|status|stop) ;; *) usage >&2; exit 1 ;; esac
 [[ $# -le 1 ]] || fail 'Expected at most one action.'
 case "$(uname -s)" in Linux) OS=linux ;; Darwin) OS=darwin ;; *) fail 'Supported systems: Linux and macOS.' ;; esac
 case "$(uname -m)" in x86_64|amd64) ARCH=amd64 ;; arm64|aarch64) ARCH=arm64 ;; *) fail 'Supported architectures: amd64 and arm64.' ;; esac
-[[ "$EUID" -ne 0 ]] || fail 'Run as your normal user, without sudo.'
+if [[ "$EUID" == 0 ]]; then
+  [[ "$OS" == linux ]] || fail 'On macOS, run as your normal user.'
+  TARGET_USER="${MINIKUBE_USER:-${SUDO_USER:-robotshop}}"
+  [[ "$TARGET_USER" == root ]] && TARGET_USER=robotshop
+  [[ "$TARGET_USER" =~ ^[a-z_][a-z0-9_-]*$ ]] || fail 'Invalid MINIKUBE_USER.'
+  SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+  if ! id "$TARGET_USER" >/dev/null 2>&1; then
+    if [[ "$ACTION" == install || "$ACTION" == start ]]; then
+      [[ -f "$SCRIPT_DIR/setup-centos.sh" ]] || fail 'Run minikube/setup-centos.sh first to create the runtime user.'
+      export MINIKUBE_USER="$TARGET_USER" PROFILE NODES CPUS MEMORY
+      if [[ "$ACTION" == start ]]; then
+        exec bash "$SCRIPT_DIR/setup-centos.sh" --start
+      fi
+      exec bash "$SCRIPT_DIR/setup-centos.sh"
+    fi
+    fail "User $TARGET_USER does not exist. Run setup-centos.sh first."
+  fi
+  [[ "$(id -u "$TARGET_USER")" -ge 1000 ]] || fail 'MINIKUBE_USER must have a regular UID >= 1000.'
+  TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
+  [[ "$TARGET_HOME" == /* && "$TARGET_HOME" != / && "$TARGET_HOME" != /root && -d "$TARGET_HOME" ]] || fail 'Runtime user needs a regular home directory.'
+  command -v runuser >/dev/null 2>&1 || fail 'Install util-linux to provide runuser.'
+  echo "Running $ACTION as $TARGET_USER; your shell remains root."
+  # Stream this script through stdin so /root checkouts need no permission changes.
+  # Clear root's Docker, Kubernetes and home configuration before delegation.
+  exec runuser -u "$TARGET_USER" -- env -i \
+    HOME="$TARGET_HOME" USER="$TARGET_USER" LOGNAME="$TARGET_USER" \
+    PATH=/usr/local/bin:/usr/bin:/bin \
+    PROFILE="$PROFILE" NODES="$NODES" CPUS="$CPUS" MEMORY="$MEMORY" \
+    MINIKUBE_VERSION="${MINIKUBE_VERSION:-}" KUBECTL_VERSION="${KUBECTL_VERSION:-}" \
+    bash -c 'cd "$HOME" && exec bash -s -- "$@"' bash "$ACTION" < "${BASH_SOURCE[0]}"
+fi
 [[ "$INSTALL_DIR" == /* ]] || fail 'INSTALL_DIR must be an absolute path.'
 export PATH="$INSTALL_DIR:$PATH"
 TEMP_DIR=''

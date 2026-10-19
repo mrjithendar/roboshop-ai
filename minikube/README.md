@@ -53,3 +53,15 @@ Only `install.sh` is copied to `~/robotshop-minikube/install.sh` (refreshed on r
 This setup targets CentOS Stream 9/10, the versions supported by [Docker's CentOS installation guide](https://docs.docker.com/engine/install/centos/). CentOS 7 and older Stream releases are not supported by this setup. Enable the default CentOS extras repository if your image has disabled it. The host needs outbound access to Docker, Minikube, Kubernetes release servers and container registries.
 
 Troubleshooting: `sudo systemctl status docker`, `sudo journalctl -u docker --no-pager -n 50`, `id -nG`, and `docker context ls`. Run Minikube as your normal user, not with sudo. A 2 GiB host cannot accommodate the default four-node cluster; allocate more RAM or choose an appropriately sized single-node host.
+
+## Run commands directly from a root shell
+
+On Linux, the main script automatically delegates to `robotshop` (or `MINIKUBE_USER`). You stay logged in as root; Minikube runs as the regular user. No manual `su`, `runuser`, or PATH changes are needed:
+
+```sh
+PROFILE=robotshop NODES=1 MEMORY=3072 bash minikube/install.sh start
+PROFILE=robotshop bash minikube/install.sh status
+PROFILE=robotshop bash minikube/install.sh stop
+```
+
+If the runtime account is missing, `install`/`start` invokes the CentOS setup automatically (supported on Stream 9/10). If the account already exists but Docker is not ready, run `bash minikube/setup-centos.sh` first. Root delegation uses the runtime user's home and `~/.local/bin`, ignoring root's `INSTALL_DIR`, Docker context and Kubernetes configuration. Always use the same `PROFILE` when managing a cluster. macOS still requires running the script as a regular user.

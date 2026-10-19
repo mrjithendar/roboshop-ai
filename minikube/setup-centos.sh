@@ -20,6 +20,7 @@ case "$(uname -m)" in x86_64|aarch64|arm64) ;; *) fail 'Supported architectures:
 ADMIN=()
 if [[ "$EUID" == 0 ]]; then
   TARGET_USER="${MINIKUBE_USER:-${SUDO_USER:-robotshop}}"
+  [[ "$TARGET_USER" == root ]] && TARGET_USER=robotshop
   [[ "$TARGET_USER" =~ ^[a-z_][a-z0-9_-]*$ && "$TARGET_USER" != root ]] || fail 'MINIKUBE_USER must name a regular user.'
   if id "$TARGET_USER" >/dev/null 2>&1; then
     [[ "$(id -u "$TARGET_USER")" -ge 1000 ]] || fail 'Choose a regular user with UID >= 1000.'
