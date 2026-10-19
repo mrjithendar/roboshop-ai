@@ -43,6 +43,33 @@ spec:
         runAsUser: 65534
         runAsGroup: 65534
         fsGroup: 65534
+      {{- if .Values.volumePermissions.enabled }}
+      # Repair only the mounted data PVC before the non-root server starts.
+      # Existing TSDB files are retained; no host filesystem is mounted here.
+      initContainers:
+        - name: data-permissions
+          image: {{ .Values.volumePermissions.image | quote }}
+          command:
+            - sh
+            - -ec
+            - |
+              chown -R 65534:65534 /prometheus-data
+              chmod -R u+rwX /prometheus-data
+          securityContext:
+            runAsNonRoot: false
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+              add: [CHOWN, FOWNER, DAC_OVERRIDE]
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          volumeMounts:
+            - {name: data, mountPath: /prometheus-data}
+      {{- end }}
       containers:
         - name: prometheus
           image: {{ .Values.image | quote }}

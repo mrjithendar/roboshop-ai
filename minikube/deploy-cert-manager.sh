@@ -54,4 +54,5 @@ fi
 k get clusterissuer letsencrypt-staging letsencrypt-prod
 echo 'cert-manager and Let’s Encrypt issuers are ready. No website certificate has been requested.'
 echo 'Use letsencrypt-prod for trusted certificates; letsencrypt-staging for testing.'
-echo 'For jithendar.com, see minikube/cert-manager/certificate.example.yaml and README.md.'
+echo 'Application installers manage their certificates: shared monitoring/certificate.yaml for Grafana + Prometheus; WordPress chart for WordPress.'
+echo 'See minikube/monitoring/README.md for certificate ownership. The robotshop-ai certificate.example.yaml is a legacy/manual example only.'

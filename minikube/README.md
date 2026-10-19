@@ -1,3 +1,6 @@
+kubectl -n monitoring get secret prometheus-auth \
+  -o jsonpath='{.data.password}' | base64 --decode; echo
+
 # Minikube on Linux and macOS
 
 The scripts support amd64 and arm64. Minikube runs as the current effective user: root stays root, and a regular user stays that user. No `robotshop` account or forwarding wrappers are created.
@@ -231,4 +234,6 @@ bash minikube/deploy-prometheus.sh
 bash minikube/deploy-grafana.sh
 ```
 
-Prometheus runs in `robotshop-ai` at **https://jithendar.com/prometheus/** with persistent storage and a generated login password. Rerunning the Grafana installer provisions its internal Prometheus data source. See [Prometheus setup](prometheus/README.md) for credentials, scrape targets and troubleshooting.
+Prometheus runs in `monitoring` at **https://jithendar.com/prometheus/** with persistent storage and a generated login password. Rerunning the Grafana installer provisions its internal Prometheus data source. See [Prometheus setup](prometheus/README.md) for credentials, scrape targets and troubleshooting.
+
+Grafana and Prometheus both install in the **`monitoring`** namespace and share its TLS certificate. See [monitoring namespace notes](monitoring/README.md) before changing an existing installation.

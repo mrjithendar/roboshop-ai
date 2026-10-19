@@ -1,0 +1,18 @@
+# The ONLY monitoring Certificate declaration. Both installers apply this same object.
+# Namespace: monitoring; Certificate: jithendar-com; generated TLS Secret: jithendar-com-tls.
+# Consumers: grafana Ingress (/grafana) and prometheus Ingress (/prometheus).
+# Applying this manifest again updates the existing object; it does not make another one.
+# WordPress has a separate namespace-local certificate in jithendar-com.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: jithendar-com
+  namespace: monitoring
+spec:
+  secretName: jithendar-com-tls
+  dnsNames:
+    - jithendar.com
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io

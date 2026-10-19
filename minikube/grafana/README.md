@@ -20,11 +20,11 @@ KUBE_CONTEXT=mk4 bash minikube/deploy-grafana.sh
 
 ## What is deployed
 
-- Pinned Grafana community Helm chart **14.0.1**, release `grafana`, namespace `robotshop-ai`.
+- Pinned Grafana community Helm chart **14.0.1**, release `grafana`, namespace `monitoring`.
 - One Grafana replica with a **2 GiB persistent volume** for dashboards, users and settings. This is a single-instance sandbox deployment; back up the volume before resetting Minikube.
 - A ClusterIP service and a Traefik HTTPS Ingress for `/grafana` with Prefix matching. No rewrite or StripPrefix middleware is needed. Other website paths remain available for RobotShop's own ingress.
-- The shared `jithendar-com` Certificate from `../cert-manager/certificate.example.yaml`, issued by `letsencrypt-prod`, stored in `jithendar-com-tls`. Existing matching resources are updated in place. Do not also configure ingress-shim to manage this same Secret, or create another certificate controller owner for it.
-- Secure cookies, anonymous access disabled, sign-up disabled, and a chart-generated random administrator password. HTTPS terminates at Traefik; in-cluster traffic to Grafana uses HTTP.
+- The shared `jithendar-com` Certificate from `../monitoring/certificate.yaml`, issued by `letsencrypt-prod`, stored in `jithendar-com-tls`. Existing matching resources are updated in place. Do not also configure ingress-shim to manage this same Secret, or create another certificate controller owner for it.
+- Secure cookies, anonymous access disabled, sign-up disabled, and the shared `monitoring-auth` administrator credentials. HTTPS terminates at Traefik; in-cluster traffic to Grafana uses HTTP.
 
 The HTTPS-only Traefik router does not add a new HTTP redirect. Open the HTTPS URL directly. An existing controller-wide HTTP-to-HTTPS redirect can remain in place.
 
@@ -39,15 +39,15 @@ curl -I https://jithendar.com/grafana/login
 Username: `admin`. Retrieve the initial password using the context printed by the script:
 
 ```bash
-kubectl --context=YOUR_CONTEXT -n robotshop-ai get secret grafana \
-  -o jsonpath='{.data.admin-password}' | base64 --decode; echo
+kubectl --context=YOUR_CONTEXT -n monitoring get secret monitoring-auth \
+  -o jsonpath='{.data.password}' | base64 --decode; echo
 ```
 
-Change it after logging in. A later password change in Grafana does not update this bootstrap Secret. Rerunning the installer upgrades the release and preserves its existing Secret and volume; it does not reset your Grafana login password.
+The Grafana installer synchronizes administrator user ID 1 with the shared Secret on each deployment. A password changed only in Grafana’s UI is therefore replaced on the next deployment. Manage this credential through the shared Secret; see [shared credentials](../monitoring/README.md#shared-login-secret).
 
 ## Connect metrics
 
-Run `bash minikube/deploy-prometheus.sh`, then rerun `bash minikube/deploy-grafana.sh`. Grafana provisions the default **Prometheus** data source using `http://prometheus.robotshop-ai.svc.cluster.local:9090/prometheus`. In Explore, query `up` to verify it. The Grafana installer does not itself install Prometheus; until Prometheus exists the data source will be unavailable. See [Prometheus setup](../prometheus/README.md) for scrape targets and public login details.
+Run `bash minikube/deploy-prometheus.sh`, then rerun `bash minikube/deploy-grafana.sh`. Grafana provisions the default **Prometheus** data source using `http://prometheus.monitoring.svc.cluster.local:9090/prometheus`. In Explore, query `up` to verify it. The Grafana installer does not itself install Prometheus; until Prometheus exists the data source will be unavailable. See [Prometheus setup](../prometheus/README.md) for scrape targets and public login details.
 
 Edit `values.yaml` to configure Grafana, storage, or resources, then rerun the installer. When changing the domain/path, update the ingress, `grafana.ini.server.root_url`, and shared certificate together. Avoid changing the pinned chart version without reviewing its upgrade notes.
 
@@ -56,11 +56,11 @@ Edit `values.yaml` to configure Grafana, storage, or resources, then rerun the i
 Use the same context as the installer (`kubectl --context=YOUR_CONTEXT ...`):
 
 ```bash
-kubectl -n robotshop-ai get pods,pvc,svc,ingress
-kubectl -n robotshop-ai describe pod -l app.kubernetes.io/name=grafana
-kubectl -n robotshop-ai logs deployment/grafana -c grafana --tail=100
-kubectl -n robotshop-ai get certificate,certificaterequest,orders,challenges
-kubectl -n robotshop-ai describe certificate jithendar-com
+kubectl -n monitoring get pods,pvc,svc,ingress
+kubectl -n monitoring describe pod -l app.kubernetes.io/name=grafana
+kubectl -n monitoring logs deployment/grafana -c grafana --tail=100
+kubectl -n monitoring get certificate,certificaterequest,orders,challenges
+kubectl -n monitoring describe certificate jithendar-com
 kubectl get ingressclass,storageclass
 ```
 
@@ -73,3 +73,7 @@ kubectl get ingressclass,storageclass
 - **No metrics:** configure a reachable Prometheus data source; Grafana does not collect metrics itself.
 
 Configuration follows [Grafana's reverse proxy guidance](https://grafana.com/tutorials/run-grafana-behind-a-proxy/) and the [Grafana Helm installation guide](https://grafana.com/docs/grafana/latest/setup-grafana/installation/helm/).
+
+For existing installations in `robotshop-ai`, see [namespace migration notes](../monitoring/README.md). The installers do not move data between namespaces.
+
+**TLS ownership:** Grafana and Prometheus share the single `monitoring/jithendar-com` Certificate and `monitoring/jithendar-com-tls` Secret. Both installers reapply the same manifest; they do not request per-application certificates. See [certificate ownership and verification](../monitoring/README.md#certificate-ownership).

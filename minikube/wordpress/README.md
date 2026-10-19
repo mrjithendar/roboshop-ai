@@ -35,7 +35,7 @@ The host-routing script still runs only on Vultr. These files do not configure l
 | MySQL 8.4 | Posts, users, settings | 5 GiB PVC |
 | Redis 7.4 | Authenticated, dedicated WordPress object cache | Disposable memory cache, 96 MiB limit |
 
-All Services are cluster-internal. Traefik exposes only WordPress HTTPS, using its own `jithendar-com-tls` Secret in `jithendar-com`. The chart requests a Let’s Encrypt certificate in this namespace. Grafana retains its separate certificate and resources in `robotshop-ai`. Redis is an **object cache**, not a full-page cache or a database replacement. The Redis Object Cache plugin uses bundled Predis, so no custom PHP image is required.
+All Services are cluster-internal. Traefik exposes only WordPress HTTPS, using its own `jithendar-com-tls` Secret in `jithendar-com`. The chart requests a Let’s Encrypt certificate in this namespace. Grafana retains its separate certificate and resources in `monitoring`. Redis is an **object cache**, not a full-page cache or a database replacement. The Redis Object Cache plugin uses bundled Predis, so no custom PHP image is required.
 
 This is a single-instance Minikube deployment, not a highly available production cluster. CPU/memory requests total approximately 360m/544Mi; configured container memory limits total about 1.7 GiB. Available space and resources must also accommodate RobotShop, Grafana and Kubernetes. PVCs use the default StorageClass.
 
@@ -93,6 +93,6 @@ References: [official WordPress image](https://hub.docker.com/_/wordpress), [Red
 
 Changing the deployment namespace does not move existing MySQL data, uploads, Secrets, or Helm releases. The installer checks for the old WordPress PVCs and stops before mutation if they exist. It also rejects the old root ingress as a competing route. Do not delete the old namespace or PVCs to bypass these checks.
 
-For an existing site, plan a maintenance window: back up MySQL with a consistent logical dump, archive the WordPress files, and securely export `wordpress-credentials`; restore them into new PVCs and a Secret in `jithendar-com`. Verify the restored site privately before moving the root ingress. Preserve the old volumes and backups until the new site is verified. Grafana and RobotShop resources in `robotshop-ai` do not need to move. This deployment script performs fresh installs and same-namespace upgrades; it does not automate cross-namespace data migration.
+For an existing site, plan a maintenance window: back up MySQL with a consistent logical dump, archive the WordPress files, and securely export `wordpress-credentials`; restore them into new PVCs and a Secret in `jithendar-com`. Verify the restored site privately before moving the root ingress. Preserve the old volumes and backups until the new site is verified. RobotShop resources in `robotshop-ai` and Grafana resources in `monitoring` do not need to move. This deployment script performs fresh installs and same-namespace upgrades; it does not automate cross-namespace data migration.
 
 For a fresh cluster, run the installer normally; all WordPress resources and generated credentials are created in `jithendar-com`.

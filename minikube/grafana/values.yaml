@@ -17,8 +17,11 @@ resources:
   limits:
     cpu: 500m
     memory: 512Mi
-# The chart generates a random admin password and reuses it on upgrades.
-adminUser: admin
+# Shared with Prometheus's Traefik BasicAuth middleware; created by credentials.py.
+admin:
+  existingSecret: monitoring-auth
+  userKey: username
+  passwordKey: password
 ingress:
   enabled: true
   ingressClassName: traefik
@@ -65,7 +68,7 @@ datasources:
         uid: robotshop-prometheus
         type: prometheus
         access: proxy
-        url: http://prometheus.robotshop-ai.svc.cluster.local:9090/prometheus
+        url: http://prometheus.monitoring.svc.cluster.local:9090/prometheus
         isDefault: true
         editable: false
         jsonData:

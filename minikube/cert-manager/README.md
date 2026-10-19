@@ -31,7 +31,15 @@ LETSENCRYPT_EMAIL=jithendardharmapuri@gmail.com INGRESS_CLASS=traefik \
 
 Use the actual installed class from `kubectl get ingressclass`. The script installs cert-manager, **not an ingress controller or the RobotShop app**. It reports a missing ingress class but can still register the ACME accounts. Reruns use Helm upgrades and preserve existing account keys. If an issuer or cert-manager installation already belongs to another Helm release, reconcile ownership deliberately rather than deleting it.
 
-## Request the jithendar.com certificate
+## Which certificate file to use
+
+- **Grafana + Prometheus:** both installers apply `minikube/monitoring/certificate.yaml`, creating one shared Certificate in `monitoring`.
+- **WordPress:** its Helm chart creates its Certificate in `jithendar-com`.
+- **Legacy/manual RobotShop setup only:** `certificate.example.yaml` targets `robotshop-ai`. Do not apply it for the monitoring setup.
+
+See [certificate ownership](../monitoring/README.md#certificate-ownership) for the resource names and live verification commands.
+
+## Optional legacy RobotShop certificate example
 
 Before requesting a certificate, make `jithendar.com` resolve directly to your Vultr server and ensure public TCP port **80** reaches your ingress controller for HTTP-01 validation. Port **443** is needed for the website. Minikube's private NodePort alone is not public access; keep the site's host routing/load balancer in place. These requirements also apply to renewal.
 

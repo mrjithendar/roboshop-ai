@@ -1,5 +1,9 @@
 image: prom/prometheus:v3.15.0
 storage: 5Gi
+# Minikube hostPath-backed storage may not apply fsGroup ownership automatically.
+volumePermissions:
+  enabled: true
+  image: busybox:1.37.0
 retentionTime: 7d
 retentionSize: 4GB
 # Add Kubernetes-reachable scrape jobs here. Docker Compose DNS is separate.

@@ -21,6 +21,9 @@ class GrafanaTests(unittest.TestCase):
                 '#!/bin/sh\n'
                 f'echo "{name} $*" >> "$TEST_LOG"\n'
                 'case "$*" in\n'
+                ' *"get secret monitoring-auth"*) echo \'{"type":"kubernetes.io/basic-auth","data":{"username":"YWRtaW4=","password":"dGVzdA=="}}\';;\n'
+                ' *"exec -i deployment/grafana"*) cat >/dev/null;;\n'
+                ' *"-n robotshop-ai get deployment/grafana"*) if [ "${LEGACY_DATA:-no}" = yes ]; then echo pvc/grafana; fi;;\n'
                 ' *"get ingressclass traefik"*) exit "${INGRESS_EXIT:-0}";;\n'
                 ' *"wait --for=condition=Ready certificate/jithendar-com"*) exit "${CERT_EXIT:-0}";;\n'
                 ' *"apply -f -"*) cat >/dev/null;;\n'
@@ -33,6 +36,8 @@ class GrafanaTests(unittest.TestCase):
         self.env = {k: v for k, v in os.environ.items() if k not in (
             'PROFILE', 'KUBE_CONTEXT', 'MINIKUBE_HOME', 'GRAFANA_CHART_VERSION')}
         self.env.update(HOME=str(self.root), TEST_LOG=str(self.root / 'calls'))
+        (self.root / 'monitoring').mkdir()
+        (self.root / 'monitoring/credentials.py').write_text((SCRIPT.parent / 'monitoring/credentials.py').read_text())
         self.script = self.root / 'deploy.sh'
         self.script.write_text(SCRIPT.read_text().replace(
             '/usr/local/bin:$HOME/.local/bin:$PATH', '$HOME/.local/bin:$PATH'))
@@ -47,10 +52,20 @@ class GrafanaTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('--kube-context=mk4-selected upgrade --install grafana', calls)
         self.assertIn('--version 14.0.1', calls)
+        self.assertIn('--namespace monitoring', calls)
+        self.assertIn('monitoring/certificate.yaml', calls)
+        self.assertIn('-n monitoring wait', calls)
         self.assertLess(calls.index('get ingressclass'), calls.index('apply -f'))
         self.assertLess(calls.index('upgrade --install'), calls.index('certificate/jithendar-com'))
         self.assertIn('https://jithendar.com/grafana/', result.stdout)
-        self.assertNotIn(' get secret ', calls)  # No automatic credential disclosure.
+        self.assertNotIn('test', result.stdout)  # Credential values are never printed.
+
+    def test_old_namespace_data_stops_before_mutation(self):
+        result, calls = self.run_script(LEGACY_DATA='yes')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Existing grafana resources', result.stderr)
+        self.assertNotIn('helm ', calls)
+        self.assertNotIn('apply ', calls)
 
     def test_missing_ingress_stops_before_mutation(self):
         result, calls = self.run_script(INGRESS_EXIT='1')

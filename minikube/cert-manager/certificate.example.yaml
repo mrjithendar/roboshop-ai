@@ -1,3 +1,5 @@
+# LEGACY / OPTIONAL EXAMPLE for robotshop-ai; not used by monitoring installers.
+# For Grafana + Prometheus use minikube/monitoring/certificate.yaml instead.
 # Optional: apply only after DNS and the ingress controller are reachable on port 80.
 # This creates a TLS Secret; your site's Ingress must reference this Secret too.
 apiVersion: cert-manager.io/v1
