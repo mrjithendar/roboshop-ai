@@ -14,10 +14,10 @@ bash deploy-minikube.sh --load-images
 
 `--load-images` loads the eleven application images into the selected Minikube profile before applying manifests. Build on the host's architecture, or use `build-images.sh --platform linux/amd64` for an amd64 cluster. Existing `build-images.sh` does not push images. Infrastructure images are pulled from their upstream registries by Kubernetes.
 
-The script follows the selected profile saved by `minikube/install.sh` (base `PROFILE=mk4`). The profile and Kubernetes context must match when loading images. If you already loaded the images on all nodes, simply run:
+The script follows the selected profile saved by `minikube/install.sh` (base `PROFILE=mk4`). The profile and Kubernetes context must match when loading images. The default deploy command loads images and restarts applications. To deliberately apply manifests only (without an image refresh), run:
 
 ```bash
-bash deploy-minikube.sh
+bash deploy-minikube.sh --manifests-only
 ```
 
 Local images must be available to every node where pods may schedule. This script does not build images automatically. For private registry images, configure registry access/image pull credentials on the cluster before deploying.
@@ -29,7 +29,7 @@ First build and push your images to a registry accessible to the cluster, using 
 ```bash
 export KUBECONFIG="$HOME/.kube/vultr-minikube.json"
 IMAGE_PREFIX=registry.example.com/team/robotshop KUBE_CONTEXT=mk4 \
-  bash deploy-minikube.sh
+  bash deploy-minikube.sh --registry-images
 ```
 
 Replace the example prefix with your registry prefix; publish every application image with the local tag. The renderer changes application image references only; infrastructure images retain their checked-in versions. Run `--load-images` on the actual Minikube host, not on a Mac pointed at the remote cluster.
@@ -122,7 +122,7 @@ The installer stops at the first failing rollout and prints diagnostics. Fix the
 
 ### Rebuilding the same local tag
 
-`bash build-images.sh` and `bash deploy-minikube.sh --load-images` always use matching `:local` application images. An old exported `IMAGE_TAG` is ignored. The loader checks that all eleven images exist in host Docker, explicitly overwrites Minikube's cached tags from that daemon, then restarts each application deployment and waits for readiness. Databases and infrastructure are not restarted by this image refresh. Run the loader on the Minikube host. Deployment without `--load-images` does not refresh cached images or force restarts.
+`bash build-images.sh` and `bash deploy-minikube.sh --load-images` always use matching `:local` application images. An old exported `IMAGE_TAG` is ignored. The loader checks that all eleven images exist in host Docker, explicitly overwrites Minikube's cached tags from that daemon, then restarts each application deployment and waits for readiness. Databases and infrastructure are not restarted by this image refresh. Run the loader on the Minikube host. The default command now performs the same refresh as `--load-images`. Only `--manifests-only` skips refreshing images and forcing restarts. `--registry-images` uses `Always` pull policy and restarts applications so a changed registry `:local` tag is fetched. Progress is sequential: a service waiting for readiness delays all later services, including frontend. The script prints each step and the final running image IDs; an incomplete run is not a successful release.
 
 ### Shipping exits while binding the Redis port
 

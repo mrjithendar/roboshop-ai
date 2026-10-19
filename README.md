@@ -378,3 +378,5 @@ Every build removes the previous application `:local` image tags and rebuilds wi
 Preview cleanup and builds without Docker: `bash build-images.sh --local --dry-run`.
 
 The Redis-backed cart service, real-photo catalogue additions, review filters, and isolated 10,000-profile demo dataset are documented in [the catalogue deployment guide](docs/demo-scenarios/global-catalogue.md).
+
+Minikube releases: `bash deploy-minikube.sh` now loads freshly built `:local` images and restarts applications by default. Run it on the Minikube host after `bash build-images.sh`. Use `--manifests-only` only for configuration changes without an image refresh, or `--registry-images` for published images from a remote client. Deployments proceed sequentially; wait for the final success message before checking the new frontend.
