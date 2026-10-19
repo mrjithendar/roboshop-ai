@@ -89,7 +89,7 @@ spec:
               key: MONGODB_URL
               optional: true
         - name: DEMO_REVIEWS_DATABASE
-          value: robotshop_demo_global
+          value: robotshop_demo_merchant20
         - name: CART_URL
           value: http://cart-service:4107
         - name: CART_SERVICE_TOKEN

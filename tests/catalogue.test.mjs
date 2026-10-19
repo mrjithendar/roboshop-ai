@@ -18,3 +18,9 @@ test('ingestion rejects malformed and duplicate products', () => {
   assert.throws(() => normalizeProducts([products[0], products[0]]));
   assert.throws(() => rank(products, { budget: NaN }));
 });
+
+test('merchant collection has 20 priced USD robots with bounded stock and dedicated renders',()=>{
+ const rows=normalizeProducts(JSON.parse(readFileSync(new URL('../services/product-ingestion/products.json',import.meta.url))));
+ assert.equal(rows.length,20);
+ for(const p of rows){assert.equal(p.currency,'USD');assert.equal(p.priceType,'sale');assert.equal(p.showcase,false);assert.ok(p.price>=100&&p.price<=500);assert.ok(p.instock>=20&&p.instock<=50);assert.match(p.image,/product-media\/.*\.png$/);assert.ok(readFileSync(new URL('../services/frontend'+p.image,import.meta.url)).length>1000);}
+});

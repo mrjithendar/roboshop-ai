@@ -149,8 +149,14 @@ class Store:
                     "lineTotal": cents(p["price"]) * quantity / 100,
                 }
             )
+        currencies = {item.get("currency", "EUR") for item in items}
+        if len(currencies) > 1:
+            raise HttpError(409, "Your cart contains mixed currencies. Remove items and retry.")
+        currency = next(iter(currencies), "EUR")
         subtotal = sum(cents(i["lineTotal"]) for i in items) / 100
         shipping = self.state["sessions"][id].get("shipping") if items else None
+        if shipping and shipping.get("currency", "EUR") != currency:
+            shipping = None
         return {
             "items": items,
             "subtotal": subtotal,
@@ -159,7 +165,7 @@ class Store:
                 cents(subtotal) + cents(shipping.get("cost", 0) if shipping else 0)
             )
             / 100,
-            "currency": "EUR",
+            "currency": currency,
         }
 
     def update(self, id, sku, quantity, products):
@@ -182,6 +188,9 @@ class Store:
             raise HttpError(404, "Product not found.")
         if quantity > 0:
             require_purchasable(p)
+            existing = self.state["sessions"][id]["items"]
+            if any(row["sku"] in existing and row["sku"] != sku and row.get("currency", "EUR") != p.get("currency", "EUR") for row in products):
+                raise HttpError(409, "Please check out items in one currency at a time.")
         if quantity > self.available(p):
             raise HttpError(409, "Requested quantity exceeds available stock.")
         next_state = copy.deepcopy(self.state)
@@ -198,6 +207,8 @@ class Store:
     def set_shipping(self, id, shipping, products):
         if self.pending(id):
             raise HttpError(409, "A payment is pending. Shipping cannot be changed.")
+        if shipping.get("currency", "EUR") != self.cart(id, products)["currency"]:
+            raise HttpError(409, "Shipping currency does not match your cart. Recalculate shipping.")
         next_state = copy.deepcopy(self.state)
         next_state["sessions"][id]["shipping"] = shipping
         self.save(next_state)

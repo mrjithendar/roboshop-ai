@@ -38,3 +38,9 @@ test('Razorpay order is server-priced and never permits partial payment', async 
   assert.equal((await provider.create({ amount: 4200, currency: 'EUR', receipt: '11111111-1111-1111-1111-111111111111' })).orderId, 'order_UNIT');
   await assert.rejects(provider.create({ amount: -1, currency: 'EUR', receipt: 'bad' }), /Invalid/);
 });
+
+test('USD orders retain their currency and cents through provider creation',async()=>{
+ const provider=new Razorpay(config,async(url,options)=>({ok:true,json:async()=>({id:'order_USD',...JSON.parse(options.body),status:'created'})}));
+ const order=await provider.create({amount:19900,currency:'USD',receipt:'12345678-1234-1234-1234-123456789abc'});
+ assert.equal(order.currency,'USD');assert.equal(order.amount,19900);
+});

@@ -20,7 +20,7 @@ function $<K extends string>(selector: K): K extends keyof Controls ? Controls[K
 interface Product { slug?: string; currency?: string; priceType?: string; showcase?: boolean; synthetic?: boolean; productType?: string; sku: string; name: string; description: string; image: string; price: number; instock: number; categories: string[] }
 interface CartItem extends Product { quantity: number; lineTotal: number }
 interface Shipping { address: { recipient: string; line1: string }; city: { name: string; country: string }; cost: number; distanceKm: number; quotedAt: string }
-interface Cart { items: CartItem[]; total: number; subtotal?: number; shipping?: Shipping | null }
+interface Cart { currency?: string; items: CartItem[]; total: number; subtotal?: number; shipping?: Shipping | null }
 interface Order extends Cart { id: string; status: 'creating' | 'payment_pending' | 'payment_review' | 'paid'; paymentCaptured: boolean; paymentId?: string }
 interface PaymentConfig { enabled: boolean; message?: string }
 interface CheckoutOptions { key: string; order_id: string; amount: number; currency: string; name: string; description: string }
@@ -32,7 +32,7 @@ interface City { id: number; name: string; region?: string }
 interface Ops { summary: string; services: { name: string; status: string; latencyMs: number }[]; nextSteps: string[]; checkedAt: string }
 class ApiError extends Error { constructor(message: string, readonly status: number) { super(message); } }
 const errorMessage = (error: unknown): string => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
-const money = (value: number) => new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(value);
+const money = (value: number, currency = cart.currency || 'EUR') => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
 let products: Product[] = [], cart: Cart = { items: [], total: 0 }, category = '', chatBusy = false, cartBusy = false;
 let checkoutKey: string | null = null;
 let toastTimer: ReturnType<typeof setTimeout> | undefined, citySearchTimer: ReturnType<typeof setTimeout> | undefined;
@@ -53,7 +53,7 @@ function show(id: string) { const dialog = document.getElementById(id); if (!(di
 document.querySelectorAll<HTMLElement>('[data-close]').forEach(button => button.addEventListener('click', () => { const dialog = document.getElementById(button.dataset.close || ''); if (dialog instanceof HTMLDialogElement) dialog.close(); }));
 document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('click', event => { if (event.target === dialog) { const r = dialog.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close(); } }));
 function image(p: Product, className = '') { const img = el('img', className); img.src = productImage(p); img.alt = p.name; img.loading = 'lazy'; img.addEventListener('error', () => { img.src = productImage({ image: '', productType: p.productType }); }, { once: true }); return img; }
-function productPrice(p: Product) { return p.priceType === 'on-request' ? 'Price on request' : new Intl.NumberFormat(undefined, { style: 'currency', currency: p.currency || 'EUR' }).format(p.price) + (p.showcase ? ' · reference' : ''); }
+function productPrice(p: Product) { return p.priceType === 'on-request' ? '' : new Intl.NumberFormat(undefined, { style: 'currency', currency: p.currency || 'EUR' }).format(p.price) + (p.showcase ? ' · reference' : ''); }
 const canBuy = canPurchase;
 function addButton(p: Product) {
   const button = el('button', 'add-button', canBuy(p) ? 'Add to cart' : 'View details');
@@ -124,7 +124,7 @@ function renderCart() {
 async function paymentResult(order: Order | null) {
   if (order?.status === 'paid' && order.paymentCaptured) {
     pendingOrder = null; checkoutKey = null; paymentReference(null);
-    $('#order-result').textContent = `Payment confirmed. Order ${order.id.slice(0, 8)} · ${money(order.total)}. Reference: ${order.paymentId}`;
+    $('#order-result').textContent = `Payment confirmed. Order ${order.id.slice(0, 8)} · ${money(order.total, order.currency)}. Reference: ${order.paymentId}`;
     cart = await api<Cart>('/api/cart'); renderCart(); await Promise.all([loadProducts(), loadRecommendations()]);
   } else if (order) {
     pendingOrder = order; paymentReference(order.id);

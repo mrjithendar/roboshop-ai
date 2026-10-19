@@ -29,7 +29,7 @@ async function loadAdminProducts(): Promise<void> {
   const { products } = await adminRequest<{ products: AdminProduct[] }>('/api/admin/products');
   control('admin-products').replaceChildren(...products.map(product => {
     const row = node('tr');
-    for (const value of [product.sku, product.name, product.priceType === 'on-request' ? 'Price on request' : `${product.currency || 'EUR'} ${product.price.toFixed(2)}${product.showcase ? ' reference' : ''}`, `${product.available} / ${product.instock}`, product.archived ? 'Archived' : 'Active']) row.append(node('td', value));
+    for (const value of [product.sku, product.name, product.priceType === 'on-request' ? '' : `${product.currency || 'EUR'} ${product.price.toFixed(2)}${product.showcase ? ' reference' : ''}`, `${product.available} / ${product.instock}`, product.archived ? 'Archived' : 'Active']) row.append(node('td', value));
     const action = node('td'), button = node('button', 'Edit'); button.className = 'button secondary'; button.addEventListener('click', () => edit(product)); action.append(button); row.append(action); return row;
   }));
 }

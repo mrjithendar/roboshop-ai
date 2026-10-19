@@ -19,7 +19,7 @@ Open **http://localhost:3000**. The launcher starts seven services and Ctrl+C st
 all of them. Accounts, login sessions, editable products and store settings are stored in MongoDB. Carts/orders remain in `.data/store.json`, which is excluded from Git.
 The default catalogue contains 30 sourced real robotics products, all display-only with simulated inventory and fulfilment. Showcase products cannot enter live checkout. The old demo-order endpoint remains disabled.
 
-See [robotics showcase, reviews, demo seeding and registration protection](docs/deployment/robotics-showcase.md) for provenance, existing-catalogue migration, isolated 10,000-profile/30,000-review seed and cleanup commands, and Turnstile configuration.
+See [robotics showcase, reviews, demo seeding and registration protection](docs/deployment/robotics-showcase.md) for provenance, existing-catalogue migration, isolated synthetic-profile/review seed and cleanup commands, and Turnstile configuration.
 Checkout requires login and uses Razorpay and can collect real money once configured with live merchant
 credentials. Payment controls remain disabled until configuration is complete. Shipping includes destination selection and distance pricing; carrier fulfilment is not integrated. See [payment setup](services/payment-service/README.md).
 
@@ -172,8 +172,7 @@ PAYMENT_SERVICE_TOKEN=YOUR_RANDOM_INTERNAL_TOKEN
 Configure a Razorpay `payment.captured` webhook to
 `https://your-store.example/api/payments/webhook`, enable automatic capture in the
 merchant dashboard, and restart the services. Keep the same webhook secret on both
-sides. Purchasable merchant inventory remains EUR-only; showcase reference prices retain source currencies and are never payable. The merchant account must support EUR
-payments. This change does not convert prices to INR or activate a merchant account.
+sides. Purchasable merchant inventory supports USD and legacy EUR in separate carts; showcase reference prices retain source currencies and are never payable. The merchant account must support the selected currency. This change does not convert prices to INR or activate a merchant account.
 Use `PAYMENT_MODE=test` with test keys for sandbox verification before enabling live
 keys. Live keys require an HTTPS PUBLIC_ORIGIN. No live credentials were configured
 or real payment tested during implementation.
@@ -377,6 +376,6 @@ Every build removes the previous application `:local` image tags and rebuilds wi
 
 Preview cleanup and builds without Docker: `bash build-images.sh --local --dry-run`.
 
-The Redis-backed cart service, real-photo catalogue additions, review filters, and isolated 10,000-profile demo dataset are documented in [the catalogue deployment guide](docs/demo-scenarios/global-catalogue.md).
+The twenty-model USD catalogue, concept renders, and isolated 1,000-profile/3,000-review import are documented in [the catalogue deployment guide](docs/demo-scenarios/merchant-catalogue.md).
 
 Minikube releases: `bash deploy-minikube.sh` now loads freshly built `:local` images and restarts applications by default. Run it on the Minikube host after `bash build-images.sh`. Use `--manifests-only` only for configuration changes without an image refresh, or `--registry-images` for published images from a remote client. Deployments proceed sequentially; wait for the final success message before checking the new frontend.

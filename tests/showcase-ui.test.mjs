@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
 import { normalizeProducts } from '../services/shared/catalogue.mjs';
-const products = normalizeProducts(JSON.parse(await readFile('services/product-ingestion/products.json', 'utf8')));
+const products = normalizeProducts(JSON.parse(await readFile('services/product-ingestion/showcase-reference.json', 'utf8')));
 const html = await readFile('services/frontend/dist/product.html', 'utf8');
-const script = (await readFile('services/frontend/dist/account.js', 'utf8')).replace(/^export /gm, '') + '\n' + (await readFile('services/frontend/dist/product.js', 'utf8')).replace(/^import .*$/gm, '').replace(/^export \{\};?$/m, '');
+const script = (await Promise.all(['paths.js','account.js','product.js'].map(async name => (await readFile('services/frontend/dist/'+name,'utf8')).replace(/^import .*$/gm,'').replace(/^export /gm,'').replaceAll('import.meta.url',JSON.stringify('https://shop.example/paths.js'))))).join('\n');
 async function setup(t, missing = false) {
   const p = products[0], calls = [];
   const dom = new JSDOM(html, { url: `https://shop.example/products/${p.slug}`, runScripts: 'outside-only' }); t.after(() => dom.window.close());
@@ -19,14 +19,14 @@ async function setup(t, missing = false) {
   return { document: dom.window.document, window: dom.window, calls, p };
 }
 test('curated metadata survives normalization without changing currency or source URLs', () => {
-  assert.equal(products.length, 30); assert.ok(products.every(p => p.slug && p.showcase && p.sources.length && p.image === '/images/placeholder.png'));
+  assert.equal(products.length, 32); assert.ok(products.every(p => p.slug && p.showcase && p.sources.length));
   const usd = products.find(p => p.sku === 'POL-3575'); assert.equal(usd.currency, 'USD'); assert.equal(usd.price, 94.95); assert.equal(usd.priceType, 'reference');
 });
 test('shareable product page renders safe source-backed details and no showcase cart button', async t => {
   const ui = await setup(t);
-  assert.match(ui.document.title, /Pololu/); assert.equal(ui.document.querySelector('h1').textContent, ui.p.name);
-  assert.match(ui.document.body.textContent, /Price on request/); assert.match(ui.document.body.textContent, /simulated/);
-  assert.match(ui.document.body.textContent, /Demo reviews and purchase activity are synthetic/);
+  assert.match(ui.document.title, /TurtleBot3/); assert.equal(ui.document.querySelector('h1').textContent, ui.p.name);
+  assert.doesNotMatch(ui.document.body.textContent, /Price on request/); assert.match(ui.document.body.textContent, /simulated/);
+  assert.match(ui.document.body.textContent, /Generated test reviews/);
   assert.equal(ui.document.querySelector('#review-list script'), null); assert.equal(ui.document.querySelector('#review-list img'), null);
   assert.ok(ui.document.querySelector('#related-products a').href.includes('/products/'));
   assert.ok(![...ui.document.querySelectorAll('button')].some(b => b.textContent === 'Add to bag'));
@@ -35,7 +35,9 @@ test('shareable product page renders safe source-backed details and no showcase 
 test('missing product shows recovery state and meaningful title', async t => {
   const ui = await setup(t, true); assert.equal(ui.document.title, 'Product unavailable · RobotShop'); assert.match(ui.document.querySelector('#product-status').textContent, /not found/); assert.equal(ui.document.querySelector('#reviews-section').hidden, true);
 });
-test('synthetic reviews are separately selected and individually labelled', async t => {
-  const ui = await setup(t); const select = ui.document.querySelector('#review-kind'); select.value = 'demo'; select.dispatchEvent(new ui.window.Event('change'));
-  await new Promise(resolve => setTimeout(resolve, 20)); assert.match(ui.document.querySelector('#review-list').textContent, /SYNTHETIC DEMO REVIEW/); assert.match(ui.document.querySelector('#rating-summary').textContent, /Synthetic demo ratings/);
+test('synthetic reviews are separately displayed and individually labelled', async t => {
+  const ui = await setup(t);
+  assert.equal(ui.document.querySelector('#review-kind'), null);
+  assert.match(ui.document.querySelector('#demo-review-list').textContent, /SYNTHETIC DEMO REVIEW/);
+  assert.match(ui.document.querySelector('#rating-summary').textContent, /Customer ratings/);
 });

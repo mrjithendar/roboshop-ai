@@ -242,3 +242,19 @@ class RuntimeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class CurrencyTests(unittest.TestCase):
+    def test_usd_cart_rejects_mixed_currency_and_foreign_shipping(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store=Store(directory)
+            session=store.session(None)
+            usd={**PRODUCTS[0], 'sku':'USD', 'currency':'USD', 'price':199, 'instock':25}
+            eur={**PRODUCTS[0], 'sku':'EUR', 'currency':'EUR'}
+            rows=[usd,eur]
+            cart=store.update(session,'USD',2,rows)
+            self.assertEqual(cart['currency'],'USD')
+            self.assertEqual(cart['total'],398)
+            with self.assertRaises(HttpError): store.update(session,'EUR',1,rows)
+            with self.assertRaises(HttpError): store.set_shipping(session,{'cost':5,'currency':'EUR'},rows)
+            cart=store.set_shipping(session,{'cost':5,'currency':'USD'},rows)
+            self.assertEqual(cart['total'],403)

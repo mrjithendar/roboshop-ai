@@ -37,6 +37,8 @@ public class Locations {
         return cache.read(seedHash+":cities:"+country+":"+query, java.time.Duration.ofMinutes(10), () -> jdbc.queryForList("SELECT id,country_code AS \"countryCode\",name,region FROM shipping.cities WHERE country_code=? AND search_name>=? AND search_name<? ORDER BY search_name,id LIMIT 30",country,prefix,prefix+'\uffff'));
     }
     public Map<String,Object> quote(Map<String,Object> input) {
+        Object currencyValue = input.getOrDefault("currency", "EUR");
+        if (!(currencyValue instanceof String currency) || !java.util.Set.of("EUR", "USD").contains(currency)) throw bad("Unsupported shipping currency.");
         Object id = input.get("cityId");
         if (!(id instanceof Number n) || n.doubleValue() != n.intValue() || n.intValue() < 1) throw bad("Select a city from the search results.");
         var rows = jdbc.queryForList("SELECT cities.id,cities.name,region,latitude,longitude,country_code AS \"countryCode\",countries.name AS country FROM shipping.cities JOIN shipping.countries ON countries.code=cities.country_code WHERE cities.id=?", ((Number)id).intValue());
@@ -46,7 +48,7 @@ public class Locations {
         String postal = input.get("postalCode") instanceof String s ? s.trim() : "";
         if (postal.length()>20 || (recipient+line+postal).matches("(?s).*[\\x00-\\x1f\\x7f].*")) throw bad("Invalid delivery address.");
         long distance = distanceKm(((Number)city.get("latitude")).doubleValue(), ((Number)city.get("longitude")).doubleValue(),51.164896,7.068792);
-        return Map.of("city",city,"address",Map.of("recipient",recipient,"line1",line,"postalCode",postal),"distanceKm",distance,"cost",BigDecimal.valueOf(distance*5,2),"currency","EUR","method","Distance-based standard shipping","quotedAt",Instant.now().toString());
+        return Map.of("city",city,"address",Map.of("recipient",recipient,"line1",line,"postalCode",postal),"distanceKm",distance,"cost",BigDecimal.valueOf(distance*5,2),"currency",currency,"method","Distance-based standard shipping","quotedAt",Instant.now().toString());
     }
     static String text(Object value, String field, int max) {
         if (!(value instanceof String s) || s.isBlank() || s.length()>max) throw bad(field+" must contain 1–"+max+" characters.");

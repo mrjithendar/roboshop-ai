@@ -13,7 +13,7 @@ const error = (e: unknown) => e instanceof Error ? e.message : 'Request failed. 
 const slug = location.pathname.slice(basePath.length).split('/')[2];
 const endpoint = `/api/products/${encodeURIComponent(slug || '')}`;
 let cursor: string | null = null, mine: Review | null = null, product: Product | null = null, generation = 0;
-const price = (p: Product) => p.priceType === 'on-request' ? 'Price on request' : `${new Intl.NumberFormat(undefined, { style: 'currency', currency: p.currency || 'EUR' }).format(p.price)}${p.showcase ? ' · reference price, not a store offer' : ''}`;
+const price = (p: Product) => p.priceType === 'on-request' ? '' : `${new Intl.NumberFormat(undefined, { style: 'currency', currency: p.currency || 'EUR' }).format(p.price)}${p.showcase ? ' · reference price, not a store offer' : ''}`;
 function link(text: string, path: string, className = ''): HTMLAnchorElement {
   const node = element('a', text); node.href = appPath(path); node.className = className; return node;
 }
@@ -97,14 +97,14 @@ function render(p: Product, related: Product[]): void {
 }
 
 async function loadReviews(append = false): Promise<void> {
-  const current = ++generation, kind = get<HTMLSelectElement>('review-kind').value;
+  const current = ++generation, kind = 'real';
   get<HTMLButtonElement>('more-reviews').disabled = true;
   try {
     const result = await api<Page>(endpoint + '/reviews?' + new URLSearchParams({ kind, rating: get<HTMLSelectElement>('review-filter').value, after: append ? cursor || '' : '' }));
     if (current !== generation) return;
     if (!append) get('review-list').replaceChildren();
     if (!append && !result.reviews.length) get('review-list').append(element('p', 'No reviews yet. Share your experience with this product.'));
-    get('rating-summary').textContent = `${kind === 'demo' ? 'Synthetic demo' : 'Real customer'} ratings: ${result.summary.count} reviews${result.summary.average === null ? '' : ` · ${result.summary.average.toFixed(1)}/5`}`;
+    get('rating-summary').textContent = `Customer ratings: ${result.summary.count} reviews${result.summary.average === null ? '' : ` · ${result.summary.average.toFixed(1)}/5`}`;
     const distribution = get('rating-distribution'); distribution.replaceChildren();
     const total = Object.values(result.distribution || {}).reduce((a,b)=>a+b,0);
     for (let rating=5;rating>=1;rating--) {
@@ -117,6 +117,25 @@ async function loadReviews(append = false): Promise<void> {
   } catch (e) { get('rating-summary').textContent = error(e); }
   finally { if (current === generation) get<HTMLButtonElement>('more-reviews').disabled = false; }
 }
+let demoCursor: string | null = null;
+async function loadDemoReviews(append = false): Promise<void> {
+  const more = get<HTMLButtonElement>('more-demo-reviews'); more.disabled = true;
+  try {
+    const page = await api<Page>(endpoint + '/reviews?' + new URLSearchParams({kind: 'demo', after: append ? demoCursor || '' : ''}));
+    const list = get('demo-review-list');
+    if (!append) list.replaceChildren();
+    for (const review of page.reviews.filter(row => row.synthetic)) {
+      const article = element('article'); article.className = 'review';
+      article.append(element('h3', `${'★'.repeat(review.rating)}${'☆'.repeat(5-review.rating)} · ${review.title}`), element('p', 'SYNTHETIC DEMO REVIEW · Not a verified purchase'), element('p', review.body));
+      list.append(article);
+    }
+    get('demo-reviews-section').hidden = !list.children.length;
+    demoCursor = page.next; more.hidden = !demoCursor;
+  } catch { /* Optional demo data must never interrupt real customer reviews. */ }
+  finally { more.disabled = false; }
+}
+get('more-demo-reviews').addEventListener('click', () => { void loadDemoReviews(true); });
+
 async function loadMine(): Promise<void> {
   mine = null; get<HTMLInputElement>('review-title').value = ''; get<HTMLTextAreaElement>('review-body').value = ''; get('review-delete').hidden = true; get('review-form').hidden = !currentUser; get('review-status').textContent = currentUser ? 'Reviews are moderated before publication.' : 'Log in to write a review.';
   if (!currentUser || !product) return;
@@ -125,7 +144,7 @@ async function loadMine(): Promise<void> {
   catch (e) { get('review-status').textContent = error(e); }
 }
 get('review-filter').addEventListener('change', () => { void loadReviews(); });
-get('review-kind').addEventListener('change', () => { void loadReviews(); });
+
 get('more-reviews').addEventListener('click', () => { void loadReviews(true); });
 get('review-form').addEventListener('submit', async event => {
   event.preventDefault(); if (!currentUser) { showLogin(); return; } const button = get<HTMLButtonElement>('review-save'); button.disabled = true;
@@ -134,5 +153,5 @@ get('review-form').addEventListener('submit', async event => {
 get('review-delete').addEventListener('click', async () => { const button = get<HTMLButtonElement>('review-delete'); button.disabled = true; try { await api(endpoint + '/reviews', 'DELETE'); await loadMine(); await loadReviews(); } catch (e) { get('review-status').textContent = error(e); } finally { button.disabled = false; } });
 document.querySelectorAll<HTMLElement>('[data-close]').forEach(button => button.addEventListener('click', () => get<HTMLDialogElement>(button.dataset.close || '').close()));
 await initAccount(loadMine);
-try { const result = await api<{ product: Product; related: Product[] }>(endpoint); product = result.product; render(product, result.related); get('product-status').textContent = ''; get('reviews-section').hidden = false; await Promise.all([loadReviews(), loadMine()]); }
+try { const result = await api<{ product: Product; related: Product[] }>(endpoint); product = result.product; render(product, result.related); get('product-status').textContent = ''; get('reviews-section').hidden = false; await Promise.all([loadReviews(), loadMine(), loadDemoReviews()]); }
 catch (e) { document.title = 'Product unavailable · RobotShop'; get('product-status').textContent = error(e); const retry = element('button', 'Retry loading product'); retry.addEventListener('click', () => location.reload()); get('product-content').append(retry); }

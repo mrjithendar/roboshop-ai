@@ -49,8 +49,8 @@ def seed(
     dataset,
     products,
     *,
-    customers=10000,
-    reviews=30000,
+    customers=1000,
+    reviews=3000,
     buyers=0.6,
     random_seed=42,
     small_test=False,
@@ -58,9 +58,9 @@ def seed(
 ):
     guard(db.name)
     ident(dataset)
-    if customers != 10000 and not small_test:
+    if customers not in (1000, 10000) and not small_test:
         raise ValueError(
-            "The normal seed creates exactly 10,000 profiles. Small sizes are only for automated tests."
+            "Choose 1,000 or 10,000 synthetic profiles. Small sizes are only for automated tests."
         )
     if (
         not 1 <= customers <= 10000
@@ -68,8 +68,8 @@ def seed(
         or not 0 <= buyers <= 1
     ):
         raise ValueError("Invalid dataset sizes or purchase fraction.")
-    if not products or any(not p.get("showcase") for p in products):
-        raise ValueError("Seed only the curated showcase catalogue.")
+    if not products:
+        raise ValueError("A reference catalogue is required.")
     fingerprint = hashlib.sha256(
         json.dumps(products, sort_keys=True).encode()
     ).hexdigest()
@@ -104,7 +104,7 @@ def seed(
         # Product catalogue is reference material, not a generated customer record. Never overwrite merchant rows.
         for product in products:
             existing = db.products.find_one({"_id": product["sku"]})
-            if existing and not existing.get("showcase"):
+            if existing and existing.get("sku") != product["sku"]:
                 raise ValueError("Conflicting non-showcase product in demo database.")
             db.products.update_one(
                 {"_id": product["sku"]},
@@ -272,7 +272,8 @@ def main():
     parser.add_argument("action", choices=["seed", "cleanup"])
     parser.add_argument("--database", required=True)
     parser.add_argument("--dataset", required=True)
-    parser.add_argument("--reviews", type=int, default=30000)
+    parser.add_argument("--customers", type=int, choices=[1000, 10000], default=1000)
+    parser.add_argument("--reviews", type=int, default=3000)
     parser.add_argument("--purchase-fraction", type=float, default=0.6)
     parser.add_argument("--random-seed", type=int, default=42)
     args = parser.parse_args()
@@ -297,6 +298,7 @@ def main():
                 db,
                 args.dataset,
                 products,
+                customers=args.customers,
                 reviews=args.reviews,
                 buyers=args.purchase_fraction,
                 random_seed=args.random_seed,

@@ -29,7 +29,7 @@ spec = importlib.util.spec_from_file_location(
 )
 seed_demo = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(seed_demo)
-PRODUCTS = json.loads((ROOT / "services/product-ingestion/products.json").read_text())
+PRODUCTS = json.loads((ROOT / "services/product-ingestion/showcase-reference.json").read_text())
 CUSTOMER = {"id": "alice", "role": "customer"}
 ADMIN = {"id": "admin", "role": "admin"}
 CONTENT = {
@@ -240,8 +240,8 @@ class ShowcaseTests(unittest.TestCase):
             if name=='reviews': self.assertIn('SYNTHETIC DEMO REVIEW',row['body'])
         with patch.dict(os.environ,{'APP_ENV':'demo','DEPLOYMENT_ENVIRONMENT':'test','NODE_ENV':'test','ENVIRONMENT':'test'}):
             result=seed_demo.seed(SimpleNamespace(name='robotshop_demo_global'),'global-test',PRODUCTS,writer=write)
-        self.assertEqual(result['demo_profiles'],10000)
-        self.assertEqual(result['reviews'],30000)
+        self.assertEqual(result['demo_profiles'],1000)
+        self.assertEqual(result['reviews'],3000)
         self.assertEqual(len(countries),200)
         self.assertIn('US',countries)
 
@@ -269,8 +269,8 @@ class ShowcaseTests(unittest.TestCase):
             "priceType": "sale",
         }
         require_purchasable(p)
+        require_purchasable({**p, "currency": "USD"})
         for change in [
-            {"currency": "USD"},
             {"currency": "INR"},
             {"priceType": "reference"},
             {"synthetic": True},

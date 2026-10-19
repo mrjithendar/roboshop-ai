@@ -1,1974 +1,602 @@
 [
   {
-    "sku": "TB3-BURGER",
-    "slug": "turtlebot3-burger",
-    "name": "TurtleBot3 Burger",
-    "manufacturer": "ROBOTIS",
-    "model": "TurtleBot3 Burger",
+    "sku": "ATLAS-X1",
+    "slug": "atlas-x1",
+    "name": "Atlas X1",
+    "description": "Meet Atlas X1, part of the RobotShop robotics collection.",
+    "price": 499,
+    "currency": "USD",
+    "priceType": "sale",
+    "showcase": false,
+    "synthetic": false,
+    "fulfilment": "merchant",
+    "instock": 38,
     "categories": [
-      "research robots"
+      "humanoid",
+      "robot"
     ],
+    "image": "/product-media/atlas-x1.png",
+    "model": "Atlas X1",
     "productType": "complete robot",
-    "description": "A modular ROS mobile platform for navigation, mapping and robotics education.",
     "specifications": {
-      "Dimensions (L × W × H)": "138 × 178 × 192 mm",
-      "Weight (configured)": "1 kg",
-      "Maximum linear velocity": "0.22 m/s",
-      "Maximum angular velocity": "2.84 rad/s",
-      "Controller": "OpenCR; ARM Cortex-M7 at 216 MHz",
-      "Single-board computer": "Raspberry Pi 4 (current documented configuration)",
-      "Range sensor": "LDS-02 360° laser distance sensor",
-      "Actuator": "DYNAMIXEL XL430-W250",
-      "Battery": "11.1 V, 1800 mAh lithium polymer",
-      "Expected operating time": "2 h 30 min; workload dependent",
-      "Photo note": "Photograph shows an earlier hardware configuration; supplied components may differ."
+      "Model": "Atlas X1",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
     },
-    "includedItems": [
-      "Bundle contents depend on the supplier configuration."
-    ],
-    "requiredAccessories": [
-      "Computer and compatible software; confirm power and assembly requirements."
-    ],
-    "compatibility": [
-      "ROS"
-    ],
-    "useCases": [
-      "robotics education",
-      "research"
-    ],
-    "price": 0,
-    "currency": "EUR",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://emanual.robotis.com/docs/en/platform/turtlebot3/features/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "showcase": true,
-    "synthetic": false,
-    "instock": 0,
-    "image": "/product-media/turtlebot3-burger.jpg",
     "imageAttribution": {
-      "credit": "Kuscu0 / Wikimedia Commons",
-      "license": "CC BY-SA 4.0",
-      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
-      "sourceUrl": "https://commons.wikimedia.org/wiki/File:TurtleBot3_Burger.jpg",
-      "changes": "Original photograph; no edits."
+      "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "sources": [
-      {
-        "label": "Technical documentation",
-        "url": "https://emanual.robotis.com/docs/en/platform/turtlebot3/features/"
-      }
-    ],
-    "catalogueVersion": "2026-10-real-photos",
-    "fulfilment": "simulated"
+    "catalogueVersion": "merchant-20-v1"
   },
   {
-    "sku": "POPPY-HUMANOID",
-    "slug": "poppy-humanoid",
-    "name": "Poppy Humanoid",
-    "manufacturer": "Poppy Project",
-    "model": "Poppy Humanoid",
+    "sku": "NOVACLEAN-PRO",
+    "slug": "novaclean-pro",
+    "name": "NovaClean Pro",
+    "description": "Meet NovaClean Pro, part of the RobotShop robotics collection.",
+    "price": 199,
+    "currency": "USD",
+    "priceType": "sale",
+    "showcase": false,
+    "synthetic": false,
+    "fulfilment": "merchant",
+    "instock": 30,
     "categories": [
-      "research robots"
+      "cleaning",
+      "robot"
     ],
+    "image": "/product-media/novaclean-pro.png",
+    "model": "NovaClean Pro",
     "productType": "complete robot",
-    "description": "An open-source, 3D-printed humanoid research platform for exploring motion and human–robot interaction.",
     "specifications": {
-      "Actuated joints": "25 motors",
-      "Construction": "3D-printed modular humanoid",
-      "Hardware": "Open-source design",
-      "Assembly": "Assembly required for kit configurations",
-      "Programming": "Poppy software ecosystem",
-      "Application": "Education and research; not a consumer appliance"
+      "Model": "NovaClean Pro",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
     },
-    "includedItems": [
-      "Bundle contents depend on the supplier configuration."
-    ],
-    "requiredAccessories": [
-      "Computer and compatible software; confirm power and assembly requirements."
-    ],
-    "compatibility": [
-      "Poppy software ecosystem"
-    ],
-    "useCases": [
-      "robotics education",
-      "research"
-    ],
-    "price": 0,
-    "currency": "EUR",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://docs.poppy-project.org/en/assembly-guides/poppy-humanoid/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "showcase": true,
-    "synthetic": false,
-    "instock": 0,
-    "image": "/product-media/poppy-humanoid.jpg",
     "imageAttribution": {
-      "credit": "Inria / Poppy-project.org / Photo H. Raguet",
-      "license": "CC BY-SA 4.0",
-      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
-      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Open-Source_3D_printed_Poppy_humanoid_robot.jpg",
-      "changes": "Original photograph; no edits."
+      "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "sources": [
-      {
-        "label": "Technical documentation",
-        "url": "https://docs.poppy-project.org/en/assembly-guides/poppy-humanoid/"
-      }
-    ],
-    "catalogueVersion": "2026-10-real-photos",
-    "fulfilment": "simulated"
+    "catalogueVersion": "merchant-20-v1"
   },
   {
-    "sku": "POL-3737",
-    "slug": "pololu-3pi-32u4-standard-assembled",
-    "name": "Pololu 3pi+ 32U4 Standard Assembled",
-    "manufacturer": "Pololu",
-    "model": "3pi+ 32U4 Standard Assembled",
+    "sku": "TITANLIFT-T500",
+    "slug": "titanlift-t500",
+    "name": "TitanLift T500",
+    "description": "Meet TitanLift T500, part of the RobotShop robotics collection.",
+    "price": 449,
+    "currency": "USD",
+    "priceType": "sale",
+    "showcase": false,
+    "synthetic": false,
+    "fulfilment": "merchant",
+    "instock": 50,
     "categories": [
-      "mobile robots"
+      "warehouse",
+      "robot"
     ],
+    "image": "/product-media/titanlift-t500.png",
+    "model": "TitanLift T500",
     "productType": "complete robot",
-    "description": "A compact wheeled platform for experimenting with line sensing and closed-loop motion.",
     "specifications": {
-      "Controller": "ATmega32U4",
-      "Motor option": "30:1 MP",
-      "Manufacturer": "Pololu",
-      "Model": "3pi+ 32U4 Standard Assembled",
-      "Product format": "complete robot",
-      "Compatibility": "Arduino-compatible programming",
-      "Intended applications": "mobile robotics; motion control"
+      "Model": "TitanLift T500",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
     },
-    "includedItems": [
-      "Assembled 3pi+ platform"
-    ],
-    "requiredAccessories": [
-      "Batteries and programming cable; consult guide"
-    ],
-    "compatibility": [
-      "Arduino-compatible programming"
-    ],
-    "useCases": [
-      "mobile robotics",
-      "motion control"
-    ],
-    "price": 0,
-    "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://www.pololu.com/product/3737",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://www.pololu.com/product/3737"
-      }
-    ],
-    "image": "/images/placeholder.png",
     "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
+      "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
+    "catalogueVersion": "merchant-20-v1"
   },
   {
-    "sku": "POL-3740",
-    "slug": "pololu-3pi-32u4-standard-kit",
-    "name": "Pololu 3pi+ 32U4 Standard Kit",
-    "manufacturer": "Pololu",
-    "model": "3pi+ 32U4 Standard Kit",
-    "categories": [
-      "educational kits"
-    ],
-    "productType": "kit",
-    "description": "The build-it-yourself version of the Standard 3pi+ platform, for learning robot assembly and motion control.",
-    "specifications": {
-      "Controller": "ATmega32U4",
-      "Motors": "30:1 MP 6V",
-      "Manufacturer": "Pololu",
-      "Model": "3pi+ 32U4 Standard Kit",
-      "Product format": "kit",
-      "Compatibility": "Arduino-compatible programming",
-      "Intended applications": "robotics education; hands-on learning"
-    },
-    "includedItems": [
-      "Robot kit parts",
-      "Pair of 30:1 MP motors"
-    ],
-    "requiredAccessories": [
-      "Assembly tools, batteries and programming cable"
-    ],
-    "compatibility": [
-      "Arduino-compatible programming"
-    ],
-    "useCases": [
-      "robotics education",
-      "hands-on learning"
-    ],
-    "price": 0,
+    "sku": "SCOUT-ROVER-S3",
+    "slug": "scout-rover-s3",
+    "name": "Scout Rover S3",
+    "description": "Meet Scout Rover S3, part of the RobotShop robotics collection.",
+    "price": 249,
     "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://www.pololu.com/product/3740",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://www.pololu.com/product/3740"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
+    "priceType": "sale",
+    "showcase": false,
     "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "POL-3575",
-    "slug": "pololu-balboa-32u4-kit",
-    "name": "Pololu Balboa 32U4 Kit",
-    "manufacturer": "Pololu",
-    "model": "Balboa 32U4 Kit",
+    "fulfilment": "merchant",
+    "instock": 43,
     "categories": [
-      "educational kits"
+      "exploration",
+      "robot"
     ],
-    "productType": "kit",
-    "description": "Build a balancing robot while choosing the motors and wheels to suit your experiment.",
-    "specifications": {
-      "Controller": "ATmega32U4",
-      "Battery format": "6 AA cells (not included)",
-      "Manufacturer": "Pololu",
-      "Model": "Balboa 32U4 Kit",
-      "Product format": "kit",
-      "Compatibility": "Arduino-compatible programming; Optional Raspberry Pi interface",
-      "Intended applications": "robotics education; hands-on learning"
-    },
-    "includedItems": [
-      "Balboa kit",
-      "32U4 board",
-      "Bumper cage kit"
-    ],
-    "requiredAccessories": [
-      "Motors",
-      "Wheels",
-      "6 AA batteries",
-      "USB A to Micro-B cable",
-      "Soldering tools"
-    ],
-    "compatibility": [
-      "Arduino-compatible programming",
-      "Optional Raspberry Pi interface"
-    ],
-    "useCases": [
-      "robotics education",
-      "hands-on learning"
-    ],
-    "price": 94.95,
-    "currency": "USD",
-    "priceType": "reference",
-    "priceSourceUrl": "https://www.pololu.com/product/3575",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://www.pololu.com/product/3575"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "POL-3500",
-    "slug": "pololu-romi-chassis-black",
-    "name": "Pololu Romi Chassis Black",
-    "manufacturer": "Pololu",
-    "model": "Romi Chassis Black",
-    "categories": [
-      "mobile robots"
-    ],
-    "productType": "kit",
-    "description": "A circular differential-drive chassis for a custom mobile robot. Control electronics must be added.",
-    "specifications": {
-      "Diameter": "165 mm",
-      "Battery holder": "6 AA cells",
-      "Manufacturer": "Pololu",
-      "Model": "Romi Chassis Black",
-      "Product format": "kit",
-      "Compatibility": "Romi 32U4 Control Board",
-      "Intended applications": "mobile robotics; motion control"
-    },
-    "includedItems": [
-      "Chassis kit",
-      "Drive wheels and motors",
-      "Rear ball caster"
-    ],
-    "requiredAccessories": [
-      "Controller",
-      "Motor drivers",
-      "Batteries"
-    ],
-    "compatibility": [
-      "Romi 32U4 Control Board"
-    ],
-    "useCases": [
-      "mobile robotics",
-      "motion control"
-    ],
-    "price": 0,
-    "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://www.pololu.com/product/3500",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://www.pololu.com/product/3500"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "POL-3544",
-    "slug": "pololu-romi-32u4-control-board",
-    "name": "Pololu Romi 32U4 Control Board",
-    "manufacturer": "Pololu",
-    "model": "Romi 32U4 Control Board",
-    "categories": [
-      "components"
-    ],
-    "productType": "component",
-    "description": "A controller board designed to add programmable motor control to a Romi chassis.",
-    "specifications": {
-      "Controller": "ATmega32U4",
-      "Motor control": "Integrated dual motor drivers",
-      "Manufacturer": "Pololu",
-      "Model": "Romi 32U4 Control Board",
-      "Product format": "component",
-      "Compatibility": "Romi chassis; Optional Raspberry Pi interface",
-      "Intended applications": "embedded control; robot integration"
-    },
-    "includedItems": [
-      "Romi controller board"
-    ],
-    "requiredAccessories": [
-      "Romi chassis",
-      "Power source",
-      "Programming cable"
-    ],
-    "compatibility": [
-      "Romi chassis",
-      "Optional Raspberry Pi interface"
-    ],
-    "useCases": [
-      "embedded control",
-      "robot integration"
-    ],
-    "price": 0,
-    "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://www.pololu.com/product/3544",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://www.pololu.com/product/3544"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "POL-1350",
-    "slug": "pololu-micro-maestro-6-assembled",
-    "name": "Pololu Micro Maestro 6 Assembled",
-    "manufacturer": "Pololu",
-    "model": "Micro Maestro 6 Assembled",
-    "categories": [
-      "components"
-    ],
-    "productType": "component",
-    "description": "A small USB servo-control board with onboard scripting for repeatable motion sequences.",
-    "specifications": {
-      "Channels": "6",
-      "Pulse resolution": "0.25 microseconds",
-      "Manufacturer": "Pololu",
-      "Model": "Micro Maestro 6 Assembled",
-      "Product format": "component",
-      "Compatibility": "USB and serial control",
-      "Intended applications": "motion control; robot integration"
-    },
-    "includedItems": [
-      "Assembled board with headers"
-    ],
-    "requiredAccessories": [
-      "Servos",
-      "Suitable servo power supply",
-      "USB cable"
-    ],
-    "compatibility": [
-      "USB and serial control"
-    ],
-    "useCases": [
-      "motion control",
-      "robot integration"
-    ],
-    "price": 0,
-    "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://www.pololu.com/product/1350",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://www.pololu.com/product/1350"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "POL-1352",
-    "slug": "pololu-mini-maestro-12-assembled",
-    "name": "Pololu Mini Maestro 12 Assembled",
-    "manufacturer": "Pololu",
-    "model": "Mini Maestro 12 Assembled",
-    "categories": [
-      "components"
-    ],
-    "productType": "component",
-    "description": "A twelve-channel servo controller for multi-joint mechanisms.",
-    "specifications": {
-      "Servo channels": "12",
-      "Interface": "USB",
-      "Manufacturer": "Pololu",
-      "Model": "Mini Maestro 12 Assembled",
-      "Product format": "component",
-      "Compatibility": "Maestro control software",
-      "Intended applications": "motion control; robot integration"
-    },
-    "includedItems": [
-      "Assembled controller board"
-    ],
-    "requiredAccessories": [
-      "Servos",
-      "Servo power supply",
-      "USB cable"
-    ],
-    "compatibility": [
-      "Maestro control software"
-    ],
-    "useCases": [
-      "motion control",
-      "robot integration"
-    ],
-    "price": 0,
-    "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://www.pololu.com/product/1352",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://www.pololu.com/product/1352"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "POL-2130",
-    "slug": "pololu-drv8833-dual-motor-driver",
-    "name": "Pololu DRV8833 Dual Motor Driver",
-    "manufacturer": "Pololu",
-    "model": "DRV8833 Dual Motor Driver",
-    "categories": [
-      "components"
-    ],
-    "productType": "component",
-    "description": "A carrier board for integrating a dual motor driver into a small robotics project.",
-    "specifications": {
-      "Driver IC": "Texas Instruments DRV8833",
-      "Function": "Dual motor driver",
-      "Manufacturer": "Pololu",
-      "Model": "DRV8833 Dual Motor Driver",
-      "Product format": "component",
-      "Compatibility": "Check motor current and logic requirements in manufacturer guide",
-      "Intended applications": "motion control; robot integration"
-    },
-    "includedItems": [
-      "DRV8833 carrier board"
-    ],
-    "requiredAccessories": [
-      "Controller",
-      "Motors",
-      "Compatible power supply"
-    ],
-    "compatibility": [
-      "Check motor current and logic requirements in manufacturer guide"
-    ],
-    "useCases": [
-      "motion control",
-      "robot integration"
-    ],
-    "price": 10.95,
-    "currency": "USD",
-    "priceType": "reference",
-    "priceSourceUrl": "https://www.pololu.com/product/2130",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://www.pololu.com/product/2130"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "POL-2135",
-    "slug": "pololu-drv8835-dual-motor-driver",
-    "name": "Pololu DRV8835 Dual Motor Driver",
-    "manufacturer": "Pololu",
-    "model": "DRV8835 Dual Motor Driver",
-    "categories": [
-      "components"
-    ],
-    "productType": "component",
-    "description": "A two-channel driver carrier for low-voltage DC motor projects.",
-    "specifications": {
-      "Continuous current": "1.2 A per channel",
-      "Motor voltage": "0–11 V",
-      "Logic voltage": "2–7 V",
-      "Manufacturer": "Pololu",
-      "Model": "DRV8835 Dual Motor Driver",
-      "Product format": "component",
-      "Compatibility": "IN/IN or PHASE/ENABLE control",
-      "Intended applications": "motion control; robot integration"
-    },
-    "includedItems": [
-      "DRV8835 carrier board"
-    ],
-    "requiredAccessories": [
-      "Controller",
-      "Motors",
-      "Power supply"
-    ],
-    "compatibility": [
-      "IN/IN or PHASE/ENABLE control"
-    ],
-    "useCases": [
-      "motion control",
-      "robot integration"
-    ],
-    "price": 6.95,
-    "currency": "USD",
-    "priceType": "reference",
-    "priceSourceUrl": "https://www.pololu.com/product/2135",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://www.pololu.com/product/2135"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "ARD-ALVIK",
-    "slug": "arduino-alvik",
-    "name": "Arduino Alvik",
-    "manufacturer": "Arduino",
-    "model": "Alvik",
-    "categories": [
-      "educational kits"
-    ],
+    "image": "/product-media/scout-rover-s3.png",
+    "model": "Scout Rover S3",
     "productType": "complete robot",
-    "description": "An educational mobile robot with a Nano ESP32 controller, designed for learning programming through movement and sensing.",
     "specifications": {
-      "Controller": "Nano ESP32",
-      "Languages": "MicroPython and Arduino C",
-      "Manufacturer": "Arduino",
-      "Model": "Alvik",
-      "Product format": "complete robot",
-      "Compatibility": "MicroPython; Arduino C",
-      "Intended applications": "robotics education; hands-on learning"
+      "Model": "Scout Rover S3",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
     },
-    "includedItems": [
-      "Alvik robot platform"
-    ],
-    "requiredAccessories": [
-      "Programming computer; consult setup guide for charging and bundle contents"
-    ],
-    "compatibility": [
-      "MicroPython",
-      "Arduino C"
-    ],
-    "useCases": [
-      "robotics education",
-      "hands-on learning"
-    ],
-    "price": 0,
-    "currency": "EUR",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://docs.arduino.cc/hardware/alvik/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://docs.arduino.cc/hardware/alvik/"
-      }
-    ],
-    "image": "/images/placeholder.png",
     "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
+      "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
+    "catalogueVersion": "merchant-20-v1"
   },
   {
-    "sku": "ARD-AEK2",
-    "slug": "arduino-engineering-kit-rev2",
-    "name": "Arduino Engineering Kit Rev2",
-    "manufacturer": "Arduino",
-    "model": "Engineering Kit Rev2",
-    "categories": [
-      "educational kits"
-    ],
-    "productType": "kit",
-    "description": "A mechatronics learning kit that combines physical builds with control-system exercises.",
-    "specifications": {
-      "Learning tools": "MATLAB and Simulink",
-      "Projects": "3",
-      "Manufacturer": "Arduino",
-      "Model": "Engineering Kit Rev2",
-      "Product format": "kit",
-      "Compatibility": "MATLAB; Simulink",
-      "Intended applications": "robotics education; hands-on learning"
-    },
-    "includedItems": [
-      "Mechanical and electrical project components",
-      "Learning materials"
-    ],
-    "requiredAccessories": [
-      "Compatible computer; check software entitlement and system requirements"
-    ],
-    "compatibility": [
-      "MATLAB",
-      "Simulink"
-    ],
-    "useCases": [
-      "robotics education",
-      "hands-on learning"
-    ],
-    "price": 0,
-    "currency": "EUR",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://docs.arduino.cc/hardware/aek-rev2/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://docs.arduino.cc/hardware/aek-rev2/"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "ARD-NESP32",
-    "slug": "arduino-nano-esp32",
-    "name": "Arduino Nano ESP32",
-    "manufacturer": "Arduino",
-    "model": "Nano ESP32",
-    "categories": [
-      "components"
-    ],
-    "productType": "component",
-    "description": "A compact connected microcontroller board for programmable sensors and robot peripherals.",
-    "specifications": {
-      "Module": "NORA-W106 / ESP32-S3",
-      "Flash": "16 MB",
-      "Connector": "USB-C",
-      "Manufacturer": "Arduino",
-      "Model": "Nano ESP32",
-      "Product format": "component",
-      "Compatibility": "MicroPython; Arduino Cloud",
-      "Intended applications": "embedded control; robot integration"
-    },
-    "includedItems": [
-      "Nano ESP32 board; header option varies"
-    ],
-    "requiredAccessories": [
-      "USB-C data cable",
-      "Computer",
-      "External actuator drivers as needed"
-    ],
-    "compatibility": [
-      "MicroPython",
-      "Arduino Cloud"
-    ],
-    "useCases": [
-      "embedded control",
-      "robot integration"
-    ],
-    "price": 0,
-    "currency": "EUR",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://docs.arduino.cc/hardware/nano-esp32/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://docs.arduino.cc/hardware/nano-esp32/"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "ARD-UR4W",
-    "slug": "arduino-uno-r4-wifi",
-    "name": "Arduino UNO R4 WiFi",
-    "manufacturer": "Arduino",
-    "model": "UNO R4 WiFi",
-    "categories": [
-      "components"
-    ],
-    "productType": "component",
-    "description": "An UNO-format board combining a Renesas controller with wireless connectivity and an LED matrix.",
-    "specifications": {
-      "Main MCU": "Renesas RA4M1",
-      "Clock": "48 MHz",
-      "GPIO voltage": "5 V",
-      "LED matrix": "12 × 8",
-      "Manufacturer": "Arduino",
-      "Model": "UNO R4 WiFi",
-      "Product format": "component",
-      "Compatibility": "Arduino ecosystem; verify shield voltage and library support",
-      "Intended applications": "embedded control; robot integration"
-    },
-    "includedItems": [
-      "UNO R4 WiFi board"
-    ],
-    "requiredAccessories": [
-      "USB-C cable",
-      "Motor drivers for motors"
-    ],
-    "compatibility": [
-      "Arduino ecosystem; verify shield voltage and library support"
-    ],
-    "useCases": [
-      "embedded control",
-      "robot integration"
-    ],
-    "price": 0,
-    "currency": "EUR",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://docs.arduino.cc/hardware/uno-r4-wifi/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://docs.arduino.cc/hardware/uno-r4-wifi/"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "ARD-N33BS2",
-    "slug": "arduino-nano-33-ble-sense-rev2",
-    "name": "Arduino Nano 33 BLE Sense Rev2",
-    "manufacturer": "Arduino",
-    "model": "Nano 33 BLE Sense Rev2",
-    "categories": [
-      "components"
-    ],
-    "productType": "component",
-    "description": "A Nano-format sensing board for embedded learning and connected sensor experiments.",
-    "specifications": {
-      "Board revision": "Rev2",
-      "Connectivity": "Bluetooth Low Energy",
-      "Manufacturer": "Arduino",
-      "Model": "Nano 33 BLE Sense Rev2",
-      "Product format": "component",
-      "Compatibility": "Arduino development tools; consult sensor-specific libraries",
-      "Intended applications": "embedded control; robot integration"
-    },
-    "includedItems": [
-      "Nano 33 BLE Sense Rev2 board"
-    ],
-    "requiredAccessories": [
-      "Programming cable",
-      "External actuators and drivers as needed"
-    ],
-    "compatibility": [
-      "Arduino development tools; consult sensor-specific libraries"
-    ],
-    "useCases": [
-      "embedded control",
-      "robot integration"
-    ],
-    "price": 0,
-    "currency": "EUR",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://docs.arduino.cc/hardware/nano-33-ble-sense-rev2/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://docs.arduino.cc/hardware/nano-33-ble-sense-rev2/"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "ARD-NMC",
-    "slug": "arduino-nano-motor-carrier",
-    "name": "Arduino Nano Motor Carrier",
-    "manufacturer": "Arduino",
-    "model": "Nano Motor Carrier",
-    "categories": [
-      "accessories"
-    ],
-    "productType": "accessory",
-    "description": "A motor-control expansion board for Nano-based mechatronics builds.",
-    "specifications": {
-      "Encoder ports": "2",
-      "Motion sensor": "9-axis",
-      "Battery charger": "Single-cell Li-ion",
-      "Manufacturer": "Arduino",
-      "Model": "Nano Motor Carrier",
-      "Product format": "accessory",
-      "Compatibility": "Nano 33 IoT; Engineering Kit Rev2",
-      "Intended applications": "motion control; robot integration"
-    },
-    "includedItems": [
-      "Nano Motor Carrier board"
-    ],
-    "requiredAccessories": [
-      "Compatible Nano board",
-      "Motors",
-      "Suitable power source"
-    ],
-    "compatibility": [
-      "Nano 33 IoT",
-      "Engineering Kit Rev2"
-    ],
-    "useCases": [
-      "motion control",
-      "robot integration"
-    ],
-    "price": 0,
-    "currency": "EUR",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://docs.arduino.cc/hardware/nano-motor-carrier/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://docs.arduino.cc/hardware/nano-motor-carrier/"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "ARD-MSR3",
-    "slug": "arduino-motor-shield-rev3",
-    "name": "Arduino Motor Shield Rev3",
-    "manufacturer": "Arduino",
-    "model": "Motor Shield Rev3",
-    "categories": [
-      "accessories"
-    ],
-    "productType": "accessory",
-    "description": "An Arduino shield for controlling inductive loads such as small DC motors.",
-    "specifications": {
-      "Driver": "L298 dual full bridge",
-      "DC motors": "2 independently controlled",
-      "Manufacturer": "Arduino",
-      "Model": "Motor Shield Rev3",
-      "Product format": "accessory",
-      "Compatibility": "TinkerKit; Check Arduino shield electrical compatibility",
-      "Intended applications": "motion control; robot integration"
-    },
-    "includedItems": [
-      "Motor Shield Rev3"
-    ],
-    "requiredAccessories": [
-      "Compatible Arduino board",
-      "Motors",
-      "Suitable motor power supply"
-    ],
-    "compatibility": [
-      "TinkerKit",
-      "Check Arduino shield electrical compatibility"
-    ],
-    "useCases": [
-      "motion control",
-      "robot integration"
-    ],
-    "price": 0,
-    "currency": "EUR",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://docs.arduino.cc/hardware/motor-shield-rev3/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://docs.arduino.cc/hardware/motor-shield-rev3/"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "ARD-UR4M",
-    "slug": "arduino-uno-r4-minima",
-    "name": "Arduino UNO R4 Minima",
-    "manufacturer": "Arduino",
-    "model": "UNO R4 Minima",
-    "categories": [
-      "components"
-    ],
-    "productType": "component",
-    "description": "A 32-bit UNO board for controller projects that do not require onboard wireless connectivity.",
-    "specifications": {
-      "MCU": "Renesas RA4M1",
-      "Clock": "48 MHz",
-      "GPIO voltage": "5 V",
-      "Manufacturer": "Arduino",
-      "Model": "UNO R4 Minima",
-      "Product format": "component",
-      "Compatibility": "Arduino tools; verify shield and library support",
-      "Intended applications": "embedded control; robot integration"
-    },
-    "includedItems": [
-      "UNO R4 Minima board"
-    ],
-    "requiredAccessories": [
-      "USB-C cable",
-      "External actuator drivers as needed"
-    ],
-    "compatibility": [
-      "Arduino tools; verify shield and library support"
-    ],
-    "useCases": [
-      "embedded control",
-      "robot integration"
-    ],
-    "price": 0,
-    "currency": "EUR",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://docs.arduino.cc/hardware/uno-r4-minima/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://docs.arduino.cc/hardware/uno-r4-minima/"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "RPI-5",
-    "slug": "raspberry-pi-5",
-    "name": "Raspberry Pi 5",
-    "manufacturer": "Raspberry Pi",
-    "model": "5",
-    "categories": [
-      "components"
-    ],
-    "productType": "component",
-    "description": "A single-board computer that can host higher-level robotics software alongside a dedicated motor controller.",
-    "specifications": {
-      "Product family": "Raspberry Pi 5",
-      "Memory": "Select a memory variant with supplier",
-      "Manufacturer": "Raspberry Pi",
-      "Model": "5",
-      "Product format": "component",
-      "Compatibility": "Raspberry Pi OS; check robot software architecture support",
-      "Intended applications": "embedded control; robot integration"
-    },
-    "includedItems": [
-      "Raspberry Pi 5 board"
-    ],
-    "requiredAccessories": [
-      "Compatible power supply",
-      "Boot storage",
-      "Cooling appropriate to workload"
-    ],
-    "compatibility": [
-      "Raspberry Pi OS; check robot software architecture support"
-    ],
-    "useCases": [
-      "embedded control",
-      "robot integration"
-    ],
-    "price": 0,
+    "sku": "GUARDIAN-G7",
+    "slug": "guardian-g7",
+    "name": "Guardian G7",
+    "description": "Meet Guardian G7, part of the RobotShop robotics collection.",
+    "price": 349,
     "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://www.raspberrypi.com/products/raspberry-pi-5/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://www.raspberrypi.com/products/raspberry-pi-5/"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
+    "priceType": "sale",
+    "showcase": false,
     "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "RPI-PICO2",
-    "slug": "raspberry-pi-pico-2",
-    "name": "Raspberry Pi Pico 2",
-    "manufacturer": "Raspberry Pi",
-    "model": "Pico 2",
+    "fulfilment": "merchant",
+    "instock": 50,
     "categories": [
-      "components"
+      "security",
+      "robot"
     ],
-    "productType": "component",
-    "description": "A microcontroller board for timing-sensitive sensors and embedded control.",
-    "specifications": {
-      "Microcontroller": "RP2350",
-      "Manufacturer": "Raspberry Pi",
-      "Model": "Pico 2",
-      "Product format": "component",
-      "Compatibility": "Pico SDK; MicroPython",
-      "Intended applications": "embedded control; robot integration"
-    },
-    "includedItems": [
-      "Pico 2 board"
-    ],
-    "requiredAccessories": [
-      "USB cable",
-      "Headers as required",
-      "Actuator drivers"
-    ],
-    "compatibility": [
-      "Pico SDK",
-      "MicroPython"
-    ],
-    "useCases": [
-      "embedded control",
-      "robot integration"
-    ],
-    "price": 0,
-    "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://www.raspberrypi.com/products/raspberry-pi-pico-2/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://www.raspberrypi.com/products/raspberry-pi-pico-2/"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "RPI-CAM3",
-    "slug": "raspberry-pi-camera-module-3-standard",
-    "name": "Raspberry Pi Camera Module 3 Standard",
-    "manufacturer": "Raspberry Pi",
-    "model": "Camera Module 3 Standard",
-    "categories": [
-      "accessories"
-    ],
-    "productType": "accessory",
-    "description": "A compact autofocus camera module for vision experiments on a compatible Raspberry Pi.",
-    "specifications": {
-      "Sensor resolution": "12 megapixels",
-      "Focus": "Autofocus",
-      "Manufacturer": "Raspberry Pi",
-      "Model": "Camera Module 3 Standard",
-      "Product format": "accessory",
-      "Compatibility": "Raspberry Pi camera software stack",
-      "Intended applications": "computer vision; robot integration"
-    },
-    "includedItems": [
-      "Camera Module 3 Standard"
-    ],
-    "requiredAccessories": [
-      "Compatible Raspberry Pi",
-      "Correct camera ribbon cable for host model"
-    ],
-    "compatibility": [
-      "Raspberry Pi camera software stack"
-    ],
-    "useCases": [
-      "computer vision",
-      "robot integration"
-    ],
-    "price": 0,
-    "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://www.raspberrypi.com/products/camera-module-3/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://www.raspberrypi.com/products/camera-module-3/"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "RPI-AIHAT13",
-    "slug": "raspberry-pi-ai-hat-13-tops",
-    "name": "Raspberry Pi AI HAT+ 13 TOPS",
-    "manufacturer": "Raspberry Pi",
-    "model": "AI HAT+ 13 TOPS",
-    "categories": [
-      "accessories"
-    ],
-    "productType": "accessory",
-    "description": "A neural-network accelerator add-on for local vision inference on Raspberry Pi 5.",
-    "specifications": {
-      "Accelerator": "Hailo-8L",
-      "Inference performance": "13 TOPS",
-      "Manufacturer": "Raspberry Pi",
-      "Model": "AI HAT+ 13 TOPS",
-      "Product format": "accessory",
-      "Compatibility": "Raspberry Pi 5; Raspberry Pi camera software stack",
-      "Intended applications": "computer vision; robot integration"
-    },
-    "includedItems": [
-      "AI HAT+",
-      "16 mm stacking header",
-      "Spacers and screws"
-    ],
-    "requiredAccessories": [
-      "Raspberry Pi 5",
-      "Suitable power and cooling"
-    ],
-    "compatibility": [
-      "Raspberry Pi 5",
-      "Raspberry Pi camera software stack"
-    ],
-    "useCases": [
-      "computer vision",
-      "robot integration"
-    ],
-    "price": 0,
-    "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://www.raspberrypi.com/products/ai-hat/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://www.raspberrypi.com/products/ai-hat/"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "ROB-TB3B",
-    "slug": "robotis-turtlebot3-burger",
-    "name": "ROBOTIS TurtleBot3 Burger",
-    "manufacturer": "ROBOTIS",
-    "model": "TurtleBot3 Burger",
-    "categories": [
-      "mobile robots"
-    ],
-    "productType": "kit",
-    "description": "A modular ROS learning platform for navigation and mobile-robot software experiments.",
-    "specifications": {
-      "Maximum translation speed": "0.22 m/s",
-      "Manufacturer": "ROBOTIS",
-      "Model": "TurtleBot3 Burger",
-      "Product format": "kit",
-      "Compatibility": "ROS; select matching distribution and hardware guide",
-      "Intended applications": "mobile robotics; motion control"
-    },
-    "includedItems": [
-      "TurtleBot3 platform kit; SBC variant depends on bundle"
-    ],
-    "requiredAccessories": [
-      "Development computer",
-      "Confirm regional kit contents and SBC version"
-    ],
-    "compatibility": [
-      "ROS; select matching distribution and hardware guide"
-    ],
-    "useCases": [
-      "mobile robotics",
-      "motion control"
-    ],
-    "price": 0,
-    "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://emanual.robotis.com/docs/en/platform/turtlebot3/features/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://emanual.robotis.com/docs/en/platform/turtlebot3/features/"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "ROB-TB3W",
-    "slug": "robotis-turtlebot3-waffle-pi",
-    "name": "ROBOTIS TurtleBot3 Waffle Pi",
-    "manufacturer": "ROBOTIS",
-    "model": "TurtleBot3 Waffle Pi",
-    "categories": [
-      "mobile robots"
-    ],
-    "productType": "kit",
-    "description": "A modular ROS learning platform for navigation and mobile-robot software experiments.",
-    "specifications": {
-      "Maximum translation speed": "0.26 m/s",
-      "Manufacturer": "ROBOTIS",
-      "Model": "TurtleBot3 Waffle Pi",
-      "Product format": "kit",
-      "Compatibility": "ROS; select matching distribution and hardware guide",
-      "Intended applications": "mobile robotics; motion control"
-    },
-    "includedItems": [
-      "TurtleBot3 platform kit; SBC variant depends on bundle"
-    ],
-    "requiredAccessories": [
-      "Development computer",
-      "Confirm regional kit contents and SBC version"
-    ],
-    "compatibility": [
-      "ROS; select matching distribution and hardware guide"
-    ],
-    "useCases": [
-      "mobile robotics",
-      "motion control"
-    ],
-    "price": 0,
-    "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://emanual.robotis.com/docs/en/platform/turtlebot3/features/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://emanual.robotis.com/docs/en/platform/turtlebot3/features/"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "ROB-OMX",
-    "slug": "robotis-openmanipulator-x",
-    "name": "ROBOTIS OpenMANIPULATOR-X",
-    "manufacturer": "ROBOTIS",
-    "model": "OpenMANIPULATOR-X",
-    "categories": [
-      "robot arms"
-    ],
-    "productType": "kit",
-    "description": "A compact manipulation platform for studying joint control and grasping.",
-    "specifications": {
-      "Degrees of freedom": "4 arm + 1 gripper",
-      "Payload": "500 g",
-      "Reach": "380 mm",
-      "Input": "12 V",
-      "Manufacturer": "ROBOTIS",
-      "Model": "OpenMANIPULATOR-X",
-      "Product format": "kit",
-      "Compatibility": "ROS; DYNAMIXEL SDK; Arduino",
-      "Intended applications": "manipulation; motion programming"
-    },
-    "includedItems": [
-      "Manipulator assembly/kit; confirm supplier bundle"
-    ],
-    "requiredAccessories": [
-      "PC or OpenCR controller",
-      "Suitable power supply and interface; confirm bundle"
-    ],
-    "compatibility": [
-      "ROS",
-      "DYNAMIXEL SDK",
-      "Arduino"
-    ],
-    "useCases": [
-      "manipulation",
-      "motion programming"
-    ],
-    "price": 0,
-    "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://emanual.robotis.com/docs/en/platform/openmanipulator_x/specification/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://emanual.robotis.com/docs/en/platform/openmanipulator_x/specification/"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "ROB-XL430",
-    "slug": "robotis-dynamixel-xl430-w250-t",
-    "name": "ROBOTIS DYNAMIXEL XL430-W250-T",
-    "manufacturer": "ROBOTIS",
-    "model": "DYNAMIXEL XL430-W250-T",
-    "categories": [
-      "components"
-    ],
-    "productType": "component",
-    "description": "A networked servo actuator for robot joints and mechanisms.",
-    "specifications": {
-      "Model": "DYNAMIXEL XL430-W250-T",
-      "Bus": "TTL",
-      "Manufacturer": "ROBOTIS",
-      "Product format": "component",
-      "Compatibility": "DYNAMIXEL Protocol 2.0",
-      "Intended applications": "embedded control; robot integration"
-    },
-    "includedItems": [
-      "Actuator; confirm cable and horn bundle"
-    ],
-    "requiredAccessories": [
-      "Compatible controller",
-      "Power supply",
-      "Bus cabling"
-    ],
-    "compatibility": [
-      "DYNAMIXEL Protocol 2.0"
-    ],
-    "useCases": [
-      "embedded control",
-      "robot integration"
-    ],
-    "price": 0,
-    "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://emanual.robotis.com/docs/en/dxl/x/xl430-w250/",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://emanual.robotis.com/docs/en/dxl/x/xl430-w250/"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "WAV-M2S",
-    "slug": "waveshare-roarm-m2-s",
-    "name": "Waveshare RoArm-M2-S",
-    "manufacturer": "Waveshare",
-    "model": "RoArm-M2-S",
-    "categories": [
-      "robot arms"
-    ],
-    "productType": "kit",
-    "description": "An ESP32-controlled desktop arm for exploring programmable manipulation.",
-    "specifications": {
-      "Degrees of freedom": "4",
-      "Controller": "ESP32",
-      "Manufacturer": "Waveshare",
-      "Model": "RoArm-M2-S",
-      "Product format": "kit",
-      "Compatibility": "ROS 2; Web control",
-      "Intended applications": "manipulation; motion programming"
-    },
-    "includedItems": [
-      "RoArm-M2-S arm kit; select power plug bundle"
-    ],
-    "requiredAccessories": [
-      "Suitable 12 V power supply; verify selected bundle"
-    ],
-    "compatibility": [
-      "ROS 2",
-      "Web control"
-    ],
-    "useCases": [
-      "manipulation",
-      "motion programming"
-    ],
-    "price": 0,
-    "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://www.waveshare.com/product/roarm-m2-s.htm",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://www.waveshare.com/product/roarm-m2-s.htm"
-      },
-      {
-        "label": "Official documentation",
-        "url": "https://www.waveshare.com/wiki/RoArm-M2-S"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "WAV-ROVER",
-    "slug": "waveshare-wave-rover",
-    "name": "Waveshare WAVE ROVER",
-    "manufacturer": "Waveshare",
-    "model": "WAVE ROVER",
-    "categories": [
-      "mobile robots"
-    ],
-    "productType": "kit",
-    "description": "A metal four-wheel-drive chassis with an ESP32 driver board for mobile robotics projects.",
-    "specifications": {
-      "Drive": "4WD",
-      "Motors": "4 N20 geared motors",
-      "Dimensions": "194 × 168 × 100 mm",
-      "Manufacturer": "Waveshare",
-      "Model": "WAVE ROVER",
-      "Product format": "kit",
-      "Compatibility": "Raspberry Pi or Jetson host over serial",
-      "Intended applications": "mobile robotics; motion control"
-    },
-    "includedItems": [
-      "Chassis",
-      "ESP32 driver board",
-      "Mounting plate"
-    ],
-    "requiredAccessories": [
-      "3 compatible 18650 cells (not included)",
-      "Optional host computer"
-    ],
-    "compatibility": [
-      "Raspberry Pi or Jetson host over serial"
-    ],
-    "useCases": [
-      "mobile robotics",
-      "motion control"
-    ],
-    "price": 0,
-    "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://www.waveshare.com/product/wave-rover.htm",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://www.waveshare.com/product/wave-rover.htm"
-      },
-      {
-        "label": "Official documentation",
-        "url": "https://www.waveshare.com/wiki/WAVE_ROVER"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
-  },
-  {
-    "sku": "ELE-MC280",
-    "slug": "elephant-robotics-mycobot-280-m5",
-    "name": "Elephant Robotics myCobot 280 M5",
-    "manufacturer": "Elephant Robotics",
-    "model": "myCobot 280 M5",
-    "categories": [
-      "robot arms"
-    ],
+    "image": "/product-media/guardian-g7.png",
+    "model": "Guardian G7",
     "productType": "complete robot",
-    "description": "A compact desktop arm for experimenting with programmed motion. This entry refers to the M5 variant in the manufacturer comparison document.",
     "specifications": {
-      "Degrees of freedom": "6",
-      "Working range": "280 mm",
-      "Specification edition": "Manufacturer comparison, 2022",
-      "Manufacturer": "Elephant Robotics",
-      "Model": "myCobot 280 M5",
-      "Product format": "complete robot",
-      "Compatibility": "M5 variant; verify firmware and accessory compatibility with manufacturer",
-      "Intended applications": "manipulation; motion programming"
+      "Model": "Guardian G7",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
     },
-    "includedItems": [
-      "myCobot 280 M5 arm; exact accessory bundle not verified"
-    ],
-    "requiredAccessories": [
-      "Compatible power supply",
-      "Computer",
-      "End effector if required; confirm bundle"
-    ],
-    "compatibility": [
-      "M5 variant; verify firmware and accessory compatibility with manufacturer"
-    ],
-    "useCases": [
-      "manipulation",
-      "motion programming"
-    ],
-    "price": 0,
-    "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://static.elephantrobotics.com/wp-content/uploads/2022/10/Comparison-of-manipulator.pdf",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://static.elephantrobotics.com/wp-content/uploads/2022/10/Comparison-of-manipulator.pdf"
-      }
-    ],
-    "image": "/images/placeholder.png",
     "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
+      "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "showcase": true,
-    "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
+    "catalogueVersion": "merchant-20-v1"
   },
   {
-    "sku": "ELE-MP260",
-    "slug": "elephant-robotics-mypalletizer-260-m5",
-    "name": "Elephant Robotics myPalletizer 260 M5",
-    "manufacturer": "Elephant Robotics",
-    "model": "myPalletizer 260 M5",
-    "categories": [
-      "robot arms"
-    ],
-    "productType": "complete robot",
-    "description": "A compact desktop arm for experimenting with programmed motion. This entry refers to the M5 variant in the manufacturer comparison document.",
-    "specifications": {
-      "Degrees of freedom": "4",
-      "Working range": "260 mm",
-      "Specification edition": "Manufacturer comparison, 2022",
-      "Manufacturer": "Elephant Robotics",
-      "Model": "myPalletizer 260 M5",
-      "Product format": "complete robot",
-      "Compatibility": "M5 variant; verify firmware and accessory compatibility with manufacturer",
-      "Intended applications": "manipulation; motion programming"
-    },
-    "includedItems": [
-      "myPalletizer 260 M5 arm; exact accessory bundle not verified"
-    ],
-    "requiredAccessories": [
-      "Compatible power supply",
-      "Computer",
-      "End effector if required; confirm bundle"
-    ],
-    "compatibility": [
-      "M5 variant; verify firmware and accessory compatibility with manufacturer"
-    ],
-    "useCases": [
-      "manipulation",
-      "motion programming"
-    ],
-    "price": 0,
+    "sku": "MECHAARM-M6",
+    "slug": "mechaarm-m6",
+    "name": "MechaArm M6",
+    "description": "Meet MechaArm M6, part of the RobotShop robotics collection.",
+    "price": 399,
     "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://static.elephantrobotics.com/wp-content/uploads/2022/10/Comparison-of-manipulator.pdf",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://static.elephantrobotics.com/wp-content/uploads/2022/10/Comparison-of-manipulator.pdf"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
+    "priceType": "sale",
+    "showcase": false,
     "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
+    "fulfilment": "merchant",
+    "instock": 23,
+    "categories": [
+      "robotic arm",
+      "robot"
+    ],
+    "image": "/product-media/mechaarm-m6.png",
+    "model": "MechaArm M6",
+    "productType": "complete robot",
+    "specifications": {
+      "Model": "MechaArm M6",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
+    },
+    "imageAttribution": {
+      "credit": "AI-generated concept render; not a manufacturer photograph"
+    },
+    "catalogueVersion": "merchant-20-v1"
   },
   {
-    "sku": "ELE-MA270",
-    "slug": "elephant-robotics-mecharm-270-m5",
-    "name": "Elephant Robotics mechArm 270 M5",
-    "manufacturer": "Elephant Robotics",
-    "model": "mechArm 270 M5",
-    "categories": [
-      "robot arms"
-    ],
-    "productType": "complete robot",
-    "description": "A compact desktop arm for experimenting with programmed motion. This entry refers to the M5 variant in the manufacturer comparison document.",
-    "specifications": {
-      "Degrees of freedom": "6",
-      "Working range": "270 mm",
-      "Specification edition": "Manufacturer comparison, 2022",
-      "Manufacturer": "Elephant Robotics",
-      "Model": "mechArm 270 M5",
-      "Product format": "complete robot",
-      "Compatibility": "M5 variant; verify firmware and accessory compatibility with manufacturer",
-      "Intended applications": "manipulation; motion programming"
-    },
-    "includedItems": [
-      "mechArm 270 M5 arm; exact accessory bundle not verified"
-    ],
-    "requiredAccessories": [
-      "Compatible power supply",
-      "Computer",
-      "End effector if required; confirm bundle"
-    ],
-    "compatibility": [
-      "M5 variant; verify firmware and accessory compatibility with manufacturer"
-    ],
-    "useCases": [
-      "manipulation",
-      "motion programming"
-    ],
-    "price": 0,
+    "sku": "COMPANION-C2",
+    "slug": "companion-c2",
+    "name": "Companion C2",
+    "description": "Meet Companion C2, part of the RobotShop robotics collection.",
+    "price": 299,
     "currency": "USD",
-    "priceType": "on-request",
-    "priceSourceUrl": "https://static.elephantrobotics.com/wp-content/uploads/2022/10/Comparison-of-manipulator.pdf",
-    "priceCheckedAt": "2026-10-19T00:00:00Z",
-    "checkedAt": "2026-10-19T00:00:00Z",
-    "sources": [
-      {
-        "label": "Official product / specification source",
-        "url": "https://static.elephantrobotics.com/wp-content/uploads/2022/10/Comparison-of-manipulator.pdf"
-      }
-    ],
-    "image": "/images/placeholder.png",
-    "imageAttribution": {
-      "status": "placeholder",
-      "credit": "RobotShop placeholder; no manufacturer photograph reproduced",
-      "permission": "Manufacturer image reuse not established"
-    },
-    "showcase": true,
+    "priceType": "sale",
+    "showcase": false,
     "synthetic": false,
-    "fulfilment": "simulated",
-    "instock": 25,
-    "archived": false,
-    "catalogueVersion": "robotics-2026-10",
-    "packageNote": "Core items listed; confirm exact bundle, connector, power and software requirements with the manufacturer before sourcing. Reference information is not an offer to sell."
+    "fulfilment": "merchant",
+    "instock": 26,
+    "categories": [
+      "companion",
+      "robot"
+    ],
+    "image": "/product-media/companion-c2.png",
+    "model": "Companion C2",
+    "productType": "complete robot",
+    "specifications": {
+      "Model": "Companion C2",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
+    },
+    "imageAttribution": {
+      "credit": "AI-generated concept render; not a manufacturer photograph"
+    },
+    "catalogueVersion": "merchant-20-v1"
+  },
+  {
+    "sku": "AGROBOT-A200",
+    "slug": "agrobot-a200",
+    "name": "AgroBot A200",
+    "description": "Meet AgroBot A200, part of the RobotShop robotics collection.",
+    "price": 379,
+    "currency": "USD",
+    "priceType": "sale",
+    "showcase": false,
+    "synthetic": false,
+    "fulfilment": "merchant",
+    "instock": 35,
+    "categories": [
+      "agriculture",
+      "robot"
+    ],
+    "image": "/product-media/agrobot-a200.png",
+    "model": "AgroBot A200",
+    "productType": "complete robot",
+    "specifications": {
+      "Model": "AgroBot A200",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
+    },
+    "imageAttribution": {
+      "credit": "AI-generated concept render; not a manufacturer photograph"
+    },
+    "catalogueVersion": "merchant-20-v1"
+  },
+  {
+    "sku": "SWIFTCARRY-D4",
+    "slug": "swiftcarry-d4",
+    "name": "SwiftCarry D4",
+    "description": "Meet SwiftCarry D4, part of the RobotShop robotics collection.",
+    "price": 329,
+    "currency": "USD",
+    "priceType": "sale",
+    "showcase": false,
+    "synthetic": false,
+    "fulfilment": "merchant",
+    "instock": 37,
+    "categories": [
+      "delivery",
+      "robot"
+    ],
+    "image": "/product-media/swiftcarry-d4.png",
+    "model": "SwiftCarry D4",
+    "productType": "complete robot",
+    "specifications": {
+      "Model": "SwiftCarry D4",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
+    },
+    "imageAttribution": {
+      "credit": "AI-generated concept render; not a manufacturer photograph"
+    },
+    "catalogueVersion": "merchant-20-v1"
+  },
+  {
+    "sku": "EDUBOT-SPARK",
+    "slug": "edubot-spark",
+    "name": "EduBot Spark",
+    "description": "Meet EduBot Spark, part of the RobotShop robotics collection.",
+    "price": 100,
+    "currency": "USD",
+    "priceType": "sale",
+    "showcase": false,
+    "synthetic": false,
+    "fulfilment": "merchant",
+    "instock": 29,
+    "categories": [
+      "education",
+      "robot"
+    ],
+    "image": "/product-media/edubot-spark.png",
+    "model": "EduBot Spark",
+    "productType": "complete robot",
+    "specifications": {
+      "Model": "EduBot Spark",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
+    },
+    "imageAttribution": {
+      "credit": "AI-generated concept render; not a manufacturer photograph"
+    },
+    "catalogueVersion": "merchant-20-v1"
+  },
+  {
+    "sku": "MEDIASSIST-M10",
+    "slug": "mediassist-m10",
+    "name": "MediAssist M10",
+    "description": "Meet MediAssist M10, part of the RobotShop robotics collection.",
+    "price": 459,
+    "currency": "USD",
+    "priceType": "sale",
+    "showcase": false,
+    "synthetic": false,
+    "fulfilment": "merchant",
+    "instock": 28,
+    "categories": [
+      "logistics",
+      "robot"
+    ],
+    "image": "/product-media/mediassist-m10.png",
+    "model": "MediAssist M10",
+    "productType": "complete robot",
+    "specifications": {
+      "Model": "MediAssist M10",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
+    },
+    "imageAttribution": {
+      "credit": "AI-generated concept render; not a manufacturer photograph"
+    },
+    "catalogueVersion": "merchant-20-v1"
+  },
+  {
+    "sku": "CHEFMATE-C8",
+    "slug": "chefmate-c8",
+    "name": "ChefMate C8",
+    "description": "Meet ChefMate C8, part of the RobotShop robotics collection.",
+    "price": 289,
+    "currency": "USD",
+    "priceType": "sale",
+    "showcase": false,
+    "synthetic": false,
+    "fulfilment": "merchant",
+    "instock": 42,
+    "categories": [
+      "kitchen",
+      "robot"
+    ],
+    "image": "/product-media/chefmate-c8.png",
+    "model": "ChefMate C8",
+    "productType": "complete robot",
+    "specifications": {
+      "Model": "ChefMate C8",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
+    },
+    "imageAttribution": {
+      "credit": "AI-generated concept render; not a manufacturer photograph"
+    },
+    "catalogueVersion": "merchant-20-v1"
+  },
+  {
+    "sku": "AQUASCOUT-R2",
+    "slug": "aquascout-r2",
+    "name": "AquaScout R2",
+    "description": "Meet AquaScout R2, part of the RobotShop robotics collection.",
+    "price": 269,
+    "currency": "USD",
+    "priceType": "sale",
+    "showcase": false,
+    "synthetic": false,
+    "fulfilment": "merchant",
+    "instock": 20,
+    "categories": [
+      "inspection",
+      "robot"
+    ],
+    "image": "/product-media/aquascout-r2.png",
+    "model": "AquaScout R2",
+    "productType": "complete robot",
+    "specifications": {
+      "Model": "AquaScout R2",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
+    },
+    "imageAttribution": {
+      "credit": "AI-generated concept render; not a manufacturer photograph"
+    },
+    "catalogueVersion": "merchant-20-v1"
+  },
+  {
+    "sku": "FIRESHIELD-F5",
+    "slug": "fireshield-f5",
+    "name": "FireShield F5",
+    "description": "Meet FireShield F5, part of the RobotShop robotics collection.",
+    "price": 489,
+    "currency": "USD",
+    "priceType": "sale",
+    "showcase": false,
+    "synthetic": false,
+    "fulfilment": "merchant",
+    "instock": 31,
+    "categories": [
+      "inspection",
+      "robot"
+    ],
+    "image": "/product-media/fireshield-f5.png",
+    "model": "FireShield F5",
+    "productType": "complete robot",
+    "specifications": {
+      "Model": "FireShield F5",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
+    },
+    "imageAttribution": {
+      "credit": "AI-generated concept render; not a manufacturer photograph"
+    },
+    "catalogueVersion": "merchant-20-v1"
+  },
+  {
+    "sku": "BUILDBOT-B300",
+    "slug": "buildbot-b300",
+    "name": "BuildBot B300",
+    "description": "Meet BuildBot B300, part of the RobotShop robotics collection.",
+    "price": 429,
+    "currency": "USD",
+    "priceType": "sale",
+    "showcase": false,
+    "synthetic": false,
+    "fulfilment": "merchant",
+    "instock": 24,
+    "categories": [
+      "construction",
+      "robot"
+    ],
+    "image": "/product-media/buildbot-b300.png",
+    "model": "BuildBot B300",
+    "productType": "complete robot",
+    "specifications": {
+      "Model": "BuildBot B300",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
+    },
+    "imageAttribution": {
+      "credit": "AI-generated concept render; not a manufacturer photograph"
+    },
+    "catalogueVersion": "merchant-20-v1"
+  },
+  {
+    "sku": "SOLARSWEEP-S6",
+    "slug": "solarsweep-s6",
+    "name": "SolarSweep S6",
+    "description": "Meet SolarSweep S6, part of the RobotShop robotics collection.",
+    "price": 219,
+    "currency": "USD",
+    "priceType": "sale",
+    "showcase": false,
+    "synthetic": false,
+    "fulfilment": "merchant",
+    "instock": 20,
+    "categories": [
+      "cleaning",
+      "robot"
+    ],
+    "image": "/product-media/solarsweep-s6.png",
+    "model": "SolarSweep S6",
+    "productType": "complete robot",
+    "specifications": {
+      "Model": "SolarSweep S6",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
+    },
+    "imageAttribution": {
+      "credit": "AI-generated concept render; not a manufacturer photograph"
+    },
+    "catalogueVersion": "merchant-20-v1"
+  },
+  {
+    "sku": "PETPAL-P3",
+    "slug": "petpal-p3",
+    "name": "PetPal P3",
+    "description": "Meet PetPal P3, part of the RobotShop robotics collection.",
+    "price": 149,
+    "currency": "USD",
+    "priceType": "sale",
+    "showcase": false,
+    "synthetic": false,
+    "fulfilment": "merchant",
+    "instock": 43,
+    "categories": [
+      "companion",
+      "robot"
+    ],
+    "image": "/product-media/petpal-p3.png",
+    "model": "PetPal P3",
+    "productType": "complete robot",
+    "specifications": {
+      "Model": "PetPal P3",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
+    },
+    "imageAttribution": {
+      "credit": "AI-generated concept render; not a manufacturer photograph"
+    },
+    "catalogueVersion": "merchant-20-v1"
+  },
+  {
+    "sku": "AEROINSPECT-A9",
+    "slug": "aeroinspect-a9",
+    "name": "AeroInspect A9",
+    "description": "Meet AeroInspect A9, part of the RobotShop robotics collection.",
+    "price": 359,
+    "currency": "USD",
+    "priceType": "sale",
+    "showcase": false,
+    "synthetic": false,
+    "fulfilment": "merchant",
+    "instock": 37,
+    "categories": [
+      "aerial",
+      "robot"
+    ],
+    "image": "/product-media/aeroinspect-a9.png",
+    "model": "AeroInspect A9",
+    "productType": "complete robot",
+    "specifications": {
+      "Model": "AeroInspect A9",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
+    },
+    "imageAttribution": {
+      "credit": "AI-generated concept render; not a manufacturer photograph"
+    },
+    "catalogueVersion": "merchant-20-v1"
+  },
+  {
+    "sku": "SHELFSENSE-R8",
+    "slug": "shelfsense-r8",
+    "name": "ShelfSense R8",
+    "description": "Meet ShelfSense R8, part of the RobotShop robotics collection.",
+    "price": 239,
+    "currency": "USD",
+    "priceType": "sale",
+    "showcase": false,
+    "synthetic": false,
+    "fulfilment": "merchant",
+    "instock": 29,
+    "categories": [
+      "retail",
+      "robot"
+    ],
+    "image": "/product-media/shelfsense-r8.png",
+    "model": "ShelfSense R8",
+    "productType": "complete robot",
+    "specifications": {
+      "Model": "ShelfSense R8",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
+    },
+    "imageAttribution": {
+      "credit": "AI-generated concept render; not a manufacturer photograph"
+    },
+    "catalogueVersion": "merchant-20-v1"
+  },
+  {
+    "sku": "LAWNPILOT-L4",
+    "slug": "lawnpilot-l4",
+    "name": "LawnPilot L4",
+    "description": "Meet LawnPilot L4, part of the RobotShop robotics collection.",
+    "price": 189,
+    "currency": "USD",
+    "priceType": "sale",
+    "showcase": false,
+    "synthetic": false,
+    "fulfilment": "merchant",
+    "instock": 34,
+    "categories": [
+      "gardening",
+      "robot"
+    ],
+    "image": "/product-media/lawnpilot-l4.png",
+    "model": "LawnPilot L4",
+    "productType": "complete robot",
+    "specifications": {
+      "Model": "LawnPilot L4",
+      "Product type": "Robot",
+      "Collection": "RobotShop",
+      "Specification status": "Detailed hardware specifications pending supplier confirmation"
+    },
+    "imageAttribution": {
+      "credit": "AI-generated concept render; not a manufacturer photograph"
+    },
+    "catalogueVersion": "merchant-20-v1"
   }
 ]

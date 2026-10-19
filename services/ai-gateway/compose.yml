@@ -7,7 +7,7 @@ services:
     image: ${IMAGE_PREFIX:-robotshop}-ai-gateway:local
     environment:
       DEMO_MONGODB_URL: ${DEMO_MONGODB_URL:-}
-      DEMO_REVIEWS_DATABASE: ${DEMO_REVIEWS_DATABASE:-robotshop_demo_global}
+      DEMO_REVIEWS_DATABASE: ${DEMO_REVIEWS_DATABASE:-robotshop_demo_merchant20}
       APP_ENV: ${APP_ENV:-development}
       REGISTRATION_CHALLENGE_PROVIDER: ${REGISTRATION_CHALLENGE_PROVIDER:-disabled}
       TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}

@@ -10,7 +10,7 @@ export function normalizeProducts(rows) {
     if (!Array.isArray(p.categories) || !p.categories.length || p.categories.some(c => typeof c !== 'string' || c.length > 100)) throw new Error(`Invalid categories for ${p.sku}.`);
     seen.add(p.sku);
     const details = productDetails(p);
-    return { ...details, archived: p.archived === true, sku: p.sku, name: p.name.trim(), description: p.description, price: Math.round(p.price * 100) / 100, instock: p.archived === true ? 0 : p.instock, categories: p.categories, image: /^\/product-media\/[a-z0-9-]+\.jpg$/.test(p.image || "") ? p.image : p.showcase ? "/images/placeholder.png" : `/images/${p.sku}.png` };
+    return { ...details, archived: p.archived === true, sku: p.sku, name: p.name.trim(), description: p.description, price: Math.round(p.price * 100) / 100, instock: p.archived === true ? 0 : p.instock, categories: p.categories, image: /^\/product-media\/[a-z0-9-]+\.(?:jpg|png)$/.test(p.image || "") ? p.image : p.showcase ? "/images/placeholder.png" : `/images/${p.sku}.png` };
   });
 }
 const stopwords = new Set('a an the for to me i want need find show robot robots droid please something under below less than euros euro with and of my is can you recommend'.split(' '));
@@ -38,7 +38,7 @@ export function rank(products, { query = '', budget, category, exclude = [], lim
     .sort((a, b) => b.score - a.score || (a.currency || 'EUR').localeCompare(b.currency || 'EUR') || Number(a.priceType === 'on-request') - Number(b.priceType === 'on-request') || a.price - b.price || a.sku.localeCompare(b.sku)).slice(0, limit);
 }
 
-// Source metadata is data, never markup. Live prices remain EUR-only.
+// Source metadata is data, never markup. Checkout accepts USD and legacy EUR in separate carts.
 export function productDetails(p) {
   const result = { slug: p.slug || p.sku.toLowerCase().replaceAll('_', '-'), currency: p.currency || 'EUR', priceType: p.priceType || 'sale', showcase: p.showcase === true, fulfilment: p.showcase ? 'simulated' : 'merchant', synthetic: p.synthetic === true };
   if (!/^[a-z0-9][a-z0-9-]{0,99}$/.test(result.slug) || !/^[A-Z]{3}$/.test(result.currency) || !['sale', 'reference', 'on-request', 'illustrative'].includes(result.priceType)) throw new Error('Invalid slug, currency or price type.');

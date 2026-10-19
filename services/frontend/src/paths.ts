@@ -10,5 +10,5 @@ export function productImage(product: { image: string; productType?: string }): 
   return appPath(`/illustrations/${category}.svg`);
 }
 export function canPurchase(product: { showcase?: boolean; synthetic?: boolean; currency?: string; priceType?: string }): boolean {
-  return !product.showcase && !product.synthetic && (product.currency || 'EUR') === 'EUR' && (product.priceType || 'sale') === 'sale';
+  return !product.showcase && !product.synthetic && ['EUR', 'USD'].includes(product.currency || 'EUR') && (product.priceType || 'sale') === 'sale';
 }

@@ -5,7 +5,7 @@ import { JSDOM } from 'jsdom';
 const root = new URL('../services/frontend/dist/', import.meta.url);
 const html = await readFile(new URL('product.html', root), 'utf8');
 const source = (await Promise.all(['paths.js','account.js','product.js'].map(async name => (await readFile(new URL(name,root),'utf8')).replace(/^import .*$/gm,'').replace(/^export /gm,'').replaceAll('import.meta.url',JSON.stringify('https://shop.example/roboshop/paths.js'))))).join('\n');
-async function setup(t, product, {quantity=0, fail=false}={}) {
+async function setup(t, product, {quantity=0, fail=false, demo=false}={}) {
   const dom = new JSDOM(html,{url:'https://shop.example/roboshop/products/test-robot',runScripts:'outside-only'}); t.after(()=>dom.window.close());
   const w=dom.window, writes=[];
   w.fetch=async(path,options={})=>{
@@ -13,7 +13,7 @@ async function setup(t, product, {quantity=0, fail=false}={}) {
     let body={};
     if(path.endsWith('/auth/me')) body={user:null};
     else if(path.endsWith('/products/test-robot')) body={product,related:[product]};
-    else if(path.includes('/reviews?')) body={reviews:[],next:null,summary:{count:0,average:null}};
+    else if(path.includes('/reviews?')) body={reviews:demo && path.includes('kind=demo') ? [{id:'demo',synthetic:true,rating:4,title:'Example',body:'Synthetic test review'}] : [],next:null,summary:{count:0,average:null}};
     else if(path.endsWith('/cart')) {
       if(options.method==='POST') {writes.push(JSON.parse(options.body)); if(fail)return {ok:false,json:async()=>({error:'Stock changed. Please retry.'})};}
       body={items:quantity?[{sku:product.sku,quantity}]:[]};
@@ -37,3 +37,12 @@ test('showcase products disable purchase and omit manufacturer shopping links',a
 test('out of stock products display a disabled purchase action',async t=>{const ui=await setup(t,{...product,instock:0});assert.equal(ui.$('.purchase-actions button').disabled,true);assert.match(ui.$('.purchase-actions button').textContent,/Out of stock/);});
 test('cart failures stay visible and allow retry',async t=>{const ui=await setup(t,product,{fail:true});await submit(ui);assert.match(ui.$('.purchase-feedback').textContent,/Stock changed/);assert.equal(ui.$('.purchase-actions button').disabled,false);assert.equal(ui.$('.cart-checkout-link').hidden,true);});
 test('combined quantity cannot exceed available inventory',async t=>{const ui=await setup(t,product,{quantity:5});await submit(ui);assert.equal(ui.writes.length,0);assert.match(ui.$('.purchase-feedback').textContent,/already contains/);});
+
+test('demo reviews display separately without a dataset selector or customer rating inflation',async t=>{
+ const ui=await setup(t,{...product,priceType:'on-request',showcase:true},{demo:true});
+ assert.equal(ui.$('#review-kind'),null);
+ assert.doesNotMatch(ui.w.document.body.textContent,/Price on request/);
+ assert.match(ui.$('#demo-review-list').textContent,/SYNTHETIC DEMO REVIEW/);
+ assert.equal(ui.$('#demo-reviews-section').hidden,false);
+ assert.match(ui.$('#rating-summary').textContent,/0 reviews/);
+});

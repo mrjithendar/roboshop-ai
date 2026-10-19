@@ -51,7 +51,7 @@ class Gateway:
         demo_db = None
         if os.getenv('DEMO_MONGODB_URL'):
             from pymongo import MongoClient
-            name = os.getenv('DEMO_REVIEWS_DATABASE', 'robotshop_demo_global')
+            name = os.getenv('DEMO_REVIEWS_DATABASE', 'robotshop_demo_merchant20')
             if not re.fullmatch(r'robotshop_demo_[a-z0-9_]{1,40}', name):
                 raise RuntimeError('Demo reviews require an isolated robotshop_demo_ database.')
             self.demo_client = MongoClient(os.environ['DEMO_MONGODB_URL'], serverSelectionTimeoutMS=3000, socketTimeoutMS=5000)
@@ -304,6 +304,10 @@ class Gateway:
                         raise HttpError(
                             409, "A payment is pending. Shipping cannot be changed."
                         )
+            if quote:
+                products = self.catalogue()
+                with self.store.lock:
+                    data = {**data, "currency": self.store.cart(id, products)["currency"]}
             result = upstream(
                 self.urls["shipping"]
                 + path
@@ -577,7 +581,7 @@ class Gateway:
                 / "services/frontend/dist"
                 / ("index.html" if path == "/" else path[1:])
             )
-        elif re.fullmatch(r"/product-media/[a-z0-9-]+\.jpg", path):
+        elif re.fullmatch(r"/product-media/[a-z0-9-]+\.(?:jpg|png)", path):
             file = ROOT / "services/frontend/dist" / path[1:]
         elif re.fullmatch(r"/illustrations/(robot|kit|component|accessory)\.svg", path):
             file = ROOT / "services/frontend/dist" / path[1:]

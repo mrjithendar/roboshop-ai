@@ -12,4 +12,16 @@ class LocationsTest {
         assertThrows(Exception.class,()->Locations.text(42,"Recipient",100));
         assertEquals("Alice",Locations.text(" Alice ","Recipient",100));
     }
+
+    @Test void quoteCurrencyIsExplicitAndValidated() throws Exception {
+        var jdbc=org.mockito.Mockito.mock(org.springframework.jdbc.core.JdbcTemplate.class);
+        org.mockito.Mockito.when(jdbc.queryForList(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.eq(1)))
+          .thenReturn(java.util.List.of(java.util.Map.<String,Object>of("id",1,"name","Test city","latitude",51.0,"longitude",7.0,"country","Test country")));
+        var locations=new Locations(jdbc,new tools.jackson.databind.ObjectMapper(),org.mockito.Mockito.mock(LocationCache.class));
+        var input=new java.util.HashMap<String,Object>(java.util.Map.of("cityId",1,"recipient","Customer","line1","1 Test Street","currency","USD"));
+        assertEquals("USD",locations.quote(input).get("currency"));
+        input.remove("currency"); assertEquals("EUR",locations.quote(input).get("currency"));
+        input.put("currency","XYZ"); assertThrows(org.springframework.web.server.ResponseStatusException.class,()->locations.quote(input));
+        input.put("currency",null); assertThrows(org.springframework.web.server.ResponseStatusException.class,()->locations.quote(input));
+    }
 }
