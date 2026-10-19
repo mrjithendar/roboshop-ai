@@ -239,3 +239,13 @@ Prometheus runs in `monitoring` at **https://jithendar.com/prometheus/** with pe
 Grafana and Prometheus both install in the **`monitoring`** namespace and share its TLS certificate. See [monitoring namespace notes](monitoring/README.md) before changing an existing installation.
 
 To **delete all Grafana/Prometheus data and login credentials, then reinstall**, use `bash minikube/reset-monitoring.sh`. This deletes only their resources in `monitoring` and legacy `robotshop-ai`, then reinstalls in `monitoring`; namespaces, TLS and other workloads are preserved. See [monitoring reset details](monitoring/README.md#delete-all-monitoring-data-and-reinstall).
+
+## Kubernetes CPU/memory metrics
+
+```bash
+bash minikube/deploy-metrics-server.sh
+kubectl top nodes
+kubectl top pods -A
+```
+
+Installs Metrics Server in `kube-system` for `kubectl top` and resource-based HPA metrics. See [Metrics Server setup](metrics-server/README.md).
