@@ -8,7 +8,7 @@ const result = spawnSync(process.execPath, ['node_modules/typescript/bin/tsc', '
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status || 1);
 await mkdir(new URL('dist/', frontend), { recursive: true });
-await Promise.all(['index.html', 'admin.html', 'product.html', 'styles.css'].map(name => copyFile(new URL(name, frontend), new URL(`dist/${name}`, frontend))));
+await Promise.all(['index.html', 'admin.html', 'product.html', 'checkout.html', 'styles.css'].map(name => copyFile(new URL(name, frontend), new URL(`dist/${name}`, frontend))));
 
 await cp(new URL('illustrations/', frontend), new URL('dist/illustrations/', frontend), { recursive: true });
 

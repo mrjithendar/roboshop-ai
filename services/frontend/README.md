@@ -19,22 +19,12 @@ is ignored by Git. Never edit generated JavaScript. Rebuild after source edits;
 
 ## Deployment
 
-`Dockerfile` builds the TypeScript assets and packages them with a lightweight
-static Nginx server. `compose.yml` defines the private `frontend:8080` service.
-The separate `nginx` service handles public HTTP/HTTPS, security headers, caching
-policy and API proxying. Only the edge publishes a host port. The Helm chart also
-has separate frontend and nginx Deployments and Services.
+`Dockerfile` builds assets into a private NGINX static server. `frontend-minikube.yaml` exposes port 8080 inside the cluster. The separate edge NGINX proxies browser requests to it and API requests to the gateway.
 
 Native development still serves the compiled frontend through the gateway.
 Container gateway images contain only backend code; keep NGINX enabled to serve
 the storefront in container deployments.
 `src/`, compiler configuration, and README files are not public routes.
-
-```sh
-./build-images.sh
-docker compose up -d nginx
-# Storefront: http://localhost:3000
-```
 
 Features include search/filter/sort, product details, persistent bag, Java shipping
 quotes, verified Razorpay checkout, shopping assistant, and service status. Untrusted
@@ -63,3 +53,11 @@ Original SVG category illustrations in `illustrations/` replace the common place
 Verify: `npm run frontend:build`, then `node --test tests/frontend.test.mjs tests/frontend-paths.test.mjs tests/product-page.test.mjs` and `npm run test:nginx`.
 
 Deploy on the Minikube host after syncing changes: `bash build-images.sh` then `bash deploy-minikube.sh --load-images`. Frontend and NGINX must both be rebuilt for the new illustration routes. No data migration is required.
+
+## Cart and checkout pages
+
+`/cart` provides quantity controls and an order summary. `/checkout` provides delivery details, shipping quotes, payment recovery and verified order confirmation. Both use `checkout.html` and `src/checkout.ts`; there is no cart/checkout dialog. With the Minikube ingress these routes are `/roboshop/cart` and `/roboshop/checkout`. Existing `?cart=1` storefront links redirect to the cart page.
+
+The storefront does not initialize payment or shipping controls. Razorpay opens its hosted payment window only after the customer submits payment on checkout. Login, server-calculated totals, inventory reservations and captured-payment verification remain required. A failed reconciliation prevents a new payment until retry succeeds. Synthetic reviews and concept-image labels retain their disclosures.
+
+Rebuild and deploy the frontend, gateway and NGINX changes together using the root build/deploy scripts. No database migration is required.

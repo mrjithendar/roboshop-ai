@@ -48,8 +48,6 @@ extraScrapeConfigs:
           - ai-gateway.robotshop-ai.svc.cluster.local:3000
 ```
 
-The configuration checksum rolls the pod when scrape settings change. Docker Compose names/configuration are not automatically imported. `observability/prometheus/alerts.yml` is not installed by this minimal chart, and no Alertmanager is deployed.
-
 After rerunning `deploy-grafana.sh`, Grafana has a provisioned default **Prometheus** data source (`robotshop-prometheus`). Use Explore and query `up`. Provisioning does not remove other manually added data sources; resolve any pre-existing conflicting default/name before provisioning. No dashboards are imported automatically.
 
 ## Troubleshooting

@@ -11,26 +11,9 @@ npm ci
 npm run frontend:typecheck
 npm run frontend:build
 npm run dev
-```
-
-The build produces `dist/index.html`, `dist/admin.html`, `dist/styles.css`, and compiled JavaScript modules. `dist/`
-is ignored by Git. Never edit generated JavaScript. Rebuild after source edits;
-`npm run dev` builds once on startup and does not provide a watch server.
-
-## Deployment
-
-`../nginx/Dockerfile` compiles the storefront in a Node build stage and copies only
-the generated public assets into the NGINX runtime. `../nginx/compose.yml` owns its
-Compose deployment, extended by root `docker-compose.yml`. The Helm chart's `nginx`
-Deployment uses this same image. There is intentionally one web-serving process:
-NGINX serves the frontend and proxies `/api/*` to the private gateway.
-
-The root Node Dockerfile also builds the frontend for direct gateway development
-and Helm deployments with NGINX disabled. Both paths use the same build script.
-`src/`, compiler configuration, and README files are not public routes.
-
-```sh
-docker compose up -d --build nginx
+sh
+bash build-images.sh
+bash deploy-minikube.sh
 # Storefront: http://localhost:3000
 ```
 

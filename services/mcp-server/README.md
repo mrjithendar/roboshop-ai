@@ -22,12 +22,3 @@ session and role on every request: customers cannot use admin tools, admins cann
 change roles/settings, and the super-admin account remains protected. Sessions
 expire after eight hours and are revoked on logout or access changes. No elevated
 service identity or arbitrary cookie/header override is provided.
-
-MCP does not manage login or refresh tokens. Use the web login flow to establish a
-session. Requests go only to the operator-configured gateway, not arbitrary URLs
-provided by tool arguments. For containers, use the Compose network and
-`GATEWAY_URL=http://ai-gateway:3000`; use `docker run --rm -i`, without a TTY.
-
-Tool and downstream HTTP spans export via `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`.
-Arguments, results and session tokens are excluded. The optional Compose `tools`
-profile supplies the internal collector endpoint for stdio runs.

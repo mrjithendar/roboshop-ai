@@ -32,7 +32,7 @@ echo "Preparing Docker and Minikube for current user: $CURRENT_USER"
 "${ADMIN[@]}" dnf install -y ca-certificates coreutils dnf-plugins-core shadow-utils util-linux jq
 command -v curl >/dev/null 2>&1 || "${ADMIN[@]}" dnf install -y curl
 "${ADMIN[@]}" dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-"${ADMIN[@]}" dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+"${ADMIN[@]}" dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin
 "${ADMIN[@]}" systemctl enable --now docker
 if [[ "$EUID" != 0 ]]; then
   echo 'Adding the current user to the Docker group (root-level host access).'

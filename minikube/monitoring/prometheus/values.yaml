@@ -9,7 +9,7 @@ retentionSize: 4GB
 # Discover nodes and collect kubelet/container metrics through the authenticated API proxy.
 kubernetesMetrics:
   enabled: true
-# Add Kubernetes-reachable scrape jobs here. Docker Compose DNS is separate.
+# Add Kubernetes-reachable scrape jobs here. Use Kubernetes service DNS names.
 extraScrapeConfigs: []
 # Example:
 # - job_name: robotshop

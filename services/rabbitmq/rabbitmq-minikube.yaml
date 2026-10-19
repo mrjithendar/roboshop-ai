@@ -7,7 +7,7 @@ metadata:
   labels:
     app.kubernetes.io/part-of: robotshop-ai
 data:
-  rabbitmq.conf: '# Internal AMQP and loopback-published management UI for local Compose.
+  rabbitmq.conf: '# Internal AMQP and management UI; use a private port-forward for management.
 
     # Production uses a managed TLS broker via the Helm integration Secret.
 

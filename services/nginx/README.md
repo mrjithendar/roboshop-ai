@@ -27,46 +27,19 @@ Browser → NGINX :8080 (HTTP) / :8443 (optional HTTPS)
 | `snippets/security-headers.conf` | Browser security headers, including the Razorpay-compatible CSP. |
 | `start.sh` | Validates settings, renders templates, checks configuration and starts NGINX. |
 | `Dockerfile` | Packages the edge proxy configuration; assets live in the frontend image. |
-| `compose.yml` | Service deployment extended by the root Compose file. |
 
 `http/` files are included inside the main `http` block. One selected server file includes the routes, which include reusable proxy/header settings. `start.sh` substitutes only explicitly listed environment variables, leaving NGINX variables such as `$uri` and `$scheme` intact. Generated configuration lives under `/tmp/robotshop-nginx`; source files remain read-only.
 
-## Start with Compose
+## Minikube
 
-Configure the PostgreSQL, Redis and RabbitMQ credentials in the project's `.env` first, as described in the root README. Then, from the repository root:
+Run `bash build-images.sh` and `bash deploy-minikube.sh` from the repository root. Traefik and cert-manager terminate HTTPS at `https://jithendar.com/roboshop/`; NGINX forwards requests inside the cluster.
 
-```sh
-./build-images.sh
-docker compose up -d
+```bash
+kubectl -n robotshop-ai logs deployment/nginx --tail=100
+kubectl -n robotshop-ai exec deployment/nginx -- nginx -t -c /tmp/robotshop-nginx/nginx.conf
 ```
 
-Open **http://localhost:3000**. That port now belongs to NGINX; the gateway's port is no longer published. Its internal address remains `ai-gateway:3000`. Existing frontend API paths and the default `PUBLIC_ORIGIN` still work. Rebuild the frontend image after changing storefront files; rebuild NGINX after changing proxy configuration.
-
-```sh
-docker compose exec nginx nginx -t -c /tmp/robotshop-nginx/nginx.conf
-docker compose logs -f nginx
-docker compose down
-```
-
-`nginx -T` with the same `-c` path prints the complete rendered configuration for learning/debugging. Metrics remain private: Prometheus scrapes `ai-gateway:3000/metrics`, not the public NGINX URL. `npm run dev` still starts the services directly without NGINX; Compose is the integrated NGINX launch path.
-
-## Optional HTTPS
-
-The default HTTP setup does not enable live payment configuration by itself. For NGINX to terminate HTTPS:
-
-1. Obtain a certificate for your hostname. Place `tls.crt` (full chain) and `tls.key` in a directory **outside this repository**; make them readable by container UID/GID 101 without making the private key world-readable.
-2. Set `NGINX_SERVER_NAME` and absolute `TLS_CERT_DIR` in `.env`. Certificates are supplied by the operator; this setup does not automate issuance/renewal.
-3. Start with the overlay:
-
-```sh
-docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
-```
-
-The overlay exposes loopback ports 80/443 and sets the gateway/payment `PUBLIC_ORIGIN` to `https://NGINX_SERVER_NAME`. The existing port 3000 also redirects to HTTPS. Hostname DNS/hosts resolution and certificates must match. For an externally reachable deployment, configure the network bindings, DNS and firewall deliberately. After certificate renewal, reload NGINX with `nginx -s reload -c /tmp/robotshop-nginx/nginx.conf`.
-
-The HTTPS server enables HSTS for one year; use a hostname intended to remain HTTPS. The HTTP setup does not send HSTS. If an ingress already handles TLS, keep NGINX in HTTP mode and set `PUBLIC_ORIGIN` to the external HTTPS URL.
-
-## Kubernetes
+## Helm
 
 Build/push the NGINX image separately and set `nginx.image.repository` and `nginx.image.tag`. The chart creates a separate deployment and service named `<release>-nginx`. Point the cluster ingress/load balancer at that service's port 80; the gateway remains private. Two NGINX replicas are enabled by default. This does not change the gateway's existing single-writer constraint.
 

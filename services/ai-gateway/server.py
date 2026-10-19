@@ -569,6 +569,8 @@ class Gateway:
         if req.method not in ("GET", "HEAD"):
             return
         path = "/admin.html" if req.path == "/admin" else req.path
+        if path in ("/cart", "/cart/", "/checkout", "/checkout/"):
+            path = "/checkout.html"
         if re.fullmatch(r"/products/[a-z0-9][a-z0-9-]{0,99}", path):
             path = "/product.html"
         if path in (
@@ -576,6 +578,8 @@ class Gateway:
             "/index.html",
             "/admin.html",
             "/product.html",
+            "/checkout.html",
+            "/checkout.js",
             "/product.js",
             "/paths.js",
             "/challenge.js",

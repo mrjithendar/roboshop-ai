@@ -62,3 +62,133 @@
 @media(max-width:700px){.product-page .product-detail-grid{display:flex;flex-direction:column}.product-gallery,.purchase-panel,.product-buybox{width:100%;position:static}.product-page .detail-image{max-height:350px}.product-page h1{font-size:28px}.review-overview{grid-template-columns:1fr}.product-buybox .button.primary{min-height:48px}}
 
 .product-body .header{padding-left:32px;padding-right:32px}.hero-robot{object-fit:contain}.art-caption{font-size:9px}
+
+/* Responsive layout: let content define height and keep touch controls usable. */
+.header{height:auto;min-height:99px;padding-top:18px;padding-bottom:18px}
+.header>*{min-width:0}.header nav{flex-wrap:wrap}
+.tabs{flex-wrap:wrap}.hero-copy,.search-sort,.purchase-panel,.product-gallery,.product-buybox,.information-card{min-width:0}
+.cart-row>div{min-width:0;overflow-wrap:anywhere}
+.shipping-form{padding:20px 0}
+@media(max-width:900px){
+  .header{gap:12px}.header nav{order:5;width:100%;justify-content:flex-start;gap:12px 24px;padding:0}
+  .header .wordmark{margin-right:auto}
+  .product-body .header{margin:0;padding:16px 20px}
+  .product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){
+  .header{min-height:0;gap:8px 12px;padding:14px 0}
+  .header nav{font-size:12px;gap:6px 18px;justify-content:flex-start}
+  .header button,.header nav a,.header>a:not(.wordmark){min-height:44px;display:inline-flex;align-items:center}
+  .header .wordmark{font-size:24px;flex:1 1 140px;order:0}
+  .header .bag-button{order:2;justify-content:center}
+  .header>#account-button,.header>#admin-link,.header>#logout-button{order:1;font-size:13px}
+  .product-body .header .wordmark{flex:auto}.product-body .header nav{order:3}
+  .hero{gap:24px}.hero h1{font-size:clamp(36px,9.5vw,60px);letter-spacing:-2px}.hero h1 em{letter-spacing:-2px}
+  .hero-description{font-size:14px;max-width:none}.hero-actions{flex-wrap:wrap}
+  .hero-actions .button{min-height:46px;font-size:12px;flex:1 1 145px}
+  .hero-art{min-height:300px}.hero-robot{max-width:85%;height:240px}
+  .art-caption{gap:12px;font-size:8px;letter-spacing:.5px}
+  .benefits{flex-wrap:wrap;gap:0;overflow:visible}.benefits p{min-width:0;width:100%;font-size:12px}
+  .catalogue-tools{min-width:0;width:100%}
+  .tabs{flex-wrap:nowrap;max-width:100%;overflow-x:auto;padding:4px 4px 10px;scroll-padding:4px}
+  .tab{flex-shrink:0;min-height:44px;font-size:12px}
+  .search-sort{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+  .search-box{min-height:46px}.search-box input,select{font-size:16px}
+  .search-sort select{width:100%;max-width:none;min-height:44px}
+  .results-meta{gap:12px;align-items:center;font-size:12px;flex-wrap:wrap}
+  .results-meta label{min-height:44px}.results-meta input{width:18px;height:18px}
+  .product-grid{gap:24px 12px}.product-image-button,.recommendations .product-image-button{height:auto;aspect-ratio:1;padding:8px}
+  .product-title{font-size:15px;line-height:1.4;overflow-wrap:anywhere}
+  .product-description{height:auto;font-size:12px;line-height:1.6}.product-category{font-size:9px}
+  .product-bottom{align-items:flex-start}.product-bottom .add-button{width:100%;min-height:44px;font-size:12px}
+  .product-badge{max-width:calc(100% - 16px);top:8px;left:8px;white-space:normal}
+  .product-page{padding:20px 16px 48px}.product-body .header{padding:12px 16px}
+  .product-page .product-detail-grid{gap:24px}.product-buybox{padding:18px}
+  .information-card{padding:18px}.product-page dl{overflow-wrap:anywhere}
+  .reviews-panel>label{display:flex;flex-wrap:wrap;margin:0 0 16px}
+  .reviews-panel select{min-height:44px;max-width:100%}
+  .review-overview{gap:12px}.review-overview>*{min-width:0}
+  .side-dialog{width:calc(100% - 16px);max-width:calc(100% - 16px);padding:18px;margin:8px;height:calc(100dvh - 16px)}
+  dialog{padding:18px;overscroll-behavior:contain}dialog h2{font-size:24px;overflow-wrap:anywhere}
+  .close-button{width:44px;height:44px}.dialog-heading{flex-shrink:0}
+  dialog input,dialog select,dialog textarea,.admin-form input,.admin-form select,.admin-form textarea{font-size:16px}
+  .shipping-form input,.shipping-form select{font-size:16px;min-height:44px}
+  .cart-row{grid-template-columns:48px minmax(0,1fr);gap:12px}
+  .cart-row img{width:48px;height:64px}.cart-row> :last-child{grid-column:2}
+  .quantity-control{gap:12px;flex-wrap:wrap}.quantity-control button{width:44px;height:44px}
+  .remove-button{min-height:44px;font-size:12px}.cart-total{gap:12px;font-size:17px;flex-wrap:wrap}
+  #account-dialog{width:calc(100% - 24px);max-height:calc(100dvh - 24px)}
+  .chat-product>div{min-width:0}.chat-product{flex-wrap:wrap}.chat-form textarea{min-width:0;font-size:16px}
+  .prompt-chips button{min-height:44px}.chat-messages{min-height:80px}
+  .assistant-launcher{bottom:max(16px,env(safe-area-inset-bottom))}
+  footer{padding-bottom:100px}footer p{display:block;line-height:1.6;width:100%}
+}
+@media(max-width:360px){
+  .product-grid{grid-template-columns:minmax(0,1fr)}
+  .product-image-button,.recommendations .product-image-button{aspect-ratio:1.3}
+  .header nav{gap:4px 12px}.header .wordmark{font-size:22px}
+  .related-grid{grid-template-columns:minmax(0,1fr)}
+}
+
+/* Dedicated commerce pages: review, delivery, payment and confirmation. */
+.checkout-body{background:#f3f5f7;color:#172b3a}
+.checkout-header{background:#fff;border-bottom:1px solid #dce2e7;padding:22px max(24px,calc((100vw - 1200px)/2));display:flex;align-items:center;gap:32px;flex-wrap:wrap}
+.checkout-header .wordmark{margin-right:auto;color:#173c36;font-size:27px}
+.checkout-header>a:not(.wordmark),.checkout-header nav{font-size:13px}
+.checkout-header nav{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.checkout-header nav a,.checkout-header button{min-height:44px;display:inline-flex;align-items:center}
+.checkout-layout{max-width:1248px;margin:auto;padding:32px 24px 64px}
+.checkout-steps{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:12px;color:#657481;margin-bottom:28px}
+.checkout-steps [aria-current=step]{color:#174d40;font-weight:700}
+.checkout-layout h1{font-size:36px;letter-spacing:-1px;margin:0 0 10px;line-height:1.2;font-weight:650}
+.checkout-intro{font-size:14px;color:#566976;margin:0 0 28px;overflow-wrap:anywhere}
+.checkout-columns{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:start}
+.checkout-sections{display:grid;gap:24px;min-width:0}
+.checkout-card{background:white;border:1px solid #dce2e7;border-radius:12px;padding:28px;min-width:0}
+.checkout-card h2{font-size:20px;letter-spacing:-.4px;margin:0;line-height:1.4;font-weight:650}
+.checkout-section-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.checkout-section-heading a{font-size:13px;color:#216650;text-decoration:underline;text-underline-offset:3px}
+.checkout-body .cart-items{overflow:visible;flex:none}
+.checkout-body .cart-row{grid-template-columns:80px minmax(0,1fr) auto;gap:20px;padding:24px 0}
+.checkout-body .cart-row:last-child{border-bottom:0;padding-bottom:0}
+.checkout-body .cart-row img{width:80px;height:96px;object-fit:contain;background:#f6f8f7}
+.checkout-body .cart-row h3{font-size:16px;line-height:1.5}
+.checkout-body .cart-row p{font-size:15px}
+.checkout-body .quantity-control button{width:36px;height:36px;background:#fff}
+.checkout-body .remove-button{font-size:12px;min-height:44px}
+.checkout-body .shipping-form{border:0;padding:0}
+.checkout-body .shipping-form legend{font-size:20px;letter-spacing:-.4px;margin-bottom:24px}
+.checkout-body .shipping-form fieldset{display:grid;grid-template-columns:1fr 1fr;gap:4px 20px}
+.checkout-body .shipping-form label{font-size:13px;min-width:0;color:#344e5e}
+.checkout-body .shipping-form label:has(#shipping-address){grid-column:1/-1}
+.checkout-body .shipping-form input,.checkout-body .shipping-form select{min-height:48px;border-color:#bac8ce;font-size:16px;border-radius:6px}
+.checkout-body .shipping-form button{grid-column:1/-1;min-height:48px;margin-top:12px;justify-content:center;color:#195544;border-color:#195544;background:#f5faf7}
+.checkout-body .shipping-form p{color:#526b5e}
+.checkout-summary{position:sticky;top:24px}
+.checkout-summary .cart-bottom{border:0;padding:0}
+.checkout-summary h2{margin-bottom:24px}
+.checkout-summary .cart-total{font-size:14px;margin:14px 0;gap:16px;flex-wrap:wrap}
+.checkout-summary .cart-total:has(#cart-total){padding-top:20px;border-top:1px solid #e0e6e8;font-size:20px;margin-top:20px}
+.checkout-summary .cart-total strong{font-weight:650}
+.checkout-summary h3{font-size:15px;margin:24px 0 8px}
+.checkout-summary .button{min-height:48px;margin-top:14px;justify-content:center;border-radius:7px}
+.checkout-body .button.primary{background:#185d48;color:white}
+.checkout-summary .checkout-security{font-size:12px;line-height:1.7;color:#667681;margin:20px 0 0}
+.checkout-summary #order-result{padding:0;line-height:1.7;overflow-wrap:anywhere}
+.checkout-error,.checkout-confirmation{padding:24px;border-radius:10px;margin-bottom:24px;overflow-wrap:anywhere}
+.checkout-error{background:#fff3e9;border:1px solid #edc5a2}
+.checkout-confirmation{background:#e8f5ed;border:1px solid #b9dcca}.checkout-confirmation h2{margin:0;font-size:24px}
+#checkout-empty{margin-bottom:24px}#checkout-empty p{color:#657481}
+.cart-page #payment-notice{display:none}
+.checkout-footer{background:white;padding:24px;justify-content:center;flex-wrap:wrap;text-align:center}
+.checkout-footer p{font-size:12px;line-height:1.6;color:#657481}
+@media(max-width:900px){.checkout-columns{grid-template-columns:minmax(0,1fr) 310px;gap:20px}.checkout-card{padding:20px}.checkout-header{padding:16px 24px;gap:12px 24px}}
+@media(max-width:700px){
+ .checkout-header{padding:12px 16px;gap:8px 16px}.checkout-header .wordmark{font-size:24px}.checkout-header nav{width:100%;gap:20px}
+ .checkout-layout{padding:24px 16px 40px}.checkout-layout h1{font-size:30px}.checkout-steps{font-size:11px;gap:8px;margin-bottom:24px}
+ .checkout-columns{grid-template-columns:minmax(0,1fr);gap:20px}.checkout-summary{position:static}.checkout-card{padding:20px}
+ .checkout-body .shipping-form fieldset{grid-template-columns:minmax(0,1fr)}
+ .checkout-body .cart-row{grid-template-columns:64px minmax(0,1fr);gap:12px}.checkout-body .cart-row img{width:64px;height:80px}
+ .checkout-body .quantity-control button{width:44px;height:44px}.checkout-body .cart-row>:last-child{grid-column:2;justify-self:start}
+ .checkout-footer p{display:block;width:100%}.checkout-footer{padding-bottom:24px}
+}

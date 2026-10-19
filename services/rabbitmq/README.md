@@ -1,18 +1,14 @@
-# RabbitMQ order events
+# RabbitMQ order messaging
 
-`compose.yml` owns the broker deployment and mounts `rabbitmq.conf`. Start with
-`docker compose up -d rabbitmq` from the repository root after setting
-`RABBITMQ_USERNAME` and `RABBITMQ_PASSWORD` in `.env`. The named `rabbitmq-data` volume
-and stable hostname preserve broker state across container replacement. AMQP 5672
-and management 15672 are published on host loopback only.
+`rabbitmq-minikube.yaml` deploys the broker as a StatefulSet with the `rabbitmq-data` PVC and a stable node identity. Credentials come from `robotshop-secrets`.
 
-The gateway declares durable exchanges and quorum queues, publishes `order.paid`
-with confirms, and retains unconfirmed events in its outbox. Java shipping commits
-an idempotent shipment request before acknowledging. Failed processing is retried
-and dead-lettered to `robotshop.shipping.failed`. Queue declarations belong to the
-applications; the broker configuration does not duplicate them.
+Deploy the whole application from the repository root:
 
-This is one broker for local development, not a fault-tolerant quorum cluster.
-Production Helm uses external RabbitMQ with verified TLS via the integration
-Secret. Plan broker replication, disk monitoring, backups and controlled DLQ replay.
-Never delete the data volume to resolve a queue declaration error.
+```bash
+bash build-images.sh
+bash deploy-minikube.sh
+```
+
+Paid-order events are consumed by shipping to create shipment requests. Preserve the PVC and credentials across deployments. For a private management session use `kubectl -n robotshop-ai port-forward service/rabbitmq 15672:15672`, then open localhost:15672. Do not publish the management UI directly.
+
+See the [Minikube deployment guide](../../minikube/robotshop/README.md) for secret initialization, dependency ordering and troubleshooting. Production database availability, backups and TLS require separate platform configuration.

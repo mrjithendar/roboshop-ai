@@ -1,6 +1,0 @@
-# Extended by root docker-compose.yml; run Compose from the repository root.
-services:
-  jaeger:
-    image: cr.jaegertracing.io/jaegertracing/jaeger:2.22.0
-    ports:
-    - 127.0.0.1:16686:16686

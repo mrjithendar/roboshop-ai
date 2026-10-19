@@ -26,62 +26,19 @@ using primary reads and majority writes. The most recent 1,000 changes are retai
 the admin API returns the most recent 20. Archive separately if longer retention
 is required. Endpoint URLs, access keys and prompts are not audit fields.
 
-For every customer request the gateway reads the active record and sends a
-validated snapshot and revision to `/internal/chat` with a service bearer token.
-The agent validates again against its operator allowlist. It accepts no customer
-provider settings, and direct `/api/chat` on the agent is rejected. The gateway
-accepts exactly `{ "message": "..." }` for public chat. Agent ports are not
-published by Compose. Helm supplies an ingress NetworkPolicy (enforcement requires
-a supporting CNI); do not expose the agent through an ingress/load balancer.
-Within Compose the shared private network still requires service authentication;
-use network segmentation/mTLS if deploying across untrusted networks.
-
 Provider switches/disconnect affect requests whose configuration snapshot is read
 after the MongoDB commit. Requests already in flight may complete on the previous
 provider; disconnect does not cancel them. **Disconnect does not stop or delete
 an Ollama EC2 instance, unload its model, or remove any AWS resources.** Operator
 infrastructure shutdown remains a separate action.
 
-## Common operator setup (Compose)
+## Operator setup
 
-1. Install this code and build/pull new **ai-gateway**, **shopping-agent** and
-   **frontend** images. Nginx routing is unchanged.
-2. For a fresh installation, `python3 generate-secrets.py` now generates
-   `LLM_SERVICE_TOKEN` alongside the existing database/payment secrets.
-   For an existing `.env`, add only the missing LLM token; do not regenerate
-   database passwords. This command fills a missing/blank token without printing it:
+Minikube initializes `LLM_SERVICE_TOKEN` in `robotshop-secrets` and shares it only with the gateway and shopping agent. Keep existing credentials when upgrading. Configure the approved Ollama endpoint mapping in the shopping-agent manifest, then rebuild and deploy with `bash build-images.sh` and `bash deploy-minikube.sh`.
 
-   ```bash
-   python3 - <<'PY'
-   import os, re, secrets
-   from pathlib import Path
-   p = Path('.env')
-   content = p.read_text()
-   match = re.search(r'^LLM_SERVICE_TOKEN=(.*)$', content, re.M)
-   if match and match.group(1).strip().strip('"\''):
-       raise SystemExit('LLM_SERVICE_TOKEN already set; preserving it.')
-   line = 'LLM_SERVICE_TOKEN=' + secrets.token_hex(32)
-   content = re.sub(r'^LLM_SERVICE_TOKEN=.*$', line, content, flags=re.M) if match else content.rstrip() + '\n' + line + '\n'
-   p.chmod(0o600)
-   p.write_text(content)
-   print('LLM service token configured; value not printed.')
-   PY
-   ```
+For native development, `python3 generate-secrets.py` creates a new private `.env`; an existing installation should add only missing keys rather than regenerate database credentials. Configure `LLM_SERVICE_TOKEN` and `OLLAMA_ENDPOINTS_JSON` before starting the services.
 
-3. Set `OLLAMA_ENDPOINTS_JSON={}` initially, or the approved mapping described below.
-4. Recreate the two backends once to load the operator token/allowlist, plus the
-   frontend to load the new UI:
-
-   ```bash
-   docker compose config --quiet
-   docker compose up -d ai-gateway shopping-agent frontend
-   ```
-
-5. Log in with the existing superadmin account and open `/admin`. Subsequent
-   **provider/model changes and disconnect require no restart**. Changing the
-   operator allowlist or rotating the service token does require updating both
-   backend deployments. A missing token leaves ordinary commerce and unconfigured
-   chat operational, but activation fails closed.
+Log in as super admin and open the AI / LLM configuration panel. Provider changes do not require restarting services. Token rotation or an operator allowlist change requires restarting the affected backends.
 
 Use `./build-images.sh` to build local images, or the individual ECR workflows.
 Do not bake secrets into Docker images. The containers remain non-root, read-only,
@@ -107,32 +64,6 @@ value. Install both Python service requirements first.
      }]
    }
    ```
-
-   Substitute the selected model resource. Inference profiles require permission
-   on the profile ARN and the underlying foundation-model ARNs in the profile's
-   destination regions; account SCPs must allow those regions. No model-list,
-   IAM administration, EC2 creation or streaming permission is required by this
-   non-streaming implementation. Model availability is account/region dependent.
-3. **EC2 Compose:** attach the role through the EC2 instance profile. Make IMDSv2
-   reachable by the agent container (bridge networking commonly requires metadata
-   response hop limit 2). Restrict metadata access from other containers using
-   host networking policy; an instance role otherwise applies at instance scope.
-   Do not put `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY` into the admin UI.
-   Standard Lightsail does not provide an EC2 instance-profile attachment workflow;
-   for this workload-identity setup run the agent on EC2/EKS instead of adding
-   long-lived AWS keys to a Lightsail deployment.
-4. **EKS:** use the dedicated `<release>-shopping-agent` service account created
-   by the chart. Configure EKS Pod Identity (including its agent) or IRSA externally
-   with the role above. Set `llm.workloadIdentityEnabled: true`. For IRSA, set
-   `llm.serviceAccountAnnotations.eks.amazonaws.com/role-arn` to the role ARN and
-   configure the IAM OIDC trust for that namespace/service account. Pod Identity
-   associations are created externally, not by this chart.
-5. Allow outbound HTTPS to Bedrock runtime in the selected region (and STS or
-   workload credential endpoints as required), via NAT or appropriate VPC endpoints.
-6. In Admin choose **Amazon Bedrock**, enter region (for example `us-east-1`) and
-   the exact model/profile ID (for example `amazon.nova-micro-v1:0`). Click
-   **Test connection**, then **Save and activate**. These actions each make a
-   small, potentially billable inference call. They were NOT run during development.
 
 The adapter uses boto3's default credential chain, fixed AWS service endpoints,
 Converse messages and bounded `maxTokens`; it collects no credentials in MongoDB.
@@ -225,16 +156,6 @@ answers, endpoints, actor IDs or credentials. Model/revision attributes are span
 metadata, not metric labels. Disabling telemetry does not change provider selection.
 
 ## Verification
-
-```bash
-.venv/bin/python -m pip install -r services/ai-gateway/requirements.txt -r services/shopping-agent/requirements.txt -r tests/python/requirements.txt
-.venv/bin/python -m unittest discover -s tests/python -v
-.venv/bin/python scripts/evaluate.py
-npm run frontend:typecheck
-npm run frontend:build
-node --test tests/admin-ui.test.mjs tests/frontend.test.mjs
-docker compose config --quiet
-```
 
 Mongo-backed tests require a dedicated `MONGODB_URL`; otherwise those tests skip.
 All provider tests use mocks, including SDK mappings and errors, so they perform

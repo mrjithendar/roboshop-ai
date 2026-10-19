@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a new private Compose env file or AWS Secrets Manager JSON payload."""
+"""Generate a new private native-development env file or AWS Secrets Manager JSON payload."""
 import argparse
 import json
 import os

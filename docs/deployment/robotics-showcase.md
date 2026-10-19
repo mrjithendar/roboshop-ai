@@ -25,11 +25,6 @@ Every product page links to its individual sources. The seed contains original s
 
 Startup inserts missing SKUs only. It never rewrites administrator edits. Fresh databases receive the curated catalogue directly. To retire the original fictional seed in an existing installation, explicitly run:
 
-```sh
-docker compose run --rm --no-deps product-ingestion \
-  node services/product-ingestion/migrate-catalogue.mjs --archive-legacy
-```
-
 This archives only original, unchanged revision-1 rows and inserts absent curated products. Edited legacy rows remain for an admin to review/archive. Orders are not changed or deleted. Rebuild the product-ingestion image first. Source/provenance refreshes require a reviewed migration; restarting does not overwrite existing rows. `CATALOGUE_FILE` is an operator/test fixture override, not a public API.
 
 ## Product pages and reviews
@@ -69,8 +64,6 @@ All request pages are bounded to 20 rows. Aggregation executes in MongoDB with a
 ## Opt-in synthetic dataset
 
 The seed command is never run at startup, during deployment, or by CI at full size. It uses no LLM, public registration, email, SMS, payment or shipping APIs.
-
-Use a **separate MongoDB deployment or demo-only credentials restricted to an isolated database**. The application account created by the standard Compose stack only has rights to `robotshop`; it is intentionally not expanded by this change. Create demo-only database credentials separately. The seed process refuses production environment labels, requires `APP_ENV=demo`, and requires a `robotshop_demo_<name>` target different from its `MONGODB_DATABASE`. It does not fall back to `MONGODB_URL`.
 
 From the repository root, after installing the gateway Python requirements:
 
@@ -124,17 +117,7 @@ PUBLIC_ORIGIN=https://shop.example.com
 TRUSTED_PROXY_CIDRS=<actual-nginx-peer-address-or-cidr>
 # Secret-store value, injected into ai-gateway only:
 TURNSTILE_SECRET_KEY=<private-provider-secret>
-```
-
-Only `siteKey`, `provider`, `action` are exposed by `/api/auth/challenge`. Do not put the secret in frontend build arguments, public settings or the admin panel. After securely updating Compose's environment, recreate gateway: `docker compose up -d --no-deps ai-gateway` (rebuild the affected images for the initial rollout).
-
-The edge replaces forwarding headers; gateway accepts X-Real-IP only from explicit `TRUSTED_PROXY_CIDRS` when `TRUST_PROXY=true`. Empty trust configuration ignores forwarded values and limits by peer IP; configure the narrow real NGINX peer range before public registration. Do not use `0.0.0.0/0`. Restrict gateway ingress to the edge using network policy/security groups.
-
-Registration allows five attempts per client IP per fixed 15-minute window. MongoDB counters and SHA-256 token claims work across replicas. Tokens are claimed before verification, even on a failed attempt. Verification uses a fixed HTTPS endpoint, 4-second socket timeout, 5-second caller deadline, response size cap, four bounded workers and no queued work. Failure, expiry, replay, wrong hostname/action and upstream timeout fail closed before scrypt or user creation. The UI resets the challenge after an attempt, including failed registration. The accessible off-screen website field must remain empty.
-
-Helm values:
-
-```yaml
+yaml
 deploymentEnvironment: production
 registration:
   provider: turnstile
@@ -158,5 +141,3 @@ NGINX_TEST=true node --test tests/nginx.test.mjs
 ```
 
 Tests cover source-schema survival, direct/refresh routes and private-path 404s, mixed-currency restrictions, injected showcase carts blocked before any provider call, related exclusions, review ownership/uniqueness/moderation/aggregates/pagination, genuine versus synthetic verification, challenge failures/timeouts/replay/proxy trust/rate limits, and small deterministic seed/resume/cleanup/production refusal. Existing commerce/auth/admin/MCP/LLM/telemetry regression tests remain in place; fictional fixtures are retained only for those stable regression scenarios.
-
-Implementation verification on 19 October 2026: 59 Python tests and 34 JavaScript tests passed with disposable MongoDB/PostgreSQL and native NGINX (including HTTP and HTTPS). All 10 deterministic retrieval/security evaluations passed. TypeScript build/typecheck, Compose configuration and gateway-only challenge secret checks, Helm lint/render, actionlint and Git whitespace checks passed. Container images were not built; real Turnstile widget credentials and provider behavior still require staging validation. No full demo seed, live payments, paid LLM calls, deployment, commit or push was performed by the implementation agent.

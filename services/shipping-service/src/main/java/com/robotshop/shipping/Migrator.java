@@ -61,7 +61,7 @@ final class Migrator {
                     }
                     try (var insert = connection.prepareStatement("INSERT INTO shipping.metadata VALUES ('seed',?) ON CONFLICT (key) DO UPDATE SET value=excluded.value")) { insert.setString(1,seedHash); insert.executeUpdate(); }
                 }
-                // Local Compose role; externally provisioned roles receive grants from the DBA.
+                // Local database role; externally provisioned roles receive grants from the DBA.
                 statement.execute("DO $$ BEGIN IF EXISTS (SELECT FROM pg_roles WHERE rolname='shipping_app') THEN GRANT INSERT ON shipping.shipment_requests TO shipping_app; END IF; END $$");
                 connection.commit();
                 System.out.println("Shipping migrations and GeoNames seed applied.");

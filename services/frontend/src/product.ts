@@ -41,7 +41,7 @@ function render(p: Product, related: Product[]): void {
     const label = element('label', 'Quantity'); const qty = element('input'); qty.type = 'number'; qty.min = '1'; qty.max = String(Math.min(20, stock)); qty.value = '1'; qty.required = true; qty.disabled = stock < 1; label.append(qty);
     const add = element('button', stock > 0 ? 'Add to cart' : 'Out of stock'); add.className = 'button primary'; add.disabled = stock < 1;
     const feedback = element('p'); feedback.className = 'purchase-feedback'; feedback.setAttribute('role','status'); feedback.setAttribute('aria-live','polite');
-    const cartLink = link('View cart & checkout →', '/?cart=1', 'cart-checkout-link'); cartLink.hidden = true;
+    const cartLink = link('View cart & checkout →', '/cart', 'cart-checkout-link'); cartLink.hidden = true;
     form.addEventListener('submit', async event => {
       event.preventDefault(); add.disabled = true; add.textContent = 'Adding…'; feedback.textContent = ''; cartLink.hidden = true;
       try {

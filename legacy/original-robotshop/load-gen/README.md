@@ -1,7 +1,5 @@
 # Load Generation
 
-This is deliberately not part of docker-compose.yaml to give the option of running the sample application without load. The image is available on Docker Hub but if you want to build your own, run:
-
 ```shell
 $ ./build.sh <push>
 ```
@@ -10,13 +8,7 @@ Will build with image and optionally push it.
 
 ```shell
 $ ./load-gen.sh
-```
-
-Runs the load generation script against the application started with `docker-compose up` . There are various command line options to configure the load.
-
-Alternatively, you can run the Container from Docker Hub directly on one of the nodes having access to the web service:
-
-```shell
+shell
 $ docker run \
 -d \
 --rm \

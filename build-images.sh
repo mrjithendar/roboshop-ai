@@ -12,7 +12,7 @@ usage() {
 Usage: ./build-images.sh [--local] [--dry-run] [--pull] [--no-cache] [--platform PLATFORM]
 
 Builds all twelve application images using their service-specific Dockerfiles.
-Environment (export the same values when running Docker Compose):
+Environment (export the same values when deploying to Minikube):
   IMAGE_PREFIX  Image repository prefix, e.g. registry.example.com/team/robotshop
                 Default: robotshop
   Application tags are fixed to local; exported IMAGE_TAG is ignored.
@@ -24,7 +24,7 @@ Example: bash build-images.sh --local
 Every run removes the previous application :local tags and builds without cache.
 Running containers are not stopped; Docker retains layers they still use.
 --pull refreshes base images; --no-cache is accepted for compatibility.
-Infrastructure services use official images and are pulled by Compose as needed.
+Infrastructure services use official images and are pulled by Kubernetes as needed.
 No images are pushed and no containers are started.
 EOF
 }
@@ -80,5 +80,5 @@ for service in "${services[@]}"; do
 done
 if [[ "$DRY_RUN" == false ]]; then
   printf '\nBuilt all %s application images. Start them from %q with:\n' "${#services[@]}" "$ROOT"
-  printf 'IMAGE_PREFIX=%q IMAGE_TAG=%q docker compose up -d\n' "$IMAGE_PREFIX" "$IMAGE_TAG"
+  printf 'IMAGE_PREFIX=%q bash deploy-minikube.sh\n' "$IMAGE_PREFIX"
 fi

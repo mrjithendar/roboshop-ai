@@ -36,6 +36,8 @@ Replace the example prefix with your registry prefix; publish every application 
 
 ## HTTPS access at jithendar.com/roboshop
 
+Traefik strips `/roboshop` before forwarding to NGINX. `FRONTEND_BASE_PATH=/roboshop` rewrites asset and navigation URLs; keep `PUBLIC_ORIGIN=https://jithendar.com` without a path.
+
 Open **https://jithendar.com/roboshop/** (admin: `/roboshop/admin`). HTTP redirects to HTTPS. WordPress continues serving `/`; monitoring retains `/grafana` and `/prometheus`.
 
 Prerequisites: DNS points to Vultr, Traefik exposes public ports 80/443, and cert-manager's `letsencrypt-prod` ClusterIssuer is Ready. The deploy script checks these cluster resources, applies `ingress.yaml`, and waits up to three minutes for the certificate. This certificate and its TLS Secret live in `robotshop-ai` because TLS Secrets cannot be referenced across namespaces.
@@ -46,8 +48,6 @@ On the Minikube host, rebuild the frontend and NGINX changes using the fixed loc
 bash build-images.sh
 bash deploy-minikube.sh --load-images
 ```
-
-Traefik strips `/roboshop` before passing requests to NGINX. NGINX's `FRONTEND_BASE_PATH=/roboshop` rewrites HTML asset and navigation links; the frontend resolves API, product, and image URLs from its module URL. The same images work at `/` in Compose with the default empty path. `PUBLIC_ORIGIN=https://jithendar.com` enables secure cookies and the correct same-origin checks; do not add the path to this value.
 
 If TLS is pending:
 
@@ -129,5 +129,3 @@ The installer stops at the first failing rollout and prints diagnostics. Fix the
 If the previous container log reports `spring.data.redis.port` cannot parse `tcp://...:6379`, Kubernetes service-link variables collided with the application's `REDIS_PORT` setting. The manifests disable service links and shipping explicitly sets `REDIS_PORT=6379` and `RABBITMQ_PORT=5672`. Apply the updated shipping manifest or rerun the deployment script; no image rebuild or database reset is needed. Service discovery continues using Kubernetes DNS.
 
 ### HTTPS returns 502 with NGINX "Host not found"
-
-Check `kubectl -n robotshop-ai logs deployment/nginx`. The NGINX Minikube manifest uses `ai-gateway.robotshop-ai.svc.cluster.local` and `frontend.robotshop-ai.svc.cluster.local` for its upstreams. Keep these namespace-qualified names: the runtime NGINX resolver does not expand short names using the pod's DNS search domains. The deployment renderer preserves these settings, and applying the updated manifest updates the pod automatically. Compose continues using its own Docker service names.

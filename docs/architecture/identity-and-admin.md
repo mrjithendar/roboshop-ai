@@ -46,20 +46,6 @@ one account and refuses to overwrite an existing super admin or reuse another
 account's email. Remove `SUPERADMIN_PASSWORD` after successful setup. The development
 launcher strips all bootstrap variables from its child processes.
 
-For Compose, the gateway already has its MongoDB connection. Export the bootstrap
-variables in your terminal through your local secret workflow, then run:
-
-```sh
-docker compose exec -e SUPERADMIN_EMAIL -e SUPERADMIN_PASSWORD -e SUPERADMIN_NAME \
-  ai-gateway python services/ai-gateway/bootstrap.py
-```
-
-`docker compose exec -e NAME` forwards an **exported shell variable**; it does not
-read the value from Compose's `.env` automatically. Do not put literal passwords
-in shell command history. The setup script is packaged in the Python gateway image. For
-Kubernetes, run the same command in the gateway pod with operator-supplied environment
-values; no bootstrap credentials belong in Helm values or a public endpoint.
-
 Visit the storefront's **Log in** button. After login, admins see **Admin panel**,
 also available at `/admin`. Customers cannot read or mutate admin API data even if
 they manually open that URL. The HTML shell itself is public; server data is protected.

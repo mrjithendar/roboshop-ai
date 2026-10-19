@@ -6,6 +6,8 @@ import { JSDOM } from 'jsdom';
 const html = await readFile(new URL('../services/frontend/dist/index.html', import.meta.url), 'utf8');
 const accountScript = (await readFile(new URL('../services/frontend/dist/account.js', import.meta.url), 'utf8')).replace(/^export /gm, '').replace(/^import .*$/gm, '');
 const pathsScript = (await readFile(new URL('../services/frontend/dist/paths.js', import.meta.url), 'utf8')).replace(/^export /gm, '').replaceAll('import.meta.url', JSON.stringify('https://shop.example/paths.js'));
+const checkoutHtml = await readFile(new URL('../services/frontend/dist/checkout.html', import.meta.url), 'utf8');
+const checkoutScript = pathsScript + '\n' + accountScript + '\n' + (await readFile(new URL('../services/frontend/dist/checkout.js', import.meta.url), 'utf8')).replace(/^export \{\};?$/m, '').replace(/^import .*$/gm, '');
 const script = pathsScript + '\n' + accountScript + '\n' + (await readFile(new URL('../services/frontend/dist/app.js', import.meta.url), 'utf8')).replace(/^export \{\};?$/m, '').replace(/^import .*$/gm, '');
 const product = { sku: 'TEST', name: '<img src=x onerror=alert(1)>', price: 12, instock: 3, categories: ['robot'], description: 'Test robot', image: '/images/placeholder.png' };
 const cart = { items: [{ ...product, quantity: 1, lineTotal: 12 }], subtotal: 12, total: 15, shipping: { address: { recipient: 'Test', line1: 'Test street' }, city: { name: 'Hyderabad', country: 'IN' }, cost: 3, distanceKm: 60, quotedAt: new Date().toISOString() } };
@@ -13,8 +15,8 @@ async function waitFor(check) {
   for (let i = 0; i < 100; i++) { if (check()) return; await new Promise(resolve => setTimeout(resolve, 5)); }
   assert.fail('UI did not reach expected state');
 }
-function setup(t, handler = () => undefined) {
-  const dom = new JSDOM(html, { url: 'https://shop.example', runScripts: 'outside-only' });
+function setup(t, handler = () => undefined, storefront = false) {
+  const dom = new JSDOM(storefront ? html : checkoutHtml, { url: storefront ? 'https://shop.example/' : 'https://shop.example/checkout', runScripts: 'outside-only' });
   t.after(() => dom.window.close());
   const w = dom.window, calls = [];
   w.HTMLElement.prototype.scrollIntoView = () => {};
@@ -35,17 +37,18 @@ function setup(t, handler = () => undefined) {
     assert.ok(Object.hasOwn(defaults, path), `Unexpected request: ${path}`);
     return { ok: true, status: 200, json: async () => defaults[path] };
   };
-  return { w, calls, boot: () => w.eval(`(async () => { ${script}\n })()`), $: selector => w.document.querySelector(selector) };
+  return { w, calls, boot: () => w.eval(`(async () => { ${storefront ? script : checkoutScript}\n })()`), $: selector => w.document.querySelector(selector) };
 }
 
 test('compiled storefront renders safe product text and filters the catalogue', async t => {
-  const ui = setup(t); await ui.boot();
+  const ui = setup(t, undefined, true); await ui.boot();
   assert.equal(ui.$('.product-title').textContent, product.name);
   assert.equal(ui.$('.product-title img'), null);
   ui.$('#search').value = 'not a match';
   ui.$('#search').dispatchEvent(new ui.w.Event('input'));
   assert.match(ui.$('#products').textContent, /No robots match/);
-  assert.equal(ui.$('#checkout').disabled, false);
+  assert.equal(ui.$('#bag-button').getAttribute('href'), '/cart');
+  assert.equal(ui.$('#cart-dialog'), null);
 });
 
 test('shipping listeners register before startup requests complete', async t => {
@@ -63,7 +66,7 @@ test('shipping listeners register before startup requests complete', async t => 
 test('expired payment reference recovers the current session without blocking the bag', async t => {
   const ui = setup(t, path => path.includes('/api/payments/status?') ? { ok: false, status: 404, json: async () => ({ error: 'Order not found.' }) } : undefined);
   ui.w.localStorage.setItem('robotshop-payment-order', 'expired');
-  await ui.boot(); ui.$('#bag-button').click();
+  await ui.boot();
   await waitFor(() => ui.calls.includes('/api/payments/current'));
   assert.equal(ui.w.localStorage.getItem('robotshop-payment-order'), null);
   await waitFor(() => ui.$('#cart-items').children.length === 1);
@@ -86,8 +89,8 @@ test('failed checkout SDK load is retryable and never creates a payment order', 
 test('temporary payment status failures retain the order reference', async t => {
   const ui = setup(t, path => path.includes('/api/payments/status?') ? { ok: false, status: 503, json: async () => ({ error: 'Payment service unavailable.' }) } : undefined);
   ui.w.localStorage.setItem('robotshop-payment-order', 'pending-order');
-  await ui.boot(); ui.$('#bag-button').click();
-  await waitFor(() => ui.$('#order-result').textContent.includes('Payment service unavailable'));
+  await ui.boot();
+  await waitFor(() => ui.$('#checkout-error-message').textContent.includes('Payment service unavailable'));
   assert.equal(ui.w.localStorage.getItem('robotshop-payment-order'), 'pending-order');
   assert.ok(!ui.calls.includes('/api/payments/current'));
 });
@@ -140,4 +143,37 @@ test('registration uses server challenge config and consumes a fresh token after
   await waitFor(() => reset === 1); assert.equal(submitted.challengeToken, 'fresh-token'); assert.equal(submitted.website, '');
   submitted = null; ui.$('#account-form').dispatchEvent(new ui.w.Event('submit', { cancelable: true }));
   await waitFor(() => /Complete the registration challenge/.test(ui.$('#account-status').textContent)); assert.equal(submitted, null);
+});
+
+test('empty checkout has a recovery link and cannot start payment', async t => {
+  const ui = setup(t, path => path === '/api/cart' ? {ok:true,json:async()=>({items:[],subtotal:0,total:0})} : undefined);
+  await ui.boot();
+  assert.equal(ui.$('#checkout-empty').hidden, false);
+  assert.equal(ui.$('#checkout-columns').hidden, true);
+  assert.equal(ui.$('#checkout').disabled, true);
+  assert.equal(ui.$('#cart-dialog'), null);
+});
+
+test('captured payment confirms the order on the checkout page', async t => {
+  let options;
+  const paid = {id:'order-123',status:'paid',paymentCaptured:true,paymentId:'pay-123',total:15,currency:'EUR'};
+  const ui = setup(t, path => {
+    if(path === '/api/payments/orders') return {ok:true,json:async()=>({order:{...paid,status:'payment_pending',paymentCaptured:false},checkout:{}})};
+    if(path === '/api/payments/verify') return {ok:true,json:async()=>paid};
+  });
+  ui.w.Razorpay = class {constructor(config){options=config;} open(){} on(){}};
+  await ui.boot();ui.$('#checkout').click();await waitFor(()=>options);
+  await options.handler({razorpay_order_id:'rzp-1',razorpay_payment_id:'pay-123',razorpay_signature:'test'});
+  assert.equal(ui.$('#confirmation').hidden,false);
+  assert.match(ui.$('#confirmation-details').textContent,/Payment confirmed/);
+  assert.match(ui.$('#confirmation-details').textContent,/pay-123/);
+  assert.equal(ui.w.localStorage.getItem('robotshop-payment-order'),null);
+  assert.equal(ui.$('#cart-dialog'),null);
+});
+
+test('payment reconciliation errors block another payment until retry succeeds', async t => {
+  const ui=setup(t,path=>path==='/api/payments/current'?{ok:false,status:503,json:async()=>({error:'Reconciliation unavailable'})}:undefined);
+  await ui.boot();assert.equal(ui.$('#checkout').disabled,true);
+  assert.equal(ui.$('#checkout-error').hidden,false);
+  assert.match(ui.$('#checkout-error-message').textContent,/Reconciliation unavailable/);
 });

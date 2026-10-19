@@ -1,5 +1,4 @@
-# Maintain the active platform. legacy/ is an unchanged upstream reference;
-# docker-compose.legacy.yml is the matching legacy launch configuration.
+# Maintain the active platform. legacy/ contains archived upstream source;
 # Add new ecosystems only when their manifests exist in the active project.
 version: 2
 updates:
@@ -33,7 +32,6 @@ updates:
       - /services/mcp-server
     exclude-paths:
       - legacy/**
-      - docker-compose.legacy.yml
     schedule:
       interval: weekly
       day: monday
@@ -42,41 +40,6 @@ updates:
     open-pull-requests-limit: 5
     groups:
       runtime-minor-patch:
-        patterns: ["*"]
-        update-types: [minor, patch]
-    commit-message:
-      prefix: "chore(deps)"
-
-  - package-ecosystem: docker-compose
-    directories:
-      - /
-      - /services/redis
-      - /services/rabbitmq
-      - /services/mongodb
-      - /services/postgres
-      - /services/nginx
-    exclude-paths:
-      - legacy/**
-      - docker-compose.legacy.yml
-    # This image is built locally, not resolved from a public registry.
-    ignore:
-      - dependency-name: robotshop-nginx
-      - dependency-name: robotshop-shipping
-      - dependency-name: robotshop-ai-gateway
-      - dependency-name: robotshop-product-ingestion
-      - dependency-name: robotshop-recommendation-service
-      - dependency-name: robotshop-shopping-agent
-      - dependency-name: robotshop-sre-copilot
-      - dependency-name: robotshop-payment-service
-      - dependency-name: robotshop-mcp-server
-    schedule:
-      interval: weekly
-      day: monday
-      time: "09:00"
-      timezone: Asia/Kolkata
-    open-pull-requests-limit: 5
-    groups:
-      observability-minor-patch:
         patterns: ["*"]
         update-types: [minor, patch]
     commit-message:

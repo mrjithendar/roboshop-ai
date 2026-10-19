@@ -1,3 +1,5 @@
+> Deployment update: orchestration now uses [Minikube](../../minikube/robotshop/README.md); older deployment descriptions below are historical. Use root `build-images.sh` and `deploy-minikube.sh`.
+
 # Customer records in MongoDB
 
 The existing Python gateway owns customer records; there is no new microservice.

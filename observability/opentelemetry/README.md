@@ -1,14 +1,5 @@
 # Distributed tracing
 
-Compose configures every HTTP application service to export to
-`http://otel-collector:4318/v1/traces`. The collector batches traces and exports them
-to Jaeger. Build application images with `./build-images.sh`, then start the stack using `docker compose up -d`; browse
-`http://localhost:16686` and select a service. This command starts the application's
-configured databases/services too. Native development uses
-`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:4318/v1/traces` with a running
-collector. Helm expects an existing collector; set `otelTracesEndpoint` to its
-reachable URL rather than leaving the default if your service has a different name.
-
 ## Coverage
 
 | Workload | Trace coverage |
@@ -36,11 +27,6 @@ observed listener extracts it, creating the consumer span in the same trace.
 Retries can produce multiple spans for the same event; delivery remains at least
 once and shipping deduplicates event IDs. Do not add customer IDs or addresses to
 message tracing headers.
-
-Use `docker compose --profile tools run --rm -T mcp-server` for a traced stdio MCP
-process; inject an authenticated `MCP_SESSION_TOKEN` only for protected tools.
-The MCP service is optional and has no published ports. Never connect a browser
-directly to the collector or embed a collector credential in frontend code.
 
 ## Privacy and operational limits
 

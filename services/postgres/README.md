@@ -1,22 +1,14 @@
 # PostgreSQL shipping database
 
-`compose.yml` owns the PostgreSQL service. `10-shipping-role.sh` runs only when a new
-data volume is initialized and creates the restricted `shipping_app` role. The root
-Compose file owns the `shipping-postgres` named volume and makes shipping wait for database health. Shipping runs its own
-SQL migrations and location seed before starting its HTTP server.
+`postgres-minikube.yaml` deploys `shipping-db` with the `shipping-postgres` PVC. Credentials come from `robotshop-secrets`: `SHIPPING_DB_PASSWORD` for migrations and `SHIPPING_APP_PASSWORD` for the restricted runtime role.
 
-From the repository root, configure `SHIPPING_DB_PASSWORD` and
-`SHIPPING_APP_PASSWORD` in `.env`, build application images with `./build-images.sh`, then run `docker compose up -d`. Changing
-an environment password does not rotate credentials in an existing database;
-perform an explicit database role rotation. Never delete the volume to rotate keys.
+Deploy the whole application from the repository root:
 
-Java migrations and the worldwide location dataset live in `../shipping-service/`.
-Runtime needs SELECT on shipping tables and INSERT on `shipping.shipment_requests`;
-schema migrations use separate owner credentials. PostgreSQL is published on
-localhost:5432 only. Local Compose disables database TLS; production Helm requires
-an external TLS PostgreSQL endpoint and separate runtime/migration Secrets.
+```bash
+bash build-images.sh
+bash deploy-minikube.sh
+```
 
-Compose currently constructs database and AMQP URLs from environment values.
-Use long randomly generated URL-safe credentials (for example hexadecimal) for
-this local stack. External connection URLs must percent-encode reserved characters.
-See `../../infrastructure/helm/README.md` for deployment responsibilities.
+`10-shipping-role.sh` runs only on a new database. Shipping applies its own schema migrations and worldwide location seed before serving HTTP. Runtime access includes location reads and shipment-request writes. Changing a Secret does not rotate an existing database password; coordinate role and Secret changes without deleting the PVC.
+
+See the [Minikube deployment guide](../../minikube/robotshop/README.md) for secret initialization, dependency ordering and troubleshooting. Production database availability, backups and TLS require separate platform configuration.

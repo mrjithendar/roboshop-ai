@@ -21,20 +21,11 @@ Migrations run inside shipping startup before HTTP/message processing, in a tran
 
 Copy `.env.example` to `.env`, preserving any existing credentials. Set separate strong URL-safe `SHIPPING_DB_PASSWORD` (schema owner) and `SHIPPING_APP_PASSWORD` (restricted runtime service). Then:
 
-```sh
-./build-images.sh
-docker compose up -d
-```
-
-Compose initializes PostgreSQL on its persistent `shipping-postgres` volume, creates the runtime role with read-only location access and INSERT on shipment requests, starts shipping, which initializes its schema and location data before becoming healthy. Database credentials are configuration, never source constants. The initialization script runs only for a new database volume; apply equivalent grants manually when adopting an existing database. Never remove a volume to rotate credentials.
-
 For local Node development with an existing PostgreSQL server, set `SHIPPING_DATABASE_URL` to the runtime user's connection URL and `SHIPPING_MIGRATION_DATABASE_URL` to the schema owner's URL, set `SHIPPING_DB_TLS=false` only for loopback development, then run `npm ci`, `npm run shipping:build`, `npm run dev`. Java 21 or newer is required locally. Tests require a dedicated test database through `SHIPPING_DATABASE_URL` (plus owner credentials in `SHIPPING_MIGRATION_DATABASE_URL` when using a restricted runtime role); CI supplies a real PostgreSQL service.
 
 ## Kubernetes / production
 
 Use a managed PostgreSQL instance with failover, backups/PITR and restore testing. Create existing Kubernetes Secrets containing `SHIPPING_DATABASE_URL` (runtime role with read-only location access and INSERT on shipment requests) and `SHIPPING_MIGRATION_DATABASE_URL` (schema owner). Set `shipping.databaseSecretName` and `shipping.migrationSecretName`; the shipping process initializes the schema and location data before starting HTTP or message consumption. Verified TLS is required by the chart. For private CA deployments, mount the CA and configure `SHIPPING_DB_CA_FILE`. The service supports multiple replicas; budget ten connections per replica plus migrations against database capacity.
-
-Grant runtime `USAGE ON SCHEMA shipping` and `SELECT ON ALL TABLES IN SCHEMA shipping`; set matching default privileges for the migration owner. Runtime credentials do not need DDL privileges. RabbitMQ consumption requires INSERT on `shipping.shipment_requests`; location tables remain read-only. Compose is a local single-server configuration, not a production HA database.
 
 ## HTTP API
 
@@ -58,20 +49,10 @@ java -jar build/libs/shipping-service.jar
 
 Direct Java commands read exported environment variables, not `.env`; the root npm development command loads `.env` for you. The runnable JAR includes the compressed data snapshot and SQL migrations. Migration checksums and seed IDs are compatible with the previous Node implementation, so existing PostgreSQL databases are retained. Startup briefly opens the separate owner connection, runs checksum-protected migrations and seeds, then closes it. Normal requests use the restricted runtime role. Initialization failure prevents service startup; an advisory lock serializes concurrent starts. No separate migration container or Job is required.
 
-The root `./build-images.sh` builds `robotshop-shipping:local` using the dedicated multi-stage Java Dockerfile; Compose runs that image. Helm configures `shipping.image` separately from the Node application image. Java containers have a writable `/tmp` volume for Tomcat and a read-only root filesystem. Prometheus metrics remain at `/metrics` using standard Micrometer names; HTTP health remains `/health`, with database readiness at `/api/shipping/ready`. Set `SHIPPING_TRACING_ENABLED=true` and `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` to enable OpenTelemetry export; the dev launcher, Compose and Helm wire this automatically.
-
 Gradle dependency locking and a verified Wrapper distribution checksum provide repeatable builds. Run `./gradlew test bootJar --write-locks` after reviewing dependency upgrades. CI uses Java 21, runs Java unit tests and the full HTTP checkout tests against PostgreSQL, and builds both Node and Java images.
 
 ## Redis and RabbitMQ
 
-Compose enables Redis location caching and RabbitMQ paid-order processing. Set `REDIS_PASSWORD`, `RABBITMQ_USERNAME` and `RABBITMQ_PASSWORD` in `.env` before startup. Use URL-safe credentials in Compose or percent-encode credentials in connection URLs. For local Python/Node/Java startup, set `CACHE_ENABLED=true`, `MESSAGING_ENABLED=true`, the Redis/RabbitMQ host credentials, and the gateway's `RABBITMQ_URL`. Do not use the RabbitMQ guest account remotely.
-
-Redis stores only public location results, never addresses, carts, payment data or stock. Country results expire after six hours and searches after ten minutes. Keys include the dataset hash, so a new seed cannot reuse obsolete entries. Redis failure falls back to PostgreSQL with short connection/command timeouts. Compose limits cache memory and uses LRU eviction; Redis data is disposable.
-
 The gateway records a pending `order.paid` event in the same saved ledger update as payment confirmation. A background publisher retries until RabbitMQ confirms a persistent, mandatory publication. The durable quorum queue `robotshop.shipping.orders` routes events to Java shipping. The consumer inserts into `shipping.shipment_requests` before acknowledgement; unique order/event IDs make redelivery harmless. Processing failures retry five times, then route to `robotshop.shipping.failed` through `robotshop.orders.dlx`. Monitor and replay that queue after correcting the cause; no automatic replay loop is enabled. Shipment status `requested` means queued for fulfilment, not dispatched to a carrier.
 
-Migration 002 creates the shipment table. The local Compose migration grants INSERT to `shipping_app`; external databases require a DBA to grant INSERT and SELECT on that table to the runtime role. Apply the migration before enabling the consumer. Existing orders paid before the outbox feature are not automatically replayed. Broker downtime does not reverse a confirmed payment: its pending event stays in the ledger and is retried after recovery. The ledger remains single-writer JSON, with its existing persistence limitations.
-
 RabbitMQ message payloads and the shipment table contain delivery addresses: restrict broker/database access and apply your retention policy. Logs and metric labels omit payloads. Metrics include `robotshop_location_cache_total{result="hit|miss|error"}` and `robotshop_shipping_events_total{result="accepted|duplicate|invalid"}`. RabbitMQ queue depth, dead-letter depth and oldest pending gateway event also need operational monitoring.
-
-Kubernetes uses managed Redis and RabbitMQ via `integrations.secretName` with TLS enabled. The existing Secret must contain `REDIS_HOST`, `REDIS_PORT`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `RABBITMQ_VHOST`, and `RABBITMQ_URL` (an `amqps://` URL). Provision broker permissions for the `robotshop.*` exchanges/queues. Compose provides single-node development services, not a highly available production broker/cache cluster.

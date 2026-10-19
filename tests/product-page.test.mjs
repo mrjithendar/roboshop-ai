@@ -27,7 +27,7 @@ const product={sku:'TEST',slug:'test-robot',name:'Test robot',description:'Educa
 async function submit(ui) {ui.$('.purchase-actions').dispatchEvent(new ui.w.Event('submit',{bubbles:true,cancelable:true}));for(let i=0;i<50&&ui.$('.purchase-actions button').disabled;i++)await new Promise(r=>setTimeout(r,5));}
 test('legacy sale product can add quantity and existing cart items under /roboshop',async t=>{
  const ui=await setup(t,product,{quantity:1});assert.equal(ui.$('.purchase-actions button').textContent,'Add to cart');ui.$('.purchase-actions input').value='2';await submit(ui);
- assert.deepEqual(ui.writes,[{sku:'TEST',quantity:3}]);assert.equal(ui.$('.cart-checkout-link').getAttribute('href'),'/roboshop/?cart=1');assert.equal(ui.$('.cart-checkout-link').hidden,false);
+ assert.deepEqual(ui.writes,[{sku:'TEST',quantity:3}]);assert.equal(ui.$('.cart-checkout-link').getAttribute('href'),'/roboshop/cart');assert.equal(ui.$('.cart-checkout-link').hidden,false);
  assert.match(ui.$('.detail-image').src,/\/roboshop\/illustrations\/robot.svg$/);
 });
 test('showcase products disable purchase and omit manufacturer shopping links',async t=>{

@@ -7,15 +7,6 @@ service remains a simulator and is not used by the new checkout.
 
 ## Activate live payments
 
-1. Use an activated Razorpay merchant account and generate its live key ID and secret.
-2. Set PAYMENT_MODE=live, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET,
-   RAZORPAY_WEBHOOK_SECRET, and an HTTPS PUBLIC_ORIGIN in `.env`.
-3. Set PAYMENT_SERVICE_TOKEN to a random secret for Compose/Helm. The local dev launcher
-   generates one when blank. Only the gateway and payment service receive this token.
-4. Configure the public HTTPS webhook `/api/payments/webhook` for `payment.captured`,
-   using the same webhook secret. Enable automatic payment capture in Razorpay.
-5. Restart. The storefront enables Pay securely only when configuration is present.
-
 The public key ID goes to Checkout; secret keys never reach the browser. No card data
 is collected by RobotShop. The amount is calculated from the server's catalogue in
 integer EUR cents. Your account must support EUR/international payments. The existing

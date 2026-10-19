@@ -13,7 +13,7 @@ export GATEWAY_HOST="${GATEWAY_HOST:-ai-gateway}"
 export GATEWAY_PORT="${GATEWAY_PORT:-3000}"
 export NGINX_SERVER_NAME="${NGINX_SERVER_NAME:-localhost}"
 export NGINX_RESOLVER="${NGINX_RESOLVER:-$(awk '/^nameserver / {print $2; exit}' /etc/resolv.conf)}"
-# Only a single optional URL segment is supported; empty keeps Compose at /.
+# Only a single optional URL segment is supported; empty serves the application at /.
 export FRONTEND_BASE_PATH="${FRONTEND_BASE_PATH:-}"
 case "$FRONTEND_BASE_PATH" in
     '') ;;
