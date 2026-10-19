@@ -33,18 +33,22 @@ References: [Minikube installation](https://minikube.sigs.k8s.io/docs/start/), [
 
 ## CentOS Stream 9 and 10
 
-The same `install.sh` runs on CentOS amd64/arm64. On a fresh CentOS host, use the optional prerequisite setup from the repository root as your normal login user with sudo access:
+The same `install.sh` runs on CentOS amd64/arm64. On a fresh CentOS host, run setup from the repository root as root or a regular user with sudo access:
 
 ```sh
-bash minikube/setup-centos.sh
-# Log out and log back in before continuing.
-docker info
-bash minikube/install.sh install
-export PATH="$HOME/.local/bin:$PATH"
-PROFILE=robotshop NODES=1 CPUS=2 MEMORY=3072 bash minikube/install.sh start
+# Root login: create robotshop if needed, install tools, and start one node.
+PROFILE=robotshop NODES=1 CPUS=2 MEMORY=3072 bash minikube/setup-centos.sh --start
+
+# Manage the cluster from root afterward.
+runuser -l robotshop -c 'PROFILE=robotshop bash ~/robotshop-minikube/install.sh status'
+runuser -l robotshop -c 'PROFILE=robotshop bash ~/robotshop-minikube/install.sh stop'
 ```
 
-`setup-centos.sh` installs dependencies and Docker Engine from the official Docker RPM repository, enables Docker at boot, and adds the invoking user to the Docker group (root-level host access). DNF asks for package/key confirmation. It refuses conflicting Docker packages and `podman-docker` rather than removing them. It preserves SELinux and firewalld settings. If Docker is already working, skip this prerequisite script.
+Omit `--start` to install prerequisites and tools without starting a cluster. Choose another regular account with `MINIKUBE_USER=youruser` when running as root. When invoked through sudo, setup defaults to the invoking user; a direct root login defaults to `robotshop`. A new account has no password or sudo privileges configured. Root can access it using `runuser`.
+
+Setup installs dependencies and Docker Engine from the official Docker RPM repository, enables Docker at boot, and adds the target user to the Docker group (root-level host access). DNF asks for package/key confirmation. It refuses conflicting Docker packages and `podman-docker` rather than removing them. It preserves SELinux and firewalld settings.
+
+Only `install.sh` is copied to `~/robotshop-minikube/install.sh` (refreshed on reruns); the repository and its credentials remain in place. Tools and cluster operations run as the target user in a fresh process, so no logout is required during setup. Existing interactive sessions still need a new login to pick up group changes. Without resource overrides, `--start` retains the four-node default. If Docker is already working, you can use `install.sh` directly as a regular user.
 
 This setup targets CentOS Stream 9/10, the versions supported by [Docker's CentOS installation guide](https://docs.docker.com/engine/install/centos/). CentOS 7 and older Stream releases are not supported by this setup. Enable the default CentOS extras repository if your image has disabled it. The host needs outbound access to Docker, Minikube, Kubernetes release servers and container registries.
 
