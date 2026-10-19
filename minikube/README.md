@@ -200,3 +200,12 @@ bash minikube/deploy-cert-manager.sh
 ```
 
 This installs cert-manager with Helm and configures `letsencrypt-staging` and `letsencrypt-prod` ClusterIssuers. It follows the selected Minikube profile. See [cert-manager setup](cert-manager/README.md) for the email/ingress settings, `jithendar.com` certificate example and troubleshooting. An ingress controller and public port 80 are required before requesting certificates; this command does not deploy the website.
+
+## Grafana over HTTPS
+
+```bash
+bash minikube/deploy-cert-manager.sh
+bash minikube/deploy-grafana.sh
+```
+
+Open **https://jithendar.com/grafana/**. The installer deploys Grafana with Helm, persistent storage, and the shared Let's Encrypt website certificate. It requires Traefik with publicly reachable ports 80/443 and correct DNS. See [Grafana setup](grafana/README.md) for login credentials, prerequisites, metrics configuration and troubleshooting.
