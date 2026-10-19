@@ -53,6 +53,7 @@ class GrafanaTests(unittest.TestCase):
         self.assertIn('--kube-context=mk4-selected upgrade --install grafana', calls)
         self.assertIn('--version 14.0.1', calls)
         self.assertIn('--namespace monitoring', calls)
+        self.assertIn('/monitoring/grafana/values.yaml', calls)
         self.assertIn('monitoring/certificate.yaml', calls)
         self.assertIn('-n monitoring wait', calls)
         self.assertLess(calls.index('get ingressclass'), calls.index('apply -f'))

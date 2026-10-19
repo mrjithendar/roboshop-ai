@@ -66,4 +66,4 @@ docker rm -f robotshop-ingress-edge-$(id -u)
 bash minikube/expose-ingress.sh
 ```
 
-See [Grafana](../grafana/README.md) and [cert-manager](../cert-manager/README.md) for certificate and login troubleshooting. Chart reference: [official Traefik Helm chart](https://github.com/traefik/traefik-helm-chart).
+See [Grafana](../monitoring/grafana/README.md) and [cert-manager](../cert-manager/README.md) for certificate and login troubleshooting. Chart reference: [official Traefik Helm chart](https://github.com/traefik/traefik-helm-chart).

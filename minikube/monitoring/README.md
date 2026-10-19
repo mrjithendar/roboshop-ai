@@ -62,7 +62,7 @@ For a site already running, use a planned migration: back up Grafana's data and 
 
 Do not delete `robotshop-ai`: it may contain RobotShop and other workloads. Do not remove old PVCs just to bypass the check. If historical monitoring data is disposable, explicitly decide to reset those releases instead of migrating them; this is a separate destructive operation.
 
-For component configuration and troubleshooting, see [Grafana](../grafana/README.md) and [Prometheus](../prometheus/README.md).
+For component configuration and troubleshooting, see [Grafana](grafana/README.md) and [Prometheus](prometheus/README.md).
 
 ## Shared login Secret
 

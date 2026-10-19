@@ -7,7 +7,7 @@ bash minikube/deploy-prometheus.sh
 bash minikube/deploy-grafana.sh
 ```
 
-The second command updates Grafana’s data source and synchronizes its administrator password with `monitoring-auth`, preserving its volume. The installer follows the selected Minikube profile; use `KUBE_CONTEXT=YOUR_CONTEXT` on either command when working through a remote kubeconfig. Requires Helm, kubectl, Python 3, a default StorageClass and the Traefik Middleware CRDs. For a fresh cluster follow [Traefik setup](../traefik/README.md) first. DNS and public TCP 80/443 must reach the Vultr ingress controller.
+The second command updates Grafana’s data source and synchronizes its administrator password with `monitoring-auth`, preserving its volume. The installer follows the selected Minikube profile; use `KUBE_CONTEXT=YOUR_CONTEXT` on either command when working through a remote kubeconfig. Requires Helm, kubectl, Python 3, a default StorageClass and the Traefik Middleware CRDs. For a fresh cluster follow [Traefik setup](../../traefik/README.md) first. DNS and public TCP 80/443 must reach the Vultr ingress controller.
 
 ## Login
 
@@ -63,13 +63,13 @@ curl -I https://jithendar.com/prometheus/
 curl -u admin https://jithendar.com/prometheus/-/ready
 ```
 
-An unauthenticated HTTP **401** is expected from the public endpoint. A **404** suggests missing ingress/path configuration; **503** usually means the pod is not ready. For a timeout or untrusted certificate follow the [cert-manager](../cert-manager/README.md) and [Traefik](../traefik/README.md) guides. PVC Pending means storage provisioning/capacity needs attention. Grafana connection failures often mean the data source omitted `/prometheus` or the server is not running.
+An unauthenticated HTTP **401** is expected from the public endpoint. A **404** suggests missing ingress/path configuration; **503** usually means the pod is not ready. For a timeout or untrusted certificate follow the [cert-manager](../../cert-manager/README.md) and [Traefik](../../traefik/README.md) guides. PVC Pending means storage provisioning/capacity needs attention. Grafana connection failures often mean the data source omitted `/prometheus` or the server is not running.
 
 Reference: [Prometheus URL flags](https://prometheus.io/docs/prometheus/latest/command-line/prometheus/), [Traefik BasicAuth](https://doc.traefik.io/traefik/v3.4/middlewares/http/basicauth/).
 
-For existing installations in `robotshop-ai`, see [namespace migration notes](../monitoring/README.md). The installers do not move data between namespaces.
+For existing installations in `robotshop-ai`, see [namespace migration notes](../README.md). The installers do not move data between namespaces.
 
-**TLS ownership:** Grafana and Prometheus share the single `monitoring/jithendar-com` Certificate and `monitoring/jithendar-com-tls` Secret. Both installers reapply the same manifest; they do not request per-application certificates. See [certificate ownership and verification](../monitoring/README.md#certificate-ownership).
+**TLS ownership:** Grafana and Prometheus share the single `monitoring/jithendar-com` Certificate and `monitoring/jithendar-com-tls` Secret. Both installers reapply the same manifest; they do not request per-application certificates. See [certificate ownership and verification](../README.md#certificate-ownership).
 
 ### Installer appears stuck after the certificate message
 

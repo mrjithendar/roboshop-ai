@@ -11,7 +11,7 @@ ROOT = Path(__file__).parent.resolve()
 
 class PrometheusTests(unittest.TestCase):
     def test_paths_auth_storage_and_datasource(self):
-        rendered = subprocess.check_output(['helm', 'template', 'prometheus', str(ROOT / 'prometheus'),
+        rendered = subprocess.check_output(['helm', 'template', 'prometheus', str(ROOT / 'monitoring/prometheus'),
                                              '-n', 'monitoring'], text=True)
         items = {x['kind']: x for x in yaml.safe_load_all(rendered) if x}
         self.assertNotIn('Certificate', items)  # Shared manifest, not chart-owned TLS.
@@ -29,13 +29,13 @@ class PrometheusTests(unittest.TestCase):
         self.assertEqual(config['scrape_configs'][0]['metrics_path'], '/prometheus/metrics')
         self.assertEqual(items['Service']['spec']['type'], 'ClusterIP')
         self.assertEqual(items['PersistentVolumeClaim']['spec']['resources']['requests']['storage'], '5Gi')
-        grafana = yaml.safe_load((ROOT / 'grafana/values.yaml').read_text())
+        grafana = yaml.safe_load((ROOT / 'monitoring/grafana/values.yaml').read_text())
         ds = grafana['datasources']['datasources.yaml']['datasources'][0]
         self.assertEqual(ds['url'], 'http://prometheus.monitoring.svc.cluster.local:9090/prometheus')
 
     def test_volume_repair_keeps_server_non_root_and_existing_claim(self):
         def render(enabled):
-            output = subprocess.check_output(['helm', 'template', 'prometheus', str(ROOT / 'prometheus'),
+            output = subprocess.check_output(['helm', 'template', 'prometheus', str(ROOT / 'monitoring/prometheus'),
                 '-n', 'monitoring', '--set', f'volumePermissions.enabled={enabled}'], text=True)
             return next(x for x in yaml.safe_load_all(output) if x and x['kind'] == 'Deployment')
         pod = render('true')['spec']['template']['spec']
@@ -86,6 +86,7 @@ class PrometheusTests(unittest.TestCase):
         self.assertIn('--kube-context=remote upgrade --install prometheus', calls)
         self.assertIn('certificate/jithendar-com', calls)
         self.assertIn('--namespace monitoring', calls)
+        self.assertIn('/monitoring/prometheus --namespace monitoring', calls)
         self.assertIn('monitoring/certificate.yaml', calls)
         self.assertNotIn('create -f ', calls)
 

@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 fail() { echo "ERROR: $*" >&2; exit 1; }
 if [[ "${1:-}" == --help ]]; then
   echo 'Usage: bash minikube/deploy-prometheus.sh'
-  echo 'Overrides: PROFILE=mk4, KUBE_CONTEXT. Values: minikube/prometheus/values.yaml'
+  echo 'Overrides: PROFILE=mk4, KUBE_CONTEXT. Values: minikube/monitoring/prometheus/values.yaml'
   exit 0
 fi
 [[ $# == 0 ]] || fail 'No positional arguments expected.'
@@ -48,7 +48,7 @@ diagnose() {
 }
 echo 'Applying Prometheus Helm release (namespace: monitoring)...'
 # Let kubectl report rollout progress instead of Helm silently waiting for readiness.
-if ! h upgrade --install prometheus "$SCRIPT_DIR/prometheus" --namespace monitoring --wait=false --timeout 10m; then
+if ! h upgrade --install prometheus "$SCRIPT_DIR/monitoring/prometheus" --namespace monitoring --wait=false --timeout 10m; then
   diagnose
   fail 'Helm could not apply Prometheus. Review the Helm error and diagnostics above.'
 fi

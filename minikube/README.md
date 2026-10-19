@@ -215,7 +215,7 @@ bash minikube/deploy-cert-manager.sh
 bash minikube/deploy-grafana.sh
 ```
 
-Open **https://jithendar.com/grafana/**. The installer deploys Grafana with Helm, persistent storage, and the shared Let's Encrypt website certificate. It requires Traefik with publicly reachable ports 80/443 and correct DNS. See [Grafana setup](grafana/README.md) for login credentials, prerequisites, metrics configuration and troubleshooting.
+Open **https://jithendar.com/grafana/**. The installer deploys Grafana with Helm, persistent storage, and the shared Let's Encrypt website certificate. It requires Traefik with publicly reachable ports 80/443 and correct DNS. See [Grafana setup](monitoring/grafana/README.md) for login credentials, prerequisites, metrics configuration and troubleshooting.
 
 ## WordPress with Redis
 
@@ -234,7 +234,7 @@ bash minikube/deploy-prometheus.sh
 bash minikube/deploy-grafana.sh
 ```
 
-Prometheus runs in `monitoring` at **https://jithendar.com/prometheus/** with persistent storage and a generated login password. Rerunning the Grafana installer provisions its internal Prometheus data source. See [Prometheus setup](prometheus/README.md) for credentials, scrape targets and troubleshooting.
+Prometheus runs in `monitoring` at **https://jithendar.com/prometheus/** with persistent storage and a generated login password. Rerunning the Grafana installer provisions its internal Prometheus data source. See [Prometheus setup](monitoring/prometheus/README.md) for credentials, scrape targets and troubleshooting.
 
 Grafana and Prometheus both install in the **`monitoring`** namespace and share its TLS certificate. See [monitoring namespace notes](monitoring/README.md) before changing an existing installation.
 

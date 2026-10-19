@@ -45,16 +45,16 @@ k apply -f "$SCRIPT_DIR/monitoring/certificate.yaml"
 h upgrade --install grafana grafana \
   --repo https://grafana-community.github.io/helm-charts \
   --version "$GRAFANA_CHART_VERSION" --namespace monitoring \
-  -f "$SCRIPT_DIR/grafana/values.yaml" --wait --timeout 10m
+  -f "$SCRIPT_DIR/monitoring/grafana/values.yaml" --wait --timeout 10m
 echo 'Synchronizing Grafana administrator with the shared monitoring-auth Secret...'
 python3 "$SCRIPT_DIR/monitoring/credentials.py" sync-grafana --context "$KUBE_CONTEXT"
 if ! k -n monitoring wait --for=condition=Ready certificate/jithendar-com --timeout=10m; then
   k -n monitoring describe certificate jithendar-com
-  fail 'Grafana is installed but HTTPS is not ready. Check DNS, public port 80 and ACME Challenge events. See minikube/grafana/README.md.'
+  fail 'Grafana is installed but HTTPS is not ready. Check DNS, public port 80 and ACME Challenge events. See minikube/monitoring/grafana/README.md.'
 fi
 k -n monitoring get deployment/grafana ingress/grafana certificate/jithendar-com
 echo 'Grafana and its certificate are ready: https://jithendar.com/grafana/'
 echo 'Login user: admin. Retrieve the shared password (not printed automatically):'
 printf 'kubectl --context=%q -n monitoring get secret monitoring-auth -o jsonpath=' "$KUBE_CONTEXT"
 printf "'{.data.password}' | base64 --decode; echo\n"
-echo 'See minikube/grafana/README.md for verification and connecting Prometheus.'
+echo 'See minikube/monitoring/grafana/README.md for verification and connecting Prometheus.'
