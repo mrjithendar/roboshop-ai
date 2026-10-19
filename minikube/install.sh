@@ -5,49 +5,24 @@ PROFILE="${PROFILE:-mk4}"
 CPUS="${CPUS:-2}"
 MEMORY="${MEMORY:-2048}" # MiB per node.
 NODES="${NODES:-4}"
-INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
+if [[ "$EUID" == 0 ]]; then DEFAULT_INSTALL_DIR=/usr/local/bin; else DEFAULT_INSTALL_DIR="$HOME/.local/bin"; fi
+INSTALL_DIR="${INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
 ACTION="${1:-start}"
 fail() { echo "ERROR: $*" >&2; exit 1; }
 usage() {
   echo 'Usage: bash minikube/install.sh [install|start|status|stop]'
   echo 'Overrides: PROFILE, NODES, CPUS, MEMORY (MiB/node), INSTALL_DIR'
-  echo 'Linux root sessions delegate to MINIKUBE_USER (default robotshop).'
+  echo 'Runs as the current user; Linux root starts use --force.'
   echo 'Optional download pins: MINIKUBE_VERSION=vX.Y.Z, KUBECTL_VERSION=vX.Y.Z'
 }
 case "$ACTION" in -h|--help|help) usage; exit 0 ;; install|start|status|stop) ;; *) usage >&2; exit 1 ;; esac
 [[ $# -le 1 ]] || fail 'Expected at most one action.'
 case "$(uname -s)" in Linux) OS=linux ;; Darwin) OS=darwin ;; *) fail 'Supported systems: Linux and macOS.' ;; esac
 case "$(uname -m)" in x86_64|amd64) ARCH=amd64 ;; arm64|aarch64) ARCH=arm64 ;; *) fail 'Supported architectures: amd64 and arm64.' ;; esac
+ROOT_ARGS=()
 if [[ "$EUID" == 0 ]]; then
   [[ "$OS" == linux ]] || fail 'On macOS, run as your normal user.'
-  TARGET_USER="${MINIKUBE_USER:-${SUDO_USER:-robotshop}}"
-  [[ "$TARGET_USER" == root ]] && TARGET_USER=robotshop
-  [[ "$TARGET_USER" =~ ^[a-z_][a-z0-9_-]*$ ]] || fail 'Invalid MINIKUBE_USER.'
-  SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-  if ! id "$TARGET_USER" >/dev/null 2>&1; then
-    if [[ "$ACTION" == install || "$ACTION" == start ]]; then
-      [[ -f "$SCRIPT_DIR/setup-centos.sh" ]] || fail 'Run minikube/setup-centos.sh first to create the runtime user.'
-      export MINIKUBE_USER="$TARGET_USER" PROFILE NODES CPUS MEMORY
-      if [[ "$ACTION" == start ]]; then
-        exec bash "$SCRIPT_DIR/setup-centos.sh" --start
-      fi
-      exec bash "$SCRIPT_DIR/setup-centos.sh"
-    fi
-    fail "User $TARGET_USER does not exist. Run setup-centos.sh first."
-  fi
-  [[ "$(id -u "$TARGET_USER")" -ge 1000 ]] || fail 'MINIKUBE_USER must have a regular UID >= 1000.'
-  TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
-  [[ "$TARGET_HOME" == /* && "$TARGET_HOME" != / && "$TARGET_HOME" != /root && -d "$TARGET_HOME" ]] || fail 'Runtime user needs a regular home directory.'
-  command -v runuser >/dev/null 2>&1 || fail 'Install util-linux to provide runuser.'
-  echo "Running $ACTION as $TARGET_USER; your shell remains root."
-  # Stream this script through stdin so /root checkouts need no permission changes.
-  # Clear root's Docker, Kubernetes and home configuration before delegation.
-  exec runuser -u "$TARGET_USER" -- env -i \
-    HOME="$TARGET_HOME" USER="$TARGET_USER" LOGNAME="$TARGET_USER" \
-    PATH=/usr/local/bin:/usr/bin:/bin \
-    PROFILE="$PROFILE" NODES="$NODES" CPUS="$CPUS" MEMORY="$MEMORY" \
-    MINIKUBE_VERSION="${MINIKUBE_VERSION:-}" KUBECTL_VERSION="${KUBECTL_VERSION:-}" \
-    bash -c 'cd "$HOME" && exec bash -s -- "$@"' bash "$ACTION" < "${BASH_SOURCE[0]}"
+  ROOT_ARGS=(--force)
 fi
 [[ "$INSTALL_DIR" == /* ]] || fail 'INSTALL_DIR must be an absolute path.'
 export PATH="$INSTALL_DIR:$PATH"
@@ -75,20 +50,26 @@ install_binary() {
   mkdir -p "$INSTALL_DIR"
   install -m 0755 "$TEMP_DIR/$name" "$INSTALL_DIR/$name"
 }
+tool_available() {
+  local resolved
+  resolved="$(command -v "$1")" || return 1
+  # Replace our previous forwarding wrappers with actual binaries.
+  ! grep -aq '^# RobotShop managed CLI wrapper$' "$resolved"
+}
 if [[ "$ACTION" == install || "$ACTION" == start ]]; then
   # Existing tools are preserved; version pins apply only when downloading missing tools.
-  if ! command -v minikube >/dev/null 2>&1; then
+  if ! tool_available minikube; then
     version="${MINIKUBE_VERSION:-latest}"
     [[ "$version" == latest || "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail 'Invalid MINIKUBE_VERSION.'
     install_binary minikube "https://storage.googleapis.com/minikube/releases/$version/minikube-$OS-$ARCH"
   fi
-  if ! command -v kubectl >/dev/null 2>&1; then
+  if ! tool_available kubectl; then
     command -v curl >/dev/null 2>&1 || fail 'Install curl using your OS package manager.'
     version="${KUBECTL_VERSION:-$(fetch https://dl.k8s.io/release/stable.txt)}"
     [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail 'Invalid KUBECTL_VERSION.'
     install_binary kubectl "https://dl.k8s.io/release/$version/bin/$OS/$ARCH/kubectl"
   fi
-  printf 'Tools available. For future shells, add this directory to PATH: %s\n' "$INSTALL_DIR"
+  echo "Tools available for $(id -un) in $INSTALL_DIR."
 fi
 [[ "$ACTION" != install ]] || exit 0
 command -v minikube >/dev/null 2>&1 || fail 'Run this script with install first.'
@@ -129,13 +110,13 @@ if ! docker info >/dev/null 2>&1; then
     echo "Docker context: $(docker context show 2>/dev/null || echo unknown)" >&2
     fail 'Docker CLI is installed, but its engine is unreachable and Docker Desktop was not found in /Applications or ~/Applications. Install/open Docker Desktop (https://docs.docker.com/desktop/setup/install/mac-install/), or start your alternative Docker runtime and select its context. Confirm docker info succeeds, then rerun.'
   else
-    fail 'Docker is unavailable to your user. On systemd hosts run sudo systemctl start docker; after Docker group changes log out and back in. Check docker info and docker context ls. Do not run this script with sudo.'
+    fail 'Docker is unavailable to your user. On systemd hosts run sudo systemctl start docker; after Docker group changes log out and back in. Check docker info and docker context ls.'
   fi
 fi
 [[ "$(docker info --format '{{.OSType}}')" == linux ]] || fail 'Docker must run Linux containers.'
 echo "Starting $PROFILE: $NODES nodes, each with $CPUS CPUs and $MEMORY MiB RAM."
 echo 'Ensure the host (or Docker Desktop VM) has capacity for every node plus your workloads.'
-minikube start --profile="$PROFILE" --driver=docker --nodes="$NODES" \
+minikube start ${ROOT_ARGS[@]+"${ROOT_ARGS[@]}"} --profile="$PROFILE" --driver=docker --nodes="$NODES" \
   --cpus="$CPUS" --memory="$MEMORY" --container-runtime=containerd --wait=all --wait-timeout=10m
 kubectl --context="$PROFILE" wait --for=condition=Ready nodes --all --timeout=300s
 count="$(kubectl --context="$PROFILE" get nodes -o name | wc -l | tr -d '[:space:]')"
