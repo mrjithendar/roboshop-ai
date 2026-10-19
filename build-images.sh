@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Build every active application image. Run from any directory.
+[ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
 set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 IMAGE_PREFIX="${IMAGE_PREFIX:-robotshop}"
@@ -8,13 +9,16 @@ DRY_RUN=false
 BUILD_OPTIONS=()
 usage() {
   cat <<'EOF'
-Usage: ./build-images.sh [--dry-run] [--pull] [--no-cache] [--platform PLATFORM]
+Usage: ./build-images.sh [--local] [--dry-run] [--pull] [--no-cache] [--platform PLATFORM]
 
 Builds all ten application images using their service-specific Dockerfiles.
 Environment (export the same values when running Docker Compose):
   IMAGE_PREFIX  Image repository prefix, e.g. registry.example.com/team/robotshop
                 Default: robotshop
   IMAGE_TAG     Image tag. Default: local
+
+--local forces the local tag even when IMAGE_TAG is exported in your shell.
+Example: bash build-images.sh --local
 
 --dry-run prints the exact build commands without requiring Docker.
 --pull refreshes base images; --no-cache disables the build cache.
@@ -24,6 +28,7 @@ EOF
 }
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --local) IMAGE_TAG=local; shift ;;
     --dry-run) DRY_RUN=true; shift ;;
     --pull|--no-cache) BUILD_OPTIONS+=("$1"); shift ;;
     --platform)
@@ -47,12 +52,15 @@ for service in "${services[@]}"; do
   suffix="$service"
   [[ "$service" != shipping-service ]] || suffix=shipping
   image="$IMAGE_PREFIX-$suffix:$IMAGE_TAG"
-  command=(docker build "${BUILD_OPTIONS[@]}" --file "$ROOT/services/$service/Dockerfile" --tag "$image" "$ROOT")
+  command=(docker build --progress=plain ${BUILD_OPTIONS[@]+"${BUILD_OPTIONS[@]}"} --file "$ROOT/services/$service/Dockerfile" --tag "$image" "$ROOT")
   printf '\nBuilding %s\n' "$image"
   if [[ "$DRY_RUN" == true ]]; then
     printf '%q ' "${command[@]}"; printf '\n'
   else
-    "${command[@]}"
+    if ! "${command[@]}"; then
+      printf "ERROR: Build failed for %s. Fix the error above and rerun; completed builds remain cached.\n" "$image" >&2
+      exit 1
+    fi
   fi
 done
 if [[ "$DRY_RUN" == false ]]; then

@@ -366,3 +366,13 @@ bash deploy-minikube.sh --load-images
 Run image loading on the Minikube host. For remote registry images, existing images, credential handling and verification, see [RobotShop Minikube deployment](minikube/robotshop/README.md). Services run in `robotshop-ai`; existing WordPress and monitoring installations are preserved.
 
 The Minikube storefront uses **https://jithendar.com/roboshop/**, with Let's Encrypt TLS and HTTP-to-HTTPS redirection. See [RobotShop Minikube deployment](minikube/robotshop/README.md#https-access-at-jithendarcomroboshop) for rebuilding images, deployment, and certificate troubleshooting.
+
+### Build all application images with the local tag
+
+```bash
+bash build-images.sh --local
+```
+
+Builds all ten active application Dockerfiles as `robotshop-<service>:local` (shipping uses `robotshop-shipping:local`). `--local` overrides an exported `IMAGE_TAG`; `IMAGE_PREFIX` remains configurable. Builds run sequentially with full Docker output and stop on the first failure. Reruns reuse completed layers. Redis, RabbitMQ, databases and observability components use official upstream images.
+
+Preview without Docker: `bash build-images.sh --local --dry-run`.

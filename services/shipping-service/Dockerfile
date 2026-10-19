@@ -1,7 +1,7 @@
 FROM eclipse-temurin:24-jdk AS build
 WORKDIR /workspace
 COPY services/shipping-service/ ./
-RUN chmod +x gradlew && ./gradlew --no-daemon bootJar
+RUN chmod +x gradlew && ./gradlew --no-daemon --console=plain --stacktrace bootJar
 
 FROM eclipse-temurin:25-jre-alpine
 RUN addgroup -g 1000 shipping && adduser -D -u 1000 -G shipping shipping
