@@ -34,7 +34,7 @@ case "$*" in start*) exit "${TEST_START_EXIT:-0}";; esac''',
             f.write_text('#!/bin/sh\n' + body + '\n')
             f.chmod(0o755)
         self.env = {k: v for k, v in os.environ.items() if k not in (
-            'NODES', 'MEMORY', 'CPUS', 'PROFILE', 'MINIKUBE_HOME', 'PUBLIC_IP')}
+            'NODES', 'MEMORY', 'CPUS', 'PROFILE', 'MINIKUBE_HOME', 'PUBLIC_IP', 'PUBLIC_HOST')}
         self.env.update(HOME=str(self.root), INSTALL_DIR=str(self.bin),
                         PATH=str(self.bin) + ':' + os.environ['PATH'],
                         TEST_CALLS=str(self.root / 'calls'), NODES='1')
@@ -89,6 +89,22 @@ case "$*" in start*) exit "${TEST_START_EXIT:-0}";; esac''',
         self.assertFalse(config['clusters'][0]['cluster']['insecure-skip-tls-verify'])
         self.assertEqual(output.stat().st_mode & 0o777, 0o600)
         self.assertNotIn('test-key', result.stdout)
+
+    def test_domain_export(self):
+        result = self.run_script(PUBLIC_HOST='jithendar.com')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('--apiserver-names=jithendar.com', self.calls())
+        self.assertNotIn('--apiserver-ips=', self.calls())
+        config = json.loads((self.root / '.kube/mk4-direct.json').read_text())
+        cluster = config['clusters'][0]['cluster']
+        self.assertEqual(cluster['server'], 'https://jithendar.com:32769')
+        self.assertFalse(cluster['insecure-skip-tls-verify'])
+
+    def test_invalid_domain_and_conflicting_inputs(self):
+        for host in ('https://jithendar.com', 'jithendar.com:443', '-bad.example', 'a..example', '1.2.3.4'):
+            self.assertNotEqual(self.run_script(PUBLIC_HOST=host).returncode, 0)
+        self.assertNotEqual(self.run_script(PUBLIC_HOST='jithendar.com', PUBLIC_IP='203.0.113.10').returncode, 0)
+        self.assertEqual(self.calls(), '')
 
     def test_invalid_public_address(self):
         self.assertNotEqual(self.run_script(PUBLIC_IP='999.2.3.4').returncode, 0)

@@ -62,7 +62,7 @@ if [[ "$START" == 1 ]]; then
   else
     # Refresh supplementary groups for the same user without a logout.
     sudo runuser -u "$CURRENT_USER" -- env HOME="$HOME" PATH="$PATH" \
-      PUBLIC_IP="${PUBLIC_IP:-}" PROFILE="${PROFILE:-mk4}" NODES="${NODES:-1}" CPUS="${CPUS:-2}" MEMORY="${MEMORY:-auto}" \
+      PUBLIC_HOST="${PUBLIC_HOST:-}" PUBLIC_IP="${PUBLIC_IP:-}" PROFILE="${PROFILE:-mk4}" NODES="${NODES:-1}" CPUS="${CPUS:-2}" MEMORY="${MEMORY:-auto}" \
       bash "$SCRIPT_DIR/install.sh" start
   fi
 fi

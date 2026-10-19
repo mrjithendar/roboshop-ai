@@ -45,5 +45,5 @@ for exported in ${exports[@]+"${exports[@]}"}; do
   rm -f -- "$exported"
 done
 echo 'Reset complete. Installed tools and unrelated Docker/Kubernetes configuration were retained.'
-echo 'Start fresh: PUBLIC_IP=YOUR_VULTR_IP NODES=1 bash minikube/setup.sh'
+echo 'Start fresh: PUBLIC_HOST=jithendar.com NODES=1 bash minikube/setup.sh'
 echo 'Previously copied laptop kubeconfigs are now obsolete; copy the new export after startup.'

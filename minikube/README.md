@@ -72,17 +72,17 @@ The capacity check uses total Docker RAM, not current free RAM; unrelated runnin
 
 ## Direct access from your laptop (no tunnel)
 
-For the 4 GiB Vultr host, run with your server's public IPv4 address:
+For the 4 GiB Vultr host, run with your domain pointing to the Vultr host:
 
 ```sh
-PUBLIC_IP=YOUR_VULTR_IP NODES=1 bash minikube/setup.sh
+PUBLIC_HOST=jithendar.com NODES=1 bash minikube/setup.sh
 # Or, with dependencies already installed:
-PUBLIC_IP=YOUR_VULTR_IP NODES=1 bash minikube/install.sh start
+PUBLIC_HOST=jithendar.com NODES=1 bash minikube/install.sh start
 ```
 
-The installer binds Docker's published API port to `0.0.0.0`, includes the public IP in the API certificate, and writes `~/.kube/<selected-profile>-direct.json` with embedded credentials and file permissions 0600. TLS verification remains enabled. It prints the actual port and exact `scp` and local `kubectl` commands. Allow that TCP port from your laptop's public IP in Vultr Firewall (and any other upstream firewall); the script does not manage your Vultr account. No SSH tunnel is required after copying the file.
+The installer binds Docker's published API port to `0.0.0.0`, includes the DNS hostname in the API certificate, and writes `~/.kube/<selected-profile>-direct.json` with embedded credentials and file permissions 0600. TLS verification remains enabled. It prints the actual port and exact `scp` and local `kubectl` commands. Allow that TCP port from your laptop's public IP in Vultr Firewall (and any other upstream firewall); the script does not manage your Vultr account. No SSH tunnel is required after copying the file.
 
-A profile created for localhost access cannot simply change its Docker port bindings. The installer stops and preserves it, and creates a separate direct-access profile when needed. Workloads are not migrated. Reuse the same `PUBLIC_IP` on subsequent starts; omitting it requests local-only access. Re-export the file after recreating the cluster or changing the server IP. The exported file grants cluster administrator access; keep it private and out of Git.
+A profile created for localhost access cannot simply change its Docker port bindings. The installer stops and preserves it, and creates a separate direct-access profile when needed. Workloads are not migrated. Reuse the same `PUBLIC_HOST` on subsequent starts; omitting it requests local-only access. Re-export the file after recreating the cluster or changing the hostname. The exported file grants cluster administrator access; keep it private and out of Git.
 
 ## Wipe Minikube and start fresh
 
@@ -90,9 +90,15 @@ On the Vultr host, as the user who created the clusters:
 
 ```sh
 bash minikube/install.sh reset
-PUBLIC_IP=YOUR_VULTR_IP NODES=1 bash minikube/setup.sh
+PUBLIC_HOST=jithendar.com NODES=1 bash minikube/setup.sh
 ```
 
 `bash minikube/reset.sh` is equivalent to the reset action. It immediately runs `minikube delete --all --purge`: all current-user Minikube clusters and their cluster-local data are deleted, along with cached downloads, profiles, installer selection/network metadata and matching direct-access exports. There is no interactive confirmation. It retains installed tools, unrelated Docker resources, and unrelated Kubernetes contexts. It requires the standard non-symlink `~/.minikube` directory.
 
 Reset does not remove clusters owned by another account, copies of kubeconfig on your laptop, or Vultr firewall rules. If you previously created clusters as `robotshop`, those belong to that account. After starting again, copy the newly exported kubeconfig and use the newly printed API port. Do not reuse the old laptop kubeconfig.
+
+### Domain endpoint: jithendar.com
+
+Use `PUBLIC_HOST=jithendar.com NODES=1 bash minikube/setup.sh`. The installer adds `jithendar.com` as a DNS certificate SAN and exports `https://jithendar.com:<published-port>`. It prints the exact port and local copy command; TLS verification stays enabled. `PUBLIC_IP` is still supported for IPv4 endpoints, but do not set both variables.
+
+The domain must resolve directly to your Vultr host. A normal website HTTP reverse proxy does not forward this Kubernetes API port; use a direct DNS record. Existing website ports 80/443 are unchanged. If the main domain must stay behind a website proxy, use a dedicated DNS hostname such as `k8s.jithendar.com` instead. The Vultr firewall still needs to allow the printed TCP port from your local public IP.

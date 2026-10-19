@@ -10,12 +10,14 @@ INSTALL_DIR="${INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
 ACTION="${1:-start}"
 BASE_PROFILE="$PROFILE"
 PUBLIC_IP="${PUBLIC_IP:-}"
+PUBLIC_HOST="${PUBLIC_HOST:-}"
+API_HOST="${PUBLIC_HOST:-$PUBLIC_IP}"
 NETWORK_ARGS=()
 fail() { echo "ERROR: $*" >&2; exit 1; }
 usage() {
   echo 'Usage: bash minikube/install.sh [install|start|status|stop|diagnose|reset]'
   echo 'Overrides: PROFILE, NODES, CPUS, MEMORY (MiB/node), INSTALL_DIR'
-  echo 'Direct access: PUBLIC_IP=<Vultr IPv4 address> (exports a portable kubeconfig).'
+  echo 'Direct access: PUBLIC_HOST=jithendar.com (or PUBLIC_IP for an IPv4 endpoint).'
   echo 'Runs as the current user; Linux root starts use --force.'
   echo 'Optional download pins: MINIKUBE_VERSION=vX.Y.Z, KUBECTL_VERSION=vX.Y.Z'
 }
@@ -165,7 +167,14 @@ config_matches() {
     '.Driver == "docker" and (.Nodes | length) == $nodes and .Memory == $memory and .CPUs == $cpus' "$1" >/dev/null
 }
 NETWORK_ID=local
-if [[ -n "$PUBLIC_IP" ]]; then
+[[ -z "$PUBLIC_HOST" || -z "$PUBLIC_IP" ]] || fail 'Set PUBLIC_HOST or PUBLIC_IP, not both.'
+if [[ -n "$PUBLIC_HOST" ]]; then
+  PUBLIC_HOST="$(printf '%s' "$PUBLIC_HOST" | tr '[:upper:]' '[:lower:]')"
+  API_HOST="$PUBLIC_HOST"
+  jq -en --arg host "$PUBLIC_HOST" '$host | (length <= 253) and (contains(".")) and (split(".") | all(.[]; length >= 1 and length <= 63 and test("^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"))) and (test("^[0-9.]+$") | not)' >/dev/null || fail 'PUBLIC_HOST must be a DNS hostname, e.g. jithendar.com, without https://, a port, or a path.'
+  NETWORK_ARGS=(--listen-address=0.0.0.0 "--apiserver-names=$PUBLIC_HOST")
+  NETWORK_ID="dns-$PUBLIC_HOST"
+elif [[ -n "$PUBLIC_IP" ]]; then
   [[ "$PUBLIC_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail 'PUBLIC_IP must be an IPv4 address.'
   jq -en --arg ip "$PUBLIC_IP" '$ip | split(".") | all(.[]; (tonumber >= 0 and tonumber <= 255))' >/dev/null || fail 'Invalid PUBLIC_IP.'
   NETWORK_ARGS=(--listen-address=0.0.0.0 "--apiserver-ips=$PUBLIC_IP")
@@ -215,24 +224,24 @@ printf '%s\n' "$PROFILE" > "$state_tmp"
 mv "$state_tmp" "$STATE_FILE"
 echo "Ready. Use: kubectl --context=$PROFILE get pods -A"
 
-if [[ -n "$PUBLIC_IP" ]]; then
+if [[ -n "$API_HOST" ]]; then
   published_port="$(docker port "$PROFILE" 8443/tcp | awk -F: '/^0[.]0[.]0[.]0:/ {print $NF; exit}')"
   [[ "$published_port" =~ ^[0-9]+$ ]] || fail 'Could not find the public Docker API port; kubeconfig was not exported.'
   mkdir -p "$HOME/.kube"
   export_tmp="$(mktemp "$HOME/.kube/.direct.XXXXXX")"
   chmod 600 "$export_tmp"
   if kubectl --context="$PROFILE" config view --minify --raw --flatten -o json | \
-    jq --arg endpoint "https://$PUBLIC_IP:$published_port" \
+    jq --arg endpoint "https://$API_HOST:$published_port" \
       '.clusters[0].cluster.server = $endpoint | .clusters[0].cluster["insecure-skip-tls-verify"] = false | del(.clusters[0].cluster["tls-server-name"], .clusters[0].cluster["proxy-url"])' > "$export_tmp"; then
     mv "$export_tmp" "$HOME/.kube/$PROFILE-direct.json"
   else
     rm -f "$export_tmp"
     fail 'Could not export direct kubeconfig.'
   fi
-  echo "Direct API: https://$PUBLIC_IP:$published_port"
+  echo "Direct API: https://$API_HOST:$published_port"
   echo "In Vultr Firewall, allow TCP $published_port from your local public IP."
   echo "On your local machine:"
-  printf '  scp %s@%s:%s/.kube/%s-direct.json ./vultr-kubeconfig.json\n' "$(id -un)" "$PUBLIC_IP" "$HOME" "$PROFILE"
+  printf '  scp %s@%s:%s/.kube/%s-direct.json ./vultr-kubeconfig.json\n' "$(id -un)" "$API_HOST" "$HOME" "$PROFILE"
   echo '  chmod 600 ./vultr-kubeconfig.json'
   echo '  KUBECONFIG="$PWD/vultr-kubeconfig.json" kubectl get nodes'
 fi
