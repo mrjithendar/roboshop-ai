@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Optional host prerequisites; run as the user who will run Minikube.
+# Optional host prerequisites; run as the user who will run Minikube...
 set -euo pipefail
 fail() { echo "ERROR: $*" >&2; exit 1; }
 if [[ "${1:-}" == --help ]]; then
