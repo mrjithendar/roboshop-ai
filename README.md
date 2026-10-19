@@ -373,6 +373,8 @@ bash build-images.sh --local
 
 Builds all eleven active application Dockerfiles as `robotshop-<service>:local` (shipping uses `robotshop-shipping:local`). `IMAGE_TAG` is ignored; `IMAGE_PREFIX` remains configurable. Builds run sequentially with full Docker output and stop on the first failure. Reruns reuse completed layers. Redis, RabbitMQ, databases and observability components use official upstream images.
 
-Preview without Docker: `bash build-images.sh --local --dry-run`.
+Every build removes the previous application `:local` image tags and rebuilds with `--no-cache`. Running containers are not stopped; Docker retains layers still used by containers. Infrastructure images and unrelated images are untouched. Use `--pull` to also refresh base images. A failed build leaves already completed images available, but the next run starts fresh for all applications.
+
+Preview cleanup and builds without Docker: `bash build-images.sh --local --dry-run`.
 
 The Redis-backed cart service, real-photo catalogue additions, review filters, and isolated 10,000-profile demo dataset are documented in [the catalogue deployment guide](docs/demo-scenarios/global-catalogue.md).

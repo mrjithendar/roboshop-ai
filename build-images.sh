@@ -6,7 +6,7 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 IMAGE_PREFIX="${IMAGE_PREFIX:-robotshop}"
 IMAGE_TAG=local
 DRY_RUN=false
-BUILD_OPTIONS=()
+BUILD_OPTIONS=(--no-cache)
 usage() {
   cat <<'EOF'
 Usage: ./build-images.sh [--local] [--dry-run] [--pull] [--no-cache] [--platform PLATFORM]
@@ -20,8 +20,10 @@ Environment (export the same values when running Docker Compose):
 --local is accepted for compatibility; every build uses the local tag.
 Example: bash build-images.sh --local
 
---dry-run prints the exact build commands without requiring Docker.
---pull refreshes base images; --no-cache disables the build cache.
+--dry-run prints cleanup and build commands without requiring Docker.
+Every run removes the previous application :local tags and builds without cache.
+Running containers are not stopped; Docker retains layers they still use.
+--pull refreshes base images; --no-cache is accepted for compatibility.
 Infrastructure services use official images and are pulled by Compose as needed.
 No images are pushed and no containers are started.
 EOF
@@ -30,7 +32,8 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --local) IMAGE_TAG=local; shift ;;
     --dry-run) DRY_RUN=true; shift ;;
-    --pull|--no-cache) BUILD_OPTIONS+=("$1"); shift ;;
+    --pull) BUILD_OPTIONS+=("$1"); shift ;;
+    --no-cache) shift ;;
     --platform)
       [[ $# -ge 2 && -n "$2" && "$2" != --* ]] || { echo 'Missing --platform value.' >&2; exit 2; }
       BUILD_OPTIONS+=("--platform" "$2"); shift 2 ;;
@@ -48,6 +51,18 @@ if [[ "$DRY_RUN" == false ]]; then
   command -v docker >/dev/null || { echo 'Docker is not installed.' >&2; exit 1; }
   docker info >/dev/null 2>&1 || { echo 'Docker daemon is unavailable. Start Docker and retry.' >&2; exit 1; }
 fi
+# Remove only this project's application tags, never unrelated or infrastructure images.
+for service in "${services[@]}"; do
+  suffix="$service"
+  [[ "$service" != shipping-service ]] || suffix=shipping
+  image="$IMAGE_PREFIX-$suffix:$IMAGE_TAG"
+  if [[ "$DRY_RUN" == true ]]; then
+    printf 'docker image inspect %q >/dev/null 2>&1 && docker image rm --force %q\n' "$image" "$image"
+  elif docker image inspect "$image" >/dev/null 2>&1; then
+    printf 'Removing previous local image %s\n' "$image"
+    docker image rm --force "$image"
+  fi
+done
 for service in "${services[@]}"; do
   suffix="$service"
   [[ "$service" != shipping-service ]] || suffix=shipping
@@ -58,7 +73,7 @@ for service in "${services[@]}"; do
     printf '%q ' "${command[@]}"; printf '\n'
   else
     if ! "${command[@]}"; then
-      printf "ERROR: Build failed for %s. Fix the error above and rerun; completed builds remain cached.\n" "$image" >&2
+      printf "ERROR: Build failed for %s. Fix the error above and rerun; completed image tags remain available; the next run cleans and rebuilds all application images.\n" "$image" >&2
       exit 1
     fi
   fi

@@ -34,6 +34,11 @@ class ManifestTests(unittest.TestCase):
         env={**os.environ,'IMAGE_TAG':'roboshop-path-v1','IMAGE_PREFIX':'robotshop'}
         output=subprocess.check_output(['bash',str(ROOT/'build-images.sh'),'--dry-run'],env=env,text=True)
         built={line.split()[1] for line in output.splitlines() if line.startswith('Building ')}
+        builds=[line for line in output.splitlines() if line.startswith('docker build ')]
+        removals=[line for line in output.splitlines() if line.startswith('docker image inspect ')]
+        self.assertEqual(len(builds),len(deploy.APPS))
+        self.assertTrue(all('--no-cache' in line for line in builds))
+        self.assertEqual({line.split()[3] for line in removals},built)
         with tempfile.TemporaryDirectory() as tmp:
             subprocess.run(['python3',str(ROOT/'minikube/robotshop/deployment.py'),'render','--output',tmp],env=env,check=True)
             rendered=set((Path(tmp)/'images.txt').read_text().splitlines())

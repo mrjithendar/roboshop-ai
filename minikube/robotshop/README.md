@@ -12,7 +12,7 @@ bash build-images.sh
 bash deploy-minikube.sh --load-images
 ```
 
-`--load-images` loads the ten application images into the selected Minikube profile before applying manifests. Build on the host's architecture, or use `build-images.sh --platform linux/amd64` for an amd64 cluster. Existing `build-images.sh` does not push images. Infrastructure images are pulled from their upstream registries by Kubernetes.
+`--load-images` loads the eleven application images into the selected Minikube profile before applying manifests. Build on the host's architecture, or use `build-images.sh --platform linux/amd64` for an amd64 cluster. Existing `build-images.sh` does not push images. Infrastructure images are pulled from their upstream registries by Kubernetes.
 
 The script follows the selected profile saved by `minikube/install.sh` (base `PROFILE=mk4`). The profile and Kubernetes context must match when loading images. If you already loaded the images on all nodes, simply run:
 
