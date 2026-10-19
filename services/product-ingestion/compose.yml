@@ -4,7 +4,7 @@ services:
     extends:
       file: ../common/compose.yml
       service: application
-    image: ${IMAGE_PREFIX:-robotshop}-product-ingestion:${IMAGE_TAG:-local}
+    image: ${IMAGE_PREFIX:-robotshop}-product-ingestion:local
     environment:
       MONGODB_DATABASE: ${MONGODB_DATABASE:-robotshop}
       MONGODB_URL: mongodb://robotshop:${MONGO_APP_PASSWORD:?Set MONGO_APP_PASSWORD}@mongodb:27017/robotshop?authSource=robotshop

@@ -114,8 +114,7 @@ summary contains the exact image URI and digest. Use that digest when updating
 a service deployment. Run each service workflow manually for an initial complete
 set of images.
 
-The root `build-images.sh` still builds local images. Compose's single
-`IMAGE_TAG` setting assumes a common tag across services, whereas these pipelines
+The root `build-images.sh` still builds local images. Compose uses a fixed `local` tag, whereas these pipelines
 version services independently. To run their images in Compose, use an override
 file setting each service's `image` to its published URI/digest (including the
 `nginx` service and optional `mcp-server`). Do not set one workflow's run tag as

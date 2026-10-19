@@ -15,7 +15,8 @@ while [[ $# -gt 0 ]]; do
     -h|--help)
       echo 'Usage: bash deploy-minikube.sh [--load-images] [--render-only DIR]'
       echo 'Deploys 16 RobotShop services into robotshop-ai. Does not reset any existing application.'
-      echo 'Overrides: PROFILE=mk4, KUBE_CONTEXT, IMAGE_PREFIX=robotshop, IMAGE_TAG=local, PUBLIC_ORIGIN=https://jithendar.com'
+      echo 'Overrides: PROFILE=mk4, KUBE_CONTEXT, IMAGE_PREFIX=robotshop, PUBLIC_ORIGIN=https://jithendar.com'
+      echo 'Application images always use :local; exported IMAGE_TAG is ignored.'
       echo '--load-images: run on the Minikube host after build-images.sh; load application images into the selected profile.'
       echo '--render-only DIR: validate/render YAML without any cluster access.'
       exit 0 ;;

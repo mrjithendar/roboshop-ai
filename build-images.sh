@@ -4,7 +4,7 @@
 set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 IMAGE_PREFIX="${IMAGE_PREFIX:-robotshop}"
-IMAGE_TAG="${IMAGE_TAG:-local}"
+IMAGE_TAG=local
 DRY_RUN=false
 BUILD_OPTIONS=()
 usage() {
@@ -15,9 +15,9 @@ Builds all ten application images using their service-specific Dockerfiles.
 Environment (export the same values when running Docker Compose):
   IMAGE_PREFIX  Image repository prefix, e.g. registry.example.com/team/robotshop
                 Default: robotshop
-  IMAGE_TAG     Image tag. Default: local
+  Application tags are fixed to local; exported IMAGE_TAG is ignored.
 
---local forces the local tag even when IMAGE_TAG is exported in your shell.
+--local is accepted for compatibility; every build uses the local tag.
 Example: bash build-images.sh --local
 
 --dry-run prints the exact build commands without requiring Docker.

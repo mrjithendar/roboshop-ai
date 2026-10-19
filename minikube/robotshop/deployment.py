@@ -81,7 +81,7 @@ def main():
     render_parser = commands.add_parser('render')
     render_parser.add_argument('--output', type=Path, required=True)
     render_parser.add_argument('--prefix', default=os.getenv('IMAGE_PREFIX', 'robotshop'))
-    render_parser.add_argument('--tag', default=os.getenv('IMAGE_TAG', 'local'))
+    render_parser.add_argument('--tag', default='local', choices=['local'])
     render_parser.add_argument('--public-origin', default=os.getenv('PUBLIC_ORIGIN', 'https://jithendar.com'))
     credentials = commands.add_parser('credentials')
     credentials.add_argument('--context', required=True)

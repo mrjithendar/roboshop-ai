@@ -5,7 +5,7 @@ services:
       file: ../common/compose.yml
       service: telemetry
     profiles: [tools]
-    image: ${IMAGE_PREFIX:-robotshop}-mcp-server:${IMAGE_TAG:-local}
+    image: ${IMAGE_PREFIX:-robotshop}-mcp-server:local
     stdin_open: true
     init: true
     read_only: true

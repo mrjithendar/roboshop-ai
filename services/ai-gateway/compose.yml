@@ -4,7 +4,7 @@ services:
     extends:
       file: ../common/compose.yml
       service: application
-    image: ${IMAGE_PREFIX:-robotshop}-ai-gateway:${IMAGE_TAG:-local}
+    image: ${IMAGE_PREFIX:-robotshop}-ai-gateway:local
     environment:
       APP_ENV: ${APP_ENV:-development}
       REGISTRATION_CHALLENGE_PROVIDER: ${REGISTRATION_CHALLENGE_PROVIDER:-disabled}

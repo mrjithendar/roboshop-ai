@@ -1,6 +1,6 @@
 services:
   frontend:
-    image: ${IMAGE_PREFIX:-robotshop}-frontend:${IMAGE_TAG:-local}
+    image: ${IMAGE_PREFIX:-robotshop}-frontend:local
     expose: ['8080']
     init: true
     restart: unless-stopped

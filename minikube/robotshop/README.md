@@ -24,15 +24,15 @@ Local images must be available to every node where pods may schedule. This scrip
 
 ## Deploy from your Mac using registry images
 
-First build and push your images to a registry accessible to the cluster, using the same prefix/tag as the build script. Then:
+First build and push your images to a registry accessible to the cluster, using the same prefix and local tag as the build script. Then:
 
 ```bash
 export KUBECONFIG="$HOME/.kube/vultr-minikube.json"
-IMAGE_PREFIX=registry.example.com/team/robotshop IMAGE_TAG=v1 KUBE_CONTEXT=mk4 \
+IMAGE_PREFIX=registry.example.com/team/robotshop KUBE_CONTEXT=mk4 \
   bash deploy-minikube.sh
 ```
 
-Replace the example prefix/tag with real published images. The renderer changes application image references only; infrastructure images retain their checked-in versions. Run `--load-images` on the actual Minikube host, not on a Mac pointed at the remote cluster.
+Replace the example prefix with your registry prefix; publish every application image with the local tag. The renderer changes application image references only; infrastructure images retain their checked-in versions. Run `--load-images` on the actual Minikube host, not on a Mac pointed at the remote cluster.
 
 ## HTTPS access at jithendar.com/roboshop
 
@@ -40,10 +40,9 @@ Open **https://jithendar.com/roboshop/** (admin: `/roboshop/admin`). HTTP redire
 
 Prerequisites: DNS points to Vultr, Traefik exposes public ports 80/443, and cert-manager's `letsencrypt-prod` ClusterIssuer is Ready. The deploy script checks these cluster resources, applies `ingress.yaml`, and waits up to three minutes for the certificate. This certificate and its TLS Secret live in `robotshop-ai` because TLS Secrets cannot be referenced across namespaces.
 
-On the Minikube host, rebuild the frontend and NGINX changes with a fresh image tag so existing pods use the new images:
+On the Minikube host, rebuild the frontend and NGINX changes using the fixed local tag:
 
 ```bash
-export IMAGE_TAG=roboshop-path-v1
 bash build-images.sh
 bash deploy-minikube.sh --load-images
 ```
@@ -58,7 +57,7 @@ kubectl -n robotshop-ai describe certificate jithendar-com
 curl -I https://jithendar.com/roboshop/
 ```
 
-Check DNS, public ports, issuer status and challenge events. Do not repeatedly delete certificates while troubleshooting. For blank pages or 404 assets, confirm the new frontend/NGINX image tag is deployed. Razorpay webhook URLs must include `/roboshop/api/payments/webhook` when using this ingress.
+Check DNS, public ports, issuer status and challenge events. Do not repeatedly delete certificates while troubleshooting. For blank pages or 404 assets, reload the rebuilt images and restart the frontend/NGINX deployments. Razorpay webhook URLs must include `/roboshop/api/payments/webhook` when using this ingress.
 
 MCP is a **stdio server**, not HTTP: its deployment keeps stdin open and intentionally has no Service or TCP health probe. A client can launch a separate protocol process through:
 

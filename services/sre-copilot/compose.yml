@@ -4,7 +4,7 @@ services:
     extends:
       file: ../common/compose.yml
       service: application
-    image: ${IMAGE_PREFIX:-robotshop}-sre-copilot:${IMAGE_TAG:-local}
+    image: ${IMAGE_PREFIX:-robotshop}-sre-copilot:local
     environment:
       SHIPPING_URL: http://shipping-service:4106
     init: true

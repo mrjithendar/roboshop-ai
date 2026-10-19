@@ -4,7 +4,7 @@ services:
     extends:
       file: ../common/compose.yml
       service: application
-    image: ${IMAGE_PREFIX:-robotshop}-shopping-agent:${IMAGE_TAG:-local}
+    image: ${IMAGE_PREFIX:-robotshop}-shopping-agent:local
     environment:
       LLM_SERVICE_TOKEN: ${LLM_SERVICE_TOKEN:-}
       OLLAMA_ENDPOINTS_JSON: ${OLLAMA_ENDPOINTS_JSON:-{}}

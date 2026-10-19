@@ -4,7 +4,7 @@ services:
     extends:
       file: ../common/compose.yml
       service: telemetry
-    image: ${IMAGE_PREFIX:-robotshop}-shipping:${IMAGE_TAG:-local}
+    image: ${IMAGE_PREFIX:-robotshop}-shipping:local
     command: []
     environment:
       SHIPPING_DATABASE_URL: postgresql://shipping_app:${SHIPPING_APP_PASSWORD:?Set

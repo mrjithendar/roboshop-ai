@@ -2,7 +2,7 @@
 # Run Compose from the repository root; paths here are relative to this directory.
 services:
   nginx:
-    image: ${IMAGE_PREFIX:-robotshop}-nginx:${IMAGE_TAG:-local}
+    image: ${IMAGE_PREFIX:-robotshop}-nginx:local
     environment:
       GATEWAY_HOST: ai-gateway
       GATEWAY_PORT: '3000'

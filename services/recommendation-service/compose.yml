@@ -4,7 +4,7 @@ services:
     extends:
       file: ../common/compose.yml
       service: application
-    image: ${IMAGE_PREFIX:-robotshop}-recommendation-service:${IMAGE_TAG:-local}
+    image: ${IMAGE_PREFIX:-robotshop}-recommendation-service:local
     init: true
     restart: unless-stopped
     read_only: true

@@ -310,17 +310,15 @@ SRE, payments, MCP, Java shipping, frontend and NGINX. MongoDB,
 PostgreSQL, Redis, RabbitMQ and observability backends use their configured official
 images; Compose pulls them when needed. MCP remains under the optional `tools` profile.
 
-To use a custom registry prefix/tag, export the same values for both commands:
+To use a custom registry prefix, export it for both commands (the tag is always local):
 
 ```sh
 export IMAGE_PREFIX=registry.example.com/team/robotshop
-export IMAGE_TAG=release-1
 ./build-images.sh
 docker compose up -d
 ```
 
-The script reads exported environment variables, not `.env`. Shell exports also
-override Compose `.env` values, keeping build and runtime tags consistent. It does
+The script reads exported environment variables, not `.env`. Application tags are fixed to `local` in the build script and Compose; stale `IMAGE_TAG` exports have no effect. It does
 not push images. `./build-images.sh --help` documents `--pull`, `--no-cache`,
 `--platform` and `--dry-run`. It stops at the first failed build. Rebuild before
 recreating services after code changes; `docker compose build` no longer builds
@@ -373,6 +371,6 @@ The Minikube storefront uses **https://jithendar.com/roboshop/**, with Let's Enc
 bash build-images.sh --local
 ```
 
-Builds all ten active application Dockerfiles as `robotshop-<service>:local` (shipping uses `robotshop-shipping:local`). `--local` overrides an exported `IMAGE_TAG`; `IMAGE_PREFIX` remains configurable. Builds run sequentially with full Docker output and stop on the first failure. Reruns reuse completed layers. Redis, RabbitMQ, databases and observability components use official upstream images.
+Builds all ten active application Dockerfiles as `robotshop-<service>:local` (shipping uses `robotshop-shipping:local`). `IMAGE_TAG` is ignored; `IMAGE_PREFIX` remains configurable. Builds run sequentially with full Docker output and stop on the first failure. Reruns reuse completed layers. Redis, RabbitMQ, databases and observability components use official upstream images.
 
 Preview without Docker: `bash build-images.sh --local --dry-run`.
