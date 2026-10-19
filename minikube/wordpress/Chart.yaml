@@ -1,0 +1,5 @@
+apiVersion: v2
+name: robotshop-wordpress
+version: 0.1.0
+description: Single-instance WordPress with MySQL and Redis object caching
+type: application

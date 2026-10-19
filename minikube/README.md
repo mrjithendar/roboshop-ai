@@ -213,3 +213,13 @@ bash minikube/deploy-grafana.sh
 ```
 
 Open **https://jithendar.com/grafana/**. The installer deploys Grafana with Helm, persistent storage, and the shared Let's Encrypt website certificate. It requires Traefik with publicly reachable ports 80/443 and correct DNS. See [Grafana setup](grafana/README.md) for login credentials, prerequisites, metrics configuration and troubleshooting.
+
+## WordPress with Redis
+
+After Traefik, host routing and cert-manager are ready:
+
+```bash
+bash minikube/deploy-wordpress.sh
+```
+
+WordPress runs in namespace **`jithendar-com`** and serves **https://jithendar.com/**; Grafana keeps **/grafana/**. Includes MySQL, persistent site/database volumes, random credentials and verified Redis object caching. See [WordPress setup](wordpress/README.md) for installation, administrator login, backup requirements and troubleshooting.
