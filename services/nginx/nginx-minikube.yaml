@@ -42,11 +42,11 @@ spec:
         - name: FRONTEND_BASE_PATH
           value: /roboshop
         - name: GATEWAY_HOST
-          value: ai-gateway
+          value: ai-gateway.robotshop-ai.svc.cluster.local
         - name: GATEWAY_PORT
           value: '3000'
         - name: FRONTEND_HOST
-          value: frontend
+          value: frontend.robotshop-ai.svc.cluster.local
         - name: FRONTEND_PORT
           value: '8080'
         resources:
