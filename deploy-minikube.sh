@@ -84,6 +84,7 @@ for service in "${services[@]}"; do
     k --request-timeout=15s -n robotshop-ai get pods,pvc || true
     k --request-timeout=15s -n robotshop-ai describe pods -l "app=$name" || true
     k --request-timeout=15s -n robotshop-ai logs "$workload" --all-containers=true --tail=60 --pod-running-timeout=10s || true
+    k --request-timeout=15s -n robotshop-ai logs "$workload" --all-containers=true --previous --tail=100 --pod-running-timeout=10s || true
     fail "$service did not become ready. Fix the reported problem and rerun; data and credentials are preserved."
   fi
 done

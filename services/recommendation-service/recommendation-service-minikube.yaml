@@ -32,6 +32,7 @@ spec:
         app: recommendation-service
         app.kubernetes.io/part-of: robotshop-ai
     spec:
+      enableServiceLinks: false
       automountServiceAccountToken: false
       containers:
       - name: recommendation-service

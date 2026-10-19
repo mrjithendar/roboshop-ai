@@ -32,6 +32,7 @@ spec:
         app: shipping-service
         app.kubernetes.io/part-of: robotshop-ai
     spec:
+      enableServiceLinks: false
       automountServiceAccountToken: false
       containers:
       - name: shipping-service
@@ -68,6 +69,10 @@ spec:
           value: 'true'
         - name: CACHE_ENABLED
           value: 'true'
+        - name: REDIS_PORT
+          value: '6379'
+        - name: RABBITMQ_PORT
+          value: '5672'
         - name: REDIS_HOST
           value: redis
         - name: MESSAGING_ENABLED

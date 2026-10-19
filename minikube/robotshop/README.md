@@ -123,3 +123,7 @@ The installer stops at the first failing rollout and prints diagnostics. Fix the
 ### Rebuilding the same local tag
 
 `bash build-images.sh` and `bash deploy-minikube.sh --load-images` always use matching `:local` application images. An old exported `IMAGE_TAG` is ignored. The loader checks that all ten images exist in host Docker, explicitly overwrites Minikube's cached tags from that daemon, then restarts each application deployment and waits for readiness. Databases and infrastructure are not restarted by this image refresh. Run the loader on the Minikube host. Deployment without `--load-images` does not refresh cached images or force restarts.
+
+### Shipping exits while binding the Redis port
+
+If the previous container log reports `spring.data.redis.port` cannot parse `tcp://...:6379`, Kubernetes service-link variables collided with the application's `REDIS_PORT` setting. The manifests disable service links and shipping explicitly sets `REDIS_PORT=6379` and `RABBITMQ_PORT=5672`. Apply the updated shipping manifest or rerun the deployment script; no image rebuild or database reset is needed. Service discovery continues using Kubernetes DNS.

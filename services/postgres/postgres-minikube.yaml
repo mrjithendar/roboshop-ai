@@ -76,6 +76,7 @@ spec:
         app: shipping-db
         app.kubernetes.io/part-of: robotshop-ai
     spec:
+      enableServiceLinks: false
       automountServiceAccountToken: false
       containers:
       - name: shipping-db

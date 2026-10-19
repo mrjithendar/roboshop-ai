@@ -42,6 +42,18 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(built,checked_in)
         self.assertTrue(all(image.endswith(':local') for image in built))
 
+    def test_service_links_cannot_override_application_ports(self):
+        for name in deploy.SERVICES:
+            docs=yaml.safe_load_all((ROOT/'services'/name/(name+'-minikube.yaml')).read_text())
+            for item in docs:
+                if item['kind'] in ('Deployment','StatefulSet'):
+                    pod=item['spec']['template']['spec']
+                    self.assertIs(pod['enableServiceLinks'],False)
+                    if name=='shipping-service':
+                        env={v['name']:v.get('value') for v in pod['containers'][0]['env']}
+                        self.assertEqual(env['REDIS_PORT'],'6379')
+                        self.assertEqual(env['RABBITMQ_PORT'],'5672')
+
     def test_every_runnable_service_has_manifest(self):
         runnable = {p.parent.name for p in (ROOT / 'services').glob('*/compose.yml') if p.parent.name != 'common'}
         self.assertEqual(runnable, set(deploy.SERVICES))
