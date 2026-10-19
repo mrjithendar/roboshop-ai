@@ -3,19 +3,20 @@
 set -euo pipefail
 PROFILE="${PROFILE:-mk4}"
 CPUS="${CPUS:-2}"
-MEMORY="${MEMORY:-2048}" # MiB per node.
-NODES="${NODES:-4}"
+MEMORY="${MEMORY:-auto}" # MiB per node, selected after checking Docker capacity.
+NODES="${NODES:-2}"
 if [[ "$EUID" == 0 ]]; then DEFAULT_INSTALL_DIR=/usr/local/bin; else DEFAULT_INSTALL_DIR="$HOME/.local/bin"; fi
 INSTALL_DIR="${INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
 ACTION="${1:-start}"
+BASE_PROFILE="$PROFILE"
 fail() { echo "ERROR: $*" >&2; exit 1; }
 usage() {
-  echo 'Usage: bash minikube/install.sh [install|start|status|stop]'
+  echo 'Usage: bash minikube/install.sh [install|start|status|stop|diagnose]'
   echo 'Overrides: PROFILE, NODES, CPUS, MEMORY (MiB/node), INSTALL_DIR'
   echo 'Runs as the current user; Linux root starts use --force.'
   echo 'Optional download pins: MINIKUBE_VERSION=vX.Y.Z, KUBECTL_VERSION=vX.Y.Z'
 }
-case "$ACTION" in -h|--help|help) usage; exit 0 ;; install|start|status|stop) ;; *) usage >&2; exit 1 ;; esac
+case "$ACTION" in -h|--help|help) usage; exit 0 ;; install|start|status|stop|diagnose) ;; *) usage >&2; exit 1 ;; esac
 [[ $# -le 1 ]] || fail 'Expected at most one action.'
 case "$(uname -s)" in Linux) OS=linux ;; Darwin) OS=darwin ;; *) fail 'Supported systems: Linux and macOS.' ;; esac
 case "$(uname -m)" in x86_64|amd64) ARCH=amd64 ;; arm64|aarch64) ARCH=arm64 ;; *) fail 'Supported architectures: amd64 and arm64.' ;; esac
@@ -72,14 +73,38 @@ if [[ "$ACTION" == install || "$ACTION" == start ]]; then
   echo "Tools available for $(id -un) in $INSTALL_DIR."
 fi
 [[ "$ACTION" != install ]] || exit 0
+[[ "$BASE_PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || fail 'Invalid PROFILE name.'
+STATE_DIR="${MINIKUBE_HOME:-$HOME/.minikube}/robotshop-installer"
+STATE_FILE="$STATE_DIR/$BASE_PROFILE.profile"
+if [[ -f "$STATE_FILE" ]]; then
+  IFS= read -r PROFILE < "$STATE_FILE"
+  [[ "$PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || fail 'Invalid saved profile name.'
+fi
 command -v minikube >/dev/null 2>&1 || fail 'Run this script with install first.'
+diagnose() {
+  echo "=== Cluster $PROFILE ==="
+  minikube --profile="$PROFILE" status || true
+  kubectl --context="$PROFILE" --request-timeout=15s get nodes -o wide || true
+  kubectl --context="$PROFILE" --request-timeout=15s get events -A --field-selector=type=Warning || true
+  echo '=== Docker capacity and running containers ==='
+  docker info --format 'CPUs={{.NCPU}} MemoryBytes={{.MemTotal}}' || true
+  docker stats --no-stream || true
+  if [[ "$OS" == linux ]]; then free -m || true; df -h / || true; fi
+  echo '=== Minikube logs ==='
+  minikube --profile="$PROFILE" logs --problems || true
+}
+if [[ "$ACTION" == diagnose ]]; then
+  diagnose
+  exit 0
+fi
 if [[ "$ACTION" != start ]]; then
   minikube --profile="$PROFILE" "$ACTION"
   exit 0
 fi
-for value in "$NODES" "$CPUS" "$MEMORY"; do
-  [[ "$value" =~ ^[1-9][0-9]*$ ]] || fail 'NODES, CPUS and MEMORY must be positive integers.'
+for value in "$NODES" "$CPUS"; do
+  [[ "$value" =~ ^[1-9][0-9]{0,5}$ ]] || fail 'NODES and CPUS must be positive integers.'
 done
+[[ "$MEMORY" == auto || "$MEMORY" =~ ^[1-9][0-9]{0,6}$ ]] || fail 'MEMORY must be auto or a positive MiB integer.'
 DOCKER_APP=''
 if [[ "$OS" == darwin ]]; then
   for candidate in /Applications/Docker.app "$HOME/Applications/Docker.app"; do
@@ -114,12 +139,56 @@ if ! docker info >/dev/null 2>&1; then
   fi
 fi
 [[ "$(docker info --format '{{.OSType}}')" == linux ]] || fail 'Docker must run Linux containers.'
+command -v jq >/dev/null 2>&1 || fail 'Install jq to inspect existing Minikube configuration (CentOS setup installs it automatically).'
+docker_memory="$(docker info --format '{{.MemTotal}}')"
+docker_cpus="$(docker info --format '{{.NCPU}}')"
+[[ "$docker_memory" =~ ^[0-9]+$ && "$docker_cpus" =~ ^[0-9]+$ ]] || fail 'Could not read Docker CPU/RAM capacity.'
+host_mib=$((docker_memory / 1024 / 1024))
+budget=$((host_mib - 1024))
+if [[ "$MEMORY" == auto ]]; then
+  MEMORY=$((budget / NODES / 256 * 256))
+  (( MEMORY <= 2560 )) || MEMORY=2560
+fi
+(( MEMORY >= 2048 && NODES * MEMORY <= budget )) || fail "Insufficient physical RAM: Docker has $host_mib MiB; reserve 1024 MiB for the host. Requested $NODES nodes x $MEMORY MiB. Swap is not counted."
+(( CPUS >= 2 && CPUS <= docker_cpus )) || fail "CPUS must be between 2 and Docker's $docker_cpus CPUs."
+echo "Docker capacity: $host_mib MiB RAM, $docker_cpus CPUs. Selected: $NODES node(s), $MEMORY MiB and $CPUS CPUs per node."
+profile_config() { printf '%s/profiles/%s/config.json' "${MINIKUBE_HOME:-$HOME/.minikube}" "$1"; }
+config_matches() {
+  jq -e --argjson nodes "$NODES" --argjson memory "$MEMORY" --argjson cpus "$CPUS" \
+    '.Driver == "docker" and (.Nodes | length) == $nodes and .Memory == $memory and .CPUs == $cpus' "$1" >/dev/null
+}
+existing_config="$(profile_config "$PROFILE")"
+if [[ -f "$existing_config" ]]; then
+  jq -e '.Driver and .Memory and .CPUs and (.Nodes | type == "array")' "$existing_config" >/dev/null || fail 'Cannot parse existing profile configuration; no cluster changed.'
+  echo "Existing profile $PROFILE: $(jq -c '{Driver, CPUs, Memory, nodes: (.Nodes | length)}' "$existing_config")"
+  if ! config_matches "$existing_config"; then
+    previous_profile="$PROFILE"
+    PROFILE="$BASE_PROFILE-fit-${NODES}n-${MEMORY}m-${CPUS}c"
+    target_config="$(profile_config "$PROFILE")"
+    if [[ -f "$target_config" ]] && ! config_matches "$target_config"; then
+      fail "Replacement profile $PROFILE already exists with different settings; no cluster changed."
+    fi
+    [[ "$previous_profile" != "$PROFILE" ]] || fail 'Existing adjusted profile has incompatible settings.'
+    echo "Stopping and preserving $previous_profile; using $PROFILE. Existing workloads/data remain in $previous_profile and are not migrated."
+    minikube --profile="$previous_profile" stop
+  fi
+fi
 echo "Starting $PROFILE: $NODES nodes, each with $CPUS CPUs and $MEMORY MiB RAM."
-echo 'Ensure the host (or Docker Desktop VM) has capacity for every node plus your workloads.'
-minikube start ${ROOT_ARGS[@]+"${ROOT_ARGS[@]}"} --profile="$PROFILE" --driver=docker --nodes="$NODES" \
-  --cpus="$CPUS" --memory="$MEMORY" --container-runtime=containerd --wait=all --wait-timeout=10m
+if minikube start ${ROOT_ARGS[@]+"${ROOT_ARGS[@]}"} --profile="$PROFILE" --driver=docker --nodes="$NODES" \
+  --cpus="$CPUS" --memory="$MEMORY" --container-runtime=containerd --wait=all --wait-timeout=10m; then
+  :
+else
+  start_status=$?
+  echo 'Startup failed; collecting diagnostics. The existing cluster is preserved.' >&2
+  diagnose
+  exit "$start_status"
+fi
 kubectl --context="$PROFILE" wait --for=condition=Ready nodes --all --timeout=300s
 count="$(kubectl --context="$PROFILE" get nodes -o name | wc -l | tr -d '[:space:]')"
 [[ "$count" == "$NODES" ]] || fail "Expected $NODES nodes, found $count. Use a fresh PROFILE when changing topology."
 kubectl --context="$PROFILE" get nodes -o wide
+mkdir -p "$STATE_DIR"
+state_tmp="$(mktemp "$STATE_DIR/.profile.XXXXXX")"
+printf '%s\n' "$PROFILE" > "$state_tmp"
+mv "$state_tmp" "$STATE_FILE"
 echo "Ready. Use: kubectl --context=$PROFILE get pods -A"

@@ -29,7 +29,7 @@ for package in docker docker-client docker-client-latest docker-common docker-la
   fi
 done
 echo "Preparing Docker and Minikube for current user: $CURRENT_USER"
-"${ADMIN[@]}" dnf install -y ca-certificates coreutils dnf-plugins-core shadow-utils util-linux
+"${ADMIN[@]}" dnf install -y ca-certificates coreutils dnf-plugins-core shadow-utils util-linux jq
 command -v curl >/dev/null 2>&1 || "${ADMIN[@]}" dnf install -y curl
 "${ADMIN[@]}" dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 "${ADMIN[@]}" dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
@@ -62,8 +62,8 @@ if [[ "$START" == 1 ]]; then
   else
     # Refresh supplementary groups for the same user without a logout.
     sudo runuser -u "$CURRENT_USER" -- env HOME="$HOME" PATH="$PATH" \
-      PROFILE="${PROFILE:-mk4}" NODES="${NODES:-4}" CPUS="${CPUS:-2}" MEMORY="${MEMORY:-2048}" \
+      PROFILE="${PROFILE:-mk4}" NODES="${NODES:-1}" CPUS="${CPUS:-2}" MEMORY="${MEMORY:-auto}" \
       bash "$SCRIPT_DIR/install.sh" start
   fi
 fi
-printf 'Ready for %s. Commands: minikube version; minikube -p %s status; kubectl --context=%s get nodes\n' "$CURRENT_USER" "${PROFILE:-mk4}" "${PROFILE:-mk4}"
+echo "Ready for $CURRENT_USER. Use kubectl get nodes; the installer prints the selected profile above."
