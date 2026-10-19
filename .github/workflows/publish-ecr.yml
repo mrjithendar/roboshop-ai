@@ -61,7 +61,7 @@ jobs:
         id: build
         uses: docker/build-push-action@v7
         with:
-          context: .
+          context: services/${{ inputs.service }}
           file: services/${{ inputs.service }}/Dockerfile
           platforms: linux/amd64
           push: true

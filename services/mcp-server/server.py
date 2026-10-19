@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from urllib.parse import urlencode
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python-common"))
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
 from runtime import upstream, HttpError, trace_span, configure_telemetry
 
 STRING = {"type": "string", "maxLength": 1000}

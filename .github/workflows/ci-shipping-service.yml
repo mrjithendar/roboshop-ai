@@ -6,7 +6,6 @@ on:
   #   branches: [master, main]
   #   paths:
   #     - 'services/shipping-service/**'
-  #     - '.dockerignore'
   #     - '.github/workflows/ci-shipping-service.yml'
   #     - '.github/workflows/publish-ecr.yml'
 

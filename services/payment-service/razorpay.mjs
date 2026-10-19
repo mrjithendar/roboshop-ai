@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { HttpError, clientSpan } from '../shared/runtime.mjs';
+import { HttpError, clientSpan } from './lib/runtime.mjs';
 
 export function signatureValid(payload, signature, secret) {
   if (!secret || typeof signature !== 'string' || !/^[a-f0-9]{64}$/i.test(signature)) return false;

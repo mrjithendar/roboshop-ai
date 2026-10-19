@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "node --env-file-if-exists=.env scripts/dev.mjs",
     "start": "node --env-file-if-exists=.env scripts/dev.mjs",
-    "test": "node --test tests/*.test.mjs",
+    "test": "node --test tests/*.test.mjs services/*/tests/*.test.mjs",
     "evaluate": "node scripts/run-python.mjs scripts/evaluate.py",
     "ingest": "node services/product-ingestion/import.mjs",
     "mcp": "node --env-file-if-exists=.env scripts/run-python.mjs services/mcp-server/server.py",
@@ -18,8 +18,8 @@
     "prestart": "npm run frontend:build && npm run shipping:build",
     "pretest": "npm run frontend:build && npm run shipping:build && npm run test:python",
     "test:nginx": "NGINX_TEST=true node --test tests/nginx.test.mjs",
-    "frontend:build": "node scripts/build-frontend.mjs",
-    "frontend:typecheck": "tsc -p services/frontend/tsconfig.json --noEmit",
+    "frontend:build": "npm --prefix services/frontend run build",
+    "frontend:typecheck": "npm --prefix services/frontend run typecheck",
     "pretest:nginx": "npm run frontend:build",
     "admin:bootstrap": "node --env-file-if-exists=.env scripts/run-python.mjs services/ai-gateway/bootstrap.py",
     "test:python": "node scripts/run-python.mjs -m unittest discover -s tests/python -v"

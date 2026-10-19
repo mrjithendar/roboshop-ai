@@ -1,7 +1,7 @@
 // Explicit merchant-authorized replacement: retain historical rows, archive old catalogue.
 import { readFile } from 'node:fs/promises';
-import { connectMongo } from '../shared/mongo.mjs';
-import { normalizeProducts } from '../shared/catalogue.mjs';
+import { connectMongo } from './lib/mongo.mjs';
+import { normalizeProducts } from './lib/catalogue.mjs';
 const products = normalizeProducts(JSON.parse(await readFile(new URL('./products.json', import.meta.url), 'utf8')));
 if (products.length !== 20 || products.some(p => p.currency !== 'USD' || p.price < 100 || p.price > 500 || p.instock < 20 || p.instock > 50 || p.showcase)) throw Error('Invalid merchant catalogue.');
 const {client,db} = await connectMongo();

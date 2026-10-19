@@ -20,7 +20,7 @@ The cart supports USD and legacy EUR sale items, never both currencies in one ca
 ## Synthetic profiles and reviews
 
 ```bash
-python scripts/export-demo.py
+python services/product-ingestion/scripts/export-demo.py
 python scripts/seed-minikube-demo.py
 ```
 

@@ -6,10 +6,8 @@ on:
   #   branches: [master, main]
   #   paths:
   #     - 'services/ai-gateway/**'
-  #     - '.dockerignore'
   #     - '.github/workflows/ci-ai-gateway.yml'
   #     - '.github/workflows/publish-ecr.yml'
-  #     - 'services/python-common/**'
 
 permissions:
   contents: read

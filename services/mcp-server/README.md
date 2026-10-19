@@ -22,3 +22,7 @@ session and role on every request: customers cannot use admin tools, admins cann
 change roles/settings, and the super-admin account remains protected. Sessions
 expire after eight hours and are revoked on logout or access changes. No elevated
 service identity or arbitrary cookie/header override is provided.
+
+## Independent service build
+
+Run `docker build -t robotshop-mcp-server:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).

@@ -1,6 +1,6 @@
 FROM eclipse-temurin:24-jdk AS build
 WORKDIR /workspace
-COPY services/shipping-service/ ./
+COPY . ./
 RUN chmod +x gradlew && ./gradlew --no-daemon --console=plain --stacktrace bootJar
 
 FROM eclipse-temurin:25-jre-alpine

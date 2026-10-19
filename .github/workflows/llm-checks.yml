@@ -5,7 +5,6 @@ on:
   #   paths:
   #     - 'services/ai-gateway/**'
   #     - 'services/shopping-agent/**'
-  #     - 'services/python-common/**'
   #     - 'services/frontend/**'
   #     - 'tests/**'
   #     - '.github/workflows/llm-checks.yml'
@@ -14,7 +13,6 @@ on:
   #   paths:
   #     - 'services/ai-gateway/**'
   #     - 'services/shopping-agent/**'
-  #     - 'services/python-common/**'
   #     - 'services/frontend/**'
   #     - 'tests/**'
   #     - '.github/workflows/llm-checks.yml'
@@ -40,4 +38,4 @@ jobs:
       - run: python scripts/evaluate.py
       - run: npm ci
       - run: npm run frontend:build
-      - run: node --test tests/admin-ui.test.mjs tests/frontend.test.mjs
+      - run: node --test services/frontend/tests/admin-ui.test.mjs services/frontend/tests/frontend.test.mjs

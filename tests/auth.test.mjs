@@ -8,9 +8,9 @@ import { join } from 'node:path';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { spawn } from 'node:child_process';
-import { connectMongo } from '../services/shared/mongo.mjs';
+import { connectMongo } from '../services/product-ingestion/lib/mongo.mjs';
 import { Auth } from './fixtures/previous-gateway/auth.mjs';
-import { seedProducts } from '../services/shared/products.mjs';
+import { seedProducts } from '../services/product-ingestion/lib/products.mjs';
 
 async function port() { const server = createServer(); server.listen(0, '127.0.0.1'); await once(server, 'listening'); const value = server.address().port; await new Promise(resolve => server.close(resolve)); return value; }
 test('MongoDB accounts, one super admin, server-side roles, persistent sessions and editable catalogue', { timeout: 60000 }, async () => {

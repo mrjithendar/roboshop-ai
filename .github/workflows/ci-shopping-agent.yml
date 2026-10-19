@@ -6,10 +6,8 @@ on:
   #   branches: [master, main]
   #   paths:
   #     - 'services/shopping-agent/**'
-  #     - '.dockerignore'
   #     - '.github/workflows/ci-shopping-agent.yml'
   #     - '.github/workflows/publish-ecr.yml'
-  #     - 'services/python-common/**'
 
 permissions:
   contents: read

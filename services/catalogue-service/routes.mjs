@@ -1,5 +1,5 @@
-import { HttpError, json } from '../shared/runtime.mjs';
-import { readProducts } from '../shared/products.mjs';
+import { HttpError, json } from './lib/runtime.mjs';
+import { readProducts } from './lib/products.mjs';
 
 function segment(value) {
   let decoded;

@@ -1,7 +1,7 @@
 import { mkdirSync, existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { HttpError } from '../../../services/shared/runtime.mjs';
+import { HttpError } from './runtime.mjs';
 
 export class Store {
   constructor(directory) {

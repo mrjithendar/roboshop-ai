@@ -11,3 +11,7 @@ For an existing installation, explicitly run `node services/product-ingestion/mi
 `npm run ingest -- /path/to/products.json` validates/replaces the seed file. It does not update existing MongoDB rows. `CATALOGUE_FILE` is an optional operator/test fixture path. There is no public import endpoint or automatic external synchronization.
 
 Products carry source links, specifications, compatibility, package caveats and image permission information. The curated seed uses the existing placeholder; no manufacturer photos are copied. The unique stored-slug index supports shareable detail URLs.
+
+## Independent service build
+
+Run `docker build -t robotshop-product-ingestion:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).

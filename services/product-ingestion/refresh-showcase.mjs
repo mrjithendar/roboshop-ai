@@ -1,8 +1,8 @@
 // Update curated informational content only; never overwrite merchant-edited rows.
 import { readFile } from 'node:fs/promises';
-import { connectMongo } from '../shared/mongo.mjs';
-import { normalizeProducts } from '../shared/catalogue.mjs';
-import { seedProducts } from '../shared/products.mjs';
+import { connectMongo } from './lib/mongo.mjs';
+import { normalizeProducts } from './lib/catalogue.mjs';
+import { seedProducts } from './lib/products.mjs';
 const { client, db } = await connectMongo();
 try {
   await seedProducts(db);

@@ -1,6 +1,6 @@
-import { serve, json } from '../shared/runtime.mjs';
-import { connectMongo } from '../shared/mongo.mjs';
-import { seedProducts, readProducts } from '../shared/products.mjs';
+import { serve, json } from './lib/runtime.mjs';
+import { connectMongo } from './lib/mongo.mjs';
+import { seedProducts, readProducts } from './lib/products.mjs';
 const { db } = await connectMongo();
 await seedProducts(db);
 serve('product-ingestion', 4101, async (req, res, url) => {

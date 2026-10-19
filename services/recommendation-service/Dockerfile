@@ -1,9 +1,11 @@
-# Build from the repository root: docker build -f services/recommendation-service/Dockerfile .
+# Build context: this service directory.
 FROM node:26-alpine
 ENV NODE_ENV=production HOST=0.0.0.0
+WORKDIR /app/services/recommendation-service
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund && npm cache clean --force
+COPY --chown=node:node . ./
 WORKDIR /app
-COPY --chown=node:node services/shared/ ./services/shared/
-COPY --chown=node:node services/recommendation-service/ ./services/recommendation-service/
 USER node
 EXPOSE 4102
 CMD ["node", "services/recommendation-service/server.mjs"]

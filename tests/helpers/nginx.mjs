@@ -17,7 +17,6 @@ export async function startNginx({ port, gatewayPort, directory, tls }) {
   } else {
     const web = join(directory, 'web'); mkdirSync(web, { recursive: true });
     cpSync(resolve('services/frontend/dist'), web, { recursive: true });
-    cpSync(resolve('legacy/original-robotshop/web/static/images'), join(web, 'images'), { recursive: true });
     const conf = readFileSync('services/frontend/nginx.conf', 'utf8').replace('/etc/nginx/mime.types', process.env.NGINX_MIME_TYPES || mime).replace('/usr/share/nginx/html', web).replace('listen 8080;', `listen ${frontendPort};`).replaceAll('/tmp/', `${directory}/`);
     const path = join(directory, 'frontend.conf'); writeFileSync(path, conf);
     frontend = spawn('nginx', ['-c', path, '-g', 'daemon off;'], { stdio: ['ignore', 'pipe', 'pipe'] });

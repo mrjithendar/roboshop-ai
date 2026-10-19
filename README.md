@@ -90,3 +90,7 @@ python3 tests/minikube-manifests.test.py
 Full tests require the documented language dependencies and local integration services; see [test instructions](tests/README.md). Per-service CI builds/pushes images to ECR; see [ECR setup](docs/deployment/ecr-ci.md).
 
 The gateway’s durable JSON order ledger remains single-writer: keep one gateway replica and back up its volume alongside MongoDB and PostgreSQL. This Minikube configuration is a development sandbox, not a highly available production deployment.
+
+## Service ownership
+
+Services build from their own directories and own their dependency manifests, assets and service-specific tooling. For example: `docker build -t robotshop-frontend:local services/frontend`. Root scripts coordinate the platform. See [service boundaries and repository extraction](docs/architecture/service-repositories.md) for local tests, service-owned libraries and the future repository split.

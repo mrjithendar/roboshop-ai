@@ -15,7 +15,7 @@ import mongomock
 from pymongo import MongoClient
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path[:0] = [str(ROOT / "services/python-common"), str(ROOT / "services/ai-gateway")]
+sys.path[:0] = [str(ROOT / "services/ai-gateway/lib"), str(ROOT / "services/ai-gateway")]
 from runtime import HttpError, now, Request
 from reviews import Reviews
 from registration import Registration, TurnstileChallenge, client_address
@@ -25,7 +25,7 @@ from catalogue import retrieve
 from server import Gateway
 
 spec = importlib.util.spec_from_file_location(
-    "seed_demo", ROOT / "scripts/seed-demo.py"
+    "seed_demo", ROOT / "services/product-ingestion/scripts/seed-demo.py"
 )
 seed_demo = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(seed_demo)
@@ -320,7 +320,7 @@ class ShowcaseTests(unittest.TestCase):
         (static / "product.html").write_bytes(
             (ROOT / "services/frontend/product.html").read_bytes()
         )
-        with patch("server.ROOT", Path(directory.name)):
+        with patch("server.STATIC_ROOT", static):
             for _ in range(2):
                 body, status, _ = gateway.handle(request("/products/" + slug))
                 self.assertEqual(status, 200)

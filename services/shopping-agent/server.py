@@ -2,7 +2,7 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python-common"))
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
 from runtime import serve, request, text, HttpError
 from llm_config import authenticate_service, validate_config, unconfigured
 from agent import answer

@@ -6,10 +6,8 @@ on:
   #   branches: [master, main]
   #   paths:
   #     - 'services/sre-copilot/**'
-  #     - '.dockerignore'
   #     - '.github/workflows/ci-sre-copilot.yml'
   #     - '.github/workflows/publish-ecr.yml'
-  #     - 'services/shared/**'
 
 permissions:
   contents: read

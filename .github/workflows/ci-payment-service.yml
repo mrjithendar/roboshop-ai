@@ -6,10 +6,8 @@ on:
   #   branches: [master, main]
   #   # paths:
   #   #   - 'services/payment-service/**'
-  #   #   - '.dockerignore'
   #   #   - '.github/workflows/ci-payment-service.yml'
   #   #   - '.github/workflows/publish-ecr.yml'
-  #   #   - 'services/shared/**'
 
 permissions:
   contents: read

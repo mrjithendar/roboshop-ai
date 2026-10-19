@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [
-    str(ROOT / "services/python-common"),
+    str(ROOT / "services/ai-gateway/lib"),
     str(ROOT / "services/ai-gateway"),
     str(ROOT / "services/shopping-agent"),
 ]

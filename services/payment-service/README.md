@@ -51,3 +51,7 @@ Refunds, disputes, tax/shipping calculation and fulfilment remain merchant opera
 
 Reference: [Razorpay integration steps](https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/integration-steps/),
 [webhook validation](https://razorpay.com/docs/webhooks/validate-test/).
+
+## Independent service build
+
+Run `docker build -t robotshop-payment-service:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).

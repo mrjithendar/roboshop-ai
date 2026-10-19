@@ -25,7 +25,7 @@ provider webhooks remain independent of browser sessions. See
 
 `server.py` is the service entry point (Waitress, port 3000). Install this directory's
 `requirements.txt` for native execution; `npm run dev` uses the `PYTHON` environment
-variable or `python3`. The image contains Python gateway/shared code only.
+variable or `python3`. The image contains Python gateway code and its local libraries only.
 
 MongoDB auth, public settings, admin role checks, CSRF/origin checks, payment
 verification and the single-writer JSON ledger preserve existing formats. A
@@ -42,3 +42,7 @@ Private customer profiles, successful login metadata, saved addresses and immuta
 paid purchase history now live in MongoDB. The gateway retries pending history
 projections from its ledger. See [customer records](../../docs/architecture/customer-records.md)
 for access rules, retention, backfill behavior and the remaining single-writer limit.
+
+## Independent service build
+
+Run `docker build -t robotshop-ai-gateway:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).

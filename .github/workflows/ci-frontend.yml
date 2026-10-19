@@ -6,14 +6,9 @@ on:
   #   branches: [master, main]
     # paths:
     #   - 'services/frontend/**'
-    #   - '.dockerignore'
     #   - '.github/workflows/ci-frontend.yml'
     #   - '.github/workflows/publish-ecr.yml'
-    #   - 'package.json'
-    #   - 'package-lock.json'
     #   - 'services/frontend/**'
-    #   - 'scripts/build-frontend.mjs'
-    #   - 'legacy/original-robotshop/web/static/images/**'
 
 permissions:
   contents: read

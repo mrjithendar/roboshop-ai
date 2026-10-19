@@ -23,7 +23,7 @@ product/model text uses `textContent`. Payment SDK failures are retryable; a 404
 an expired browser order reference recovers the current session, while network
 failures retain the reference. No card details are stored in the browser.
 
-`tests/frontend.test.mjs` executes the compiled application in a DOM environment.
+`services/frontend/tests/frontend.test.mjs` executes the compiled application in a DOM environment.
 `tests/integration.test.mjs` and `tests/nginx.test.mjs` cover backend flow and HTTP/HTTPS
 asset delivery. TypeScript contracts are compile-time checks, not runtime validation
 of arbitrary JSON. Real Razorpay acceptance and cross-browser accessibility testing
@@ -33,13 +33,13 @@ The account dialog supports email registration/login and logout. Checkout opens
 login for anonymous users. `/admin` provides product editing to admins and exposes
 user-access/settings sections only to super admins. UI visibility is a convenience;
 the gateway independently authorizes every privileged request. Tests in
-`tests/admin-ui.test.mjs` exercise all three role views.
+`services/frontend/tests/admin-ui.test.mjs` exercise all three role views.
 
 Authentication and checkout tests require `MONGODB_URL` pointing to a dedicated test
 MongoDB server. They create uniquely named databases (`auth_test_*`, `integration_*`)
 and drop only those generated databases afterward. CI supplies MongoDB 8. The tests
 never connect to the legacy users database or use a live merchant provider.
-`tests/auth.test.mjs` covers server authorization; `tests/admin-ui.test.mjs` covers
+`tests/auth.test.mjs` covers server authorization; `services/frontend/tests/admin-ui.test.mjs` covers
 role-specific UI behavior. Set shipping owner/runtime URLs as described in the
 shipping guide; the Java service initializes its test schema during startup.
 

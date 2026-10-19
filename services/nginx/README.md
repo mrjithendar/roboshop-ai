@@ -58,3 +58,7 @@ For TLS termination inside NGINX, provide a Kubernetes TLS Secret through `nginx
 `npm run test:nginx` requires NGINX 1.28+ and `envsubst` on the PATH. It starts an isolated temporary proxy and checks assets, caching, cookies, forwarded-header replacement, webhook bytes/signatures, error handling and readiness. Use `NGINX_TEST=true npm test` to run the complete checkout flow through NGINX as well (requires the test PostgreSQL setup).
 
 CI runs these tests using the built NGINX container with host networking on Linux, through `NGINX_TEST_IMAGE=robotshop-nginx:ci`. No real payments are made.
+
+## Independent service build
+
+Run `docker build -t robotshop-nginx:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).

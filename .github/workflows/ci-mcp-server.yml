@@ -6,10 +6,8 @@ on:
   #   branches: [master, main]
     # paths:
     #   - 'services/mcp-server/**'
-    #   - '.dockerignore'
     #   - '.github/workflows/ci-mcp-server.yml'
     #   - '.github/workflows/publish-ecr.yml'
-    #   - 'services/python-common/**'
 
 permissions:
   contents: read

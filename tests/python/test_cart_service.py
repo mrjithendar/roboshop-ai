@@ -12,7 +12,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import redis
 ROOT=Path(__file__).resolve().parents[2]
-sys.path[:0]=[str(ROOT/'services/python-common'),str(ROOT/'services/ai-gateway')]
+sys.path[:0]=[str(ROOT/'services/ai-gateway/lib'),str(ROOT/'services/ai-gateway')]
 from runtime import HttpError
 from store import Store
 spec=importlib.util.spec_from_file_location('cart_service',ROOT/'services/cart-service/server.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)

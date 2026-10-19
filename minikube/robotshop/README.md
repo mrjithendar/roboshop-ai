@@ -1,6 +1,6 @@
 # Deploy all RobotShop services to Minikube
 
-Each runnable service has its own **`services/<service>/<service>-minikube.yaml`**. The root **`deploy-minikube.sh`** applies all 18 in dependency order into `robotshop-ai`, checking readiness between services. The `common`, `shared` and `python-common` folders are libraries/configuration, not workloads.
+Each runnable service has its own **`services/<service>/<service>-minikube.yaml`**. The root **`deploy-minikube.sh`** applies all 18 in dependency order into `robotshop-ai`, checking readiness between services. Each application keeps its internal libraries in its own `lib/` folder; these libraries are not separate workloads.
 
 ## Local images on the Vultr Minikube host
 

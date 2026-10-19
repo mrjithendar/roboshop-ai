@@ -21,3 +21,7 @@ See [LLM operator setup](../../docs/deployment/llm-providers.md) for workload
 identity, endpoint provisioning, activation, timeouts and verification commands.
 Install `requirements.txt` and run `python server.py` for native operation.
 The Dockerfile remains non-root and includes all provider modules via `*.py`.
+
+## Independent service build
+
+Run `docker build -t robotshop-shopping-agent:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).

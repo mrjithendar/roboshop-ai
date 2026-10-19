@@ -72,7 +72,7 @@ From the repository root, after installing the gateway Python requirements:
 read -s 'DEMO_MONGODB_URL?Demo-only MongoDB URI: '; echo
 export DEMO_MONGODB_URL
 APP_ENV=demo MONGODB_DATABASE=robotshop \
-  .venv/bin/python scripts/seed-demo.py seed \
+  .venv/bin/python services/product-ingestion/scripts/seed-demo.py seed \
   --database robotshop_demo_showcase --dataset robotics-v1 \
   --random-seed 42 --reviews 30000 --purchase-fraction 0.6
 ```
@@ -93,12 +93,12 @@ Cleanup removes only the selected synthetic dataset from its four collections. I
 
 ```sh
 APP_ENV=demo MONGODB_DATABASE=robotshop \
-  .venv/bin/python scripts/seed-demo.py cleanup \
+  .venv/bin/python services/product-ingestion/scripts/seed-demo.py cleanup \
   --database robotshop_demo_showcase --dataset robotics-v1
 unset DEMO_MONGODB_URL
 ```
 
-The gateway image also contains `/app/scripts/seed-demo.py` and the reference catalogue for an explicit one-off job; no new microservice is introduced.
+The gateway image also contains `/app/services/product-ingestion/scripts/seed-demo.py` and the reference catalogue for an explicit one-off job; no new microservice is introduced.
 
 ## Registration bot protection
 
@@ -134,7 +134,7 @@ Create `robotshop-registration` using your existing secret manager, with a `TURN
 ```sh
 npm run frontend:build
 .venv/bin/python -m unittest discover -s tests/python -v
-node --test tests/showcase-ui.test.mjs tests/frontend.test.mjs tests/admin-ui.test.mjs tests/catalogue.test.mjs
+node --test tests/showcase-ui.test.mjs services/frontend/tests/frontend.test.mjs services/frontend/tests/admin-ui.test.mjs tests/catalogue.test.mjs
 # With disposable MongoDB / PostgreSQL and a built shipping jar:
 MONGODB_URL=<isolated-test-uri> npm test
 NGINX_TEST=true node --test tests/nginx.test.mjs

@@ -6,12 +6,8 @@ on:
   #   branches: [master, main]
   #   paths:
   #     - 'services/product-ingestion/**'
-  #     - '.dockerignore'
   #     - '.github/workflows/ci-product-ingestion.yml'
   #     - '.github/workflows/publish-ecr.yml'
-  #     - 'services/shared/**'
-  #     - 'package.json'
-  #     - 'package-lock.json'
 
 permissions:
   contents: read

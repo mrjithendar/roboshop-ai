@@ -6,10 +6,8 @@ on:
   #   branches: [master, main]
   #   paths:
   #     - 'services/recommendation-service/**'
-  #     - '.dockerignore'
   #     - '.github/workflows/ci-recommendation-service.yml'
   #     - '.github/workflows/publish-ecr.yml'
-  #     - 'services/shared/**'
 
 permissions:
   contents: read

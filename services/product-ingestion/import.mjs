@@ -1,8 +1,9 @@
 import { readFileSync, writeFileSync, renameSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
-import { normalizeProducts } from '../shared/catalogue.mjs';
+import { normalizeProducts } from './lib/catalogue.mjs';
 
-const [source, destination = 'services/product-ingestion/products.json'] = process.argv.slice(2);
+const [source, destination = fileURLToPath(new URL('./products.json', import.meta.url))] = process.argv.slice(2);
 if (!source) {
   console.error('Usage: npm run ingest -- products.json [output.json]. Restart product-ingestion after importing.');
   process.exit(1);

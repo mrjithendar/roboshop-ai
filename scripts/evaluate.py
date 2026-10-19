@@ -4,7 +4,7 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
 sys.path[:0] = [
-    str(root / "services/python-common"),
+    str(root / "services/shopping-agent/lib"),
     str(root / "services/shopping-agent"),
 ]
 from agent import answer

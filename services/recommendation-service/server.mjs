@@ -1,5 +1,5 @@
-import { serve, json, request, urls } from '../shared/runtime.mjs';
-import { rank } from '../shared/catalogue.mjs';
+import { serve, json, request, urls } from './lib/runtime.mjs';
+import { rank } from './lib/catalogue.mjs';
 
 serve('recommendation-service', 4102, async (req, res, url) => {
   if (req.method !== 'GET' || url.pathname !== '/api/recommendations') return;

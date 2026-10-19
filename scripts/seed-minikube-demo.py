@@ -31,7 +31,7 @@ def main():
     if os.getenv('KUBE_CONTEXT'): k += ['--context',os.environ['KUBE_CONTEXT']]
     k += ['-n','robotshop-ai']
     os.environ['APP_ENV']='demo'
-    spec=importlib.util.spec_from_file_location('demo',ROOT/'scripts/seed-demo.py')
+    spec=importlib.util.spec_from_file_location('demo',ROOT/'services/product-ingestion/scripts/seed-demo.py')
     demo=importlib.util.module_from_spec(spec);spec.loader.exec_module(demo)
     demo.guard(DATABASE)
     secret=json.loads(run(k+['get','secret','robotshop-secrets','-o','json']))

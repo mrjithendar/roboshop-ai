@@ -8,8 +8,9 @@ import time
 from pathlib import Path
 from urllib.parse import urlencode
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "services/python-common"))
+SERVICE_ROOT = Path(__file__).resolve().parent
+STATIC_ROOT = Path(os.environ["FRONTEND_DIST"]).resolve() if os.getenv("FRONTEND_DIST") else None
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
 from runtime import HttpError, serve, request, upstream, text, configure_telemetry
 from customers import Customers
 from auth import Auth, connect_mongo, public_user, require_role
@@ -566,6 +567,8 @@ class Gateway:
             raise HttpError(410, "Demo orders are disabled. Use Razorpay checkout.")
 
     def static(self, req):
+        if STATIC_ROOT is None:
+            return None
         if req.method not in ("GET", "HEAD"):
             return
         path = "/admin.html" if req.path == "/admin" else req.path
@@ -589,16 +592,15 @@ class Gateway:
             "/styles.css",
         ):
             file = (
-                ROOT
-                / "services/frontend/dist"
+                STATIC_ROOT
                 / ("index.html" if path == "/" else path[1:])
             )
         elif re.fullmatch(r"/product-media/[a-z0-9-]+\.(?:jpg|png)", path):
-            file = ROOT / "services/frontend/dist" / path[1:]
+            file = STATIC_ROOT / path[1:]
         elif re.fullmatch(r"/illustrations/(robot|kit|component|accessory)\.svg", path):
-            file = ROOT / "services/frontend/dist" / path[1:]
+            file = STATIC_ROOT / path[1:]
         elif re.fullmatch("/images/[a-zA-Z0-9_-]+\.png", path):
-            file = ROOT / "legacy/original-robotshop/web/static" / path[1:]
+            file = STATIC_ROOT / path[1:]
         else:
             return
         if file.is_file():
@@ -628,7 +630,7 @@ class Gateway:
 if __name__ == "__main__":
     client, db = connect_mongo()
     cart_repository = CartRepository(os.environ['CART_URL'], os.environ['CART_SERVICE_TOKEN']) if os.getenv('CART_URL') else None
-    store = Store(os.getenv("DATA_DIR", str(ROOT / ".data")), cart_repository)
+    store = Store(os.getenv("DATA_DIR", str(SERVICE_ROOT / ".data")), cart_repository)
     gateway = Gateway(db, store)
     publisher = OrderPublisher(store, os.getenv("RABBITMQ_URL"))
     publisher.start()

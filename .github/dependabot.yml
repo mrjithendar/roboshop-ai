@@ -3,7 +3,14 @@
 version: 2
 updates:
   - package-ecosystem: npm
-    directory: /
+    directories:
+      - /
+      - /services/frontend
+      - /services/catalogue-service
+      - /services/product-ingestion
+      - /services/recommendation-service
+      - /services/payment-service
+      - /services/sre-copilot
     exclude-paths:
       - legacy/**
     schedule:

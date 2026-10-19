@@ -11,7 +11,7 @@ The checked-in GeoNames snapshot contains 252 country/territory records and 34,1
 Sources: [cities15000.zip](https://download.geonames.org/export/dump/cities15000.zip), [countryInfo.txt](https://download.geonames.org/export/dump/countryInfo.txt). Downloaded 2026-10-18. Attribution: [GeoNames](https://www.geonames.org/), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Data is adapted into a compressed normalized snapshot; checksums and counts are in `data/manifest.json`. No runtime internet access is needed. To refresh, download those two files and run:
 
 ```sh
-python3 scripts/prepare-locations.py /path/cities15000.zip /path/countryInfo.txt
+python3 services/shipping-service/scripts/prepare-locations.py /path/cities15000.zip /path/countryInfo.txt
 npm run shipping:build
 ```
 
@@ -56,3 +56,7 @@ Gradle dependency locking and a verified Wrapper distribution checksum provide r
 The gateway records a pending `order.paid` event in the same saved ledger update as payment confirmation. A background publisher retries until RabbitMQ confirms a persistent, mandatory publication. The durable quorum queue `robotshop.shipping.orders` routes events to Java shipping. The consumer inserts into `shipping.shipment_requests` before acknowledgement; unique order/event IDs make redelivery harmless. Processing failures retry five times, then route to `robotshop.shipping.failed` through `robotshop.orders.dlx`. Monitor and replay that queue after correcting the cause; no automatic replay loop is enabled. Shipment status `requested` means queued for fulfilment, not dispatched to a carrier.
 
 RabbitMQ message payloads and the shipment table contain delivery addresses: restrict broker/database access and apply your retention policy. Logs and metric labels omit payloads. Metrics include `robotshop_location_cache_total{result="hit|miss|error"}` and `robotshop_shipping_events_total{result="accepted|duplicate|invalid"}`. RabbitMQ queue depth, dead-letter depth and oldest pending gateway event also need operational monitoring.
+
+## Independent service build
+
+Run `docker build -t robotshop-shipping:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).

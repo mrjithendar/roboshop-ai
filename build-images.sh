@@ -67,7 +67,7 @@ for service in "${services[@]}"; do
   suffix="$service"
   [[ "$service" != shipping-service ]] || suffix=shipping
   image="$IMAGE_PREFIX-$suffix:$IMAGE_TAG"
-  command=(docker build --progress=plain ${BUILD_OPTIONS[@]+"${BUILD_OPTIONS[@]}"} --file "$ROOT/services/$service/Dockerfile" --tag "$image" "$ROOT")
+  command=(docker build --progress=plain ${BUILD_OPTIONS[@]+"${BUILD_OPTIONS[@]}"} --file "$ROOT/services/$service/Dockerfile" --tag "$image" "$ROOT/services/$service")
   printf '\nBuilding %s\n' "$image"
   if [[ "$DRY_RUN" == true ]]; then
     printf '%q ' "${command[@]}"; printf '\n'

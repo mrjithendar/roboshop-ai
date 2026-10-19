@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
-import { normalizeProducts } from '../services/shared/catalogue.mjs';
+import { normalizeProducts } from '../services/product-ingestion/lib/catalogue.mjs';
 const products = normalizeProducts(JSON.parse(await readFile('services/product-ingestion/showcase-reference.json', 'utf8')));
 const html = await readFile('services/frontend/dist/product.html', 'utf8');
 const script = (await Promise.all(['paths.js','account.js','product.js'].map(async name => (await readFile('services/frontend/dist/'+name,'utf8')).replace(/^import .*$/gm,'').replace(/^export /gm,'').replaceAll('import.meta.url',JSON.stringify('https://shop.example/paths.js'))))).join('\n');

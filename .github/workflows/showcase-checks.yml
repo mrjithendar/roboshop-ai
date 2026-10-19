@@ -33,4 +33,4 @@ jobs:
       - run: python scripts/evaluate.py
       - run: npm ci --ignore-scripts
       - run: npm run frontend:build
-      - run: node --test tests/showcase-ui.test.mjs tests/frontend.test.mjs tests/admin-ui.test.mjs tests/catalogue.test.mjs tests/auth.test.mjs
+      - run: node --test tests/showcase-ui.test.mjs services/frontend/tests/frontend.test.mjs services/frontend/tests/admin-ui.test.mjs tests/catalogue.test.mjs tests/auth.test.mjs

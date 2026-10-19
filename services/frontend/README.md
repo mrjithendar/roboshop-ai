@@ -32,7 +32,7 @@ product/model text uses `textContent`. Payment SDK failures are retryable; a 404
 an expired browser order reference recovers the current session, while network
 failures retain the reference. No card details are stored in the browser.
 
-`tests/frontend.test.mjs` executes the compiled application in a DOM environment.
+`services/frontend/tests/frontend.test.mjs` executes the compiled application in a DOM environment.
 `tests/integration.test.mjs` and `tests/nginx.test.mjs` cover backend flow and HTTP/HTTPS
 asset delivery. TypeScript contracts are compile-time checks, not runtime validation
 of arbitrary JSON. Real Razorpay acceptance and cross-browser accessibility testing
@@ -42,7 +42,7 @@ The account dialog supports email registration/login and logout. Checkout opens
 login for anonymous users. `/admin` provides product editing to admins and exposes
 user-access/settings sections only to super admins. UI visibility is a convenience;
 the gateway independently authorizes every privileged request. Tests in
-`tests/admin-ui.test.mjs` exercise all three role views.
+`services/frontend/tests/admin-ui.test.mjs` exercise all three role views.
 
 ## Product pages and imagery
 
@@ -50,7 +50,7 @@ the gateway independently authorizes every privileged request. Tests in
 
 Original SVG category illustrations in `illustrations/` replace the common placeholder. They are explicitly labelled illustrations rather than actual product photographs. Supplied product images are preserved. Use licensed product-specific photos when available. Both NGINX layers and native gateway development serve these assets.
 
-Verify: `npm run frontend:build`, then `node --test tests/frontend.test.mjs tests/frontend-paths.test.mjs tests/product-page.test.mjs` and `npm run test:nginx`.
+Verify: `npm run frontend:build`, then `node --test services/frontend/tests/frontend.test.mjs services/frontend/tests/frontend-paths.test.mjs services/frontend/tests/product-page.test.mjs` and `npm run test:nginx`.
 
 Deploy on the Minikube host after syncing changes: `bash build-images.sh` then `bash deploy-minikube.sh --load-images`. Frontend and NGINX must both be rebuilt for the new illustration routes. No data migration is required.
 
@@ -61,3 +61,7 @@ Deploy on the Minikube host after syncing changes: `bash build-images.sh` then `
 The storefront does not initialize payment or shipping controls. Razorpay opens its hosted payment window only after the customer submits payment on checkout. Login, server-calculated totals, inventory reservations and captured-payment verification remain required. A failed reconciliation prevents a new payment until retry succeeds. Synthetic reviews and concept-image labels retain their disclosures.
 
 Rebuild and deploy the frontend, gateway and NGINX changes together using the root build/deploy scripts. No database migration is required.
+
+## Independent service build
+
+Run `docker build -t robotshop-frontend:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).

@@ -1,4 +1,4 @@
-import { serve, json, request, urls } from '../shared/runtime.mjs';
+import { serve, json, request, urls } from './lib/runtime.mjs';
 
 serve('sre-copilot', 4104, async (req, res, url) => {
   if (req.method !== 'GET' || url.pathname !== '/api/ops') return;

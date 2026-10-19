@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
-import { body } from '../services/shared/runtime.mjs';
+import { body } from '../services/payment-service/lib/runtime.mjs';
 function request(chunks) { const req = Readable.from(chunks); req.headers = { 'content-type': 'application/json' }; return req; }
 test('JSON body preserves worldwide addresses split across UTF-8 byte boundaries', async () => {
   const address = { recipient: 'दीपिका', line1: '東京 Straße 🌍' };

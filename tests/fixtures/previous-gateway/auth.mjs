@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID, scrypt as derive, timingSafeEqual, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
-import { HttpError, text } from '../../../services/shared/runtime.mjs';
+import { HttpError, text } from './runtime.mjs';
 const scrypt = promisify(derive);
 const digest = value => createHash('sha256').update(value).digest('hex');
 const lifetime = 8 * 60 * 60 * 1000;
