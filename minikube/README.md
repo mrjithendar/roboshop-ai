@@ -203,7 +203,11 @@ This installs cert-manager with Helm and configures `letsencrypt-staging` and `l
 
 ## Grafana over HTTPS
 
+Run on the Vultr Minikube host (see [Traefik setup](traefik/README.md) for Mac/remote instructions):
+
 ```bash
+bash minikube/deploy-traefik.sh
+bash minikube/expose-ingress.sh
 bash minikube/deploy-cert-manager.sh
 bash minikube/deploy-grafana.sh
 ```

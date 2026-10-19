@@ -31,7 +31,7 @@ k() { kubectl --context="$KUBE_CONTEXT" "$@"; }
 h() { helm --kube-context="$KUBE_CONTEXT" "$@"; }
 echo "Deploying Grafana into context $KUBE_CONTEXT, namespace robotshop-ai."
 k --request-timeout=15s get namespace kube-system >/dev/null
-k --request-timeout=15s get ingressclass traefik >/dev/null || fail 'Install Traefik and expose its ports 80/443 first.'
+k --request-timeout=15s get ingressclass traefik >/dev/null || fail 'Run bash minikube/deploy-traefik.sh, then on Vultr run bash minikube/expose-ingress.sh. See minikube/traefik/README.md.'
 k wait --for=condition=Ready clusterissuer/letsencrypt-prod --timeout=60s || fail 'Run minikube/deploy-cert-manager.sh first.'
 # Keep the site certificate in the same namespace as the Grafana Ingress.
 k create namespace robotshop-ai --dry-run=client -o yaml | k apply -f -
