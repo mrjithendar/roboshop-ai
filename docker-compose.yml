@@ -1,6 +1,10 @@
 # Service settings live in services/<name>/compose.yml.
 name: robotshop-ai
 services:
+  cart-service:
+    extends:
+      file: services/cart-service/compose.yml
+      service: cart-service
   product-ingestion:
     extends:
       file: services/product-ingestion/compose.yml

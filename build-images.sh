@@ -11,7 +11,7 @@ usage() {
   cat <<'EOF'
 Usage: ./build-images.sh [--local] [--dry-run] [--pull] [--no-cache] [--platform PLATFORM]
 
-Builds all ten application images using their service-specific Dockerfiles.
+Builds all eleven application images using their service-specific Dockerfiles.
 Environment (export the same values when running Docker Compose):
   IMAGE_PREFIX  Image repository prefix, e.g. registry.example.com/team/robotshop
                 Default: robotshop
@@ -40,7 +40,7 @@ while [[ $# -gt 0 ]]; do
 done
 [[ "$IMAGE_TAG" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$ ]] || { echo 'Invalid IMAGE_TAG.' >&2; exit 2; }
 [[ "$IMAGE_PREFIX" =~ ^[a-z0-9]([a-z0-9./:_-]*[a-z0-9])?$ && "$IMAGE_PREFIX" != */ ]] || { echo 'Invalid IMAGE_PREFIX (use a lowercase repository prefix).' >&2; exit 2; }
-services=(ai-gateway product-ingestion recommendation-service shopping-agent sre-copilot payment-service mcp-server shipping-service frontend nginx)
+services=(cart-service ai-gateway product-ingestion recommendation-service shopping-agent sre-copilot payment-service mcp-server shipping-service frontend nginx)
 for service in "${services[@]}"; do
   [[ -f "$ROOT/services/$service/Dockerfile" ]] || { echo "Missing Dockerfile for $service." >&2; exit 1; }
 done

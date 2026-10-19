@@ -4,7 +4,7 @@ serve('sre-copilot', 4104, async (req, res, url) => {
   if (req.method !== 'GET' || url.pathname !== '/api/ops') return;
   const services = await Promise.all(Object.entries(urls).filter(([name]) => name !== 'sre').map(async ([name, base]) => {
     const start = Date.now();
-    try { await request(`${base}${name === 'shipping' ? '/api/shipping/ready' : name === 'catalogue' ? '/api/catalogue/ready' : '/health'}`, { signal: AbortSignal.timeout(2000) }); return { name, status: 'healthy', latencyMs: Date.now() - start }; }
+    try { await request(`${base}${name === 'cart' ? '/ready' : name === 'shipping' ? '/api/shipping/ready' : name === 'catalogue' ? '/api/catalogue/ready' : '/health'}`, { signal: AbortSignal.timeout(2000) }); return { name, status: 'healthy', latencyMs: Date.now() - start }; }
     catch { return { name, status: 'unavailable', latencyMs: Date.now() - start }; }
   }));
   const failed = services.filter(s => s.status !== 'healthy');

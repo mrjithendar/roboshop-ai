@@ -6,6 +6,8 @@ services:
       service: application
     image: ${IMAGE_PREFIX:-robotshop}-ai-gateway:local
     environment:
+      DEMO_MONGODB_URL: ${DEMO_MONGODB_URL:-}
+      DEMO_REVIEWS_DATABASE: ${DEMO_REVIEWS_DATABASE:-robotshop_demo_global}
       APP_ENV: ${APP_ENV:-development}
       REGISTRATION_CHALLENGE_PROVIDER: ${REGISTRATION_CHALLENGE_PROVIDER:-disabled}
       TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
@@ -17,6 +19,8 @@ services:
       OLLAMA_ENDPOINTS_JSON: ${OLLAMA_ENDPOINTS_JSON:-{}}
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:3000}
       PAYMENT_SERVICE_TOKEN: ${PAYMENT_SERVICE_TOKEN:-}
+      CART_URL: http://cart-service:4107
+      CART_SERVICE_TOKEN: ${PAYMENT_SERVICE_TOKEN:?Set PAYMENT_SERVICE_TOKEN}
       SHIPPING_URL: http://shipping-service:4106
       RABBITMQ_URL: amqp://${RABBITMQ_USERNAME:-robotshop}:${RABBITMQ_PASSWORD:?Set
         RABBITMQ_PASSWORD}@rabbitmq:5672
@@ -47,6 +51,8 @@ services:
     volumes:
     - shop-data:/app/.data
     depends_on:
+      cart-service:
+        condition: service_healthy
       product-ingestion:
         condition: service_healthy
       recommendation-service:

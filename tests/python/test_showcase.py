@@ -228,10 +228,27 @@ class ChallengeTests(unittest.TestCase):
 
 
 class ShowcaseTests(unittest.TestCase):
+    def test_offline_global_dataset_has_200_countries_and_no_login_accounts(self):
+        countries=set(); counts={'demo_profiles':0,'reviews':0,'demo_purchases':0}
+        def write(name,row):
+            counts[name]+=1
+            self.assertTrue(row['synthetic'])
+            if name=='demo_profiles':
+                countries.add(row['country'])
+                self.assertTrue(row['authenticationDisabled'])
+                self.assertTrue(row['email'].endswith('@example.com'))
+            if name=='reviews': self.assertIn('SYNTHETIC DEMO REVIEW',row['body'])
+        with patch.dict(os.environ,{'APP_ENV':'demo','DEPLOYMENT_ENVIRONMENT':'test','NODE_ENV':'test','ENVIRONMENT':'test'}):
+            result=seed_demo.seed(SimpleNamespace(name='robotshop_demo_global'),'global-test',PRODUCTS,writer=write)
+        self.assertEqual(result['demo_profiles'],10000)
+        self.assertEqual(result['reviews'],30000)
+        self.assertEqual(len(countries),200)
+        self.assertIn('US',countries)
+
     def test_sources_unique_slugs_and_types(self):
-        self.assertEqual(len(PRODUCTS), 30)
-        self.assertEqual(len({p["sku"] for p in PRODUCTS}), 30)
-        self.assertEqual(len({p["slug"] for p in PRODUCTS}), 30)
+        self.assertEqual(len(PRODUCTS), 32)
+        self.assertEqual(len({p["sku"] for p in PRODUCTS}), 32)
+        self.assertEqual(len({p["slug"] for p in PRODUCTS}), 32)
         for p in PRODUCTS:
             self.assertTrue(p["sources"][0]["url"].startswith("https://"))
             self.assertTrue(p["specifications"])
@@ -461,3 +478,18 @@ class SeedTests(unittest.TestCase):
             seed_demo.seed(
                 self.db, "small", PRODUCTS, customers=2, reviews=3, small_test=True
             )
+
+class DemoReviewIsolationTests(unittest.TestCase):
+    def test_demo_database_is_separate_and_rating_filter_is_validated(self):
+        client=mongomock.MongoClient(tz_aware=True)
+        db=client.real; demo=client.robotshop_demo_global
+        row=dict(_id='demo:1',productId='P',authorId='demo:user',rating=5,title='Synthetic example',body='SYNTHETIC DEMO REVIEW',synthetic=True,status='published',createdAt=now(),updatedAt=now())
+        demo.reviews.insert_one(row)
+        reviews=Reviews(db,demo)
+        self.assertEqual(reviews.listing('P',{})['summary']['count'],0)
+        result=reviews.listing('P',{'kind':'demo','rating':'5'})
+        self.assertEqual(result['summary']['count'],1)
+        self.assertEqual(result['distribution']['5'],1)
+        self.assertFalse(result['reviews'][0]['verifiedPurchase'])
+        self.assertEqual(reviews.listing('P',{'kind':'demo','rating':'1'})['reviews'],[])
+        with self.assertRaises(HttpError):reviews.listing('P',{'rating':'99'})

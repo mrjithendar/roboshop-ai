@@ -2,6 +2,7 @@
 """Explicit deterministic demo-only MongoDB seeder. No commerce/provider imports."""
 import argparse
 import hashlib
+import gzip
 import json
 import os
 from pathlib import Path
@@ -14,7 +15,7 @@ from pymongo import MongoClient, UpdateOne
 from pymongo.errors import DuplicateKeyError
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "1"
+VERSION = "2"
 GENERATED = datetime(2026, 10, 19, tzinfo=timezone.utc)
 
 
@@ -53,6 +54,7 @@ def seed(
     buyers=0.6,
     random_seed=42,
     small_test=False,
+    writer=None,
 ):
     guard(db.name)
     ident(dataset)
@@ -82,35 +84,42 @@ def seed(
     marker = dict(
         synthetic=True, datasetId=dataset, seedVersion=VERSION, generatedAt=GENERATED
     )
-    db.demo_datasets.update_one(
-        {"_id": dataset}, {"$setOnInsert": {**marker, "config": config}}, upsert=True
-    )
-    manifest = db.demo_datasets.find_one({"_id": dataset})
-    if manifest.get("config") != config or not manifest.get("synthetic"):
-        raise ValueError(
-            "Dataset configuration changed. Use a new dataset ID or explicitly clean this dataset first."
+    if writer is None:
+        db.demo_datasets.update_one(
+            {"_id": dataset}, {"$setOnInsert": {**marker, "config": config}}, upsert=True
         )
-    db.demo_profiles.create_index([("datasetId", 1), ("_id", 1)])
-    db.demo_profiles.create_index("email", unique=True)
-    db.demo_purchases.create_index([("datasetId", 1), ("userId", 1), ("createdAt", -1)])
-    db.reviews.create_index([("productId", 1), ("authorId", 1)], unique=True)
-    db.reviews.create_index(
-        [("productId", 1), ("status", 1), ("synthetic", 1), ("_id", 1)]
-    )
-    db.reviews.create_index([("synthetic", 1), ("datasetId", 1)])
-    # Product catalogue is reference material, not a generated customer record. Never overwrite merchant rows.
-    for product in products:
-        existing = db.products.find_one({"_id": product["sku"]})
-        if existing and not existing.get("showcase"):
-            raise ValueError("Conflicting non-showcase product in demo database.")
-        db.products.update_one(
-            {"_id": product["sku"]},
-            {"$setOnInsert": {**product, "revision": 1}},
-            upsert=True,
+        manifest = db.demo_datasets.find_one({"_id": dataset})
+        if manifest.get("config") != config or not manifest.get("synthetic"):
+            raise ValueError(
+                "Dataset configuration changed. Use a new dataset ID or explicitly clean this dataset first."
+            )
+        db.demo_profiles.create_index([("datasetId", 1), ("_id", 1)])
+        db.demo_profiles.create_index("email", unique=True)
+        db.demo_purchases.create_index([("datasetId", 1), ("userId", 1), ("createdAt", -1)])
+        db.reviews.create_index([("productId", 1), ("authorId", 1)], unique=True)
+        db.reviews.create_index(
+            [("productId", 1), ("status", 1), ("synthetic", 1), ("_id", 1)]
         )
+        db.reviews.create_index([("synthetic", 1), ("datasetId", 1)])
+        # Product catalogue is reference material, not a generated customer record. Never overwrite merchant rows.
+        for product in products:
+            existing = db.products.find_one({"_id": product["sku"]})
+            if existing and not existing.get("showcase"):
+                raise ValueError("Conflicting non-showcase product in demo database.")
+            db.products.update_one(
+                {"_id": product["sku"]},
+                {"$setOnInsert": {**product, "revision": 1}},
+                upsert=True,
+            )
     pending = {name: [] for name in ("demo_profiles", "demo_purchases", "reviews")}
 
+    counts = {name:0 for name in pending}
+
     def queue(collection, row):
+        if writer is not None:
+            writer(collection, row)
+            counts[collection] += 1
+            return
         # Marker predicates ensure a collision with a genuine record raises duplicate key, never overwrites it.
         pending[collection].append(
             UpdateOne(
@@ -127,14 +136,12 @@ def seed(
             db[collection].bulk_write(pending[collection], ordered=True)
             pending[collection].clear()
 
-    countries = [
-        ("IN", "en"),
-        ("US", "en"),
-        ("DE", "de"),
-        ("FR", "fr"),
-        ("JP", "ja"),
-        ("BR", "pt"),
-    ]
+    with gzip.open(ROOT / 'services/shipping-service/data/locations.json.gz', 'rt') as locations:
+        all_countries = json.load(locations)['countries']
+        priority = {'IN','US','DE','FR','JP','BR','GB','AU','CA','ZA'}
+        countries = sorted(all_countries, key=lambda row: (row[0] not in priority, row[0]))[:200]
+    if len(countries) != 200:
+        raise ValueError('The demo dataset requires 200 country/territory codes.')
     topics = [
         "assembly practice",
         "motion-control exercises",
@@ -146,7 +153,8 @@ def seed(
     for i in range(customers):
         rng = random.Random(f"{random_seed}:{dataset}:{i}")
         uid = f"{dataset}:customer:{i:05d}"
-        country, language = rng.choice(countries)
+        country, country_name = countries[i % len(countries)]
+        language = 'en'
         created = GENERATED - timedelta(days=rng.randint(90, 1095))
         nreviews = reviews // customers + int(i < reviews % customers)
         choices = rng.sample(products, nreviews)
@@ -162,6 +170,7 @@ def seed(
                 "authenticationDisabled": True,
                 "createdAt": created,
                 "country": country,
+                "countryName": country_name,
                 "languagePreference": language,
                 "preferredCategories": sorted(
                     {p["categories"][0] for p in choices[:2]}
@@ -232,6 +241,8 @@ def seed(
                         ),
                     },
                 )
+    if writer is not None:
+        return counts
     for collection in pending:
         flush(collection)
     db.demo_datasets.update_one(

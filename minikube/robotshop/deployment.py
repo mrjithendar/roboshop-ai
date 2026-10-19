@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SERVICES = ['mongodb', 'postgres', 'redis', 'rabbitmq', 'jaeger', 'otel-collector',
             'product-ingestion', 'recommendation-service', 'shopping-agent',
             'sre-copilot', 'payment-service', 'shipping-service', 'ai-gateway',
-            'frontend', 'nginx', 'mcp-server']
+            'frontend', 'nginx', 'mcp-server', 'cart-service']
 APPS = {name for name in SERVICES if (ROOT / 'services' / name / 'Dockerfile').is_file()}
 PASSWORD_KEYS = ['MONGO_ROOT_PASSWORD', 'MONGO_APP_PASSWORD', 'SHIPPING_DB_PASSWORD',
                  'SHIPPING_APP_PASSWORD', 'REDIS_PASSWORD', 'RABBITMQ_PASSWORD',

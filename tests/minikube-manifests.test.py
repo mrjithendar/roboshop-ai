@@ -48,7 +48,7 @@ class ManifestTests(unittest.TestCase):
                     container=item['spec']['template']['spec']['containers'][0]
                     checked_in.add(container['image'])
                     self.assertEqual(container['imagePullPolicy'],'IfNotPresent')
-        self.assertEqual(len(built),10)
+        self.assertEqual(len(built),11)
         self.assertEqual(built,rendered)
         self.assertEqual(built,composed)
         self.assertEqual(built,checked_in)
@@ -97,7 +97,11 @@ class ManifestTests(unittest.TestCase):
                 for e in c.get('env',[]):
                     if 'valueFrom' in e:
                         ref=e['valueFrom']['secretKeyRef']
-                        self.assertEqual(ref['name'],'robotshop-secrets')
+                        if ref['name']=='robotshop-demo-reviews':
+                            self.assertEqual(e['name'],'DEMO_MONGODB_URL')
+                            self.assertTrue(ref.get('optional'))
+                        else:
+                            self.assertEqual(ref['name'],'robotshop-secrets')
                         self.assertTrue(ref.get('optional') or ref['key'] in deploy.PASSWORD_KEYS)
                     if 'value' in e:
                         import re
@@ -121,7 +125,7 @@ class ManifestTests(unittest.TestCase):
             docs=list(yaml.safe_load_all((Path(tmp)/'shipping-service-minikube.yaml').read_text()))
             pod=next(x for x in docs if x['kind']=='Deployment')['spec']['template']['spec']
             self.assertEqual(pod['containers'][0]['image'],'registry.example.com/team/robotshop-shipping:local')
-            self.assertEqual(len((Path(tmp)/'images.txt').read_text().splitlines()),10)
+            self.assertEqual(len((Path(tmp)/'images.txt').read_text().splitlines()),11)
             self.assertEqual(list(yaml.safe_load_all((Path(tmp)/'config.yaml').read_text()))[1]['data']['PUBLIC_ORIGIN'],'https://shop.example.com')
 
     def run_wrapper(self, fail_service='', load_images=False):
@@ -160,7 +164,7 @@ class ManifestTests(unittest.TestCase):
         result,calls=self.run_wrapper()
         self.assertEqual(result.returncode,0,result.stderr)
         rollouts=[line for line in calls.splitlines() if 'rollout status' in line]
-        self.assertEqual(len(rollouts),16)
+        self.assertEqual(len(rollouts),17)
         self.assertTrue(all('--context=selected-cluster' in line for line in calls.splitlines()))
         self.assertLess(calls.index('rollout status deployment/shipping-db'),calls.index('rollout status deployment/shipping-service'))
         self.assertLess(calls.index('rollout status deployment/ai-gateway'),calls.index('rollout status deployment/nginx'))
@@ -170,10 +174,10 @@ class ManifestTests(unittest.TestCase):
         result,calls=self.run_wrapper(load_images=True)
         self.assertEqual(result.returncode,0,result.stderr)
         loads=[line for line in calls.splitlines() if 'image load' in line]
-        self.assertEqual(len(loads),10)
+        self.assertEqual(len(loads),11)
         self.assertTrue(all('--daemon --overwrite=true' in line and line.endswith(':local') for line in loads))
         restarts=[line for line in calls.splitlines() if 'rollout restart' in line]
-        self.assertEqual(len(restarts),10)
+        self.assertEqual(len(restarts),11)
         self.assertNotIn('rollout restart deployment/shipping-db',calls)
         self.assertLess(calls.index('image load'),calls.index('rollout restart'))
 

@@ -42,8 +42,9 @@ def content(data):
 
 
 class Reviews:
-    def __init__(self, db):
+    def __init__(self, db, demo_db=None):
         self.db = db
+        self.demo_db = demo_db
         indexes(db)
 
     def verified(self, row):
@@ -95,18 +96,27 @@ class Reviews:
         kind = query.get("kind", "real")
         if kind not in ("real", "demo"):
             raise HttpError(400, "Choose real or demo reviews.")
+        collection = (self.demo_db if kind == "demo" and self.demo_db is not None else self.db).reviews
         match = {"synthetic": kind == "demo"}
         if product:
             match["productId"] = product
         if not admin:
             match["status"] = "published"
+        rating = query.get('rating', '')
+        if rating and rating not in ('1','2','3','4','5'):
+            raise HttpError(400, 'Rating filter must be 1–5.')
+        unfiltered = dict(match)
+        if rating: match['rating'] = int(rating)
+        distribution = {str(i):0 for i in range(1,6)}
+        for row in collection.aggregate([{'$match':unfiltered | {'status':'published'}},{'$group':{'_id':'$rating','count':{'$sum':1}}}], maxTimeMS=3000):
+            distribution[str(row['_id'])] = row['count']
         rows = list(
-            self.db.reviews.find(match | ({"_id": {"$gt": cursor}} if cursor else {}))
+            collection.find(match | ({"_id": {"$gt": cursor}} if cursor else {}))
             .sort("_id", 1)
             .limit(21)
         )
         aggregate = list(
-            self.db.reviews.aggregate(
+            collection.aggregate(
                 [
                     {"$match": match | {"status": "published"}},
                     {
@@ -129,6 +139,7 @@ class Reviews:
                 else {"count": 0, "average": None}
             ),
             "kind": kind,
+            "distribution": distribution,
             "notice": NOTICE,
         }
 

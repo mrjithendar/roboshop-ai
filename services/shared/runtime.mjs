@@ -4,6 +4,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 export const context = new AsyncLocalStorage();
 export const urls = {
+  ...(process.env.CART_URL ? { cart: process.env.CART_URL } : {}),
   catalogue: process.env.INGESTION_URL || 'http://127.0.0.1:4101',
   recommendations: process.env.RECOMMENDATION_URL || 'http://127.0.0.1:4102',
   agent: process.env.AGENT_URL || 'http://127.0.0.1:4103',

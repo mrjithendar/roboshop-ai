@@ -14,7 +14,7 @@ while [[ $# -gt 0 ]]; do
       render_output="$2"; shift 2 ;;
     -h|--help)
       echo 'Usage: bash deploy-minikube.sh [--load-images] [--render-only DIR]'
-      echo 'Deploys 16 RobotShop services into robotshop-ai. Does not reset any existing application.'
+      echo 'Deploys 17 RobotShop services into robotshop-ai. Does not reset any existing application.'
       echo 'Overrides: PROFILE=mk4, KUBE_CONTEXT, IMAGE_PREFIX=robotshop, PUBLIC_ORIGIN=https://jithendar.com'
       echo 'Application images always use :local; exported IMAGE_TAG is ignored.'
       echo '--load-images: run on the Minikube host after build-images.sh; load application images into the selected profile.'
@@ -68,7 +68,7 @@ fi
 echo "Deploying RobotShop into context=$KUBE_CONTEXT namespace=robotshop-ai"
 k apply -f "$temp/config.yaml"
 python3 "$ROOT/minikube/robotshop/deployment.py" credentials --context "$KUBE_CONTEXT"
-services=(mongodb postgres redis rabbitmq jaeger otel-collector product-ingestion recommendation-service shopping-agent sre-copilot payment-service shipping-service ai-gateway frontend nginx mcp-server)
+services=(mongodb postgres redis rabbitmq jaeger otel-collector product-ingestion recommendation-service shopping-agent sre-copilot cart-service payment-service shipping-service ai-gateway frontend nginx mcp-server)
 for service in "${services[@]}"; do
   echo "Deploying $service..."
   k apply -f "$temp/$service-minikube.yaml"

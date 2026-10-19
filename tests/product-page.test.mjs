@@ -30,9 +30,9 @@ test('legacy sale product can add quantity and existing cart items under /robosh
  assert.deepEqual(ui.writes,[{sku:'TEST',quantity:3}]);assert.equal(ui.$('.cart-checkout-link').getAttribute('href'),'/roboshop/?cart=1');assert.equal(ui.$('.cart-checkout-link').hidden,false);
  assert.match(ui.$('.detail-image').src,/\/roboshop\/illustrations\/robot.svg$/);
 });
-test('showcase products remain informational and expose only safe manufacturer links',async t=>{
+test('showcase products disable purchase and omit manufacturer shopping links',async t=>{
  const ui=await setup(t,{...product,showcase:true,sources:[{label:'Bad',url:'javascript:alert(1)'},{label:'Manufacturer',url:'https://example.org/robot'}]});
- assert.equal(ui.$('.purchase-actions'),null);assert.match(ui.$('.showcase-panel').textContent,/informational/);assert.equal(ui.$('.showcase-panel a').href,'https://example.org/robot');assert.deepEqual(ui.writes,[]);
+ assert.equal(ui.$('.purchase-actions'),null);assert.match(ui.$('.showcase-panel').textContent,/informational/);assert.equal(ui.$('.showcase-panel a'),null);assert.equal(ui.$('.showcase-panel button').disabled,true);assert.deepEqual(ui.writes,[]);
 });
 test('out of stock products display a disabled purchase action',async t=>{const ui=await setup(t,{...product,instock:0});assert.equal(ui.$('.purchase-actions button').disabled,true);assert.match(ui.$('.purchase-actions button').textContent,/Out of stock/);});
 test('cart failures stay visible and allow retry',async t=>{const ui=await setup(t,product,{fail:true});await submit(ui);assert.match(ui.$('.purchase-feedback').textContent,/Stock changed/);assert.equal(ui.$('.purchase-actions button').disabled,false);assert.equal(ui.$('.cart-checkout-link').hidden,true);});

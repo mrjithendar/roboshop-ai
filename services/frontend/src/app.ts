@@ -72,7 +72,7 @@ function renderProducts() {
   const query = $('#search').value.toLowerCase().trim();
   let visible = products.filter(p => (!category || p.categories.includes(category)) && (!$('#in-stock').checked || p.instock > 0) && `${p.name} ${p.description} ${p.categories.join(' ')}`.toLowerCase().includes(query));
   const sort = $('#sort').value;
-  visible.sort(sort === 'price-low' ? (a, b) => (a.currency || 'EUR').localeCompare(b.currency || 'EUR') || Number(a.priceType === 'on-request') - Number(b.priceType === 'on-request') || a.price - b.price : sort === 'price-high' ? (a, b) => (a.currency || 'EUR').localeCompare(b.currency || 'EUR') || Number(a.priceType === 'on-request') - Number(b.priceType === 'on-request') || b.price - a.price : sort === 'name' ? (a, b) => a.name.localeCompare(b.name) : (a, b) => Number(b.sku === 'STAN-1') - Number(a.sku === 'STAN-1'));
+  visible.sort(sort === 'price-low' ? (a, b) => (a.currency || 'EUR').localeCompare(b.currency || 'EUR') || Number(a.priceType === 'on-request') - Number(b.priceType === 'on-request') || a.price - b.price : sort === 'price-high' ? (a, b) => (a.currency || 'EUR').localeCompare(b.currency || 'EUR') || Number(a.priceType === 'on-request') - Number(b.priceType === 'on-request') || b.price - a.price : sort === 'name' ? (a, b) => a.name.localeCompare(b.name) : (a, b) => Number(b.image.startsWith('/product-media/')) - Number(a.image.startsWith('/product-media/')));
   $('#products').replaceChildren(...visible.map(card));
   if (!visible.length) $('#products').append(el('p', 'empty-state', 'No robots match just yet. Try another search or category.'));
   $('#result-count').textContent = `${visible.length} robotics product${visible.length === 1 ? '' : 's'}`;

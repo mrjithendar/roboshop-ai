@@ -15,6 +15,7 @@ from customers import Customers
 from auth import Auth, connect_mongo, public_user, require_role
 from admin import routes as admin_routes, settings
 from store import Store, cents
+from cart_repository import CartRepository
 from events import OrderPublisher
 from llm import LLMConfiguration
 from llm_config import service_headers, unconfigured
@@ -47,7 +48,15 @@ class Gateway:
         self.auth = Auth(db)
         self.auth.initialize()
         self.registration = Registration(db)
-        self.reviews = Reviews(db)
+        demo_db = None
+        if os.getenv('DEMO_MONGODB_URL'):
+            from pymongo import MongoClient
+            name = os.getenv('DEMO_REVIEWS_DATABASE', 'robotshop_demo_global')
+            if not re.fullmatch(r'robotshop_demo_[a-z0-9_]{1,40}', name):
+                raise RuntimeError('Demo reviews require an isolated robotshop_demo_ database.')
+            self.demo_client = MongoClient(os.environ['DEMO_MONGODB_URL'], serverSelectionTimeoutMS=3000, socketTimeoutMS=5000)
+            demo_db = self.demo_client[name]
+        self.reviews = Reviews(db, demo_db)
         configure_telemetry("ai-gateway")
         self.customers = Customers(db, store)
         self.limits = {}
@@ -82,7 +91,10 @@ class Gateway:
     def session(self, req):
         old = req.cookie("rs_session", r"[a-f0-9-]{36}")
         with self.store.lock:
+            if old in self.store.state["sessions"]:
+                self.store.sync_cart(old)
             id = self.store.session(old, req.user["id"] if req.user else None)
+            self.store.sync_cart(id)
         if id != old:
             req.set_cookie("rs_session", id, 604800)
         return id
@@ -565,6 +577,8 @@ class Gateway:
                 / "services/frontend/dist"
                 / ("index.html" if path == "/" else path[1:])
             )
+        elif re.fullmatch(r"/product-media/[a-z0-9-]+\.jpg", path):
+            file = ROOT / "services/frontend/dist" / path[1:]
         elif re.fullmatch(r"/illustrations/(robot|kit|component|accessory)\.svg", path):
             file = ROOT / "services/frontend/dist" / path[1:]
         elif re.fullmatch("/images/[a-zA-Z0-9_-]+\.png", path):
@@ -583,6 +597,7 @@ class Gateway:
                             ".js": "text/javascript; charset=utf-8",
                             ".css": "text/css; charset=utf-8",
                             ".png": "image/png",
+                            ".jpg": "image/jpeg",
                             ".svg": "image/svg+xml",
                         }[file.suffix],
                     ),
@@ -596,7 +611,8 @@ class Gateway:
 
 if __name__ == "__main__":
     client, db = connect_mongo()
-    store = Store(os.getenv("DATA_DIR", str(ROOT / ".data")))
+    cart_repository = CartRepository(os.environ['CART_URL'], os.environ['CART_SERVICE_TOKEN']) if os.getenv('CART_URL') else None
+    store = Store(os.getenv("DATA_DIR", str(ROOT / ".data")), cart_repository)
     gateway = Gateway(db, store)
     publisher = OrderPublisher(store, os.getenv("RABBITMQ_URL"))
     publisher.start()
@@ -606,4 +622,6 @@ if __name__ == "__main__":
     finally:
         publisher.stop()
         gateway.customers.stop()
+        if hasattr(gateway, "demo_client"):
+            gateway.demo_client.close()
         client.close()

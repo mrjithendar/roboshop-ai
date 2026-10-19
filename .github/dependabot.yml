@@ -26,6 +26,7 @@ updates:
       - /services/product-ingestion
       - /services/recommendation-service
       - /services/shopping-agent
+      - /services/cart-service
       - /services/sre-copilot
       - /services/payment-service
       - /services/mcp-server
@@ -149,6 +150,7 @@ updates:
     directories:
       - /services/ai-gateway
       - /services/shopping-agent
+      - /services/cart-service
     schedule:
       interval: weekly
     groups:

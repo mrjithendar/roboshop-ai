@@ -22,7 +22,9 @@ def cents(value):
 
 
 class Store:
-    def __init__(self, directory):
+    def __init__(self, directory, cart_repository=None):
+        self.cart_repository = cart_repository
+        self.cart_revisions = {}
         self.lock = threading.RLock()
         Path(directory).mkdir(parents=True, exist_ok=True)
         self.file = Path(directory) / "store.json"
@@ -90,6 +92,21 @@ class Store:
         next_state["sessions"][id] = entry
         self.save(next_state)
         return id
+
+    def sync_cart(self, id):
+        if not self.cart_repository:
+            return
+        # Reconcile captured payments before hydrating the active cart. Clear is
+        # idempotent by order ID, so retries never erase a customer's later cart.
+        for order in self.state['orders']:
+            if order['session'] == id and order['status'] == 'paid' and not order.get('cartCleared'):
+                self.cart_repository.clear_paid(id, order['id'])
+                next_state = copy.deepcopy(self.state)
+                next(o for o in next_state['orders'] if o['id'] == order['id'])['cartCleared'] = True
+                self.save(next_state)
+        result = self.cart_repository.initialize(id, self.state['sessions'][id]['items'])
+        self.state['sessions'][id]['items'] = result['items']
+        self.cart_revisions[id] = result['revision']
 
     def pending(self, id):
         return next(
@@ -172,6 +189,9 @@ class Store:
             next_state["sessions"][id]["items"].pop(sku, None)
         else:
             next_state["sessions"][id]["items"][sku] = quantity
+        if self.cart_repository:
+            result = self.cart_repository.replace(id, next_state['sessions'][id]['items'], self.cart_revisions[id])
+            self.cart_revisions[id] = result['revision']
         self.save(next_state)
         return self.cart(id, products)
 

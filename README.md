@@ -305,7 +305,7 @@ From the repository root:
 docker compose up -d
 ```
 
-The script builds ten images: gateway, ingestion, recommendations, shopping agent,
+The script builds eleven images: cart, gateway, ingestion, recommendations, shopping agent,
 SRE, payments, MCP, Java shipping, frontend and NGINX. MongoDB,
 PostgreSQL, Redis, RabbitMQ and observability backends use their configured official
 images; Compose pulls them when needed. MCP remains under the optional `tools` profile.
@@ -371,6 +371,8 @@ The Minikube storefront uses **https://jithendar.com/roboshop/**, with Let's Enc
 bash build-images.sh --local
 ```
 
-Builds all ten active application Dockerfiles as `robotshop-<service>:local` (shipping uses `robotshop-shipping:local`). `IMAGE_TAG` is ignored; `IMAGE_PREFIX` remains configurable. Builds run sequentially with full Docker output and stop on the first failure. Reruns reuse completed layers. Redis, RabbitMQ, databases and observability components use official upstream images.
+Builds all eleven active application Dockerfiles as `robotshop-<service>:local` (shipping uses `robotshop-shipping:local`). `IMAGE_TAG` is ignored; `IMAGE_PREFIX` remains configurable. Builds run sequentially with full Docker output and stop on the first failure. Reruns reuse completed layers. Redis, RabbitMQ, databases and observability components use official upstream images.
 
 Preview without Docker: `bash build-images.sh --local --dry-run`.
+
+The Redis-backed cart service, real-photo catalogue additions, review filters, and isolated 10,000-profile demo dataset are documented in [the catalogue deployment guide](docs/demo-scenarios/global-catalogue.md).

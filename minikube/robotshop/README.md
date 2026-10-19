@@ -1,6 +1,6 @@
 # Deploy all RobotShop services to Minikube
 
-Each runnable service has its own **`services/<service>/<service>-minikube.yaml`**. The root **`deploy-minikube.sh`** applies all 16 in dependency order into `robotshop-ai`, checking readiness between services. The `common`, `shared` and `python-common` folders are libraries/configuration, not workloads.
+Each runnable service has its own **`services/<service>/<service>-minikube.yaml`**. The root **`deploy-minikube.sh`** applies all 17 in dependency order into `robotshop-ai`, checking readiness between services. The `common`, `shared` and `python-common` folders are libraries/configuration, not workloads.
 
 ## Local images on the Vultr Minikube host
 
@@ -122,7 +122,7 @@ The installer stops at the first failing rollout and prints diagnostics. Fix the
 
 ### Rebuilding the same local tag
 
-`bash build-images.sh` and `bash deploy-minikube.sh --load-images` always use matching `:local` application images. An old exported `IMAGE_TAG` is ignored. The loader checks that all ten images exist in host Docker, explicitly overwrites Minikube's cached tags from that daemon, then restarts each application deployment and waits for readiness. Databases and infrastructure are not restarted by this image refresh. Run the loader on the Minikube host. Deployment without `--load-images` does not refresh cached images or force restarts.
+`bash build-images.sh` and `bash deploy-minikube.sh --load-images` always use matching `:local` application images. An old exported `IMAGE_TAG` is ignored. The loader checks that all eleven images exist in host Docker, explicitly overwrites Minikube's cached tags from that daemon, then restarts each application deployment and waits for readiness. Databases and infrastructure are not restarted by this image refresh. Run the loader on the Minikube host. Deployment without `--load-images` does not refresh cached images or force restarts.
 
 ### Shipping exits while binding the Redis port
 

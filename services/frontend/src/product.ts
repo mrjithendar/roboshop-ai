@@ -1,8 +1,8 @@
 import { appPath, basePath, productImage, canPurchase } from './paths.js';
 import { currentUser, initAccount, showLogin } from './account.js';
-interface Product { sku: string; slug: string; name: string; description: string; image: string; manufacturer?: string; model?: string; productType?: string; categories: string[]; price: number; currency: string; priceType: string; showcase: boolean; synthetic?: boolean; instock: number; specifications?: Record<string, string>; includedItems?: string[]; requiredAccessories?: string[]; compatibility?: string[]; packageNote?: string; priceCheckedAt?: string; sources?: { label: string; url: string }[]; imageAttribution?: { credit: string } }
+interface Product { sku: string; slug: string; name: string; description: string; image: string; manufacturer?: string; model?: string; productType?: string; categories: string[]; price: number; currency: string; priceType: string; showcase: boolean; synthetic?: boolean; instock: number; specifications?: Record<string, string>; includedItems?: string[]; requiredAccessories?: string[]; compatibility?: string[]; packageNote?: string; priceCheckedAt?: string; sources?: { label: string; url: string }[]; imageAttribution?: { credit: string; sourceUrl?: string; licenseUrl?: string; license?: string } }
 interface Review { id: string; title: string; body: string; rating: number; author: string; createdAt: string; synthetic: boolean; verifiedPurchase: boolean; status: string }
-interface Page { reviews: Review[]; next: string | null; summary: { count: number; average: number | null }; kind: string }
+interface Page { reviews: Review[]; next: string | null; summary: { count: number; average: number | null }; kind: string; distribution?: Record<string, number> }
 const get = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 const element = <K extends keyof HTMLElementTagNameMap>(tag: K, value = '') => { const node = document.createElement(tag); node.textContent = value; return node; };
 async function api<T>(path: string, method = 'GET', data?: object): Promise<T> {
@@ -59,11 +59,21 @@ function render(p: Product, related: Product[]): void {
     const note = element('p', 'Shipping is calculated at checkout. Sign in to complete your purchase.'); note.className = 'purchase-note'; copy.append(note);
   } else {
     const notice = element('div'); notice.className = 'showcase-panel'; notice.append(element('h3', 'Explore this product'), element('p', 'This is an informational listing. Reference prices and simulated stock are not a sale offer.'));
-    const source = (p.sources || []).find(source => { try { return new URL(source.url).protocol === 'https:'; } catch { return false; } });
-    if (source) { const official = element('a', 'View official product ↗'); official.href = source.url; official.target = '_blank'; official.rel = 'noopener noreferrer'; official.className = 'button secondary'; notice.append(official); }
+    const unavailable = element('button', 'Add to cart'); unavailable.className = 'button primary'; unavailable.disabled = true;
+    notice.append(unavailable, element('p', 'Not sold by RobotShop. No checkout is available for this listing.'));
     copy.append(notice);
   }
-  grid.append(figure, copy); panel.append(breadcrumb, grid);
+  const buybox = element('aside'); buybox.className = 'product-buybox'; buybox.setAttribute('aria-label','Purchase options');
+  for (const child of [...copy.children]) if (child.matches('.detail-price,.availability,.purchase-actions,.purchase-note,.showcase-panel')) buybox.append(child);
+  const reviewsLink = link('Read customer reviews ↓','#reviews-section'); reviewsLink.className = 'product-review-anchor'; copy.append(reviewsLink);
+  const highlights = element('ul'); highlights.className = 'product-highlights';
+  for (const [key,value] of Object.entries(p.specifications || {}).slice(0,5)) highlights.append(element('li', `${key}: ${value}`)); copy.append(highlights);
+  if (p.imageAttribution?.licenseUrl && p.imageAttribution?.sourceUrl) {
+    for (const [label,url] of [['Photo source',p.imageAttribution.sourceUrl],[p.imageAttribution.license || 'Image license',p.imageAttribution.licenseUrl]]) {
+      try { if (new URL(url).protocol !== 'https:') continue; const credit = element('a',label); credit.href=url; credit.rel='noopener noreferrer'; credit.target='_blank'; figure.append(credit); } catch {}
+    }
+  }
+  grid.append(figure, copy, buybox); panel.append(breadcrumb, grid);
   const details = element('div'); details.className = 'product-information';
   const specifications = element('section'); specifications.className = 'information-card'; specifications.append(element('h2', 'Technical specifications'));
   const spec = element('dl'); for (const [key, value] of Object.entries(p.specifications || {})) spec.append(element('dt', key), element('dd', value));
@@ -90,12 +100,19 @@ async function loadReviews(append = false): Promise<void> {
   const current = ++generation, kind = get<HTMLSelectElement>('review-kind').value;
   get<HTMLButtonElement>('more-reviews').disabled = true;
   try {
-    const result = await api<Page>(endpoint + '/reviews?' + new URLSearchParams({ kind, after: append ? cursor || '' : '' }));
+    const result = await api<Page>(endpoint + '/reviews?' + new URLSearchParams({ kind, rating: get<HTMLSelectElement>('review-filter').value, after: append ? cursor || '' : '' }));
     if (current !== generation) return;
     if (!append) get('review-list').replaceChildren();
     if (!append && !result.reviews.length) get('review-list').append(element('p', 'No reviews yet. Share your experience with this product.'));
     get('rating-summary').textContent = `${kind === 'demo' ? 'Synthetic demo' : 'Real customer'} ratings: ${result.summary.count} reviews${result.summary.average === null ? '' : ` · ${result.summary.average.toFixed(1)}/5`}`;
-    for (const review of result.reviews) { const article = element('article'); article.className = 'review'; article.append(element('h3', `${review.rating}/5 · ${review.title}`), element('p', `${review.synthetic ? 'SYNTHETIC DEMO REVIEW' : review.author}${review.verifiedPurchase ? ' · Verified purchase' : ''} · ${new Date(review.createdAt).toLocaleDateString()}`), element('p', review.body)); get('review-list').append(article); }
+    const distribution = get('rating-distribution'); distribution.replaceChildren();
+    const total = Object.values(result.distribution || {}).reduce((a,b)=>a+b,0);
+    for (let rating=5;rating>=1;rating--) {
+      const count=result.distribution?.[String(rating)] || 0, row=element('div'); row.className='rating-bar';
+      const meter=element('meter'); meter.min=0; meter.max=total || 1; meter.value=count; meter.setAttribute('aria-label',`${rating} stars: ${count} reviews`);
+      row.append(element('span',`${rating} star`),meter,element('span',`${total ? Math.round(count/total*100) : 0}%`)); distribution.append(row);
+    }
+    for (const review of result.reviews) { const article = element('article'); article.className = 'review'; article.append(element('h3', `${'★'.repeat(review.rating)}${'☆'.repeat(5-review.rating)} · ${review.title}`), element('p', `${review.synthetic ? 'SYNTHETIC DEMO REVIEW' : review.author}${review.verifiedPurchase ? ' · Verified purchase' : ''} · ${new Date(review.createdAt).toLocaleDateString()}`), element('p', review.body)); get('review-list').append(article); }
     cursor = result.next; get('more-reviews').hidden = !cursor;
   } catch (e) { get('rating-summary').textContent = error(e); }
   finally { if (current === generation) get<HTMLButtonElement>('more-reviews').disabled = false; }
@@ -107,6 +124,7 @@ async function loadMine(): Promise<void> {
   try { const result = await api<{ review: Review | null }>(endpoint + '/reviews/mine'); if (currentUser?.id !== userId) return; mine = result.review; get<HTMLInputElement>('review-title').value = mine?.title || ''; get<HTMLTextAreaElement>('review-body').value = mine?.body || ''; get<HTMLSelectElement>('review-rating').value = String(mine?.rating || 5); get('review-delete').hidden = !mine; if (mine) get('review-status').textContent = `Your review is ${mine.status}. Editing resubmits it for moderation.`; }
   catch (e) { get('review-status').textContent = error(e); }
 }
+get('review-filter').addEventListener('change', () => { void loadReviews(); });
 get('review-kind').addEventListener('change', () => { void loadReviews(); });
 get('more-reviews').addEventListener('click', () => { void loadReviews(true); });
 get('review-form').addEventListener('submit', async event => {

@@ -1,5 +1,126 @@
 [
   {
+    "sku": "TB3-BURGER",
+    "slug": "turtlebot3-burger",
+    "name": "TurtleBot3 Burger",
+    "manufacturer": "ROBOTIS",
+    "model": "TurtleBot3 Burger",
+    "categories": [
+      "research robots"
+    ],
+    "productType": "complete robot",
+    "description": "A modular ROS mobile platform for navigation, mapping and robotics education.",
+    "specifications": {
+      "Dimensions (L × W × H)": "138 × 178 × 192 mm",
+      "Weight (configured)": "1 kg",
+      "Maximum linear velocity": "0.22 m/s",
+      "Maximum angular velocity": "2.84 rad/s",
+      "Controller": "OpenCR; ARM Cortex-M7 at 216 MHz",
+      "Single-board computer": "Raspberry Pi 4 (current documented configuration)",
+      "Range sensor": "LDS-02 360° laser distance sensor",
+      "Actuator": "DYNAMIXEL XL430-W250",
+      "Battery": "11.1 V, 1800 mAh lithium polymer",
+      "Expected operating time": "2 h 30 min; workload dependent",
+      "Photo note": "Photograph shows an earlier hardware configuration; supplied components may differ."
+    },
+    "includedItems": [
+      "Bundle contents depend on the supplier configuration."
+    ],
+    "requiredAccessories": [
+      "Computer and compatible software; confirm power and assembly requirements."
+    ],
+    "compatibility": [
+      "ROS"
+    ],
+    "useCases": [
+      "robotics education",
+      "research"
+    ],
+    "price": 0,
+    "currency": "EUR",
+    "priceType": "on-request",
+    "priceSourceUrl": "https://emanual.robotis.com/docs/en/platform/turtlebot3/features/",
+    "priceCheckedAt": "2026-10-19T00:00:00Z",
+    "checkedAt": "2026-10-19T00:00:00Z",
+    "showcase": true,
+    "synthetic": false,
+    "instock": 0,
+    "image": "/product-media/turtlebot3-burger.jpg",
+    "imageAttribution": {
+      "credit": "Kuscu0 / Wikimedia Commons",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:TurtleBot3_Burger.jpg",
+      "changes": "Original photograph; no edits."
+    },
+    "sources": [
+      {
+        "label": "Technical documentation",
+        "url": "https://emanual.robotis.com/docs/en/platform/turtlebot3/features/"
+      }
+    ],
+    "catalogueVersion": "2026-10-real-photos",
+    "fulfilment": "simulated"
+  },
+  {
+    "sku": "POPPY-HUMANOID",
+    "slug": "poppy-humanoid",
+    "name": "Poppy Humanoid",
+    "manufacturer": "Poppy Project",
+    "model": "Poppy Humanoid",
+    "categories": [
+      "research robots"
+    ],
+    "productType": "complete robot",
+    "description": "An open-source, 3D-printed humanoid research platform for exploring motion and human–robot interaction.",
+    "specifications": {
+      "Actuated joints": "25 motors",
+      "Construction": "3D-printed modular humanoid",
+      "Hardware": "Open-source design",
+      "Assembly": "Assembly required for kit configurations",
+      "Programming": "Poppy software ecosystem",
+      "Application": "Education and research; not a consumer appliance"
+    },
+    "includedItems": [
+      "Bundle contents depend on the supplier configuration."
+    ],
+    "requiredAccessories": [
+      "Computer and compatible software; confirm power and assembly requirements."
+    ],
+    "compatibility": [
+      "Poppy software ecosystem"
+    ],
+    "useCases": [
+      "robotics education",
+      "research"
+    ],
+    "price": 0,
+    "currency": "EUR",
+    "priceType": "on-request",
+    "priceSourceUrl": "https://docs.poppy-project.org/en/assembly-guides/poppy-humanoid/",
+    "priceCheckedAt": "2026-10-19T00:00:00Z",
+    "checkedAt": "2026-10-19T00:00:00Z",
+    "showcase": true,
+    "synthetic": false,
+    "instock": 0,
+    "image": "/product-media/poppy-humanoid.jpg",
+    "imageAttribution": {
+      "credit": "Inria / Poppy-project.org / Photo H. Raguet",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Open-Source_3D_printed_Poppy_humanoid_robot.jpg",
+      "changes": "Original photograph; no edits."
+    },
+    "sources": [
+      {
+        "label": "Technical documentation",
+        "url": "https://docs.poppy-project.org/en/assembly-guides/poppy-humanoid/"
+      }
+    ],
+    "catalogueVersion": "2026-10-real-photos",
+    "fulfilment": "simulated"
+  },
+  {
     "sku": "POL-3737",
     "slug": "pololu-3pi-32u4-standard-assembled",
     "name": "Pololu 3pi+ 32U4 Standard Assembled",
@@ -12,7 +133,12 @@
     "description": "A compact wheeled platform for experimenting with line sensing and closed-loop motion.",
     "specifications": {
       "Controller": "ATmega32U4",
-      "Motor option": "30:1 MP"
+      "Motor option": "30:1 MP",
+      "Manufacturer": "Pololu",
+      "Model": "3pi+ 32U4 Standard Assembled",
+      "Product format": "complete robot",
+      "Compatibility": "Arduino-compatible programming",
+      "Intended applications": "mobile robotics; motion control"
     },
     "includedItems": [
       "Assembled 3pi+ platform"
@@ -66,7 +192,12 @@
     "description": "The build-it-yourself version of the Standard 3pi+ platform, for learning robot assembly and motion control.",
     "specifications": {
       "Controller": "ATmega32U4",
-      "Motors": "30:1 MP 6V"
+      "Motors": "30:1 MP 6V",
+      "Manufacturer": "Pololu",
+      "Model": "3pi+ 32U4 Standard Kit",
+      "Product format": "kit",
+      "Compatibility": "Arduino-compatible programming",
+      "Intended applications": "robotics education; hands-on learning"
     },
     "includedItems": [
       "Robot kit parts",
@@ -121,7 +252,12 @@
     "description": "Build a balancing robot while choosing the motors and wheels to suit your experiment.",
     "specifications": {
       "Controller": "ATmega32U4",
-      "Battery format": "6 AA cells (not included)"
+      "Battery format": "6 AA cells (not included)",
+      "Manufacturer": "Pololu",
+      "Model": "Balboa 32U4 Kit",
+      "Product format": "kit",
+      "Compatibility": "Arduino-compatible programming; Optional Raspberry Pi interface",
+      "Intended applications": "robotics education; hands-on learning"
     },
     "includedItems": [
       "Balboa kit",
@@ -182,7 +318,12 @@
     "description": "A circular differential-drive chassis for a custom mobile robot. Control electronics must be added.",
     "specifications": {
       "Diameter": "165 mm",
-      "Battery holder": "6 AA cells"
+      "Battery holder": "6 AA cells",
+      "Manufacturer": "Pololu",
+      "Model": "Romi Chassis Black",
+      "Product format": "kit",
+      "Compatibility": "Romi 32U4 Control Board",
+      "Intended applications": "mobile robotics; motion control"
     },
     "includedItems": [
       "Chassis kit",
@@ -240,7 +381,12 @@
     "description": "A controller board designed to add programmable motor control to a Romi chassis.",
     "specifications": {
       "Controller": "ATmega32U4",
-      "Motor control": "Integrated dual motor drivers"
+      "Motor control": "Integrated dual motor drivers",
+      "Manufacturer": "Pololu",
+      "Model": "Romi 32U4 Control Board",
+      "Product format": "component",
+      "Compatibility": "Romi chassis; Optional Raspberry Pi interface",
+      "Intended applications": "embedded control; robot integration"
     },
     "includedItems": [
       "Romi controller board"
@@ -297,7 +443,12 @@
     "description": "A small USB servo-control board with onboard scripting for repeatable motion sequences.",
     "specifications": {
       "Channels": "6",
-      "Pulse resolution": "0.25 microseconds"
+      "Pulse resolution": "0.25 microseconds",
+      "Manufacturer": "Pololu",
+      "Model": "Micro Maestro 6 Assembled",
+      "Product format": "component",
+      "Compatibility": "USB and serial control",
+      "Intended applications": "motion control; robot integration"
     },
     "includedItems": [
       "Assembled board with headers"
@@ -353,7 +504,12 @@
     "description": "A twelve-channel servo controller for multi-joint mechanisms.",
     "specifications": {
       "Servo channels": "12",
-      "Interface": "USB"
+      "Interface": "USB",
+      "Manufacturer": "Pololu",
+      "Model": "Mini Maestro 12 Assembled",
+      "Product format": "component",
+      "Compatibility": "Maestro control software",
+      "Intended applications": "motion control; robot integration"
     },
     "includedItems": [
       "Assembled controller board"
@@ -409,7 +565,12 @@
     "description": "A carrier board for integrating a dual motor driver into a small robotics project.",
     "specifications": {
       "Driver IC": "Texas Instruments DRV8833",
-      "Function": "Dual motor driver"
+      "Function": "Dual motor driver",
+      "Manufacturer": "Pololu",
+      "Model": "DRV8833 Dual Motor Driver",
+      "Product format": "component",
+      "Compatibility": "Check motor current and logic requirements in manufacturer guide",
+      "Intended applications": "motion control; robot integration"
     },
     "includedItems": [
       "DRV8833 carrier board"
@@ -465,8 +626,13 @@
     "description": "A two-channel driver carrier for low-voltage DC motor projects.",
     "specifications": {
       "Continuous current": "1.2 A per channel",
-      "Motor voltage": "0\u201311 V",
-      "Logic voltage": "2\u20137 V"
+      "Motor voltage": "0–11 V",
+      "Logic voltage": "2–7 V",
+      "Manufacturer": "Pololu",
+      "Model": "DRV8835 Dual Motor Driver",
+      "Product format": "component",
+      "Compatibility": "IN/IN or PHASE/ENABLE control",
+      "Intended applications": "motion control; robot integration"
     },
     "includedItems": [
       "DRV8835 carrier board"
@@ -522,7 +688,12 @@
     "description": "An educational mobile robot with a Nano ESP32 controller, designed for learning programming through movement and sensing.",
     "specifications": {
       "Controller": "Nano ESP32",
-      "Languages": "MicroPython and Arduino C"
+      "Languages": "MicroPython and Arduino C",
+      "Manufacturer": "Arduino",
+      "Model": "Alvik",
+      "Product format": "complete robot",
+      "Compatibility": "MicroPython; Arduino C",
+      "Intended applications": "robotics education; hands-on learning"
     },
     "includedItems": [
       "Alvik robot platform"
@@ -577,7 +748,12 @@
     "description": "A mechatronics learning kit that combines physical builds with control-system exercises.",
     "specifications": {
       "Learning tools": "MATLAB and Simulink",
-      "Projects": "3"
+      "Projects": "3",
+      "Manufacturer": "Arduino",
+      "Model": "Engineering Kit Rev2",
+      "Product format": "kit",
+      "Compatibility": "MATLAB; Simulink",
+      "Intended applications": "robotics education; hands-on learning"
     },
     "includedItems": [
       "Mechanical and electrical project components",
@@ -634,7 +810,12 @@
     "specifications": {
       "Module": "NORA-W106 / ESP32-S3",
       "Flash": "16 MB",
-      "Connector": "USB-C"
+      "Connector": "USB-C",
+      "Manufacturer": "Arduino",
+      "Model": "Nano ESP32",
+      "Product format": "component",
+      "Compatibility": "MicroPython; Arduino Cloud",
+      "Intended applications": "embedded control; robot integration"
     },
     "includedItems": [
       "Nano ESP32 board; header option varies"
@@ -693,7 +874,12 @@
       "Main MCU": "Renesas RA4M1",
       "Clock": "48 MHz",
       "GPIO voltage": "5 V",
-      "LED matrix": "12 \u00d7 8"
+      "LED matrix": "12 × 8",
+      "Manufacturer": "Arduino",
+      "Model": "UNO R4 WiFi",
+      "Product format": "component",
+      "Compatibility": "Arduino ecosystem; verify shield voltage and library support",
+      "Intended applications": "embedded control; robot integration"
     },
     "includedItems": [
       "UNO R4 WiFi board"
@@ -748,7 +934,12 @@
     "description": "A Nano-format sensing board for embedded learning and connected sensor experiments.",
     "specifications": {
       "Board revision": "Rev2",
-      "Connectivity": "Bluetooth Low Energy"
+      "Connectivity": "Bluetooth Low Energy",
+      "Manufacturer": "Arduino",
+      "Model": "Nano 33 BLE Sense Rev2",
+      "Product format": "component",
+      "Compatibility": "Arduino development tools; consult sensor-specific libraries",
+      "Intended applications": "embedded control; robot integration"
     },
     "includedItems": [
       "Nano 33 BLE Sense Rev2 board"
@@ -804,7 +995,12 @@
     "specifications": {
       "Encoder ports": "2",
       "Motion sensor": "9-axis",
-      "Battery charger": "Single-cell Li-ion"
+      "Battery charger": "Single-cell Li-ion",
+      "Manufacturer": "Arduino",
+      "Model": "Nano Motor Carrier",
+      "Product format": "accessory",
+      "Compatibility": "Nano 33 IoT; Engineering Kit Rev2",
+      "Intended applications": "motion control; robot integration"
     },
     "includedItems": [
       "Nano Motor Carrier board"
@@ -861,7 +1057,12 @@
     "description": "An Arduino shield for controlling inductive loads such as small DC motors.",
     "specifications": {
       "Driver": "L298 dual full bridge",
-      "DC motors": "2 independently controlled"
+      "DC motors": "2 independently controlled",
+      "Manufacturer": "Arduino",
+      "Model": "Motor Shield Rev3",
+      "Product format": "accessory",
+      "Compatibility": "TinkerKit; Check Arduino shield electrical compatibility",
+      "Intended applications": "motion control; robot integration"
     },
     "includedItems": [
       "Motor Shield Rev3"
@@ -919,7 +1120,12 @@
     "specifications": {
       "MCU": "Renesas RA4M1",
       "Clock": "48 MHz",
-      "GPIO voltage": "5 V"
+      "GPIO voltage": "5 V",
+      "Manufacturer": "Arduino",
+      "Model": "UNO R4 Minima",
+      "Product format": "component",
+      "Compatibility": "Arduino tools; verify shield and library support",
+      "Intended applications": "embedded control; robot integration"
     },
     "includedItems": [
       "UNO R4 Minima board"
@@ -974,7 +1180,12 @@
     "description": "A single-board computer that can host higher-level robotics software alongside a dedicated motor controller.",
     "specifications": {
       "Product family": "Raspberry Pi 5",
-      "Memory": "Select a memory variant with supplier"
+      "Memory": "Select a memory variant with supplier",
+      "Manufacturer": "Raspberry Pi",
+      "Model": "5",
+      "Product format": "component",
+      "Compatibility": "Raspberry Pi OS; check robot software architecture support",
+      "Intended applications": "embedded control; robot integration"
     },
     "includedItems": [
       "Raspberry Pi 5 board"
@@ -1029,7 +1240,12 @@
     "productType": "component",
     "description": "A microcontroller board for timing-sensitive sensors and embedded control.",
     "specifications": {
-      "Microcontroller": "RP2350"
+      "Microcontroller": "RP2350",
+      "Manufacturer": "Raspberry Pi",
+      "Model": "Pico 2",
+      "Product format": "component",
+      "Compatibility": "Pico SDK; MicroPython",
+      "Intended applications": "embedded control; robot integration"
     },
     "includedItems": [
       "Pico 2 board"
@@ -1086,7 +1302,12 @@
     "description": "A compact autofocus camera module for vision experiments on a compatible Raspberry Pi.",
     "specifications": {
       "Sensor resolution": "12 megapixels",
-      "Focus": "Autofocus"
+      "Focus": "Autofocus",
+      "Manufacturer": "Raspberry Pi",
+      "Model": "Camera Module 3 Standard",
+      "Product format": "accessory",
+      "Compatibility": "Raspberry Pi camera software stack",
+      "Intended applications": "computer vision; robot integration"
     },
     "includedItems": [
       "Camera Module 3 Standard"
@@ -1141,7 +1362,12 @@
     "description": "A neural-network accelerator add-on for local vision inference on Raspberry Pi 5.",
     "specifications": {
       "Accelerator": "Hailo-8L",
-      "Inference performance": "13 TOPS"
+      "Inference performance": "13 TOPS",
+      "Manufacturer": "Raspberry Pi",
+      "Model": "AI HAT+ 13 TOPS",
+      "Product format": "accessory",
+      "Compatibility": "Raspberry Pi 5; Raspberry Pi camera software stack",
+      "Intended applications": "computer vision; robot integration"
     },
     "includedItems": [
       "AI HAT+",
@@ -1198,7 +1424,12 @@
     "productType": "kit",
     "description": "A modular ROS learning platform for navigation and mobile-robot software experiments.",
     "specifications": {
-      "Maximum translation speed": "0.22 m/s"
+      "Maximum translation speed": "0.22 m/s",
+      "Manufacturer": "ROBOTIS",
+      "Model": "TurtleBot3 Burger",
+      "Product format": "kit",
+      "Compatibility": "ROS; select matching distribution and hardware guide",
+      "Intended applications": "mobile robotics; motion control"
     },
     "includedItems": [
       "TurtleBot3 platform kit; SBC variant depends on bundle"
@@ -1252,7 +1483,12 @@
     "productType": "kit",
     "description": "A modular ROS learning platform for navigation and mobile-robot software experiments.",
     "specifications": {
-      "Maximum translation speed": "0.26 m/s"
+      "Maximum translation speed": "0.26 m/s",
+      "Manufacturer": "ROBOTIS",
+      "Model": "TurtleBot3 Waffle Pi",
+      "Product format": "kit",
+      "Compatibility": "ROS; select matching distribution and hardware guide",
+      "Intended applications": "mobile robotics; motion control"
     },
     "includedItems": [
       "TurtleBot3 platform kit; SBC variant depends on bundle"
@@ -1309,7 +1545,12 @@
       "Degrees of freedom": "4 arm + 1 gripper",
       "Payload": "500 g",
       "Reach": "380 mm",
-      "Input": "12 V"
+      "Input": "12 V",
+      "Manufacturer": "ROBOTIS",
+      "Model": "OpenMANIPULATOR-X",
+      "Product format": "kit",
+      "Compatibility": "ROS; DYNAMIXEL SDK; Arduino",
+      "Intended applications": "manipulation; motion programming"
     },
     "includedItems": [
       "Manipulator assembly/kit; confirm supplier bundle"
@@ -1365,8 +1606,12 @@
     "productType": "component",
     "description": "A networked servo actuator for robot joints and mechanisms.",
     "specifications": {
-      "Model": "XL430-W250-T",
-      "Bus": "TTL"
+      "Model": "DYNAMIXEL XL430-W250-T",
+      "Bus": "TTL",
+      "Manufacturer": "ROBOTIS",
+      "Product format": "component",
+      "Compatibility": "DYNAMIXEL Protocol 2.0",
+      "Intended applications": "embedded control; robot integration"
     },
     "includedItems": [
       "Actuator; confirm cable and horn bundle"
@@ -1422,7 +1667,12 @@
     "description": "An ESP32-controlled desktop arm for exploring programmable manipulation.",
     "specifications": {
       "Degrees of freedom": "4",
-      "Controller": "ESP32"
+      "Controller": "ESP32",
+      "Manufacturer": "Waveshare",
+      "Model": "RoArm-M2-S",
+      "Product format": "kit",
+      "Compatibility": "ROS 2; Web control",
+      "Intended applications": "manipulation; motion programming"
     },
     "includedItems": [
       "RoArm-M2-S arm kit; select power plug bundle"
@@ -1482,7 +1732,12 @@
     "specifications": {
       "Drive": "4WD",
       "Motors": "4 N20 geared motors",
-      "Dimensions": "194 \u00d7 168 \u00d7 100 mm"
+      "Dimensions": "194 × 168 × 100 mm",
+      "Manufacturer": "Waveshare",
+      "Model": "WAVE ROVER",
+      "Product format": "kit",
+      "Compatibility": "Raspberry Pi or Jetson host over serial",
+      "Intended applications": "mobile robotics; motion control"
     },
     "includedItems": [
       "Chassis",
@@ -1544,7 +1799,12 @@
     "specifications": {
       "Degrees of freedom": "6",
       "Working range": "280 mm",
-      "Specification edition": "Manufacturer comparison, 2022"
+      "Specification edition": "Manufacturer comparison, 2022",
+      "Manufacturer": "Elephant Robotics",
+      "Model": "myCobot 280 M5",
+      "Product format": "complete robot",
+      "Compatibility": "M5 variant; verify firmware and accessory compatibility with manufacturer",
+      "Intended applications": "manipulation; motion programming"
     },
     "includedItems": [
       "myCobot 280 M5 arm; exact accessory bundle not verified"
@@ -1601,7 +1861,12 @@
     "specifications": {
       "Degrees of freedom": "4",
       "Working range": "260 mm",
-      "Specification edition": "Manufacturer comparison, 2022"
+      "Specification edition": "Manufacturer comparison, 2022",
+      "Manufacturer": "Elephant Robotics",
+      "Model": "myPalletizer 260 M5",
+      "Product format": "complete robot",
+      "Compatibility": "M5 variant; verify firmware and accessory compatibility with manufacturer",
+      "Intended applications": "manipulation; motion programming"
     },
     "includedItems": [
       "myPalletizer 260 M5 arm; exact accessory bundle not verified"
@@ -1658,7 +1923,12 @@
     "specifications": {
       "Degrees of freedom": "6",
       "Working range": "270 mm",
-      "Specification edition": "Manufacturer comparison, 2022"
+      "Specification edition": "Manufacturer comparison, 2022",
+      "Manufacturer": "Elephant Robotics",
+      "Model": "mechArm 270 M5",
+      "Product format": "complete robot",
+      "Compatibility": "M5 variant; verify firmware and accessory compatibility with manufacturer",
+      "Intended applications": "manipulation; motion programming"
     },
     "includedItems": [
       "mechArm 270 M5 arm; exact accessory bundle not verified"

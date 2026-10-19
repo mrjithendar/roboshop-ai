@@ -1,4 +1,3 @@
-# Minikube sandbox deployment; apply with ./deploy-minikube.sh.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -83,6 +82,21 @@ spec:
           value: 'true'
         - name: DATA_DIR
           value: /app/.data
+        - name: DEMO_MONGODB_URL
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-demo-reviews
+              key: MONGODB_URL
+              optional: true
+        - name: DEMO_REVIEWS_DATABASE
+          value: robotshop_demo_global
+        - name: CART_URL
+          value: http://cart-service:4107
+        - name: CART_SERVICE_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-secrets
+              key: PAYMENT_SERVICE_TOKEN
         resources:
           requests:
             cpu: 50m

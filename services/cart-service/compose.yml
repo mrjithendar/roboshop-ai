@@ -1,0 +1,36 @@
+services:
+  cart-service:
+    extends:
+      file: ../common/compose.yml
+      service: application
+    image: ${IMAGE_PREFIX:-robotshop}-cart-service:local
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+      CART_SERVICE_TOKEN: ${PAYMENT_SERVICE_TOKEN:?Set PAYMENT_SERVICE_TOKEN}
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+    - ALL
+    security_opt:
+    - no-new-privileges:true
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://127.0.0.1:4107/ready',
+        timeout=2)
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    depends_on:
+      redis:
+        condition: service_healthy
