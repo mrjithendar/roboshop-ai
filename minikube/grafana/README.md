@@ -47,7 +47,7 @@ Change it after logging in. A later password change in Grafana does not update t
 
 ## Connect metrics
 
-This installer deploys Grafana only; it does not install Prometheus or assume an existing metrics endpoint. In Grafana, open **Connections → Data sources → Add data source → Prometheus** and enter the actual Kubernetes Service URL. For example, only if that Service exists in that namespace: `http://prometheus.robotshop-ai.svc.cluster.local:9090`. Use **Save & test**. Docker Compose service addresses are not automatically available inside Kubernetes.
+Run `bash minikube/deploy-prometheus.sh`, then rerun `bash minikube/deploy-grafana.sh`. Grafana provisions the default **Prometheus** data source using `http://prometheus.robotshop-ai.svc.cluster.local:9090/prometheus`. In Explore, query `up` to verify it. The Grafana installer does not itself install Prometheus; until Prometheus exists the data source will be unavailable. See [Prometheus setup](../prometheus/README.md) for scrape targets and public login details.
 
 Edit `values.yaml` to configure Grafana, storage, or resources, then rerun the installer. When changing the domain/path, update the ingress, `grafana.ini.server.root_url`, and shared certificate together. Avoid changing the pinned chart version without reviewing its upgrade notes.
 

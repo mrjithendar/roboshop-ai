@@ -223,3 +223,12 @@ bash minikube/deploy-wordpress.sh
 ```
 
 WordPress runs in namespace **`jithendar-com`** and serves **https://jithendar.com/**; Grafana keeps **/grafana/**. Includes MySQL, persistent site/database volumes, random credentials and verified Redis object caching. See [WordPress setup](wordpress/README.md) for installation, administrator login, backup requirements and troubleshooting.
+
+## Prometheus over HTTPS
+
+```bash
+bash minikube/deploy-prometheus.sh
+bash minikube/deploy-grafana.sh
+```
+
+Prometheus runs in `robotshop-ai` at **https://jithendar.com/prometheus/** with persistent storage and a generated login password. Rerunning the Grafana installer provisions its internal Prometheus data source. See [Prometheus setup](prometheus/README.md) for credentials, scrape targets and troubleshooting.

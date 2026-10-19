@@ -55,3 +55,19 @@ livenessProbe:
   httpGet:
     path: /grafana/api/health
     port: grafana
+
+# Grafana queries Prometheus inside the cluster; ingress authentication is external only.
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        uid: robotshop-prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus.robotshop-ai.svc.cluster.local:9090/prometheus
+        isDefault: true
+        editable: false
+        jsonData:
+          httpMethod: POST
+          timeInterval: 30s

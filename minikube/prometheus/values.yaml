@@ -1,0 +1,10 @@
+image: prom/prometheus:v3.15.0
+storage: 5Gi
+retentionTime: 7d
+retentionSize: 4GB
+# Add Kubernetes-reachable scrape jobs here. Docker Compose DNS is separate.
+extraScrapeConfigs: []
+# Example:
+# - job_name: robotshop
+#   static_configs:
+#     - targets: ["ai-gateway.robotshop-ai.svc.cluster.local:3000"]
