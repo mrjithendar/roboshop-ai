@@ -1,3 +1,4 @@
+import { appPath } from './paths.js';
 declare global { interface Window { turnstile?: { render(container: HTMLElement, options: Record<string, unknown>): string; reset(id: string): void; getResponse(id: string): string; remove(id: string): void } } }
 export interface User { id: string; email: string; name: string; role: 'customer' | 'admin' | 'superadmin'; disabled: boolean }
 export let currentUser: User | null = null;
@@ -20,7 +21,7 @@ export async function initAccount(changed: () => Promise<void>): Promise<void> {
     accountElement('admin-link').hidden = !currentUser || currentUser.role === 'customer';
   };
   async function accountRequest(path: string, data?: object): Promise<{ user: User | null }> {
-    const response = await fetch(path, { method: data ? 'POST' : 'GET', headers: { 'content-type': 'application/json' }, ...(data ? { body: JSON.stringify(data) } : {}), signal: AbortSignal.timeout(15000) });
+    const response = await fetch(appPath(path), { method: data ? 'POST' : 'GET', headers: { 'content-type': 'application/json' }, ...(data ? { body: JSON.stringify(data) } : {}), signal: AbortSignal.timeout(15000) });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Account service unavailable.');
     return result;
@@ -32,7 +33,7 @@ export async function initAccount(changed: () => Promise<void>): Promise<void> {
     if (!userId) return;
     const panel = accountElement('account-details'); panel.replaceChildren(privateText('p', 'Loading your account…'));
     async function read<T>(path: string): Promise<T> {
-      const response = await fetch(path, { signal: AbortSignal.timeout(15000) });
+      const response = await fetch(appPath(path), { signal: AbortSignal.timeout(15000) });
       const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Account details unavailable.'); return data;
     }
     interface Purchase { id: string; total: number; currency: string; paidAt: string; items: { name: string; quantity: number }[] }
@@ -79,7 +80,7 @@ export async function initAccount(changed: () => Promise<void>): Promise<void> {
     if (challengeId) { window.turnstile?.remove(challengeId); challengeId = null; }
     if (mode.value !== 'register') return;
     try {
-      const response = await fetch('/api/auth/challenge', { signal: AbortSignal.timeout(8000) });
+      const response = await fetch(appPath('/api/auth/challenge'), { signal: AbortSignal.timeout(8000) });
       if (!response.ok) throw new Error('Registration protection is unavailable. Try again later.');
       const config = await response.json();
       if (generation !== challengeGeneration || mode.value !== 'register') return;

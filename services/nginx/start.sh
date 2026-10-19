@@ -13,6 +13,13 @@ export GATEWAY_HOST="${GATEWAY_HOST:-ai-gateway}"
 export GATEWAY_PORT="${GATEWAY_PORT:-3000}"
 export NGINX_SERVER_NAME="${NGINX_SERVER_NAME:-localhost}"
 export NGINX_RESOLVER="${NGINX_RESOLVER:-$(awk '/^nameserver / {print $2; exit}' /etc/resolv.conf)}"
+# Only a single optional URL segment is supported; empty keeps Compose at /.
+export FRONTEND_BASE_PATH="${FRONTEND_BASE_PATH:-}"
+case "$FRONTEND_BASE_PATH" in
+    '') ;;
+    /*) segment="${FRONTEND_BASE_PATH#/}"; case "$segment" in ''|*[!a-zA-Z0-9_-]*) echo 'Invalid FRONTEND_BASE_PATH' >&2; exit 1;; esac ;;
+    *) echo 'Invalid FRONTEND_BASE_PATH' >&2; exit 1;;
+esac
 # Values are inserted into configuration: reject directive injection.
 for name in "$GATEWAY_HOST" "$FRONTEND_HOST" "$NGINX_SERVER_NAME"; do
     case "$name" in ''|*[!a-zA-Z0-9.-]*) echo 'Invalid hostname' >&2; exit 1;; esac
@@ -24,7 +31,7 @@ for port in "$GATEWAY_PORT" "$FRONTEND_PORT" "$NGINX_HTTP_PORT" "$NGINX_HTTPS_PO
 done
 mkdir -p "$NGINX_RUN_DIR/http" "$NGINX_RUN_DIR/snippets"
 # Substitute ONLY our settings. Preserve NGINX variables such as $uri/$scheme.
-vars='${NGINX_TLS_CERT_FILE} ${NGINX_TLS_KEY_FILE} ${NGINX_RUN_DIR} ${FRONTEND_HOST} ${FRONTEND_PORT} ${NGINX_MIME_TYPES} ${NGINX_HTTP_PORT} ${NGINX_HTTPS_PORT} ${NGINX_RESOLVER} ${GATEWAY_HOST} ${GATEWAY_PORT} ${NGINX_SERVER_NAME}'
+vars='${FRONTEND_BASE_PATH} ${NGINX_TLS_CERT_FILE} ${NGINX_TLS_KEY_FILE} ${NGINX_RUN_DIR} ${FRONTEND_HOST} ${FRONTEND_PORT} ${NGINX_MIME_TYPES} ${NGINX_HTTP_PORT} ${NGINX_HTTPS_PORT} ${NGINX_RESOLVER} ${GATEWAY_HOST} ${GATEWAY_PORT} ${NGINX_SERVER_NAME}'
 for source in "$NGINX_CONFIG_DIR/nginx.conf" "$NGINX_CONFIG_DIR"/http/*.conf "$NGINX_CONFIG_DIR"/snippets/*.conf; do
     relative="${source#"$NGINX_CONFIG_DIR/"}"
     envsubst "$vars" < "$source" > "$NGINX_RUN_DIR/$relative"

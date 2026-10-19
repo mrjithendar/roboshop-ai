@@ -15,7 +15,7 @@ while [[ $# -gt 0 ]]; do
     -h|--help)
       echo 'Usage: bash deploy-minikube.sh [--load-images] [--render-only DIR]'
       echo 'Deploys 16 RobotShop services into robotshop-ai. Does not reset any existing application.'
-      echo 'Overrides: PROFILE=mk4, KUBE_CONTEXT, IMAGE_PREFIX=robotshop, IMAGE_TAG=local, PUBLIC_ORIGIN=http://localhost:3000'
+      echo 'Overrides: PROFILE=mk4, KUBE_CONTEXT, IMAGE_PREFIX=robotshop, IMAGE_TAG=local, PUBLIC_ORIGIN=https://jithendar.com'
       echo '--load-images: run on the Minikube host after build-images.sh; load application images into the selected profile.'
       echo '--render-only DIR: validate/render YAML without any cluster access.'
       exit 0 ;;
@@ -43,6 +43,9 @@ temp="$(mktemp -d)"
 trap 'rm -rf "$temp"' EXIT
 python3 "$ROOT/minikube/robotshop/deployment.py" render --output "$temp"
 k --request-timeout=15s get namespace kube-system >/dev/null
+k --request-timeout=15s get ingressclass traefik >/dev/null || fail 'Install Traefik first.'
+k --request-timeout=15s get crd middlewares.traefik.io >/dev/null
+k wait --for=condition=Ready clusterissuer/letsencrypt-prod --timeout=60s
 if [[ "$load_images" == true ]]; then
   [[ "$KUBE_CONTEXT" == "$PROFILE" ]] || fail '--load-images requires the selected local profile and context to match.'
   command -v minikube >/dev/null || fail 'minikube is required for --load-images; run on the Minikube host.'
@@ -71,6 +74,9 @@ for service in "${services[@]}"; do
   fi
 done
 k -n robotshop-ai get pods,svc,pvc
-echo 'RobotShop services are deployed. Access the storefront with:'
-printf 'kubectl --context=%q -n robotshop-ai port-forward service/nginx 3000:8080\n' "$KUBE_CONTEXT"
-echo 'Then open http://localhost:3000. WordPress, monitoring and public domain routing were not changed.'
+k apply -f "$temp/ingress.yaml"
+if ! k -n robotshop-ai wait --for=condition=Ready certificate/jithendar-com --timeout=180s; then
+  k -n robotshop-ai get certificate,certificaterequest,order,challenge
+  fail 'TLS is pending. Check DNS and public ports 80/443, then rerun.'
+fi
+echo 'RobotShop: https://jithendar.com/roboshop/'

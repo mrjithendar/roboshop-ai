@@ -32,6 +32,7 @@ def render(output, prefix, tag, public_origin):
     docs = list(yaml.safe_load_all((ROOT / 'minikube/robotshop/config.yaml').read_text()))
     docs[1]['data']['PUBLIC_ORIGIN'] = public_origin
     (output / 'config.yaml').write_text(yaml.safe_dump_all(docs, sort_keys=False))
+    (output / 'ingress.yaml').write_text((ROOT / 'minikube/robotshop/ingress.yaml').read_text())
     images = []
     for name in SERVICES:
         source = ROOT / 'services' / name / (name + '-minikube.yaml')
@@ -81,7 +82,7 @@ def main():
     render_parser.add_argument('--output', type=Path, required=True)
     render_parser.add_argument('--prefix', default=os.getenv('IMAGE_PREFIX', 'robotshop'))
     render_parser.add_argument('--tag', default=os.getenv('IMAGE_TAG', 'local'))
-    render_parser.add_argument('--public-origin', default=os.getenv('PUBLIC_ORIGIN', 'http://localhost:3000'))
+    render_parser.add_argument('--public-origin', default=os.getenv('PUBLIC_ORIGIN', 'https://jithendar.com'))
     credentials = commands.add_parser('credentials')
     credentials.add_argument('--context', required=True)
     args = parser.parse_args()

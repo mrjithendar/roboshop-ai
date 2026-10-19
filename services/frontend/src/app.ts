@@ -1,3 +1,4 @@
+import { appPath } from './paths.js';
 import { currentUser, initAccount, showLogin } from './account.js';
 export {};
 
@@ -41,7 +42,7 @@ let pendingOrder: Order | null = null, checkoutScript: Promise<void> | null = nu
 function paymentReference(value?: string | null) { try { if (value === undefined) return localStorage.getItem('robotshop-payment-order'); if (value) localStorage.setItem('robotshop-payment-order', value); else localStorage.removeItem('robotshop-payment-order'); } catch {} }
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = '', content?: string): HTMLElementTagNameMap[K] => { const node = document.createElement(tag); if (className) node.className = className; if (content !== undefined) node.textContent = content; return node; };
 async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(path, { ...options, headers: { 'content-type': 'application/json', ...options.headers }, signal: AbortSignal.timeout(25000) });
+  const response = await fetch(appPath(path), { ...options, headers: { 'content-type': 'application/json', ...options.headers }, signal: AbortSignal.timeout(25000) });
   let result;
   try { result = await response.json(); } catch { throw new Error('The service is unavailable. Please try again.'); }
   if (!response.ok) throw new ApiError(result.error || 'The request could not be completed.', response.status);
@@ -51,7 +52,7 @@ function toast(message: string) { $('#toast').textContent = message; $('#toast')
 function show(id: string) { const dialog = document.getElementById(id); if (!(dialog instanceof HTMLDialogElement)) throw new Error(`Missing dialog: ${id}`); if (!dialog.open) dialog.showModal(); }
 document.querySelectorAll<HTMLElement>('[data-close]').forEach(button => button.addEventListener('click', () => { const dialog = document.getElementById(button.dataset.close || ''); if (dialog instanceof HTMLDialogElement) dialog.close(); }));
 document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('click', event => { if (event.target === dialog) { const r = dialog.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close(); } }));
-function image(p: Product, className = '') { const img = el('img', className); img.src = p.image; img.alt = p.name; img.loading = 'lazy'; img.addEventListener('error', () => { img.src = '/images/placeholder.png'; }, { once: true }); return img; }
+function image(p: Product, className = '') { const img = el('img', className); img.src = appPath(p.image); img.alt = p.name; img.loading = 'lazy'; img.addEventListener('error', () => { img.src = appPath('/images/placeholder.png'); }, { once: true }); return img; }
 function productPrice(p: Product) { return p.priceType === 'on-request' ? 'Price on request' : new Intl.NumberFormat(undefined, { style: 'currency', currency: p.currency || 'EUR' }).format(p.price) + (p.showcase ? ' · reference' : ''); }
 function canBuy(p: Product) { return !p.showcase && !p.synthetic && (p.currency || 'EUR') === 'EUR' && (p.priceType || 'sale') === 'sale'; }
 function addButton(p: Product) {
@@ -61,7 +62,7 @@ function addButton(p: Product) {
 }
 function card(p: Product) {
   const article = el('article', 'product-card');
-  const visual = el('a', 'product-image-button'); visual.href = `/products/${encodeURIComponent(p.slug || p.sku.toLowerCase())}`; visual.setAttribute('aria-label', `View ${p.name}`); visual.append(image(p), el('span', 'product-badge', p.showcase ? 'SIMULATED AVAILABILITY' : p.instock > 0 ? 'AVAILABLE' : 'OUT OF STOCK'));
+  const visual = el('a', 'product-image-button'); visual.href = appPath(`/products/${encodeURIComponent(p.slug || p.sku.toLowerCase())}`); visual.setAttribute('aria-label', `View ${p.name}`); visual.append(image(p), el('span', 'product-badge', p.showcase ? 'SIMULATED AVAILABILITY' : p.instock > 0 ? 'AVAILABLE' : 'OUT OF STOCK'));
   const title = el('a', 'product-title', p.name); title.href = visual.href;
   const bottom = el('div', 'product-bottom'); bottom.append(el('span', 'product-price', productPrice(p)), addButton(p));
   article.append(visual, el('p', 'product-category', [p.productType, ...p.categories].filter(Boolean).join(' / ')), title, el('p', 'product-description', p.description), bottom);
@@ -89,7 +90,7 @@ async function loadRecommendations() {
 $('#retry-products').addEventListener('click', loadProducts);
 $('#search').addEventListener('input', renderProducts); $('#sort').addEventListener('change', renderProducts); $('#in-stock').addEventListener('change', renderProducts);
 document.querySelectorAll<HTMLElement>('[data-category]').forEach(button => button.addEventListener('click', () => { category = button.dataset.category || ''; document.querySelectorAll<HTMLElement>('[data-category]').forEach(tab => { const active = tab === button; tab.classList.toggle('selected', active); tab.setAttribute('aria-pressed', String(active)); }); renderProducts(); }));
-function detail(p: Product) { location.href = `/products/${encodeURIComponent(p.slug || p.sku.toLowerCase())}`; }
+function detail(p: Product) { location.href = appPath(`/products/${encodeURIComponent(p.slug || p.sku.toLowerCase())}`); }
 
 async function add(p: Product) { const quantity = (cart.items.find(item => item.sku === p.sku)?.quantity || 0) + 1; if (await updateCart(p.sku, quantity)) toast(`${p.name} is in your bag.`); }
 async function updateCart(sku: string, quantity: number) {

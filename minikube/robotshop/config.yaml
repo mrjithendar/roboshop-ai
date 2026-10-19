@@ -13,7 +13,7 @@ metadata:
 data:
   HOST: 0.0.0.0
   APP_ENV: development
-  PUBLIC_ORIGIN: http://localhost:3000
+  PUBLIC_ORIGIN: https://jithendar.com
   REGISTRATION_CHALLENGE_PROVIDER: disabled
   PAYMENT_MODE: test
   MONGODB_DATABASE: robotshop

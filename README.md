@@ -353,3 +353,16 @@ docker compose --profile tools up -d
 
 Images remain prebuilt; use `./build-images.sh` or pull your published images first.
 The existing `docker-compose.tls.yml` overlay still applies to the root project.
+
+### Deploy all services to Minikube
+
+Each runnable service includes `services/<name>/<name>-minikube.yaml`. Deploy all application services with:
+
+```bash
+bash build-images.sh
+bash deploy-minikube.sh --load-images
+```
+
+Run image loading on the Minikube host. For remote registry images, existing images, credential handling and verification, see [RobotShop Minikube deployment](minikube/robotshop/README.md). Services run in `robotshop-ai`; existing WordPress and monitoring installations are preserved.
+
+The Minikube storefront uses **https://jithendar.com/roboshop/**, with Let's Encrypt TLS and HTTP-to-HTTPS redirection. See [RobotShop Minikube deployment](minikube/robotshop/README.md#https-access-at-jithendarcomroboshop) for rebuilding images, deployment, and certificate troubleshooting.

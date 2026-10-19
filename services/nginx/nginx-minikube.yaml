@@ -38,6 +38,8 @@ spec:
         image: robotshop-nginx:local
         imagePullPolicy: IfNotPresent
         env:
+        - name: FRONTEND_BASE_PATH
+          value: /roboshop
         - name: GATEWAY_HOST
           value: ai-gateway
         - name: GATEWAY_PORT

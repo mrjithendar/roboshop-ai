@@ -249,3 +249,9 @@ kubectl top pods -A
 ```
 
 Installs Metrics Server in `kube-system` for `kubectl top` and resource-based HPA metrics. See [Metrics Server setup](metrics-server/README.md).
+
+## Deploy RobotShop application services
+
+From the repository root, use `bash deploy-minikube.sh` to apply each service's `*-minikube.yaml` in dependency order. See [application deployment](robotshop/README.md) for building/loading images, remote deployment and configuration.
+
+RobotShop is served at **https://jithendar.com/roboshop/** using the root `deploy-minikube.sh` script. See [HTTPS routing and rebuild instructions](robotshop/README.md#https-access-at-jithendarcomroboshop). WordPress continues serving the domain root.

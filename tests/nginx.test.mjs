@@ -78,3 +78,28 @@ test('optional HTTPS redirects HTTP and serves the storefront with security head
     assert.match(result.headers['content-security-policy'],/checkout.razorpay.com/);
   } finally {if(edge)await edge.stop();await new Promise(r=>backend.close(r));rmSync(dir,{recursive:true,force:true});}
 });
+
+test('subpath HTML links and module assets survive ingress prefix stripping', {skip: process.env.NGINX_TEST !== 'true', timeout:30000}, async()=>{
+  const dir=mkdtempSync(join(tmpdir(),'robotshop-prefix-'));
+  const backend=createServer((req,res)=>res.end('{}'));
+  const gatewayPort=await listen(backend);
+  const probe=createServer(); const port=await listen(probe); await new Promise(r=>probe.close(r));
+  let edge; const previous=process.env.FRONTEND_BASE_PATH;
+  try {
+    process.env.FRONTEND_BASE_PATH='/roboshop';
+    edge=await startNginx({port,gatewayPort,directory:dir});
+    // Traefik strips /roboshop before forwarding these requests to NGINX.
+    const base=`http://127.0.0.1:${port}`;
+    for(const path of ['/','/admin','/products/arduino-alvik']) {
+      const html=await (await fetch(base+path)).text();
+      assert.match(html,/href="\/roboshop\/styles.css"/);
+      assert.match(html,/src="\/roboshop\/[a-z]+.js"/);
+      assert.doesNotMatch(html,/(?:href|src)="\/(?!roboshop\/)/);
+    }
+    const module=await fetch(base+'/paths.js');
+    assert.equal(module.status,200); assert.match(await module.text(),/import.meta.url/);
+  } finally {
+    if(previous===undefined) delete process.env.FRONTEND_BASE_PATH; else process.env.FRONTEND_BASE_PATH=previous;
+    if(edge) await edge.stop(); await new Promise(r=>backend.close(r)); rmSync(dir,{recursive:true,force:true});
+  }
+});

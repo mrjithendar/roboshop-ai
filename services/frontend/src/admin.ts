@@ -1,3 +1,4 @@
+import { appPath } from './paths.js';
 export {};
 interface AdminProduct { currency?: string; priceType?: string; showcase?: boolean; sku: string; name: string; description: string; price: number; instock: number; categories: string[]; archived: boolean; revision: number; available: number }
 interface AdminUser { id: string; name: string; email: string; role: 'customer' | 'admin' | 'superadmin'; disabled: boolean }
@@ -7,7 +8,7 @@ const input = (id: string) => control<HTMLInputElement>(id);
 const message = (error: unknown) => error instanceof Error ? error.message : 'Request failed.';
 const node = <K extends keyof HTMLElementTagNameMap>(tag: K, content = ''): HTMLElementTagNameMap[K] => { const result = document.createElement(tag); result.textContent = content; return result; };
 async function adminRequest<T>(path: string, method = 'GET', data?: object): Promise<T> {
-  const response = await fetch(path, { method, headers: { 'content-type': 'application/json' }, ...(data ? { body: JSON.stringify(data) } : {}), signal: AbortSignal.timeout(25000) });
+  const response = await fetch(appPath(path), { method, headers: { 'content-type': 'application/json' }, ...(data ? { body: JSON.stringify(data) } : {}), signal: AbortSignal.timeout(25000) });
   const result = await response.json();
   if (!response.ok) {
     if ([401, 403].includes(response.status)) { control('admin-content').hidden = true; control('admin-login').hidden = false; control('admin-status').textContent = 'Your account no longer has access to this action. Log in again.'; }
