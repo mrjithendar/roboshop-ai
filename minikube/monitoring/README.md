@@ -81,3 +81,21 @@ Grafana's chart references this existing Secret using `username`/`password`. Bec
 Prometheus's Traefik Middleware references `monitoring-auth` directly. The `prometheus-auth` **Middleware name** stays unchanged; only its Secret reference changes. Grafana and Prometheus keep separate login sessions; this is shared credentials, not single sign-on.
 
 Old standalone Secrets are not manually deleted by the helper. Grafana's old Helm-managed Secret may be removed by the Helm upgrade after its credentials have been copied; its PVC is preserved. The old standalone Prometheus Secret may remain unused. Both applications must be upgraded before considering cleanup. Do not delete `monitoring-auth` to rotate it: update it deliberately and rerun Grafana's installer to synchronize the database.
+
+## Delete all monitoring data and reinstall
+
+**Destructive:** removes Grafana dashboards, users and settings; Prometheus metrics history; and the old/shared login passwords. Use only when you want a fresh installation:
+
+```bash
+bash minikube/reset-monitoring.sh
+# Or explicitly select your remote cluster:
+KUBE_CONTEXT=YOUR_CONTEXT bash minikube/reset-monitoring.sh
+```
+
+The script uninstalls the `grafana` and `prometheus` releases in **both `robotshop-ai` and `monitoring`**, waits for their pods to stop, deletes their known leftover resources, explicitly deletes PVCs `grafana` and `prometheus-data` (including Helm-retained claims), and deletes Secrets `monitoring-auth`, `grafana` and `prometheus-auth`. It then runs both installers on the same context to create fresh data volumes and a new shared random login password.
+
+It preserves both namespaces, their shared TLS Certificates/Secrets, cert-manager, Traefik, WordPress and RobotShop workloads. Legacy Grafana/Prometheus installations in `robotshop-ai` are explicitly removed as part of the reset; reinstall happens only in `monitoring`. It does not remove arbitrary resources or reset Minikube itself. Cluster PV reclaim policies control physical disk cleanup; a `Retain` PV may leave old data for separate administrator cleanup, but the reinstalled apps use new claims.
+
+If deletion fails or a PVC stays Terminating, inspect the error and pod/volume events; the script stops rather than removing finalizers or proceeding with stale data. If reinstall fails after deletion, the old data is already gone: fix the reported issue and run the individual deploy scripts to finish, without resetting again.
+
+If an older reset script reports “Legacy monitoring resources exist in robotshop-ai”, update the local script and rerun it. The current reset handles those exact monitoring releases, PVCs and login Secrets automatically; do not delete the `robotshop-ai` namespace.

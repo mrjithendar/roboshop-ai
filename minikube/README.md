@@ -237,3 +237,5 @@ bash minikube/deploy-grafana.sh
 Prometheus runs in `monitoring` at **https://jithendar.com/prometheus/** with persistent storage and a generated login password. Rerunning the Grafana installer provisions its internal Prometheus data source. See [Prometheus setup](prometheus/README.md) for credentials, scrape targets and troubleshooting.
 
 Grafana and Prometheus both install in the **`monitoring`** namespace and share its TLS certificate. See [monitoring namespace notes](monitoring/README.md) before changing an existing installation.
+
+To **delete all Grafana/Prometheus data and login credentials, then reinstall**, use `bash minikube/reset-monitoring.sh`. This deletes only their resources in `monitoring` and legacy `robotshop-ai`, then reinstalls in `monitoring`; namespaces, TLS and other workloads are preserved. See [monitoring reset details](monitoring/README.md#delete-all-monitoring-data-and-reinstall).
