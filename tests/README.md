@@ -78,3 +78,7 @@ service requirements. `test_llm.py` mocks MongoDB and provider calls; it verifie
 roles/origin checks, revisions, activation/disconnect, allowlists, deadlines and
 provider mapping without AWS credentials or a running model server. The dedicated
 `llm-checks.yml` workflow runs these tests and the admin/storefront UI tests.
+
+## Robotics showcase
+
+`tests/python/test_showcase.py` covers review security, registration protection, currency and payment isolation. Its MongoDB tests use only 12 profiles/36 reviews and unique `robotshop_demo_test_*` databases. `tests/showcase-ui.test.mjs` exercises product pages with safe DOM rendering. NGINX tests cover direct slug refresh and unknown/private path 404 behavior. Full 10,000-profile seeds are never part of test or deployment startup. See [showcase operations](../docs/deployment/robotics-showcase.md).

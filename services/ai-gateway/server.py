@@ -40,8 +40,6 @@ def expectation(o):
     }
 
 
-
-
 class Gateway:
     def __init__(self, db, store):
         self.db = db
@@ -192,29 +190,52 @@ class Gateway:
             if shipping:
                 self.customers.save_address(req.user["id"], shipping)
             return {"user": req.user}, 201 if path.endswith("/register") else 200, []
-        match = re.fullmatch(r"/api/products/([a-z0-9][a-z0-9-]{0,99})(/reviews(?:/mine)?)?", path)
+        match = re.fullmatch(
+            r"/api/products/([a-z0-9][a-z0-9-]{0,99})(/reviews(?:/mine)?)?", path
+        )
         if match:
-            product = next((p for p in self.products() if p.get('slug', p['sku'].lower()) == match[1]), None)
+            product = next(
+                (
+                    p
+                    for p in self.products()
+                    if p.get("slug", p["sku"].lower()) == match[1]
+                ),
+                None,
+            )
             if not product:
-                raise HttpError(404, 'Product not found.')
-            if not match[2] and method == 'GET':
-                return {'product': product, 'related': related(product, self.products())}
-            if match[2] == '/reviews/mine' and method == 'GET':
+                raise HttpError(404, "Product not found.")
+            if not match[2] and method == "GET":
+                return {
+                    "product": product,
+                    "related": related(product, self.products()),
+                }
+            if match[2] == "/reviews/mine" and method == "GET":
                 require_role(req.user)
-                row = self.db.reviews.find_one({'productId': product['sku'], 'authorId': req.user['id'], 'synthetic': False})
-                return {'review': self.reviews.public(row) if row else None}
-            if match[2] == '/reviews':
-                if method == 'GET':
-                    return self.reviews.listing(product['sku'], req.query)
-                if method in ('POST', 'PUT', 'DELETE'):
+                row = self.db.reviews.find_one(
+                    {
+                        "productId": product["sku"],
+                        "authorId": req.user["id"],
+                        "synthetic": False,
+                    }
+                )
+                return {"review": self.reviews.public(row) if row else None}
+            if match[2] == "/reviews":
+                if method == "GET":
+                    return self.reviews.listing(product["sku"], req.query)
+                if method in ("POST", "PUT", "DELETE"):
                     require_role(req.user)
-                    self.auth.limit('review:' + req.user['id'])
-                    return self.reviews.write(product['sku'], req.user, method, req.body() if method != 'DELETE' else None)
-        if path == '/api/admin/reviews' and method == 'GET':
-            require_role(req.user, ('admin', 'superadmin'))
+                    self.auth.limit("review:" + req.user["id"])
+                    return self.reviews.write(
+                        product["sku"],
+                        req.user,
+                        method,
+                        req.body() if method != "DELETE" else None,
+                    )
+        if path == "/api/admin/reviews" and method == "GET":
+            require_role(req.user, ("admin", "superadmin"))
             return self.reviews.listing(None, req.query, admin=True)
-        match = re.fullmatch(r'/api/admin/reviews/([A-Za-z0-9:_-]{1,160})', path)
-        if match and method == 'PATCH':
+        match = re.fullmatch(r"/api/admin/reviews/([A-Za-z0-9:_-]{1,160})", path)
+        if match and method == "PATCH":
             return self.reviews.moderate(match[1], req.user, req.body())
         if path.startswith("/api/account/"):
             require_role(req.user)
@@ -325,7 +346,10 @@ class Gateway:
                 if not config["enabled"]:
                     raise HttpError(503, config.get("message", "Payments unavailable."))
                 order = self.store.begin_payment(
-                    id, req.headers.get("idempotency-key"), self.catalogue(), config.get("mode", "unknown")
+                    id,
+                    req.headers.get("idempotency-key"),
+                    self.catalogue(),
+                    config.get("mode", "unknown"),
                 )
                 if order["status"] == "paid":
                     return {"order": public_order(order)}
@@ -399,7 +423,11 @@ class Gateway:
             result = request(self.urls["sre"] + "/api/ops")
             return result, 200 if result["status"] == "healthy" else 503, []
         if path == "/api/products" and method == "GET":
-            return {"products": self.products(), "checkoutCurrency": "EUR", "currencyPolicy": "Reference prices retain source currency. Only sale-priced EUR live inventory is purchasable."}
+            return {
+                "products": self.products(),
+                "checkoutCurrency": "EUR",
+                "currencyPolicy": "Reference prices retain source currency. Only sale-priced EUR live inventory is purchasable.",
+            }
         if path == "/api/compare" and method == "GET":
             skus = req.query.get("skus", "").split(",")
             if (
@@ -413,8 +441,17 @@ class Gateway:
                 raise HttpError(404, "Product not found.")
             return {
                 "products": [products[s] for s in skus],
-                "currency": next(iter({products[s].get("currency", "EUR") for s in skus})) if len({products[s].get("currency", "EUR") for s in skus}) == 1 else None,
-                "lowestPrice": min(products[s]["price"] for s in skus) if len({products[s].get("currency", "EUR") for s in skus}) == 1 and all(products[s].get("priceType") != "on-request" for s in skus) else None,
+                "currency": (
+                    next(iter({products[s].get("currency", "EUR") for s in skus}))
+                    if len({products[s].get("currency", "EUR") for s in skus}) == 1
+                    else None
+                ),
+                "lowestPrice": (
+                    min(products[s]["price"] for s in skus)
+                    if len({products[s].get("currency", "EUR") for s in skus}) == 1
+                    and all(products[s].get("priceType") != "on-request" for s in skus)
+                    else None
+                ),
             }
         if path == "/api/recommendations/personalized" and method == "GET":
             require_role(req.user)

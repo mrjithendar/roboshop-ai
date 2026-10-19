@@ -22,6 +22,8 @@ for (const name of names) {
   if (['ai-gateway', 'shopping-agent'].includes(name)) env.LLM_SERVICE_TOKEN = llmToken;
   else { delete env.LLM_SERVICE_TOKEN; delete env.OLLAMA_ENDPOINTS_JSON; }
   delete env.MCP_SESSION_TOKEN;
+  delete env.DEMO_MONGODB_URL;
+  if (name !== 'ai-gateway') for (const key of ['REGISTRATION_CHALLENGE_PROVIDER', 'TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY', 'TURNSTILE_HOSTNAME', 'TRUSTED_PROXY_CIDRS']) delete env[key];
   if (['payment-service', 'ai-gateway'].includes(name)) env.PAYMENT_SERVICE_TOKEN = paymentToken;
   else delete env.PAYMENT_SERVICE_TOKEN;
   if (name !== 'payment-service') for (const key of ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'RAZORPAY_WEBHOOK_SECRET']) delete env[key];

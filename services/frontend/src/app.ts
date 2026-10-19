@@ -64,7 +64,7 @@ function card(p: Product) {
   const visual = el('a', 'product-image-button'); visual.href = `/products/${encodeURIComponent(p.slug || p.sku.toLowerCase())}`; visual.setAttribute('aria-label', `View ${p.name}`); visual.append(image(p), el('span', 'product-badge', p.showcase ? 'SIMULATED AVAILABILITY' : p.instock > 0 ? 'AVAILABLE' : 'OUT OF STOCK'));
   const title = el('a', 'product-title', p.name); title.href = visual.href;
   const bottom = el('div', 'product-bottom'); bottom.append(el('span', 'product-price', productPrice(p)), addButton(p));
-  article.append(visual, el('p', 'product-category', p.categories.join(' / ')), title, el('p', 'product-description', p.description), bottom);
+  article.append(visual, el('p', 'product-category', [p.productType, ...p.categories].filter(Boolean).join(' / ')), title, el('p', 'product-description', p.description), bottom);
   return article;
 }
 function renderProducts() {

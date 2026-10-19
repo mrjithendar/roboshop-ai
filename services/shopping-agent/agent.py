@@ -13,7 +13,8 @@ def answer(products, message, config=None, revision=0, generate=invoke):
         return unconfigured()
     picks = retrieve(products, message)
     evidence = [
-        {k: p[k] for k in ("sku", "name", "description", "price", "instock")} | {k: p.get(k) for k in ("currency", "priceType", "showcase", "sources")}
+        {k: p[k] for k in ("sku", "name", "description", "price", "instock")}
+        | {k: p.get(k) for k in ("currency", "priceType", "showcase", "sources")}
         for p in picks[:4]
     ]
     # Bound catalogue text as well as the user message.

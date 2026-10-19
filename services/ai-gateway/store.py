@@ -1,4 +1,5 @@
 from product_details import require_purchasable
+
 """Compatible single-writer JSON ledger; caller holds lock across transactions."""
 
 import copy

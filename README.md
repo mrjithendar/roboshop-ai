@@ -17,7 +17,9 @@ npm run dev
 
 Open **http://localhost:3000**. The launcher starts seven services and Ctrl+C stops
 all of them. Accounts, login sessions, editable products and store settings are stored in MongoDB. Carts/orders remain in `.data/store.json`, which is excluded from Git.
-The catalogue still contains fictional robots. The old demo-order endpoint is disabled.
+The default catalogue contains 30 sourced real robotics products, all display-only with simulated inventory and fulfilment. Showcase products cannot enter live checkout. The old demo-order endpoint remains disabled.
+
+See [robotics showcase, reviews, demo seeding and registration protection](docs/deployment/robotics-showcase.md) for provenance, existing-catalogue migration, isolated 10,000-profile/30,000-review seed and cleanup commands, and Turnstile configuration.
 Checkout requires login and uses Razorpay and can collect real money once configured with live merchant
 credentials. Payment controls remain disabled until configuration is complete. Shipping includes destination selection and distance pricing; carrier fulfilment is not integrated. See [payment setup](services/payment-service/README.md).
 
@@ -89,7 +91,7 @@ rating, or payment services.
 | `services/ai-gateway/` | Public API, static assets, validation, rate limits, sessions, carts, pending/paid orders |
 | `services/shopping-agent/` | Keyword retrieval, optional model synthesis, visible fallback |
 | `services/recommendation-service/` | Budget/category/stock-aware ranking with reasons |
-| `services/product-ingestion/` | MongoDB catalogue API and insert-only legacy product seed |
+| `services/product-ingestion/` | MongoDB catalogue API and insert-only curated robotics seed |
 | `services/mongodb/` | Accounts, login sessions, products/settings database and Compose deployment |
 | `services/payment-service/` | Razorpay orders, signature verification, captured-payment validation |
 | `services/sre-copilot/` | Live health probes and deterministic read-only runbook suggestions |
@@ -170,7 +172,7 @@ PAYMENT_SERVICE_TOKEN=YOUR_RANDOM_INTERNAL_TOKEN
 Configure a Razorpay `payment.captured` webhook to
 `https://your-store.example/api/payments/webhook`, enable automatic capture in the
 merchant dashboard, and restart the services. Keep the same webhook secret on both
-sides. Existing catalogue prices remain EUR; the merchant account must support EUR
+sides. Purchasable merchant inventory remains EUR-only; showcase reference prices retain source currencies and are never payable. The merchant account must support EUR
 payments. This change does not convert prices to INR or activate a merchant account.
 Use `PAYMENT_MODE=test` with test keys for sandbox verification before enabling live
 keys. Live keys require an HTTPS PUBLIC_ORIGIN. No live credentials were configured

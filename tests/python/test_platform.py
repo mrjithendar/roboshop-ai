@@ -25,7 +25,9 @@ spec = importlib.util.spec_from_file_location(
 )
 mcp = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mcp)
-PRODUCTS = json.loads((ROOT / "tests/fixtures/catalogue/fictional-products.json").read_text())
+PRODUCTS = json.loads(
+    (ROOT / "tests/fixtures/catalogue/fictional-products.json").read_text()
+)
 
 
 class AgentTests(unittest.TestCase):

@@ -10,9 +10,11 @@ sys.path[:0] = [
 from agent import answer
 from catalogue import retrieve
 
-products = json.loads((root / "tests/fixtures/catalogue/fictional-products.json").read_text())
+products = json.loads(
+    (root / "tests/fixtures/catalogue/fictional-products.json").read_text()
+)
 count = 0
-for case in json.loads((root / "evaluations/rag/cases.json").read_text()):
+for case in json.loads((root / "evaluation/rag/cases.json").read_text()):
     picks = retrieve(products, case["query"])
     assert (picks[0]["sku"] if picks else None) == case["expectedSku"], case["query"]
     assert all(
@@ -20,7 +22,7 @@ for case in json.loads((root / "evaluations/rag/cases.json").read_text()):
         for p in picks
     )
     count += 1
-for case in json.loads((root / "evaluations/security/cases.json").read_text()):
+for case in json.loads((root / "evaluation/security/cases.json").read_text()):
     result = answer(products, case["query"])
     assert result["mode"] == "not-configured" and "<script>" not in result["answer"]
     assert all(any(s["sku"] == p["sku"] for s in products) for p in result["products"])

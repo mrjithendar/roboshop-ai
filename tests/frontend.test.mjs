@@ -121,3 +121,22 @@ test('account panel shows private history safely and clears it on logout', async
   await waitFor(() => ui.$('#account-details').hidden);
   assert.equal(ui.$('#account-details').textContent, '');
 });
+
+
+test('registration uses server challenge config and consumes a fresh token after a failed attempt', async t => {
+  let options, reset = 0, submitted;
+  const ui = setup(t, (path, request) => {
+    if (path === '/api/auth/me') return { ok: true, json: async () => ({ user: null }) };
+    if (path === '/api/auth/challenge') return { ok: true, json: async () => ({ provider: 'turnstile', siteKey: 'public-key', action: 'register' }) };
+    if (path === '/api/auth/register') { submitted = JSON.parse(request.body); return { ok: false, json: async () => ({ error: 'Try another email.' }) }; }
+  });
+  ui.w.turnstile = { render: (container, config) => { options = config; return 'widget'; }, remove() {}, getResponse: () => 'fresh-token', reset: () => { reset++; } };
+  await ui.boot();
+  ui.$('#account-mode').value = 'register'; ui.$('#account-mode').dispatchEvent(new ui.w.Event('change'));
+  await waitFor(() => options); assert.equal(options.action, 'register'); assert.equal(options.sitekey, 'public-key');
+  options.callback(); ui.$('#account-email').value = 'demo@example.com'; ui.$('#account-password').value = 'long-enough-test-password'; ui.$('#account-name').value = 'Demo';
+  ui.$('#account-form').dispatchEvent(new ui.w.Event('submit', { cancelable: true }));
+  await waitFor(() => reset === 1); assert.equal(submitted.challengeToken, 'fresh-token'); assert.equal(submitted.website, '');
+  submitted = null; ui.$('#account-form').dispatchEvent(new ui.w.Event('submit', { cancelable: true }));
+  await waitFor(() => /Complete the registration challenge/.test(ui.$('#account-status').textContent)); assert.equal(submitted, null);
+});

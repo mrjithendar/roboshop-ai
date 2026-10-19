@@ -32,7 +32,7 @@ export function rank(products, { query = '', budget, category, exclude = [], lim
     .map(p => {
       const haystack = `${p.name} ${p.description} ${p.categories.join(' ')}`.toLowerCase();
       const matches = terms.filter(t => haystack.includes(t));
-      return { ...p, score: matches.length, reason: matches.length ? `Matches ${[...new Set(matches)].slice(0, 3).join(', ')} in the catalogue.` : budget !== undefined ? `Catalogue reference within your ${currency} ${budget} budget.` : 'In-stock catalogue pick.' };
+      return { ...p, score: matches.length, reason: matches.length ? `Matches ${[...new Set(matches)].slice(0, 3).join(', ')} in the catalogue.` : budget !== undefined ? `Catalogue reference within your ${currency} ${budget} budget.` : p.showcase ? 'Showcase catalogue pick; availability is simulated.' : 'In-stock catalogue pick.' };
     })
     .filter(p => !terms.length || onlyBudget || p.score > 0)
     .sort((a, b) => b.score - a.score || (a.currency || 'EUR').localeCompare(b.currency || 'EUR') || Number(a.priceType === 'on-request') - Number(b.priceType === 'on-request') || a.price - b.price || a.sku.localeCompare(b.sku)).slice(0, limit);

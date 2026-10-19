@@ -53,11 +53,14 @@ def routes(req, db, auth, store):
             raise HttpError(400, "SKU cannot change and a revision is required.")
         with store.lock:
             if match:
-                existing = db.products.find_one({'_id': product['sku']}) or {}
-                if existing.get('showcase'):
-                    if product['price'] != existing['price']:
-                        raise HttpError(400, 'Source reference prices must be updated with reviewed provenance, not the live price editor.')
-                    product['image'] = '/images/placeholder.png'
+                existing = db.products.find_one({"_id": product["sku"]}) or {}
+                if existing.get("showcase"):
+                    if product["price"] != existing["price"]:
+                        raise HttpError(
+                            400,
+                            "Source reference prices must be updated with reviewed provenance, not the live price editor.",
+                        )
+                    product["image"] = "/images/placeholder.png"
 
                 reserved = store.reserved(product["sku"])
                 if (product["archived"] and reserved > 0) or (

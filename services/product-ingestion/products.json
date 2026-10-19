@@ -24,7 +24,8 @@
       "Arduino-compatible programming"
     ],
     "useCases": [
-      "mobile robots"
+      "mobile robotics",
+      "motion control"
     ],
     "price": 0,
     "currency": "USD",
@@ -78,7 +79,8 @@
       "Arduino-compatible programming"
     ],
     "useCases": [
-      "educational kits"
+      "robotics education",
+      "hands-on learning"
     ],
     "price": 0,
     "currency": "USD",
@@ -138,7 +140,8 @@
       "Optional Raspberry Pi interface"
     ],
     "useCases": [
-      "educational kits"
+      "robotics education",
+      "hands-on learning"
     ],
     "price": 94.95,
     "currency": "USD",
@@ -195,7 +198,8 @@
       "Romi 32U4 Control Board"
     ],
     "useCases": [
-      "mobile robots"
+      "mobile robotics",
+      "motion control"
     ],
     "price": 0,
     "currency": "USD",
@@ -251,7 +255,8 @@
       "Optional Raspberry Pi interface"
     ],
     "useCases": [
-      "components"
+      "embedded control",
+      "robot integration"
     ],
     "price": 0,
     "currency": "USD",
@@ -306,7 +311,8 @@
       "USB and serial control"
     ],
     "useCases": [
-      "components"
+      "motion control",
+      "robot integration"
     ],
     "price": 0,
     "currency": "USD",
@@ -361,7 +367,8 @@
       "Maestro control software"
     ],
     "useCases": [
-      "components"
+      "motion control",
+      "robot integration"
     ],
     "price": 0,
     "currency": "USD",
@@ -416,7 +423,8 @@
       "Check motor current and logic requirements in manufacturer guide"
     ],
     "useCases": [
-      "components"
+      "motion control",
+      "robot integration"
     ],
     "price": 10.95,
     "currency": "USD",
@@ -472,7 +480,8 @@
       "IN/IN or PHASE/ENABLE control"
     ],
     "useCases": [
-      "components"
+      "motion control",
+      "robot integration"
     ],
     "price": 6.95,
     "currency": "USD",
@@ -526,7 +535,8 @@
       "Arduino C"
     ],
     "useCases": [
-      "educational kits"
+      "robotics education",
+      "hands-on learning"
     ],
     "price": 0,
     "currency": "EUR",
@@ -581,7 +591,8 @@
       "Simulink"
     ],
     "useCases": [
-      "educational kits"
+      "robotics education",
+      "hands-on learning"
     ],
     "price": 0,
     "currency": "EUR",
@@ -638,7 +649,8 @@
       "Arduino Cloud"
     ],
     "useCases": [
-      "components"
+      "embedded control",
+      "robot integration"
     ],
     "price": 0,
     "currency": "EUR",
@@ -694,7 +706,8 @@
       "Arduino ecosystem; verify shield voltage and library support"
     ],
     "useCases": [
-      "components"
+      "embedded control",
+      "robot integration"
     ],
     "price": 0,
     "currency": "EUR",
@@ -748,7 +761,8 @@
       "Arduino development tools; consult sensor-specific libraries"
     ],
     "useCases": [
-      "components"
+      "embedded control",
+      "robot integration"
     ],
     "price": 0,
     "currency": "EUR",
@@ -805,7 +819,8 @@
       "Engineering Kit Rev2"
     ],
     "useCases": [
-      "accessories"
+      "motion control",
+      "robot integration"
     ],
     "price": 0,
     "currency": "EUR",
@@ -861,7 +876,8 @@
       "Check Arduino shield electrical compatibility"
     ],
     "useCases": [
-      "accessories"
+      "motion control",
+      "robot integration"
     ],
     "price": 0,
     "currency": "EUR",
@@ -916,7 +932,8 @@
       "Arduino tools; verify shield and library support"
     ],
     "useCases": [
-      "components"
+      "embedded control",
+      "robot integration"
     ],
     "price": 0,
     "currency": "EUR",
@@ -971,7 +988,8 @@
       "Raspberry Pi OS; check robot software architecture support"
     ],
     "useCases": [
-      "components"
+      "embedded control",
+      "robot integration"
     ],
     "price": 0,
     "currency": "USD",
@@ -1026,7 +1044,8 @@
       "MicroPython"
     ],
     "useCases": [
-      "components"
+      "embedded control",
+      "robot integration"
     ],
     "price": 0,
     "currency": "USD",
@@ -1080,7 +1099,8 @@
       "Raspberry Pi camera software stack"
     ],
     "useCases": [
-      "accessories"
+      "computer vision",
+      "robot integration"
     ],
     "price": 0,
     "currency": "USD",
@@ -1137,7 +1157,8 @@
       "Raspberry Pi camera software stack"
     ],
     "useCases": [
-      "accessories"
+      "computer vision",
+      "robot integration"
     ],
     "price": 0,
     "currency": "USD",
@@ -1190,7 +1211,8 @@
       "ROS; select matching distribution and hardware guide"
     ],
     "useCases": [
-      "mobile robots"
+      "mobile robotics",
+      "motion control"
     ],
     "price": 0,
     "currency": "USD",
@@ -1243,7 +1265,8 @@
       "ROS; select matching distribution and hardware guide"
     ],
     "useCases": [
-      "mobile robots"
+      "mobile robotics",
+      "motion control"
     ],
     "price": 0,
     "currency": "USD",
@@ -1301,7 +1324,8 @@
       "Arduino"
     ],
     "useCases": [
-      "robot arms"
+      "manipulation",
+      "motion programming"
     ],
     "price": 0,
     "currency": "USD",
@@ -1356,7 +1380,8 @@
       "DYNAMIXEL Protocol 2.0"
     ],
     "useCases": [
-      "components"
+      "embedded control",
+      "robot integration"
     ],
     "price": 0,
     "currency": "USD",
@@ -1410,7 +1435,8 @@
       "Web control"
     ],
     "useCases": [
-      "robot arms"
+      "manipulation",
+      "motion programming"
     ],
     "price": 0,
     "currency": "USD",
@@ -1471,7 +1497,8 @@
       "Raspberry Pi or Jetson host over serial"
     ],
     "useCases": [
-      "mobile robots"
+      "mobile robotics",
+      "motion control"
     ],
     "price": 0,
     "currency": "USD",
@@ -1531,7 +1558,8 @@
       "M5 variant; verify firmware and accessory compatibility with manufacturer"
     ],
     "useCases": [
-      "robot arms"
+      "manipulation",
+      "motion programming"
     ],
     "price": 0,
     "currency": "USD",
@@ -1587,7 +1615,8 @@
       "M5 variant; verify firmware and accessory compatibility with manufacturer"
     ],
     "useCases": [
-      "robot arms"
+      "manipulation",
+      "motion programming"
     ],
     "price": 0,
     "currency": "USD",
@@ -1643,7 +1672,8 @@
       "M5 variant; verify firmware and accessory compatibility with manufacturer"
     ],
     "useCases": [
-      "robot arms"
+      "manipulation",
+      "motion programming"
     ],
     "price": 0,
     "currency": "USD",

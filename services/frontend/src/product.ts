@@ -25,7 +25,7 @@ function render(p: Product, related: Product[]): void {
   if (!p.showcase && !p.synthetic && p.currency === 'EUR' && p.priceType === 'sale') {
     const label = element('label', 'Quantity '), qty = element('input'); qty.type = 'number'; qty.min = '1'; qty.max = String(Math.min(20, p.instock)); qty.value = '1'; label.append(qty);
     const add = element('button', 'Add to bag'); add.disabled = p.instock < 1;
-    add.addEventListener('click', async () => { add.disabled = true; try { const cart = await api<{ items: { sku: string; quantity: number }[] }>('/api/cart'); const quantity = Number(qty.value) + (cart.items.find(i => i.sku === p.sku)?.quantity || 0); await api('/api/cart', 'POST', { sku: p.sku, quantity }); get('product-status').textContent = 'Added to bag. Open Collection & bag to checkout.'; } catch (e) { get('product-status').textContent = error(e); } finally { add.disabled = p.instock < 1; } }); copy.append(label, add);
+    add.addEventListener('click', async () => { add.disabled = true; try { const cart = await api<{ items: { sku: string; quantity: number }[] }>('/api/cart'); const selected = Number(qty.value); if (!Number.isInteger(selected) || selected < 1 || selected > 20) throw new Error('Choose a quantity from 1 to 20.'); const quantity = selected + (cart.items.find(i => i.sku === p.sku)?.quantity || 0); await api('/api/cart', 'POST', { sku: p.sku, quantity }); get('product-status').textContent = 'Added to bag. Open Collection & bag to checkout.'; } catch (e) { get('product-status').textContent = error(e); } finally { add.disabled = p.instock < 1; } }); copy.append(label, add);
   }
   grid.append(figure, copy); panel.append(grid, element('h2', 'Specifications'));
   const spec = element('dl'); for (const [k, v] of Object.entries(p.specifications || {})) spec.append(element('dt', k), element('dd', v)); panel.append(spec);
@@ -49,7 +49,7 @@ async function loadReviews(append = false): Promise<void> {
   finally { if (current === generation) get<HTMLButtonElement>('more-reviews').disabled = false; }
 }
 async function loadMine(): Promise<void> {
-  mine = null; get('review-form').hidden = !currentUser; get('review-status').textContent = currentUser ? 'Reviews are moderated before publication.' : 'Log in to write a review.';
+  mine = null; get<HTMLInputElement>('review-title').value = ''; get<HTMLTextAreaElement>('review-body').value = ''; get('review-delete').hidden = true; get('review-form').hidden = !currentUser; get('review-status').textContent = currentUser ? 'Reviews are moderated before publication.' : 'Log in to write a review.';
   if (!currentUser || !product) return;
   const userId = currentUser.id;
   try { const result = await api<{ review: Review | null }>(endpoint + '/reviews/mine'); if (currentUser?.id !== userId) return; mine = result.review; get<HTMLInputElement>('review-title').value = mine?.title || ''; get<HTMLTextAreaElement>('review-body').value = mine?.body || ''; get<HTMLSelectElement>('review-rating').value = String(mine?.rating || 5); get('review-delete').hidden = !mine; if (mine) get('review-status').textContent = `Your review is ${mine.status}. Editing resubmits it for moderation.`; }
