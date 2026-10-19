@@ -1,6 +1,7 @@
 #!/bin/sh
 # Run locally. Works with both `sh` and `bash`; never starts an SSH tunnel.
 set -eu
+SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
 VULTR_HOST="${VULTR_HOST:-root@jithendar.com}"
 API_HOST="${API_HOST:-jithendar.com}"
 BASE_PROFILE="${PROFILE:-mk4}"
@@ -38,34 +39,9 @@ REMOTE
 then
   fail 'Remote export failed. Your existing local kubeconfig was not changed.'
 fi
-python3 - "$TEMP_CONFIG_DIR/source.json" "$TEMP_CONFIG_DIR/config.json" "$API_HOST" <<'PY'
-import json, re, sys
-from urllib.parse import urlsplit
-source, destination, host = sys.argv[1:]
-if not re.fullmatch(r'[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?', host):
-    raise SystemExit('API_HOST must be a hostname or IPv4 address, without scheme, port or path.')
-with open(source) as f:
-    export = json.load(f)
-port = int(export['port'])
-if not 1 <= port <= 65535:
-    raise SystemExit('Invalid remote API port.')
-config = export['config']
-if len(config.get('clusters', [])) != 1 or not config.get('current-context'):
-    raise SystemExit('Remote export does not contain one selected cluster.')
-cluster = config['clusters'][0]['cluster']
-original_host = urlsplit(cluster['server']).hostname
-if not original_host or not cluster.get('certificate-authority-data'):
-    raise SystemExit('Remote export is missing the API hostname or embedded CA certificate.')
-# Authenticate against the original API identity (also valid for IP-based SANs).
-# Never disable TLS validation when replacing the transport endpoint.
-cluster.setdefault('tls-server-name', original_host)
-cluster['server'] = f'https://{host}:{port}'
-cluster['insecure-skip-tls-verify'] = False
-cluster.pop('proxy-url', None)
-with open(destination, 'w') as f:
-    json.dump(config, f, indent=2)
-print(f"Checking direct API: {cluster['server']}")
-PY
+# Python validates the export and rewrites the endpoint while preserving TLS.
+python3 "$SCRIPT_DIR/kubeconfig.py" \
+  "$TEMP_CONFIG_DIR/source.json" "$TEMP_CONFIG_DIR/config.json" "$API_HOST"
 chmod 600 "$TEMP_CONFIG_DIR/config.json"
 # Validate before replacing a working config. No fallback to an old tunnel file.
 if ! kubectl --kubeconfig="$TEMP_CONFIG_DIR/config.json" --request-timeout=15s get nodes; then
