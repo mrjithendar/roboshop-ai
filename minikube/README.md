@@ -15,9 +15,7 @@ This installs Docker Engine from its official RPM repository, enables Docker, in
 The base profile is `mk4`. Defaults are one node and 2 CPUs. Memory is sized from Docker physical RAM, reserving 1024 MiB for host overhead, rounded down to 256 MiB increments and capped at 2560 MiB per node. Swap is excluded. Hosts unable to fit at least 2048 MiB per node are rejected before cluster changes. Explicit requests exceeding the budget are also rejected. For a named development cluster:
 
 ```sh
-PROFILE=robotshop NODES=1 CPUS=2 MEMORY=3072 bash minikube/setup.sh
-minikube -p robotshop status
-kubectl --context=robotshop get nodes
+PROFILE=robotshop NODES=1 CPUS=2 MEMORY=2048 bash minikube/setup.sh
 PROFILE=robotshop bash minikube/install.sh stop
 ```
 
@@ -102,3 +100,17 @@ Reset does not remove clusters owned by another account, copies of kubeconfig on
 Use `PUBLIC_HOST=jithendar.com NODES=1 bash minikube/setup.sh`. The installer adds `jithendar.com` as a DNS certificate SAN and exports `https://jithendar.com:<published-port>`. It prints the exact port and local copy command; TLS verification stays enabled. `PUBLIC_IP` is still supported for IPv4 endpoints, but do not set both variables.
 
 The domain must resolve directly to your Vultr host. A normal website HTTP reverse proxy does not forward this Kubernetes API port; use a direct DNS record. Existing website ports 80/443 are unchanged. If the main domain must stay behind a website proxy, use a dedicated DNS hostname such as `k8s.jithendar.com` instead. The Vultr firewall still needs to allow the printed TCP port from your local public IP.
+
+### Import directly from your Mac with the helper
+
+```bash
+sh minikube/kubeconfig.sh
+export KUBECONFIG="$HOME/.kube/vultr-minikube.json"
+kubectl get nodes
+```
+
+The helper uses one SSH connection to discover the selected `mk4` profile, read its published Docker API port, and export current embedded certificates. It does not require a pre-existing `*-direct.json` file and does not create a tunnel. It checks direct API connectivity before replacing the local file. SSH, malformed export, or API failures preserve the existing file and stop execution; they never fall back to a stale tunnel endpoint.
+
+Overrides: `VULTR_HOST=root@jithendar.com`, `API_HOST=jithendar.com`, `PROFILE=mk4`, and `CONFIG=/absolute/local/path`. The remote cluster must already publish its API on `0.0.0.0`, and its port must be reachable through the Vultr firewall. The helper preserves the original certificate identity using `tls-server-name`, while changing the connection address to the public domain; TLS verification stays enabled. Shell scripts cannot export variables into their parent shell, so run the printed `export KUBECONFIG=...` command after success.
+
+If local import says the profile has no public API binding, read the actual binding printed by the helper. `127.0.0.1:PORT` is host-local and cannot be reached from your laptop. On Vultr, run `PUBLIC_HOST=jithendar.com NODES=2 CPUS=2 MEMORY=2560 bash minikube/install.sh start` and wait for the `Direct API:` message. This can preserve/stop the local-only profile and create a replacement; workloads are not migrated. The installer now saves a new profile selection only after the requested direct-access export succeeds, and later starts retain its saved hostname.

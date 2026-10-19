@@ -21,7 +21,7 @@ class InstallerTests(unittest.TestCase):
 *MemTotal*) echo 4093640704;;
 *NCPU*) echo 2;;
 *OSType*) echo linux;;
-port*) echo 0.0.0.0:32769;;
+port*) if [ "${NO_PUBLIC_PORT:-0}" != 1 ]; then echo 0.0.0.0:32769; fi;;
 esac''',
             'minikube': '''echo "$*" >> "$TEST_CALLS"
 case "$*" in start*) exit "${TEST_START_EXIT:-0}";; esac''',
@@ -105,6 +105,18 @@ case "$*" in start*) exit "${TEST_START_EXIT:-0}";; esac''',
             self.assertNotEqual(self.run_script(PUBLIC_HOST=host).returncode, 0)
         self.assertNotEqual(self.run_script(PUBLIC_HOST='jithendar.com', PUBLIC_IP='203.0.113.10').returncode, 0)
         self.assertEqual(self.calls(), '')
+
+    def test_restart_retains_direct_access(self):
+        self.assertEqual(self.run_script(PUBLIC_HOST='jithendar.com').returncode, 0)
+        (self.root / 'calls').write_text('')
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('--apiserver-names=jithendar.com', self.calls())
+
+    def test_failed_export_does_not_select_new_profile(self):
+        result = self.run_script(PUBLIC_HOST='jithendar.com', NO_PUBLIC_PORT='1')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse((self.root / '.minikube/robotshop-installer/mk4.profile').exists())
 
     def test_invalid_public_address(self):
         self.assertNotEqual(self.run_script(PUBLIC_IP='999.2.3.4').returncode, 0)

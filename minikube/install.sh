@@ -89,6 +89,16 @@ if [[ -f "$STATE_FILE" ]]; then
   IFS= read -r PROFILE < "$STATE_FILE"
   [[ "$PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || fail 'Invalid saved profile name.'
 fi
+# A routine start must not silently change an existing direct-access cluster
+# back to local-only just because the caller omitted the environment variables.
+if [[ -z "$PUBLIC_HOST" && -z "$PUBLIC_IP" && -f "$STATE_DIR/$PROFILE.network" ]]; then
+  saved_network="$(cat "$STATE_DIR/$PROFILE.network")"
+  case "$saved_network" in
+    dns-*) PUBLIC_HOST="${saved_network#dns-}" ;;
+    direct-*) PUBLIC_IP="${saved_network#direct-}"; PUBLIC_IP="${PUBLIC_IP//-/.}" ;;
+  esac
+fi
+API_HOST="${PUBLIC_HOST:-$PUBLIC_IP}"
 command -v minikube >/dev/null 2>&1 || fail 'Run this script with install first.'
 diagnose() {
   echo "=== Cluster $PROFILE ==="
@@ -219,9 +229,6 @@ count="$(kubectl --context="$PROFILE" get nodes -o name | wc -l | tr -d '[:space
 [[ "$count" == "$NODES" ]] || fail "Expected $NODES nodes, found $count. Use a fresh PROFILE when changing topology."
 kubectl --context="$PROFILE" get nodes -o wide
 mkdir -p "$STATE_DIR"
-state_tmp="$(mktemp "$STATE_DIR/.profile.XXXXXX")"
-printf '%s\n' "$PROFILE" > "$state_tmp"
-mv "$state_tmp" "$STATE_FILE"
 echo "Ready. Use: kubectl --context=$PROFILE get pods -A"
 
 if [[ -n "$API_HOST" ]]; then
@@ -245,3 +252,8 @@ if [[ -n "$API_HOST" ]]; then
   echo '  chmod 600 ./vultr-kubeconfig.json'
   echo '  KUBECONFIG="$PWD/vultr-kubeconfig.json" kubectl get nodes'
 fi
+
+# Commit the selected profile only after all requested access checks/export succeed.
+state_tmp="$(mktemp "$STATE_DIR/.profile.XXXXXX")"
+printf '%s\n' "$PROFILE" > "$state_tmp"
+mv "$state_tmp" "$STATE_FILE"

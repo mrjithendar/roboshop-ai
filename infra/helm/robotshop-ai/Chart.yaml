@@ -1,6 +1,0 @@
-apiVersion: v2
-name: robotshop-ai
-description: RobotShop AI single-instance demo platform
-type: application
-version: 0.1.0
-appVersion: "0.1.0"
