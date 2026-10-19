@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -19,7 +20,7 @@ test('MongoDB accounts, one super admin, server-side roles, persistent sessions 
   const gatewayPort = await port(), cataloguePort = await port(), base = `http://127.0.0.1:${gatewayPort}`;
   const children = []; let logs = '';
   async function start(name, servicePort) {
-    const child = spawn(name === 'ai-gateway' ? (process.env.PYTHON || 'python3') : process.execPath, [`services/${name}/server.${name === 'ai-gateway' ? 'py' : 'mjs'}`], { env: { ...process.env, MONGODB_DATABASE: database, DATA_DIR: directory, PUBLIC_ORIGIN: base, HOST: '127.0.0.1', PORT: String(servicePort), INGESTION_URL: `http://127.0.0.1:${cataloguePort}`, RABBITMQ_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: '', PAYMENT_SERVICE_TOKEN: 'test-only-token' }, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(name === 'ai-gateway' ? (process.env.PYTHON || 'python3') : process.execPath, [`services/${name}/server.${name === 'ai-gateway' ? 'py' : 'mjs'}`], { env: { ...process.env, APP_ENV: 'development', REGISTRATION_CHALLENGE_PROVIDER: 'disabled', CATALOGUE_FILE: fileURLToPath(new URL('./fixtures/catalogue/fictional-products.json', import.meta.url)), MONGODB_DATABASE: database, DATA_DIR: directory, PUBLIC_ORIGIN: base, HOST: '127.0.0.1', PORT: String(servicePort), INGESTION_URL: `http://127.0.0.1:${cataloguePort}`, RABBITMQ_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: '', PAYMENT_SERVICE_TOKEN: 'test-only-token' }, stdio: ['ignore', 'pipe', 'pipe'] });
     children.push(child); child.stdout.on('data', chunk => logs += chunk); child.stderr.on('data', chunk => logs += chunk);
     for (let i = 0; i < 100; i++) { try { if ((await fetch(`http://127.0.0.1:${servicePort}/health`)).ok) return child; } catch {} await new Promise(resolve => setTimeout(resolve, 50)); }
     assert.fail(logs);

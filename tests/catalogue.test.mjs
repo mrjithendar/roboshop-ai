@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { normalizeProducts, rank, budgetFrom } from '../services/shared/catalogue.mjs';
-const products = normalizeProducts(JSON.parse(readFileSync(new URL('../services/product-ingestion/products.json', import.meta.url))));
+const products = normalizeProducts(JSON.parse(readFileSync(new URL('../tests/fixtures/catalogue/fictional-products.json', import.meta.url))));
 
 test('retrieval respects budget, availability, relevance and exclusions', () => {
   assert.equal(budgetFrom('security under €1,000'), 1000);

@@ -45,7 +45,7 @@ BEDROCK = {
 }
 OLLAMA = {"provider": "ollama", "endpoint": "private-ec2", "model": "qwen3:4b"}
 ALLOWLIST = json.dumps({"private-ec2": "http://10.1.2.3:11434"})
-PRODUCTS = json.loads((ROOT / "services/product-ingestion/products.json").read_text())
+PRODUCTS = json.loads((ROOT / "tests/fixtures/catalogue/fictional-products.json").read_text())
 
 
 def req(

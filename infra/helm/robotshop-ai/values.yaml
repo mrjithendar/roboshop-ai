@@ -102,3 +102,12 @@ frontend:
     limits:
       cpu: 250m
       memory: 64Mi
+
+# Only ai-gateway receives the provider secret. Production registration fails closed without protection.
+registration:
+  provider: disabled
+  siteKey: ""
+  hostname: ""
+  secretName: ""
+  # Explicit peer CIDRs for the NGINX proxies; untrusted X-Real-IP is ignored.
+  trustedProxyCidrs: ""

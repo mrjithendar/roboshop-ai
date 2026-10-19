@@ -443,7 +443,7 @@ def application(service, handler):
                 ("Referrer-Policy", "same-origin"),
                 (
                     "Content-Security-Policy",
-                    "default-src 'self'; img-src 'self' https://*.razorpay.com data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://checkout.razorpay.com; connect-src 'self' https://*.razorpay.com; frame-src https://*.razorpay.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+                    "default-src 'self'; img-src 'self' https://*.razorpay.com data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://checkout.razorpay.com https://challenges.cloudflare.com; connect-src 'self' https://*.razorpay.com https://challenges.cloudflare.com; frame-src https://*.razorpay.com https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
                 ),
                 ("Content-Length", str(len(payload))),
             ],

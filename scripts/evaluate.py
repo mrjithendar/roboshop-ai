@@ -10,7 +10,7 @@ sys.path[:0] = [
 from agent import answer
 from catalogue import retrieve
 
-products = json.loads((root / "services/product-ingestion/products.json").read_text())
+products = json.loads((root / "tests/fixtures/catalogue/fictional-products.json").read_text())
 count = 0
 for case in json.loads((root / "evaluations/rag/cases.json").read_text()):
     picks = retrieve(products, case["query"])

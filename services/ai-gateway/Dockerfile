@@ -6,6 +6,8 @@ COPY services/ai-gateway/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt && useradd --uid 1000 --create-home app
 COPY --chown=app:app services/python-common/ ./services/python-common/
 COPY --chown=app:app services/ai-gateway/*.py ./services/ai-gateway/
+COPY --chown=app:app scripts/seed-demo.py ./scripts/seed-demo.py
+COPY --chown=app:app services/product-ingestion/products.json ./services/product-ingestion/products.json
 RUN mkdir -p /app/.data && chown app:app /app/.data
 USER app
 EXPOSE 3000

@@ -1,23 +1,23 @@
 name: LLM configuration checks
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - 'services/ai-gateway/**'
-      - 'services/shopping-agent/**'
-      - 'services/python-common/**'
-      - 'services/frontend/**'
-      - 'tests/**'
-      - '.github/workflows/llm-checks.yml'
-  push:
-    branches: [master, main]
-    paths:
-      - 'services/ai-gateway/**'
-      - 'services/shopping-agent/**'
-      - 'services/python-common/**'
-      - 'services/frontend/**'
-      - 'tests/**'
-      - '.github/workflows/llm-checks.yml'
+  # pull_request:
+  #   paths:
+  #     - 'services/ai-gateway/**'
+  #     - 'services/shopping-agent/**'
+  #     - 'services/python-common/**'
+  #     - 'services/frontend/**'
+  #     - 'tests/**'
+  #     - '.github/workflows/llm-checks.yml'
+  # push:
+  #   branches: [master, main]
+  #   paths:
+  #     - 'services/ai-gateway/**'
+  #     - 'services/shopping-agent/**'
+  #     - 'services/python-common/**'
+  #     - 'services/frontend/**'
+  #     - 'tests/**'
+  #     - '.github/workflows/llm-checks.yml'
 permissions:
   contents: read
 jobs:

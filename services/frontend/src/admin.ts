@@ -1,5 +1,5 @@
 export {};
-interface AdminProduct { sku: string; name: string; description: string; price: number; instock: number; categories: string[]; archived: boolean; revision: number; available: number }
+interface AdminProduct { currency?: string; priceType?: string; showcase?: boolean; sku: string; name: string; description: string; price: number; instock: number; categories: string[]; archived: boolean; revision: number; available: number }
 interface AdminUser { id: string; name: string; email: string; role: 'customer' | 'admin' | 'superadmin'; disabled: boolean }
 interface Settings { storeName: string; announcement: string; supportEmail: string; checkoutEnabled: boolean }
 const control = <T extends HTMLElement>(id: string): T => { const node = document.getElementById(id); if (!node) throw new Error(`Missing control ${id}`); return node as T; };
@@ -20,6 +20,7 @@ function edit(product: AdminProduct | null): void {
   editing = product; control('product-form').hidden = false; control('product-form-title').textContent = product ? `Edit ${product.sku}` : 'New product';
   input('product-sku').value = product?.sku || ''; input('product-sku').readOnly = Boolean(product);
   input('product-name').value = product?.name || ''; control<HTMLTextAreaElement>('product-description').value = product?.description || '';
+  input('product-price').readOnly = product?.showcase === true;
   input('product-price').value = String(product?.price ?? 0); input('product-stock').value = String(product?.instock ?? 0); input('product-categories').value = product?.categories.join(', ') || '';
   input('product-archived').checked = product?.archived || false; control('product-status').textContent = ''; input('product-name').focus();
 }
@@ -27,7 +28,7 @@ async function loadAdminProducts(): Promise<void> {
   const { products } = await adminRequest<{ products: AdminProduct[] }>('/api/admin/products');
   control('admin-products').replaceChildren(...products.map(product => {
     const row = node('tr');
-    for (const value of [product.sku, product.name, `€${product.price.toFixed(2)}`, `${product.available} / ${product.instock}`, product.archived ? 'Archived' : 'Active']) row.append(node('td', value));
+    for (const value of [product.sku, product.name, product.priceType === 'on-request' ? 'Price on request' : `${product.currency || 'EUR'} ${product.price.toFixed(2)}${product.showcase ? ' reference' : ''}`, `${product.available} / ${product.instock}`, product.archived ? 'Archived' : 'Active']) row.append(node('td', value));
     const action = node('td'), button = node('button', 'Edit'); button.className = 'button secondary'; button.addEventListener('click', () => edit(product)); action.append(button); row.append(action); return row;
   }));
 }
@@ -143,3 +144,20 @@ try {
     input('setting-name').value = settings.storeName; input('setting-announcement').value = settings.announcement; input('setting-email').value = settings.supportEmail; input('setting-checkout').checked = settings.checkoutEnabled;
   }
 } catch (error) { control('admin-content').hidden = true; control('admin-login').hidden = false; control('admin-status').textContent = message(error); }
+
+let reviewCursor: string | null = null;
+async function moderateList(append = false): Promise<void> {
+  try {
+    const result = await adminRequest<{ reviews: { id: string; productId: string; title: string; body: string; status: string; synthetic: boolean }[]; next: string | null }>('/api/admin/reviews?' + new URLSearchParams({ kind: control<HTMLSelectElement>('moderation-kind').value, after: append ? reviewCursor || '' : '' }));
+    if (!append) control('moderation-list').replaceChildren();
+    for (const review of result.reviews) {
+      const row = node('article'); row.className = 'review'; row.append(node('h3', `${review.productId}: ${review.title}`), node('p', review.body), node('p', `${review.synthetic ? 'Synthetic · ' : ''}${review.status}`));
+      for (const status of ['published', 'hidden', 'pending']) { const button = node('button', `Set ${status}`); button.addEventListener('click', async () => { button.disabled = true; try { await adminRequest('/api/admin/reviews/' + encodeURIComponent(review.id), 'PATCH', { status }); await moderateList(); } catch (error) { control('admin-status').textContent = message(error); } finally { button.disabled = false; } }); row.append(button); }
+      control('moderation-list').append(row);
+    }
+    reviewCursor = result.next; control('more-moderation').hidden = !reviewCursor;
+  } catch (error) { control('admin-status').textContent = message(error); }
+}
+control('load-reviews').addEventListener('click', () => { void moderateList(); });
+control('moderation-kind').addEventListener('change', () => { void moderateList(); });
+control('more-moderation').addEventListener('click', () => { void moderateList(true); });

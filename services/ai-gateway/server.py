@@ -19,6 +19,9 @@ from events import OrderPublisher
 from llm import LLMConfiguration
 from llm_config import service_headers, unconfigured
 from catalogue import retrieve
+from registration import Registration, client_address
+from reviews import Reviews
+from product_details import related, require_purchasable
 
 
 def public_order(o):
@@ -37,15 +40,6 @@ def expectation(o):
     }
 
 
-def client_address(req):
-    forwarded = req.headers.get("x-real-ip", "")
-    if os.getenv("TRUST_PROXY") == "true":
-        try:
-            ipaddress.ip_address(forwarded)
-            return forwarded
-        except ValueError:
-            pass
-    return req.environ.get("REMOTE_ADDR", "")
 
 
 class Gateway:
@@ -54,6 +48,8 @@ class Gateway:
         self.store = store
         self.auth = Auth(db)
         self.auth.initialize()
+        self.registration = Registration(db)
+        self.reviews = Reviews(db)
         configure_telemetry("ai-gateway")
         self.customers = Customers(db, store)
         self.limits = {}
@@ -156,6 +152,8 @@ class Gateway:
                 raise HttpError(403, "Cross-site requests are not allowed.")
         token = req.cookie("rs_auth", r"[a-f0-9]{64}")
         req.user = self.auth.current(token)
+        if path == "/api/auth/challenge" and method == "GET":
+            return self.registration.public()
         if path == "/api/auth/me" and method == "GET":
             return {"user": req.user}
         if (
@@ -171,6 +169,8 @@ class Gateway:
                 return {"loggedOut": True}
             self.auth.limit(client_address(req))
             data = req.body()
+            if path.endswith("/register"):
+                self.registration.check(data, client_address(req))
             user = (
                 self.auth.register(data)
                 if path.endswith("/register")
@@ -192,6 +192,30 @@ class Gateway:
             if shipping:
                 self.customers.save_address(req.user["id"], shipping)
             return {"user": req.user}, 201 if path.endswith("/register") else 200, []
+        match = re.fullmatch(r"/api/products/([a-z0-9][a-z0-9-]{0,99})(/reviews(?:/mine)?)?", path)
+        if match:
+            product = next((p for p in self.products() if p.get('slug', p['sku'].lower()) == match[1]), None)
+            if not product:
+                raise HttpError(404, 'Product not found.')
+            if not match[2] and method == 'GET':
+                return {'product': product, 'related': related(product, self.products())}
+            if match[2] == '/reviews/mine' and method == 'GET':
+                require_role(req.user)
+                row = self.db.reviews.find_one({'productId': product['sku'], 'authorId': req.user['id'], 'synthetic': False})
+                return {'review': self.reviews.public(row) if row else None}
+            if match[2] == '/reviews':
+                if method == 'GET':
+                    return self.reviews.listing(product['sku'], req.query)
+                if method in ('POST', 'PUT', 'DELETE'):
+                    require_role(req.user)
+                    self.auth.limit('review:' + req.user['id'])
+                    return self.reviews.write(product['sku'], req.user, method, req.body() if method != 'DELETE' else None)
+        if path == '/api/admin/reviews' and method == 'GET':
+            require_role(req.user, ('admin', 'superadmin'))
+            return self.reviews.listing(None, req.query, admin=True)
+        match = re.fullmatch(r'/api/admin/reviews/([A-Za-z0-9:_-]{1,160})', path)
+        if match and method == 'PATCH':
+            return self.reviews.moderate(match[1], req.user, req.body())
         if path.startswith("/api/account/"):
             require_role(req.user)
             if method != "GET":
@@ -295,11 +319,13 @@ class Gateway:
                         503,
                         "New checkouts are temporarily paused. Existing payments can still be verified.",
                     )
+                for item in self.store.cart(id, self.catalogue())["items"]:
+                    require_purchasable(item)
                 config = self.payment("config")
                 if not config["enabled"]:
                     raise HttpError(503, config.get("message", "Payments unavailable."))
                 order = self.store.begin_payment(
-                    id, req.headers.get("idempotency-key"), self.catalogue()
+                    id, req.headers.get("idempotency-key"), self.catalogue(), config.get("mode", "unknown")
                 )
                 if order["status"] == "paid":
                     return {"order": public_order(order)}
@@ -373,7 +399,7 @@ class Gateway:
             result = request(self.urls["sre"] + "/api/ops")
             return result, 200 if result["status"] == "healthy" else 503, []
         if path == "/api/products" and method == "GET":
-            return {"products": self.products(), "currency": "EUR"}
+            return {"products": self.products(), "checkoutCurrency": "EUR", "currencyPolicy": "Reference prices retain source currency. Only sale-priced EUR live inventory is purchasable."}
         if path == "/api/compare" and method == "GET":
             skus = req.query.get("skus", "").split(",")
             if (
@@ -387,8 +413,8 @@ class Gateway:
                 raise HttpError(404, "Product not found.")
             return {
                 "products": [products[s] for s in skus],
-                "currency": "EUR",
-                "lowestPrice": min(products[s]["price"] for s in skus),
+                "currency": next(iter({products[s].get("currency", "EUR") for s in skus})) if len({products[s].get("currency", "EUR") for s in skus}) == 1 else None,
+                "lowestPrice": min(products[s]["price"] for s in skus) if len({products[s].get("currency", "EUR") for s in skus}) == 1 and all(products[s].get("priceType") != "on-request" for s in skus) else None,
             }
         if path == "/api/recommendations/personalized" and method == "GET":
             require_role(req.user)
@@ -482,10 +508,15 @@ class Gateway:
         if req.method not in ("GET", "HEAD"):
             return
         path = "/admin.html" if req.path == "/admin" else req.path
+        if re.fullmatch(r"/products/[a-z0-9][a-z0-9-]{0,99}", path):
+            path = "/product.html"
         if path in (
             "/",
             "/index.html",
             "/admin.html",
+            "/product.html",
+            "/product.js",
+            "/challenge.js",
             "/app.js",
             "/account.js",
             "/admin.js",

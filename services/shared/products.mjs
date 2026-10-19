@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { normalizeProducts } from './catalogue.mjs';
 export async function seedProducts(db) {
-  const products = normalizeProducts(JSON.parse(await readFile(new URL('../product-ingestion/products.json', import.meta.url), 'utf8')));
+  const products = normalizeProducts(JSON.parse(await readFile(process.env.CATALOGUE_FILE || new URL('../product-ingestion/products.json', import.meta.url), 'utf8')));
+  await db.collection('products').createIndex({ slug: 1 }, { unique: true, partialFilterExpression: { slug: { $type: 'string' } } });
   // Insert-only upserts preserve administrator edits, including archived products.
   await db.collection('products').bulkWrite(products.map(product => ({ updateOne: { filter: { _id: product.sku }, update: { $setOnInsert: { ...product, revision: 1 } }, upsert: true } })));
 }

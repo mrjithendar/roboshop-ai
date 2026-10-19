@@ -22,10 +22,11 @@ def retrieve(products, query):
     if not isinstance(query, str) or len(query) > 1000:
         raise HttpError(400, "Invalid search query.")
     match = re.search(
-        r"(?:under|below|less than|up to|max(?:imum)?|budget(?: of)?)\s*[€$]?\s*([\d,]+(?:\.\d{1,2})?)",
+        r"(?:under|below|less than|up to|max(?:imum)?|budget(?: of)?)\s*[€$₹]?\s*([\d,]+(?:\.\d{1,2})?)",
         query,
         re.I,
     )
+    currency = "USD" if "$" in query or re.search(r"\bUSD\b", query, re.I) else "INR" if "₹" in query or re.search(r"\bINR\b", query, re.I) else "EUR"
     budget = float(match[1].replace(",", "")) if match else None
     words = [
         w
@@ -38,7 +39,7 @@ def retrieve(products, query):
         if (
             p.get("archived")
             or p["instock"] <= 0
-            or (budget is not None and p["price"] > budget)
+            or (budget is not None and (p.get("currency", "EUR") != currency or p.get("priceType") == "on-request" or p["price"] > budget))
         ):
             continue
         haystack = " ".join([p["name"], p["description"], *p["categories"]]).lower()
@@ -50,7 +51,7 @@ def retrieve(products, query):
         ):
             continue
         reason = (
-            f"In stock and within your €{budget:g} budget."
+            f"Catalogue reference within your {currency} {budget:g} budget."
             if budget is not None
             else "In-stock catalogue pick."
         )
@@ -61,7 +62,7 @@ def retrieve(products, query):
                 + " in the catalogue."
             )
         picks.append({**p, "score": len(matches), "reason": reason})
-    return sorted(picks, key=lambda p: (-p["score"], p["price"], p["sku"]))[:4]
+    return sorted(picks, key=lambda p: (-p["score"], p.get("currency", "EUR"), p.get("priceType") == "on-request", p["price"], p["sku"]))[:4]
 
 
 def normalize(p):

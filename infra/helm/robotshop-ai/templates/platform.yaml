@@ -136,6 +136,23 @@ spec:
                   name: {{ required "Set integrations.secretName for external Redis and RabbitMQ" $root.Values.integrations.secretName }}
                   key: RABBITMQ_URL
             {{- end }}
+            - name: APP_ENV
+              value: {{ $root.Values.deploymentEnvironment | quote }}
+            - name: REGISTRATION_CHALLENGE_PROVIDER
+              value: {{ $root.Values.registration.provider | quote }}
+            - name: TURNSTILE_SITE_KEY
+              value: {{ $root.Values.registration.siteKey | quote }}
+            - name: TURNSTILE_HOSTNAME
+              value: {{ $root.Values.registration.hostname | quote }}
+            - name: TRUSTED_PROXY_CIDRS
+              value: {{ $root.Values.registration.trustedProxyCidrs | quote }}
+            {{- if eq $root.Values.registration.provider "turnstile" }}
+            - name: TURNSTILE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "registration.secretName is required for Turnstile" $root.Values.registration.secretName }}
+                  key: TURNSTILE_SECRET_KEY
+            {{- end }}
             - name: LOGIN_ACTIVITY_RETENTION_DAYS
               value: {{ $root.Values.loginActivityRetentionDays | quote }}
             - name: TRUST_PROXY

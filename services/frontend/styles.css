@@ -17,3 +17,17 @@
 [hidden]{display:none!important}.header{flex-wrap:wrap;gap:1rem}.admin-heading{font-size:clamp(2rem,5vw,4rem);margin:0 0 1rem}.admin-page main{max-width:1200px;margin:auto}.admin-page section{margin:2.5rem 0;padding-bottom:2rem;border-bottom:1px solid #ddd}.admin-form{display:grid;gap:1rem;max-width:660px;margin-top:1.5rem}.admin-form label{display:grid;gap:.4rem;font-weight:600}.admin-form input:not([type=checkbox]),.admin-form select,.admin-form textarea,.admin-user select{width:100%;padding:.8rem;border:1px solid #bbb;border-radius:8px;background:white;font:inherit}.admin-form input[type=checkbox]{width:auto;justify-self:start}.admin-form textarea{min-height:110px}.admin-table-wrap{overflow:auto;margin-top:1rem}.admin-table{width:100%;border-collapse:collapse;text-align:left}.admin-table th,.admin-table td{padding:.8rem;border-bottom:1px solid #ddd;vertical-align:middle}.admin-user{display:flex;flex-wrap:wrap;align-items:center;gap:1rem;padding:1rem 0;border-bottom:1px solid #ddd}.admin-user select{width:auto}.admin-user span{overflow-wrap:anywhere}#account-status,#admin-status,#product-status,#settings-status{white-space:pre-wrap}#account-dialog{width:min(560px,94vw)}
 
 #account-details,.customer-details{overflow-wrap:anywhere}#account-details p,.customer-details p{font-size:13px;line-height:1.6}.customer-details{grid-column:1/-1;width:100%}#account-dialog{max-height:85vh;overflow:auto}.privacy-note{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* Product detail and review pages share the storefront palette. */
+.product-page { max-width:1100px; margin:2rem auto; padding:0 1.25rem 4rem; }
+.product-page h1 { font-size:clamp(1.8rem,4vw,3rem); line-height:1.15; }
+.product-page h2 { margin-top:2rem; }
+.product-page dl { display:grid; grid-template-columns:minmax(100px,1fr) 2fr; gap:.6rem 1rem; }
+.product-page dt { font-weight:700; } .product-page dd { margin:0; overflow-wrap:anywhere; }
+.product-page figure { margin:0; } .product-page figcaption { font-size:.85rem; }
+.product-page a { text-decoration:underline; } .product-page input, .product-page select, .product-page textarea { max-width:100%; }
+.review { border-top:1px solid #ccc; padding:1.2rem 0; overflow-wrap:anywhere; } .review p { white-space:pre-wrap; }
+.demo-notice { padding:1rem 1.5rem; background:#fff0b8; color:#272112; font-weight:600; }
+.honeypot { position:absolute; left:-10000px; width:1px; height:1px; overflow:hidden; }
+.product-image-button { display:block; } .product-title { text-decoration:none; }
+@media(max-width:650px) { .product-page .product-detail-grid { display:block; } .product-page .header { flex-wrap:wrap; } }

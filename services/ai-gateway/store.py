@@ -1,3 +1,4 @@
+from product_details import require_purchasable
 """Compatible single-writer JSON ledger; caller holds lock across transactions."""
 
 import copy
@@ -161,6 +162,8 @@ class Store:
         p = next((p for p in products if p["sku"] == sku), None)
         if not p:
             raise HttpError(404, "Product not found.")
+        if quantity > 0:
+            require_purchasable(p)
         if quantity > self.available(p):
             raise HttpError(409, "Requested quantity exceeds available stock.")
         next_state = copy.deepcopy(self.state)
@@ -179,7 +182,7 @@ class Store:
         self.save(next_state)
         return self.cart(id, products)
 
-    def begin_payment(self, id, key, products):
+    def begin_payment(self, id, key, products, payment_mode="unknown"):
         if not isinstance(key, str) or not re.fullmatch("[a-zA-Z0-9-]{16,80}", key):
             raise HttpError(400, "A valid idempotency key is required.")
         previous = next(
@@ -189,6 +192,8 @@ class Store:
         if previous or self.pending(id):
             return previous or self.pending(id)
         cart = self.cart(id, products)
+        for item in cart["items"]:
+            require_purchasable(item)
         if not cart["items"]:
             raise HttpError(400, "Your cart is empty.")
         if any(p["quantity"] > p["instock"] for p in cart["items"]):
@@ -222,6 +227,7 @@ class Store:
             "createdAt": iso(),
             "status": "creating",
             "paymentCaptured": False,
+            "paymentMode": payment_mode,
         }
         state = copy.deepcopy(self.state)
         state["orders"].append(order)

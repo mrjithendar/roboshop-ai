@@ -16,7 +16,7 @@ function $<K extends string>(selector: K): K extends keyof Controls ? Controls[K
   if (!(node instanceof HTMLElement)) throw new Error(`Missing UI element: ${selector}`);
   return node as K extends keyof Controls ? Controls[K] : HTMLElement;
 }
-interface Product { sku: string; name: string; description: string; image: string; price: number; instock: number; categories: string[] }
+interface Product { slug?: string; currency?: string; priceType?: string; showcase?: boolean; synthetic?: boolean; productType?: string; sku: string; name: string; description: string; image: string; price: number; instock: number; categories: string[] }
 interface CartItem extends Product { quantity: number; lineTotal: number }
 interface Shipping { address: { recipient: string; line1: string }; city: { name: string; country: string }; cost: number; distanceKm: number; quotedAt: string }
 interface Cart { items: CartItem[]; total: number; subtotal?: number; shipping?: Shipping | null }
@@ -52,15 +52,18 @@ function show(id: string) { const dialog = document.getElementById(id); if (!(di
 document.querySelectorAll<HTMLElement>('[data-close]').forEach(button => button.addEventListener('click', () => { const dialog = document.getElementById(button.dataset.close || ''); if (dialog instanceof HTMLDialogElement) dialog.close(); }));
 document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('click', event => { if (event.target === dialog) { const r = dialog.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close(); } }));
 function image(p: Product, className = '') { const img = el('img', className); img.src = p.image; img.alt = p.name; img.loading = 'lazy'; img.addEventListener('error', () => { img.src = '/images/placeholder.png'; }, { once: true }); return img; }
+function productPrice(p: Product) { return p.priceType === 'on-request' ? 'Price on request' : new Intl.NumberFormat(undefined, { style: 'currency', currency: p.currency || 'EUR' }).format(p.price) + (p.showcase ? ' · reference' : ''); }
+function canBuy(p: Product) { return !p.showcase && !p.synthetic && (p.currency || 'EUR') === 'EUR' && (p.priceType || 'sale') === 'sale'; }
 function addButton(p: Product) {
-  const button = el('button', 'add-button', '+'); button.setAttribute('aria-label', `Add ${p.name} to bag`); button.disabled = p.instock < 1;
+  const button = el('button', 'add-button', canBuy(p) ? '+' : 'View');
+  if (!canBuy(p)) { button.setAttribute('aria-label', `View ${p.name} showcase details`); button.addEventListener('click', () => detail(p)); return button; } button.setAttribute('aria-label', `Add ${p.name} to bag`); button.disabled = p.instock < 1;
   button.addEventListener('click', async () => { button.disabled = true; await add(p); button.disabled = p.instock < 1; }); return button;
 }
 function card(p: Product) {
   const article = el('article', 'product-card');
-  const visual = el('button', 'product-image-button'); visual.setAttribute('aria-label', `View ${p.name}`); visual.append(image(p), el('span', 'product-badge', p.instock > 0 ? p.sku === 'STAN-1' ? 'MEET THE ORIGINAL' : 'READY FOR ADVENTURE' : 'OUT OF STOCK')); visual.addEventListener('click', () => detail(p));
-  const title = el('button', 'product-title', p.name); title.addEventListener('click', () => detail(p));
-  const bottom = el('div', 'product-bottom'); bottom.append(el('span', 'product-price', money(p.price)), addButton(p));
+  const visual = el('a', 'product-image-button'); visual.href = `/products/${encodeURIComponent(p.slug || p.sku.toLowerCase())}`; visual.setAttribute('aria-label', `View ${p.name}`); visual.append(image(p), el('span', 'product-badge', p.showcase ? 'SIMULATED AVAILABILITY' : p.instock > 0 ? 'AVAILABLE' : 'OUT OF STOCK'));
+  const title = el('a', 'product-title', p.name); title.href = visual.href;
+  const bottom = el('div', 'product-bottom'); bottom.append(el('span', 'product-price', productPrice(p)), addButton(p));
   article.append(visual, el('p', 'product-category', p.categories.join(' / ')), title, el('p', 'product-description', p.description), bottom);
   return article;
 }
@@ -68,10 +71,10 @@ function renderProducts() {
   const query = $('#search').value.toLowerCase().trim();
   let visible = products.filter(p => (!category || p.categories.includes(category)) && (!$('#in-stock').checked || p.instock > 0) && `${p.name} ${p.description} ${p.categories.join(' ')}`.toLowerCase().includes(query));
   const sort = $('#sort').value;
-  visible.sort(sort === 'price-low' ? (a, b) => a.price - b.price : sort === 'price-high' ? (a, b) => b.price - a.price : sort === 'name' ? (a, b) => a.name.localeCompare(b.name) : (a, b) => Number(b.sku === 'STAN-1') - Number(a.sku === 'STAN-1'));
+  visible.sort(sort === 'price-low' ? (a, b) => (a.currency || 'EUR').localeCompare(b.currency || 'EUR') || Number(a.priceType === 'on-request') - Number(b.priceType === 'on-request') || a.price - b.price : sort === 'price-high' ? (a, b) => (a.currency || 'EUR').localeCompare(b.currency || 'EUR') || Number(a.priceType === 'on-request') - Number(b.priceType === 'on-request') || b.price - a.price : sort === 'name' ? (a, b) => a.name.localeCompare(b.name) : (a, b) => Number(b.sku === 'STAN-1') - Number(a.sku === 'STAN-1'));
   $('#products').replaceChildren(...visible.map(card));
   if (!visible.length) $('#products').append(el('p', 'empty-state', 'No robots match just yet. Try another search or category.'));
-  $('#result-count').textContent = `${visible.length} extraordinary companion${visible.length === 1 ? '' : 's'}`;
+  $('#result-count').textContent = `${visible.length} robotics product${visible.length === 1 ? '' : 's'}`;
   $('#product-count').textContent = String(products.length);
 }
 async function loadProducts() {
@@ -86,14 +89,8 @@ async function loadRecommendations() {
 $('#retry-products').addEventListener('click', loadProducts);
 $('#search').addEventListener('input', renderProducts); $('#sort').addEventListener('change', renderProducts); $('#in-stock').addEventListener('change', renderProducts);
 document.querySelectorAll<HTMLElement>('[data-category]').forEach(button => button.addEventListener('click', () => { category = button.dataset.category || ''; document.querySelectorAll<HTMLElement>('[data-category]').forEach(tab => { const active = tab === button; tab.classList.toggle('selected', active); tab.setAttribute('aria-pressed', String(active)); }); renderProducts(); }));
-function detail(p: Product) {
-  const grid = el('div', 'product-detail-grid'), copy = el('div', 'detail-copy');
-  const heading = el('h2', '', p.name); heading.id = 'detail-name';
-  const buy = el('button', 'button primary', p.instock ? 'Add to bag  +' : 'Out of stock'); buy.disabled = !p.instock;
-  buy.addEventListener('click', async () => { buy.disabled = true; await add(p); buy.disabled = !p.instock; });
-  copy.append(el('p', 'eyebrow', p.categories.join(' / ')), heading, el('p', '', p.description), el('p', 'product-price', money(p.price)), el('p', '', p.instock ? `${p.instock} available` : 'Currently out of stock'), buy);
-  grid.append(image(p, 'detail-image'), copy); $('#product-detail').replaceChildren(grid); show('product-dialog');
-}
+function detail(p: Product) { location.href = `/products/${encodeURIComponent(p.slug || p.sku.toLowerCase())}`; }
+
 async function add(p: Product) { const quantity = (cart.items.find(item => item.sku === p.sku)?.quantity || 0) + 1; if (await updateCart(p.sku, quantity)) toast(`${p.name} is in your bag.`); }
 async function updateCart(sku: string, quantity: number) {
   if (cartBusy) return false;
@@ -213,7 +210,7 @@ async function chat(message: string) {
   try {
     const result = await api<{ answer: string; notice: string; products: Product[]; requestId?: string }>('/api/chat', { method: 'POST', body: JSON.stringify({ message }) });
     pending.querySelector('p')!.textContent = result.answer; $('#assistant-mode').textContent = result.notice + (result.requestId ? ` (Request ${result.requestId})` : '');
-    for (const p of result.products) { const row = el('div', 'chat-product'), info = el('div'); info.append(el('strong', '', p.name), el('span', '', money(p.price))); row.append(image(p), info, addButton(p)); pending.append(row); }
+    for (const p of result.products) { const row = el('div', 'chat-product'), info = el('div'); info.append(el('strong', '', p.name), el('span', '', productPrice(p))); row.append(image(p), info, addButton(p)); pending.append(row); }
   } catch (error) { pending.querySelector('p')!.textContent = errorMessage(error); }
   finally { chatBusy = false; $('#send-message').disabled = false; $('#message').focus(); pending.scrollIntoView({ block: 'nearest' }); }
 }
