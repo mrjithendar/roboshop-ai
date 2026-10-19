@@ -9,13 +9,20 @@ if [[ "$EUID" == 0 ]]; then DEFAULT_INSTALL_DIR=/usr/local/bin; else DEFAULT_INS
 INSTALL_DIR="${INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
 ACTION="${1:-start}"
 BASE_PROFILE="$PROFILE"
+PUBLIC_IP="${PUBLIC_IP:-}"
+NETWORK_ARGS=()
 fail() { echo "ERROR: $*" >&2; exit 1; }
 usage() {
-  echo 'Usage: bash minikube/install.sh [install|start|status|stop|diagnose]'
+  echo 'Usage: bash minikube/install.sh [install|start|status|stop|diagnose|reset]'
   echo 'Overrides: PROFILE, NODES, CPUS, MEMORY (MiB/node), INSTALL_DIR'
+  echo 'Direct access: PUBLIC_IP=<Vultr IPv4 address> (exports a portable kubeconfig).'
   echo 'Runs as the current user; Linux root starts use --force.'
   echo 'Optional download pins: MINIKUBE_VERSION=vX.Y.Z, KUBECTL_VERSION=vX.Y.Z'
 }
+if [[ "$ACTION" == reset ]]; then
+  [[ $# -eq 1 ]] || fail 'Usage: bash minikube/install.sh reset'
+  exec bash "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/reset.sh"
+fi
 case "$ACTION" in -h|--help|help) usage; exit 0 ;; install|start|status|stop|diagnose) ;; *) usage >&2; exit 1 ;; esac
 [[ $# -le 1 ]] || fail 'Expected at most one action.'
 case "$(uname -s)" in Linux) OS=linux ;; Darwin) OS=darwin ;; *) fail 'Supported systems: Linux and macOS.' ;; esac
@@ -117,7 +124,7 @@ fi
 if [[ "$OS" == linux && -r /etc/os-release ]]; then
   distro_id="$(. /etc/os-release; printf '%s' "${ID:-}")"
   if [[ "$distro_id" == centos ]]; then
-    echo 'CentOS: for Docker prerequisites, run bash minikube/setup-centos.sh (Stream 9/10).'
+    echo 'CentOS: for Docker prerequisites, run bash minikube/setup.sh (Stream 9/10).'
   fi
 fi
 command -v docker >/dev/null 2>&1 || fail 'Install Docker Engine on Linux or Docker Desktop on macOS, then rerun. See minikube/README.md.'
@@ -157,15 +164,28 @@ config_matches() {
   jq -e --argjson nodes "$NODES" --argjson memory "$MEMORY" --argjson cpus "$CPUS" \
     '.Driver == "docker" and (.Nodes | length) == $nodes and .Memory == $memory and .CPUs == $cpus' "$1" >/dev/null
 }
+NETWORK_ID=local
+if [[ -n "$PUBLIC_IP" ]]; then
+  [[ "$PUBLIC_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail 'PUBLIC_IP must be an IPv4 address.'
+  jq -en --arg ip "$PUBLIC_IP" '$ip | split(".") | all(.[]; (tonumber >= 0 and tonumber <= 255))' >/dev/null || fail 'Invalid PUBLIC_IP.'
+  NETWORK_ARGS=(--listen-address=0.0.0.0 "--apiserver-ips=$PUBLIC_IP")
+  NETWORK_ID="direct-${PUBLIC_IP//./-}"
+fi
+network_matches() {
+  local saved=local
+  if [[ -f "$STATE_DIR/$1.network" ]]; then saved="$(cat "$STATE_DIR/$1.network")"; fi
+  [[ "$saved" == "$NETWORK_ID" ]]
+}
 existing_config="$(profile_config "$PROFILE")"
 if [[ -f "$existing_config" ]]; then
   jq -e '.Driver and .Memory and .CPUs and (.Nodes | type == "array")' "$existing_config" >/dev/null || fail 'Cannot parse existing profile configuration; no cluster changed.'
   echo "Existing profile $PROFILE: $(jq -c '{Driver, CPUs, Memory, nodes: (.Nodes | length)}' "$existing_config")"
-  if ! config_matches "$existing_config"; then
+  if ! config_matches "$existing_config" || ! network_matches "$PROFILE"; then
     previous_profile="$PROFILE"
     PROFILE="$BASE_PROFILE-fit-${NODES}n-${MEMORY}m-${CPUS}c"
+    [[ "$NETWORK_ID" == local ]] || PROFILE="$PROFILE-$NETWORK_ID"
     target_config="$(profile_config "$PROFILE")"
-    if [[ -f "$target_config" ]] && ! config_matches "$target_config"; then
+    if [[ -f "$target_config" ]] && { ! config_matches "$target_config" || ! network_matches "$PROFILE"; }; then
       fail "Replacement profile $PROFILE already exists with different settings; no cluster changed."
     fi
     [[ "$previous_profile" != "$PROFILE" ]] || fail 'Existing adjusted profile has incompatible settings.'
@@ -174,7 +194,9 @@ if [[ -f "$existing_config" ]]; then
   fi
 fi
 echo "Starting $PROFILE: $NODES nodes, each with $CPUS CPUs and $MEMORY MiB RAM."
-if minikube start ${ROOT_ARGS[@]+"${ROOT_ARGS[@]}"} --profile="$PROFILE" --driver=docker --nodes="$NODES" \
+mkdir -p "$STATE_DIR"
+printf '%s\n' "$NETWORK_ID" > "$STATE_DIR/$PROFILE.network"
+if minikube start ${ROOT_ARGS[@]+"${ROOT_ARGS[@]}"} ${NETWORK_ARGS[@]+"${NETWORK_ARGS[@]}"} --profile="$PROFILE" --driver=docker --nodes="$NODES" \
   --cpus="$CPUS" --memory="$MEMORY" --container-runtime=containerd --wait=all --wait-timeout=10m; then
   :
 else
@@ -192,3 +214,25 @@ state_tmp="$(mktemp "$STATE_DIR/.profile.XXXXXX")"
 printf '%s\n' "$PROFILE" > "$state_tmp"
 mv "$state_tmp" "$STATE_FILE"
 echo "Ready. Use: kubectl --context=$PROFILE get pods -A"
+
+if [[ -n "$PUBLIC_IP" ]]; then
+  published_port="$(docker port "$PROFILE" 8443/tcp | awk -F: '/^0[.]0[.]0[.]0:/ {print $NF; exit}')"
+  [[ "$published_port" =~ ^[0-9]+$ ]] || fail 'Could not find the public Docker API port; kubeconfig was not exported.'
+  mkdir -p "$HOME/.kube"
+  export_tmp="$(mktemp "$HOME/.kube/.direct.XXXXXX")"
+  chmod 600 "$export_tmp"
+  if kubectl --context="$PROFILE" config view --minify --raw --flatten -o json | \
+    jq --arg endpoint "https://$PUBLIC_IP:$published_port" \
+      '.clusters[0].cluster.server = $endpoint | .clusters[0].cluster["insecure-skip-tls-verify"] = false | del(.clusters[0].cluster["tls-server-name"], .clusters[0].cluster["proxy-url"])' > "$export_tmp"; then
+    mv "$export_tmp" "$HOME/.kube/$PROFILE-direct.json"
+  else
+    rm -f "$export_tmp"
+    fail 'Could not export direct kubeconfig.'
+  fi
+  echo "Direct API: https://$PUBLIC_IP:$published_port"
+  echo "In Vultr Firewall, allow TCP $published_port from your local public IP."
+  echo "On your local machine:"
+  printf '  scp %s@%s:%s/.kube/%s-direct.json ./vultr-kubeconfig.json\n' "$(id -un)" "$PUBLIC_IP" "$HOME" "$PROFILE"
+  echo '  chmod 600 ./vultr-kubeconfig.json'
+  echo '  KUBECONFIG="$PWD/vultr-kubeconfig.json" kubectl get nodes'
+fi

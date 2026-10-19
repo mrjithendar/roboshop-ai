@@ -21,20 +21,23 @@ class InstallerTests(unittest.TestCase):
 *MemTotal*) echo 4093640704;;
 *NCPU*) echo 2;;
 *OSType*) echo linux;;
+port*) echo 0.0.0.0:32769;;
 esac''',
             'minikube': '''echo "$*" >> "$TEST_CALLS"
 case "$*" in start*) exit "${TEST_START_EXIT:-0}";; esac''',
-            'kubectl': 'case "$*" in *"-o name"*) echo node/test;; esac',
+            'kubectl': """case "$*" in
+*"config view"*) echo '{"clusters":[{"name":"test","cluster":{"server":"https://localhost:32769","certificate-authority-data":"test-ca"}}],"users":[{"name":"test","user":{"client-certificate-data":"test-cert","client-key-data":"test-key"}}]}' ;;
+*"-o name"*) echo node/test;; esac""",
         }
         for name, body in mocks.items():
             f = self.bin / name
             f.write_text('#!/bin/sh\n' + body + '\n')
             f.chmod(0o755)
         self.env = {k: v for k, v in os.environ.items() if k not in (
-            'NODES', 'MEMORY', 'CPUS', 'PROFILE', 'MINIKUBE_HOME')}
+            'NODES', 'MEMORY', 'CPUS', 'PROFILE', 'MINIKUBE_HOME', 'PUBLIC_IP')}
         self.env.update(HOME=str(self.root), INSTALL_DIR=str(self.bin),
                         PATH=str(self.bin) + ':' + os.environ['PATH'],
-                        TEST_CALLS=str(self.root / 'calls'))
+                        TEST_CALLS=str(self.root / 'calls'), NODES='1')
 
     def run_script(self, action='start', **overrides):
         return subprocess.run(['bash', str(SCRIPT), action],
@@ -74,6 +77,22 @@ case "$*" in start*) exit "${TEST_START_EXIT:-0}";; esac''',
         self.assertEqual(old.read_text(), original)
         self.assertEqual(self.run_script('status').returncode, 0)
         self.assertIn('--profile=mk4-fit-1n-2560m-2c status', self.calls())
+
+    def test_direct_access_export(self):
+        result = self.run_script(PUBLIC_IP='203.0.113.10')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('--listen-address=0.0.0.0', self.calls())
+        self.assertIn('--apiserver-ips=203.0.113.10', self.calls())
+        output = self.root / '.kube/mk4-direct.json'
+        config = json.loads(output.read_text())
+        self.assertEqual(config['clusters'][0]['cluster']['server'], 'https://203.0.113.10:32769')
+        self.assertFalse(config['clusters'][0]['cluster']['insecure-skip-tls-verify'])
+        self.assertEqual(output.stat().st_mode & 0o777, 0o600)
+        self.assertNotIn('test-key', result.stdout)
+
+    def test_invalid_public_address(self):
+        self.assertNotEqual(self.run_script(PUBLIC_IP='999.2.3.4').returncode, 0)
+        self.assertEqual(self.calls(), '')
 
     def test_corrupt_config_not_modified(self):
         self.config('mk4').write_text('{broken')

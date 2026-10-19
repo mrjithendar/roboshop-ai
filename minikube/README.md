@@ -7,7 +7,7 @@ The scripts support amd64 and arm64. Minikube runs as the current effective user
 From the repository root:
 
 ```sh
-bash minikube/setup-centos.sh
+bash minikube/setup.sh
 ```
 
 This installs Docker Engine from its official RPM repository, enables Docker, installs missing Minikube/kubectl binaries with SHA-256 verification, and starts the cluster. Root needs no sudo or PATH changes on a standard CentOS login. Regular users need sudo for host packages; setup refreshes Docker group membership for the cluster startup process automatically. Existing interactive sessions still need a new login for direct Docker access.
@@ -15,7 +15,7 @@ This installs Docker Engine from its official RPM repository, enables Docker, in
 The base profile is `mk4`. Defaults are one node and 2 CPUs. Memory is sized from Docker physical RAM, reserving 1024 MiB for host overhead, rounded down to 256 MiB increments and capped at 2560 MiB per node. Swap is excluded. Hosts unable to fit at least 2048 MiB per node are rejected before cluster changes. Explicit requests exceeding the budget are also rejected. For a named development cluster:
 
 ```sh
-PROFILE=robotshop NODES=1 CPUS=2 MEMORY=3072 bash minikube/setup-centos.sh
+PROFILE=robotshop NODES=1 CPUS=2 MEMORY=3072 bash minikube/setup.sh
 minikube -p robotshop status
 kubectl --context=robotshop get nodes
 PROFILE=robotshop bash minikube/install.sh stop
@@ -62,10 +62,37 @@ Check for out-of-memory kills, kubelet errors, certificate/authentication failur
 
 ## Existing configuration and automatic adjustment
 
-Run `bash minikube/setup-centos.sh` or, once dependencies are installed, `bash minikube/install.sh start`. No manual resource flags are needed on the 3904 MiB host: it selects one node with 2560 MiB and 2 CPUs.
+Run `bash minikube/setup.sh` or, once dependencies are installed, `bash minikube/install.sh start`. No manual resource flags are needed on the 3904 MiB host: it selects one node with 2560 MiB and 2 CPUs.
 
 The installer inspects the selected profile's saved driver, node count, CPU and memory settings, including nodes that never successfully joined. If settings differ, it stops and preserves that profile, then starts a deterministic replacement such as `mk4-fit-1n-2560m-2c`. Existing workloads and data stay in the stopped cluster; they are **not migrated**. No nodes, clusters, or volumes are deleted. This operation interrupts workloads in the old profile.
 
 After successful readiness checks, the selected profile is saved under `~/.minikube/robotshop-installer/`. Later `start`, `status`, `stop`, and `diagnose` calls with the same base `PROFILE` follow that selection. Use `kubectl get nodes` after startup, or the exact context printed by the installer. A failed replacement leaves the old profile preserved and stopped, with no new selection saved.
 
 The capacity check uses total Docker RAM, not current free RAM; unrelated running workloads can still cause memory pressure. It is not a guarantee the full application fits. Tests: `python3 minikube/test-install.py` (mocked commands, no cluster required).
+
+## Direct access from your laptop (no tunnel)
+
+For the 4 GiB Vultr host, run with your server's public IPv4 address:
+
+```sh
+PUBLIC_IP=YOUR_VULTR_IP NODES=1 bash minikube/setup.sh
+# Or, with dependencies already installed:
+PUBLIC_IP=YOUR_VULTR_IP NODES=1 bash minikube/install.sh start
+```
+
+The installer binds Docker's published API port to `0.0.0.0`, includes the public IP in the API certificate, and writes `~/.kube/<selected-profile>-direct.json` with embedded credentials and file permissions 0600. TLS verification remains enabled. It prints the actual port and exact `scp` and local `kubectl` commands. Allow that TCP port from your laptop's public IP in Vultr Firewall (and any other upstream firewall); the script does not manage your Vultr account. No SSH tunnel is required after copying the file.
+
+A profile created for localhost access cannot simply change its Docker port bindings. The installer stops and preserves it, and creates a separate direct-access profile when needed. Workloads are not migrated. Reuse the same `PUBLIC_IP` on subsequent starts; omitting it requests local-only access. Re-export the file after recreating the cluster or changing the server IP. The exported file grants cluster administrator access; keep it private and out of Git.
+
+## Wipe Minikube and start fresh
+
+On the Vultr host, as the user who created the clusters:
+
+```sh
+bash minikube/install.sh reset
+PUBLIC_IP=YOUR_VULTR_IP NODES=1 bash minikube/setup.sh
+```
+
+`bash minikube/reset.sh` is equivalent to the reset action. It immediately runs `minikube delete --all --purge`: all current-user Minikube clusters and their cluster-local data are deleted, along with cached downloads, profiles, installer selection/network metadata and matching direct-access exports. There is no interactive confirmation. It retains installed tools, unrelated Docker resources, and unrelated Kubernetes contexts. It requires the standard non-symlink `~/.minikube` directory.
+
+Reset does not remove clusters owned by another account, copies of kubeconfig on your laptop, or Vultr firewall rules. If you previously created clusters as `robotshop`, those belong to that account. After starting again, copy the newly exported kubeconfig and use the newly printed API port. Do not reuse the old laptop kubeconfig.

@@ -4,14 +4,14 @@ set -euo pipefail
 fail() { echo "ERROR: $*" >&2; exit 1; }
 START=1
 case "${1:-}" in
-  --help|-h) echo 'Usage: bash minikube/setup-centos.sh [--start|--install-only]'; echo 'Defaults to installing and starting as the current user (including root).'; exit 0 ;;
+  --help|-h) echo 'Usage: bash minikube/setup.sh [--start|--install-only]'; echo 'Defaults to installing and starting as the current user (including root).'; exit 0 ;;
   ''|--start) ;;
   --install-only) START=0 ;;
   *) fail 'Expected --start or --install-only.' ;;
 esac
 [[ $# -le 1 ]] || fail 'Expected at most one option.'
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-[[ -f "$SCRIPT_DIR/install.sh" ]] || fail 'Keep install.sh beside setup-centos.sh.'
+[[ -f "$SCRIPT_DIR/install.sh" ]] || fail 'Keep install.sh beside setup.sh.'
 [[ "$(uname -s)" == Linux && -r /etc/os-release ]] || fail 'This setup requires CentOS Stream 9 or 10.'
 . /etc/os-release
 [[ "${ID:-}" == centos && "${NAME:-}" == *Stream* ]] || fail 'This setup requires CentOS Stream 9 or 10.'
@@ -62,7 +62,7 @@ if [[ "$START" == 1 ]]; then
   else
     # Refresh supplementary groups for the same user without a logout.
     sudo runuser -u "$CURRENT_USER" -- env HOME="$HOME" PATH="$PATH" \
-      PROFILE="${PROFILE:-mk4}" NODES="${NODES:-1}" CPUS="${CPUS:-2}" MEMORY="${MEMORY:-auto}" \
+      PUBLIC_IP="${PUBLIC_IP:-}" PROFILE="${PROFILE:-mk4}" NODES="${NODES:-1}" CPUS="${CPUS:-2}" MEMORY="${MEMORY:-auto}" \
       bash "$SCRIPT_DIR/install.sh" start
   fi
 fi
