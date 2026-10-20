@@ -67,7 +67,7 @@ kubectl -n robotshop-ai logs deployment/user-service --tail=80
 
 The deployment helper automatically adds a missing `USER_SERVICE_TOKEN` to
 `robotshop-secrets`, preserving all existing keys and passwords. The full
-**Deploy-Minikube** workflow performs SMTP → user-service → gateway in that order.
+**Deploy-Minikube** workflow deploys ECR images in SMTP → user-service → gateway order.
 An existing frontend needs no rebuild for this extraction. If password-reset UI
 has not been deployed previously, build/deploy frontend as described in the SMTP guide.
 

@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   publish:
@@ -19,8 +18,7 @@ jobs:
     timeout-minutes: 30
     env:
       SERVICE: ${{ inputs.service }}
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
       REPOSITORY_PREFIX: ${{ vars.ECR_REPOSITORY_PREFIX || 'robotshop' }}
     steps:
       - uses: actions/checkout@v7
@@ -31,10 +29,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          : "${AWS_REGION:?Set the AWS_REGION repository variable}"
-          : "${AWS_ROLE_ARN:?Set the AWS_ROLE_ARN repository variable}"
           case "$SERVICE" in
-            user-service|cart-service|ai-gateway|product-ingestion|catalogue-service|recommendation-service|shopping-agent|sre-copilot|payment-service|mcp-server|shipping-service|frontend|nginx|finder) ;;
+            user-service|cart-service|ai-gateway|product-ingestion|catalogue-service|recommendation-service|shopping-agent|sre-copilot|payment-service|mcp-server|shipping-service|frontend|nginx|finder|smtp-server) ;;
             *) echo 'Unsupported service' >&2; exit 1 ;;
           esac
           [[ "$REPOSITORY_PREFIX" =~ ^[a-z0-9]+([._/-][a-z0-9]+)*$ ]] || { echo 'Invalid ECR_REPOSITORY_PREFIX' >&2; exit 1; }
@@ -43,19 +39,11 @@ jobs:
           echo "repository=$REPOSITORY_PREFIX-$suffix" >> "$GITHUB_OUTPUT"
           echo "tag=sha-$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
           test -f "services/$SERVICE/Dockerfile"
-      - name: Assume AWS publishing role using OIDC
-        uses: aws-actions/configure-aws-credentials@v6.3.0
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-          role-session-name: github-${{ github.run_id }}
+
       - name: Log in to Amazon ECR
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
-      - name: Check repository exists
-        env:
-          REPOSITORY: ${{ steps.image.outputs.repository }}
-        run: aws ecr describe-repositories --repository-names "$REPOSITORY" > /dev/null
+
       - uses: docker/setup-buildx-action@v4
       - name: Build and push service Dockerfile
         id: build

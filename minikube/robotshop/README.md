@@ -132,9 +132,17 @@ If the previous container log reports `spring.data.redis.port` cannot parse `tcp
 
 ## User service
 
-The local deployment workflow builds `user-service` before `ai-gateway`.
+The ECR deployment workflow deploys `user-service` before `ai-gateway`.
 Account data stays in the existing MongoDB collections. See
 [the user-service migration and deployment guide](../../services/user-service/README.md).
 `deploy-minikube.sh` adds a missing `USER_SERVICE_TOKEN` to the existing Secret
 without rotating stored database passwords. Reapply SMTP with
 `bash minikube/deploy-smtp.sh` to allow the user-service pod through its NetworkPolicy.
+
+
+### GitHub Actions: newest ECR images
+
+Use **Actions → Deploy-Minikube → Run workflow**. All ECR lookup, credential setup,
+manifest rendering and rollout commands live in `deploy-minikube.yml`. The workflow
+uses the service YAML files directly, with ECR digests and the `ecr-pull` secret.
+It does not call root build/deployment scripts. See [ECR deployment](../../docs/deployment/ecr-ci.md).

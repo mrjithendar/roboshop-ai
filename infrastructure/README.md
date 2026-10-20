@@ -105,7 +105,8 @@ Repositories use AES-256 encryption, scan on push, shared project/environment ta
 and immutable image tags. CI already publishes unique `sha-...` tags. Repeatedly
 pushing a `local` or `latest` tag is incompatible with immutability; use unique
 release tags in ECR. This change provisions repositories only, not IAM roles,
-GitHub OIDC, or a new SMTP CI workflow. See the
+or GitHub OIDC. All 15 service CI workflows, including SMTP, publish to these
+repositories; see [ECR CI setup](../docs/deployment/ecr-ci.md). See the
 [AWS provider ECR resource](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecr_repository).
 
 Run the init/validate/plan/apply commands above for the combined VPC/ECR stack;

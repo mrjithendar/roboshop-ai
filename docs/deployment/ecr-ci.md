@@ -2,14 +2,14 @@
 
 Each `ci-<service>.yml` in `.github/workflows/` calls `publish-ecr.yml`.
 Pushes to the default branch (`master` or `main`) build services whose sources
-changed. Shared Python/Node changes rebuild their dependent services. Changes
-to the reusable workflow or `.dockerignore` rebuild all ten images. Run a
+changed. Changes to the reusable publisher rebuild all 15 images. The payment
+workflow currently runs on every default-branch push. Run a
 workflow manually from GitHub Actions on the default branch to publish it without
 a source change. Other branches and pull requests cannot publish through these
 workflows. If the default branch has another name, update the branch filters.
 
-All builds use the repository root as context and the individual service's
-Dockerfile, on GitHub-hosted Ubuntu runners, targeting `linux/amd64`.
+All builds use the individual service directory as context and its own
+Dockerfile, on the self-hosted runner, targeting `linux/amd64`.
 These workflows build and publish; they do not deploy or replace application tests.
 
 ## GitHub repository variables
@@ -18,11 +18,18 @@ Set these under Settings → Secrets and variables → Actions → Variables:
 
 | Variable | Value |
 | --- | --- |
-| `AWS_REGION` | Region containing the ECR repositories, e.g. `ap-south-1` |
-| `AWS_ROLE_ARN` | ARN of the IAM role assumed by GitHub Actions |
+| `AWS_REGION` | Optional; defaults to `us-east-1`, matching Terraform |
+| `AWS_ROLE_ARN` | Optional OIDC role for deployment; publishing uses runner credentials |
 | `ECR_REPOSITORY_PREFIX` | Optional repository prefix, default `robotshop`; exclude registry hostname |
 
-No AWS access-key secrets are needed. Configure the AWS account's GitHub OIDC
+Publishing uses the self-hosted runner's AWS credentials (for example, its EC2
+instance role or configured AWS credentials). The ECR login action authenticates
+Docker automatically. No region variable is required for `us-east-1`. The runner
+needs Docker/Buildx and ECR permissions listed below.
+
+The deployment workflow additionally supports an optional `AWS_ROLE_ARN` for OIDC.
+
+For OIDC, configure the AWS account's GitHub OIDC
 provider with URL `https://token.actions.githubusercontent.com` and audience
 `sts.amazonaws.com`.
 
@@ -62,6 +69,11 @@ The workflow checks that its repository exists; it does not provision AWS resour
 | Service workflow | Default ECR repository |
 | --- | --- |
 | ai-gateway | robotshop-ai-gateway |
+| user-service | robotshop-user-service |
+| cart-service | robotshop-cart-service |
+| catalogue-service | robotshop-catalogue-service |
+| finder | robotshop-finder |
+| smtp-server | robotshop-smtp-server |
 | product-ingestion | robotshop-product-ingestion |
 | recommendation-service | robotshop-recommendation-service |
 | shopping-agent | robotshop-shopping-agent |
@@ -92,6 +104,7 @@ Example role permissions (replace ACCOUNT_ID, REGION and prefix):
       "Effect": "Allow",
       "Action": [
         "ecr:DescribeRepositories",
+        "ecr:DescribeImages",
         "ecr:BatchCheckLayerAvailability",
         "ecr:GetDownloadUrlForLayer",
         "ecr:BatchGetImage",
@@ -118,4 +131,31 @@ No AWS resources, repository variables, or images are created by adding these
 files locally. The first real build/push happens after AWS setup and a matching
 GitHub Actions trigger.
 
-Minikube builds use `:local`. ECR pipelines publish independent immutable versions; set each service manifest to its own published URI/digest rather than reusing another service’s run tag. The root deployment renderer uses local tags; deploying immutable per-service versions requires a separate rendered manifest set or Helm values.
+## Deploy the newest ECR images to Minikube
+
+Run **Actions → Deploy-Minikube → Run workflow** after the service CI builds finish.
+All deployment logic is in `.github/workflows/deploy-minikube.yml`; no extra shell
+or Python deployment helper is required. Service Kubernetes YAML files remain in
+their respective folders.
+
+The workflow selects the most recently pushed `sha-*` image in each of the 15
+repositories, including SMTP, and pins each service to its digest. Untagged
+BuildKit attestations are excluded. All versions are resolved before changing the
+cluster; an empty or missing repository fails the run. The summary records the
+selected digests. “Newest” is per service and may represent different commits;
+wait for all intended CI jobs before deployment.
+
+The workflow initializes or reuses application credentials, deploys infrastructure,
+refreshes the ECR pull secret, configures SMTP, and deploys applications in order.
+It finishes with catalogue publication and ingress/TLS. Existing database passwords,
+DKIM keys and MFA encryption keys are preserved. No images are built or loaded locally.
+
+The runner needs AWS CLI, kubectl, Python/PyYAML and OpenSSL. Set `AWS_REGION` and
+optionally `AWS_ROLE_ARN` and `ECR_REPOSITORY_PREFIX`, as for publishing. Its AWS
+identity additionally needs `ecr:DescribeImages`. The workflow refreshes the
+`robotshop-ai/ecr-pull` secret and references it in application pods. Upstream
+infrastructure images remain unchanged.
+
+ECR credentials expire after 12 hours. Cached digest images continue working,
+but a new node or uncached image needs a fresh credential. Rerun the workflow to
+refresh it. No automatic credential-renewal controller is installed.

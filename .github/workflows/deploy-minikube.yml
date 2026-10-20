@@ -1,0 +1,415 @@
+name: Deploy-Minikube
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Local Minikube profile (installer replacement profiles are resolved automatically)
+        required: true
+        default: mk4
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+# Serialize deployments to the same namespace. Never interrupt a rollout.
+concurrency:
+  group: robotshop-minikube-local
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: [self-hosted, linux]
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: bash
+    env:
+      PROFILE: ${{ inputs.profile }}
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+      ECR_REPOSITORY_PREFIX: ${{ vars.ECR_REPOSITORY_PREFIX || 'robotshop' }}
+      PUBLIC_ORIGIN: https://jithendar.com
+      # Optional absolute path on the runner. Defaults to its normal kubeconfig.
+      RUNNER_KUBECONFIG: ${{ vars.MINIKUBE_KUBECONFIG }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Check runner tools and cluster
+        run: |
+          set -euo pipefail
+          export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
+          echo "/usr/local/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          for tool in aws kubectl python3 openssl; do
+            command -v "$tool" >/dev/null || { echo "Missing runner tool: $tool" >&2; exit 1; }
+          done
+          python3 -c 'import yaml' || { echo 'Install PyYAML for the runner python3 before running this workflow.' >&2; exit 1; }
+          [[ "$PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || { echo 'Invalid profile.' >&2; exit 1; }
+          state="${MINIKUBE_HOME:-$HOME/.minikube}/robotshop-installer/$PROFILE.profile"
+          if [[ -f "$state" ]]; then PROFILE="$(cat "$state")"; fi
+          [[ "$PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || { echo 'Invalid saved profile.' >&2; exit 1; }
+          export KUBECONFIG="${RUNNER_KUBECONFIG:-$HOME/.kube/config}"
+          [[ "$KUBECONFIG" == /* && "$KUBECONFIG" != *$'\n'* && -f "$KUBECONFIG" ]] || { echo 'Kubeconfig must be an existing absolute file path on this runner.' >&2; exit 1; }
+          kubectl --context="$PROFILE" --request-timeout=15s get namespace kube-system >/dev/null
+          kubectl --context="$PROFILE" --request-timeout=15s get ingressclass traefik >/dev/null
+          kubectl --context="$PROFILE" --request-timeout=15s get crd middlewares.traefik.io >/dev/null
+          kubectl --context="$PROFILE" wait --for=condition=Ready clusterissuer/letsencrypt-prod --timeout=60s
+          echo "PROFILE=$PROFILE" >> "$GITHUB_ENV"
+          echo "KUBE_CONTEXT=$PROFILE" >> "$GITHUB_ENV"
+          echo "KUBECONFIG=$KUBECONFIG" >> "$GITHUB_ENV"
+          echo "DEPLOY_DIR=$RUNNER_TEMP/robotshop-deploy" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/robotshop-deploy"
+
+      - name: Assume AWS role when configured
+        if: vars.AWS_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Resolve newest published image for every service
+        run: |
+          aws sts get-caller-identity > /dev/null
+          python3 - <<'PYTHON'
+          """Resolve published service digests and refresh the namespace ECR pull credential."""
+          import argparse
+          import base64
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+
+          ROOT = Path.cwd()
+
+
+          def aws(*args):
+              return subprocess.check_output(['aws', *args, '--output', 'json'], text=True)
+
+
+          def latest(details):
+              # Exclude untagged BuildKit attestations and unrelated manually pushed tags.
+              candidates = [d for d in details if any(t.startswith('sha-') for t in d.get('imageTags', []))]
+              if not candidates:
+                  raise ValueError('No CI-published sha-* image found; run the service CI first.')
+              return max(candidates, key=lambda d: (d['imagePushedAt'], d['imageDigest']))['imageDigest']
+
+
+          def resolve(output):
+              prefix = os.getenv('ECR_REPOSITORY_PREFIX', 'robotshop')
+              if not re.fullmatch(r'[a-z0-9]+([._/-][a-z0-9]+)*', prefix):
+                  raise ValueError('Invalid ECR_REPOSITORY_PREFIX.')
+              images = {}
+              for dockerfile in sorted((ROOT / 'services').glob('*/Dockerfile')):
+                  service = dockerfile.parent.name
+                  repository = prefix + '-' + ('shipping' if service == 'shipping-service' else service)
+                  repo = json.loads(aws('ecr', 'describe-repositories', '--repository-names', repository))['repositories'][0]
+                  details = json.loads(aws('ecr', 'describe-images', '--repository-name', repository, '--filter', 'tagStatus=TAGGED'))['imageDetails']
+                  images[service] = repo['repositoryUri'] + '@' + latest(details)
+                  print(service + ': ' + images[service])
+              output.write_text(json.dumps(images, indent=2) + '\n')
+
+
+          def patch_workload(item, name, images):
+              image = images[name]
+              if not re.fullmatch(r'\d{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com(?:\.cn)?/[a-z0-9._/-]+@sha256:[a-f0-9]{64}', image):
+                  raise ValueError('Expected an immutable ECR image digest for ' + name)
+              pod = item['spec']['template']['spec']
+              pod['containers'][0]['image'] = image
+              pod['containers'][0]['imagePullPolicy'] = 'IfNotPresent'
+              pulls = pod.setdefault('imagePullSecrets', [])
+              if {'name': 'ecr-pull'} not in pulls:
+                  pulls.append({'name': 'ecr-pull'})
+
+
+          output = Path(os.environ['DEPLOY_DIR'])
+          resolve(output / 'images.json')
+          images = json.loads((output / 'images.json').read_text())
+          import yaml
+          for source in ROOT.glob('services/*/*-minikube.yaml'):
+              name = source.parent.name
+              docs = list(yaml.safe_load_all(source.read_text()))
+              for doc in docs:
+                  if not doc: continue
+                  if doc.get('kind') in ('Deployment', 'StatefulSet') and name in images:
+                      patch_workload(doc, name, images)
+              (output / source.name).write_text(yaml.safe_dump_all(docs, sort_keys=False))
+          PYTHON
+
+      - name: Configure namespace and application credentials
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f minikube/robotshop/config.yaml
+          python3 - <<'PYTHON'
+          import base64, json, os, secrets, subprocess
+          PASSWORD_KEYS = ['MONGO_ROOT_PASSWORD', 'MONGO_APP_PASSWORD', 'SHIPPING_DB_PASSWORD',
+                           'SHIPPING_APP_PASSWORD', 'REDIS_PASSWORD', 'RABBITMQ_PASSWORD',
+                           'PAYMENT_SERVICE_TOKEN', 'LLM_SERVICE_TOKEN', 'USER_SERVICE_TOKEN']
+          
+          def ensure_credentials(context):
+              base = ['kubectl', '--context=' + context, '--request-timeout=30s', '-n', 'robotshop-ai']
+              def read(args):
+                  result = subprocess.run(base + args, capture_output=True, text=True)
+                  if result.returncode:
+                      raise RuntimeError('Kubernetes read failed; verify context and RBAC.')
+                  return result.stdout.strip()
+              current = read(['get', 'secret', 'robotshop-secrets', '--ignore-not-found', '-o', 'json'])
+              if current:
+                  data = json.loads(current).get('data', {})
+                  if any(not data.get(key) for key in PASSWORD_KEYS if key != 'USER_SERVICE_TOKEN'):
+                      raise RuntimeError('Existing robotshop-secrets is incomplete; restore missing credentials rather than rotating database passwords.')
+                  if not data.get('USER_SERVICE_TOKEN'):
+                      patch = [
+                          {'op': 'test', 'path': '/metadata/resourceVersion', 'value': json.loads(current)['metadata']['resourceVersion']},
+                          {'op': 'add', 'path': '/data/USER_SERVICE_TOKEN', 'value': base64.b64encode(secrets.token_hex(32).encode()).decode()},
+                      ]
+                      result = subprocess.run(base + ['patch', 'secret', 'robotshop-secrets', '--type=json', '--patch-file=/dev/stdin'], input=json.dumps(patch), text=True, capture_output=True)
+                      if result.returncode:
+                          raise RuntimeError('Could not add user service credential. Rerun after checking for concurrent changes.')
+                      print('Added USER_SERVICE_TOKEN; existing credentials preserved.')
+                  else:
+                      print('Reusing robotshop-secrets; no credentials changed.')
+                  return
+              claims = read(['get', 'pvc', 'mongodb-data', 'shipping-postgres', 'rabbitmq-data', 'gateway-data',
+                             '--ignore-not-found', '-o', 'name'])
+              if claims:
+                  raise RuntimeError('Existing data PVCs found without robotshop-secrets. Restore the original Secret before deploying.')
+              payload = {'apiVersion': 'v1', 'kind': 'Secret', 'metadata': {'name': 'robotshop-secrets', 'namespace': 'robotshop-ai'},
+                         'type': 'Opaque', 'stringData': {key: secrets.token_hex(32) for key in PASSWORD_KEYS}}
+              result = subprocess.run(base + ['create', '-f', '-'], input=json.dumps(payload), capture_output=True, text=True)
+              if result.returncode:
+                  raise RuntimeError('Could not create robotshop-secrets. Check permissions or concurrent installation; credentials were not printed.')
+              print('Created robotshop-secrets with independent random credentials (values hidden).')
+          
+          ensure_credentials(os.environ['KUBE_CONTEXT'])
+          PYTHON
+
+      - name: Deploy infrastructure dependencies
+        run: |
+          for service in mongodb postgres redis rabbitmq jaeger otel-collector; do
+            kubectl --context="$KUBE_CONTEXT" apply -f "$DEPLOY_DIR/$service-minikube.yaml"
+            workload="deployment/$service"
+            [[ "$service" != postgres ]] || workload=deployment/shipping-db
+            [[ "$service" != rabbitmq ]] || workload=statefulset/rabbitmq
+            kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout status "$workload" --timeout=10m
+          done
+
+      - name: Refresh ECR pull credentials
+        run: |
+          python3 - <<'PYTHON'
+          """Resolve published service digests and refresh the namespace ECR pull credential."""
+          import argparse
+          import base64
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+          
+          ROOT = Path.cwd()
+          
+          
+          def aws(*args):
+              return subprocess.check_output(['aws', *args, '--output', 'json'], text=True)
+          
+          
+          def pull_secret(context, image_map):
+              images = json.loads(image_map.read_text())
+              registries = {image.split('/')[0] for image in images.values()}
+              auths = {}
+              for registry in registries:
+                  match = re.fullmatch(r'(\d{12})\.dkr\.ecr\.([a-z0-9-]+)\.amazonaws\.com(?:\.cn)?', registry)
+                  if not match:
+                      raise ValueError('Unsupported ECR registry: ' + registry)
+                  data = json.loads(aws('ecr', 'get-authorization-token', '--registry-ids', match[1], '--region', match[2]))['authorizationData'][0]
+                  auths[registry] = {'auth': data['authorizationToken']}
+              secret = {'apiVersion': 'v1', 'kind': 'Secret', 'metadata': {'name': 'ecr-pull', 'namespace': 'robotshop-ai'},
+                        'type': 'kubernetes.io/dockerconfigjson', 'data': {'.dockerconfigjson': base64.b64encode(json.dumps({'auths': auths}).encode()).decode()}}
+              # Keep the token out of command arguments, logs, and last-applied annotations.
+              subprocess.run(['kubectl', '--context=' + context, 'apply', '--server-side', '--field-manager=robotshop-ecr', '-f', '-'],
+                             input=json.dumps(secret), text=True, check=True, stdout=subprocess.DEVNULL)
+              print('Refreshed robotshop-ai/ecr-pull (ECR credentials expire after 12 hours).')
+          
+          
+          pull_secret(os.environ['KUBE_CONTEXT'], Path(os.environ['DEPLOY_DIR']) / 'images.json')
+          PYTHON
+
+      - name: Configure SMTP certificates and credentials
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f services/smtp-server/certificates.yaml
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai wait --for=condition=Ready certificate/smtp-ca --timeout=120s
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai wait --for=condition=Ready certificate/smtp-server-tls certificate/smtp-client-tls --timeout=120s
+          python3 - <<'PYTHON'
+          #!/usr/bin/env python3
+          """Create SMTP secrets once, preserve existing keys, and print only public DNS data."""
+          import argparse
+          import base64
+          import json
+          import os
+          from pathlib import Path
+          import secrets
+          import subprocess
+          import tempfile
+          
+          
+          def main():
+              parser = argparse.ArgumentParser(description=__doc__)
+              parser.add_argument('--context', required=True)
+              args = parser.parse_args(['--context', os.environ['KUBE_CONTEXT']])
+              command = ['kubectl', '--context', args.context, '-n', 'robotshop-ai']
+          
+              def get(name):
+                  result = subprocess.run(command + ['get', 'secret', name, '--ignore-not-found', '-o', 'json'], check=True, capture_output=True, text=True)
+                  return json.loads(result.stdout) if result.stdout.strip() else None
+          
+              def create(name, values):
+                  body = {'apiVersion': 'v1', 'kind': 'Secret', 'metadata': {'name': name, 'namespace': 'robotshop-ai'}, 'type': 'Opaque', 'stringData': values}
+                  subprocess.run(command + ['create', '-f', '-'], input=json.dumps(body), text=True, check=True, stdout=subprocess.DEVNULL)
+          
+              dkim = get('smtp-dkim')
+              with tempfile.TemporaryDirectory(prefix='robotshop-mail-') as directory:
+                  private = Path(directory) / 'key.pem'
+                  if dkim:
+                      private.write_bytes(base64.b64decode(dkim['data']['robotshop.private']))
+                      private.chmod(0o600)
+                  else:
+                      subprocess.run(['openssl', 'genpkey', '-algorithm', 'RSA', '-pkeyopt', 'rsa_keygen_bits:2048', '-out', str(private)], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                      private.chmod(0o600)
+                      create('smtp-dkim', {'robotshop.private': private.read_text()})
+                  public = subprocess.run(['openssl', 'pkey', '-in', str(private), '-pubout', '-outform', 'DER'], check=True, capture_output=True).stdout
+              auth = get('robotshop-auth')
+              values = {
+                  'SMTP_HOST': 'smtp-server.robotshop-ai.svc.cluster.local', 'SMTP_PORT': '587',
+                  'SMTP_FROM': 'no-reply@jithendar.com', 'SMTP_SECURITY': 'starttls',
+                  'SMTP_USERNAME': '', 'SMTP_PASSWORD': '',
+                  'SMTP_CA_FILE': '/etc/robotshop-smtp/ca.crt',
+                  'SMTP_CLIENT_CERT': '/etc/robotshop-smtp/tls.crt',
+                  'SMTP_CLIENT_KEY': '/etc/robotshop-smtp/tls.key',
+              }
+              if not auth or 'AUTH_ENCRYPTION_KEY' not in auth.get('data', {}):
+                  values['AUTH_ENCRYPTION_KEY'] = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode()
+              if auth:
+                  # Only update SMTP settings. Never rotate an enrolled user's encryption key.
+                  body = {'stringData': values}
+                  subprocess.run(command + ['patch', 'secret', 'robotshop-auth', '--type=merge', '--patch-file=/dev/stdin'], input=json.dumps(body), text=True, check=True, stdout=subprocess.DEVNULL)
+              else:
+                  create('robotshop-auth', values)
+              print('Secrets configured; existing DKIM and authenticator encryption keys preserved.')
+              print('Publish TXT robotshop._domainkey.jithendar.com:')
+              print('v=DKIM1; k=rsa; p=' + base64.b64encode(public).decode())
+          
+          
+          if __name__ == '__main__':
+              os.umask(0o077)
+              main()
+          PYTHON
+
+      - name: Deploy smtp-server from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "$DEPLOY_DIR/smtp-server-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout status deployment/smtp-server --timeout=5m
+
+      - name: Deploy product-ingestion from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "$DEPLOY_DIR/product-ingestion-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout status deployment/product-ingestion --timeout=10m
+
+      - name: Deploy catalogue-service from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "$DEPLOY_DIR/catalogue-service-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout status deployment/catalogue-service --timeout=10m
+
+      - name: Deploy recommendation-service from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "$DEPLOY_DIR/recommendation-service-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout status deployment/recommendation-service --timeout=10m
+
+      - name: Deploy shopping-agent from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "$DEPLOY_DIR/shopping-agent-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout status deployment/shopping-agent --timeout=10m
+
+      - name: Deploy sre-copilot from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "$DEPLOY_DIR/sre-copilot-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout status deployment/sre-copilot --timeout=10m
+
+      - name: Deploy cart-service from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "$DEPLOY_DIR/cart-service-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout status deployment/cart-service --timeout=10m
+
+      - name: Deploy payment-service from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "$DEPLOY_DIR/payment-service-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout status deployment/payment-service --timeout=10m
+
+      - name: Deploy shipping-service from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "$DEPLOY_DIR/shipping-service-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout status deployment/shipping-service --timeout=10m
+
+      - name: Deploy user-service from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "$DEPLOY_DIR/user-service-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout status deployment/user-service --timeout=10m
+
+      - name: Deploy ai-gateway from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "$DEPLOY_DIR/ai-gateway-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout status deployment/ai-gateway --timeout=10m
+
+      - name: Deploy frontend from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "$DEPLOY_DIR/frontend-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout status deployment/frontend --timeout=10m
+
+      - name: Deploy nginx from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "$DEPLOY_DIR/nginx-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout status deployment/nginx --timeout=10m
+
+      - name: Deploy mcp-server from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "$DEPLOY_DIR/mcp-server-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout status deployment/mcp-server --timeout=10m
+
+      - name: Deploy finder from ECR
+        continue-on-error: true
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "$DEPLOY_DIR/finder-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout status deployment/finder --timeout=10m
+
+      - name: Publish catalogue and configure ingress TLS
+        run: |
+          kubectl --context="$KUBE_CONTEXT" --request-timeout=60s -n robotshop-ai exec deployment/product-ingestion -- node services/product-ingestion/publish-catalogue.mjs
+          kubectl --context="$KUBE_CONTEXT" apply -f minikube/robotshop/ingress.yaml
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai wait --for=condition=Ready certificate/jithendar-com --timeout=180s
+
+      - name: Record deployment
+        if: success()
+        run: |
+          {
+            echo '### ECR deployment completed'
+            echo "Deployment configuration commit: $GITHUB_SHA"
+            echo "Minikube profile: $PROFILE"
+            echo 'Images: newest CI-published version per repository, pinned by digest'
+            cat "$DEPLOY_DIR/images.json"
+            echo 'Application: https://jithendar.com/roboshop/'
+            echo 'SMTP: deployed with DKIM and cert-manager client certificates before user-service.'
+            echo 'Publish the DKIM TXT record from the SMTP step; mail delivery requires mail DNS/PTR and outbound TCP 25.'
+            echo 'Check deployment logs for optional Finder readiness warnings.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Show failure diagnostics
+        if: failure()
+        run: |
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai get pods,pvc
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai get events --sort-by=.lastTimestamp | tail -40
+
+      - name: Remove temporary deployment files
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/robotshop-deploy"

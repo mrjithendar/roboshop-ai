@@ -208,7 +208,11 @@ test('password reset requests email then verifies a code with the new password',
     if(path==='/api/auth/password/reset'){reset=JSON.parse(options.body);payload={message:'Password updated. Sign in again.'};}
     if(payload)return{ok:true,json:async()=>payload};
   },false,'login');
-  await ui.boot();ui.$('#forgot-password').click();
+  await ui.boot();
+  assert.equal(ui.$('#forgot-password').hidden, false);
+  assert.equal(ui.$('#forgot-password').type, 'button');
+  assert.ok(ui.$('#account-form').contains(ui.$('#forgot-password')));
+  ui.$('#forgot-password').click();
   await waitFor(()=>ui.calls.filter(p=>p==='/api/auth/challenge').length===2);
   await new Promise(r=>setTimeout(r,5));
   ui.$('#account-email').value='alice@example.com';ui.$('#account-form').dispatchEvent(new ui.w.Event('submit',{cancelable:true}));

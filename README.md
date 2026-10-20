@@ -103,44 +103,38 @@ assistant on every storefront page and supports embedding on other websites.
 It builds as `robotshop-finder:local`. Scale `deployment/finder` to zero to hide
 it without disabling the storefront. See its README for embedding and configuration.
 
-### Build and deploy from GitHub Actions
+### Deploy ECR images from GitHub Actions
 
-Use **Actions → Deploy-Minikube → Run workflow** on the
-repository's default branch. The workflow first deploys infrastructure dependencies. Each application then has
-a combined build-and-deploy step: `bash build-images.sh --service <name> --local`
-followed by `bash deploy-minikube.sh --service <name> --load-images`. Finally,
-`bash deploy-minikube.sh --finalize` publishes the catalogue and applies ingress/TLS. It rebuilds all
-application images without cache, replaces the old `:local` tags, loads them into
-Minikube, and restarts the application deployments. It does not push to ECR.
+Run the per-service CI workflows first, then **Actions → Deploy-Minikube → Run
+workflow** on the default branch. Deployment selects the newest CI-published image
+in each ECR repository and pins it by digest. It deploys infrastructure, SMTP,
+then applications in dependency order, and finishes with catalogue publication
+and ingress/TLS. It does not build or load local images.
 
-One-time runner setup:
+Runner requirements:
 
-- Register a Linux self-hosted GitHub Actions runner **on the Vultr Minikube host**
-  with the labels `self-hosted` and `linux`. Ensure matching runners are on the
-  intended Minikube host. Run it as the OS user that owns the
-  working Minikube profile and can run Docker and kubectl.
-- Make `docker`, `minikube`, `kubectl`, `python3` and the Python `yaml` module
-  (PyYAML) available to the runner service, not just your interactive shell.
-- Start the cluster and install the existing Traefik/cert-manager/Let's Encrypt
-  prerequisites first. The workflow checks them before spending time building.
-- The runner uses `$HOME/.kube/config`. If needed, set repository Actions variable
-  `MINIKUBE_KUBECONFIG` to an existing absolute kubeconfig path on that host.
-  Credentials stay on the host; no kubeconfig needs to be committed or uploaded.
+- A Linux self-hosted runner with `self-hosted` and `linux` labels, access to the
+  intended cluster, AWS CLI, kubectl, Python/PyYAML and OpenSSL.
+- `AWS_REGION` set to the ECR region (`us-east-1` for the current Terraform stack).
+  Use runner AWS credentials or configure `AWS_ROLE_ARN` for OIDC. The identity
+  needs ECR describe, authorization-token and image-pull permissions.
+- Traefik, cert-manager and the Let's Encrypt issuer already installed.
+- The runner uses `$HOME/.kube/config`. Set `MINIKUBE_KUBECONFIG` to override it
+  with an existing absolute path. Credentials remain on the runner.
 
-Choose profile `mk4` (default), or your installed profile. The workflow follows
-installer profile replacement records. Only the default branch can deploy; there
-is no pull-request or automatic push deployment. Runs are serialized, and a failed build or rollout stops subsequent steps. Earlier service updates remain
-deployed; this is a sequential rollout, not an atomic release. Existing application data and credentials are kept
-by the deployment script. Finder remains optional as described above.
+Choose profile/context `mk4` or your installed profile. Installer replacement
+profiles are resolved automatically. Runs are manual, default-branch only, and
+serialized. A failed rollout stops later steps; earlier service updates remain.
+Existing data and account credentials are preserved. Finder remains optional.
 
-If a run stays **Queued**, check the runner is online and has the required labels:
-`self-hosted`, `linux`. If preflight fails, run `docker info`,
-`minikube -p mk4 status`, and `kubectl --context=mk4 get nodes` as the runner's OS
-user. A missing `yaml` module means PyYAML must be installed for the `python3`
-resolved by that account. Full deployment can take a while on a small host; the
-job allows up to three hours.
+Every deployment refreshes the ECR pull secret. Tokens expire after 12 hours;
+a new node or uncached image may require a refresh. Rerun the workflow to refresh credentials. See [ECR deployment](docs/deployment/ecr-ci.md#deploy-the-newest-ecr-images-to-minikube).
 
-Build just one service locally with `bash build-images.sh --service frontend --local`.
+If a run stays **Queued**, check the runner labels and online status. For preflight
+failures, check `aws sts get-caller-identity`, `kubectl --context=mk4 get nodes`
+and `python3 -c 'import yaml'` as the runner user.
+
+Build and push one service using its **Actions → service image → Run workflow** entry.
 Omit `--service` to build every application image. The workflow keeps all build
 steps and deployment in one job so they share the same host Docker images; a
 failed service build stops its deployment and all subsequent service steps.
