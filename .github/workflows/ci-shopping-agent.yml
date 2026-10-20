@@ -2,12 +2,12 @@ name: shopping-agent image
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [master, main]
-  #   paths:
-  #     - 'services/shopping-agent/**'
-  #     - '.github/workflows/ci-shopping-agent.yml'
-  #     - '.github/workflows/publish-ecr.yml'
+  push:
+    branches: [master, main]
+    paths:
+      - 'services/shopping-agent/**'
+      - '.github/workflows/ci-shopping-agent.yml'
+      - '.github/workflows/publish-ecr.yml'
 
 permissions:
   contents: read

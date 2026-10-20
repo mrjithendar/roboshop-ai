@@ -2,13 +2,13 @@ name: frontend image
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [master, main]
-    # paths:
-    #   - 'services/frontend/**'
-    #   - '.github/workflows/ci-frontend.yml'
-    #   - '.github/workflows/publish-ecr.yml'
-    #   - 'services/frontend/**'
+  push:
+    branches: [master, main]
+    paths:
+      - 'services/frontend/**'
+      - '.github/workflows/ci-frontend.yml'
+      - '.github/workflows/publish-ecr.yml'
+      - 'services/frontend/**'
 
 permissions:
   contents: read

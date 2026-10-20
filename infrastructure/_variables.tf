@@ -47,3 +47,38 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "ecr_repository_names" {
+  description = "Private ECR repository names. Defaults match the service image names and CI's robotshop prefix. Use [] to manage no repositories."
+  type        = list(string)
+  nullable    = false
+  default = [
+    "robotshop-ai-gateway",
+    "robotshop-cart-service",
+    "robotshop-catalogue-service",
+    "robotshop-finder",
+    "robotshop-frontend",
+    "robotshop-mcp-server",
+    "robotshop-nginx",
+    "robotshop-payment-service",
+    "robotshop-product-ingestion",
+    "robotshop-recommendation-service",
+    "robotshop-shipping",
+    "robotshop-shopping-agent",
+    "robotshop-smtp-server",
+    "robotshop-sre-copilot",
+  ]
+
+  validation {
+    condition     = length(distinct(var.ecr_repository_names)) == length(var.ecr_repository_names)
+    error_message = "ECR repository names must be unique."
+  }
+
+  validation {
+    condition = alltrue([
+      for name in var.ecr_repository_names :
+      length(name) >= 2 && length(name) <= 256 && can(regex("^[a-z][a-z0-9]*([._/-][a-z0-9]+)*$", name))
+    ])
+    error_message = "Use 2–256 character lowercase repository names starting with a letter; separate alphanumeric segments with a dot, underscore, hyphen or slash."
+  }
+}

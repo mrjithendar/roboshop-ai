@@ -2,12 +2,12 @@ name: mcp-server image
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [master, main]
-    # paths:
-    #   - 'services/mcp-server/**'
-    #   - '.github/workflows/ci-mcp-server.yml'
-    #   - '.github/workflows/publish-ecr.yml'
+  push:
+    branches: [master, main]
+    paths:
+      - 'services/mcp-server/**'
+      - '.github/workflows/ci-mcp-server.yml'
+      - '.github/workflows/publish-ecr.yml'
 
 permissions:
   contents: read

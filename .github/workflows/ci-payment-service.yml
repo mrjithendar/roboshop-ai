@@ -2,12 +2,12 @@ name: payment-service image
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [master, main]
-  #   # paths:
-  #   #   - 'services/payment-service/**'
-  #   #   - '.github/workflows/ci-payment-service.yml'
-  #   #   - '.github/workflows/publish-ecr.yml'
+  push:
+    branches: [master, main]
+    # paths:
+    #   - 'services/payment-service/**'
+    #   - '.github/workflows/ci-payment-service.yml'
+    #   - '.github/workflows/publish-ecr.yml'
 
 permissions:
   contents: read

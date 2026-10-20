@@ -2,12 +2,12 @@ name: nginx image
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [master, main]
-    # paths:
-    #   - 'services/nginx/**'
-    #   - '.github/workflows/ci-nginx.yml'
-    #   - '.github/workflows/publish-ecr.yml'
+  push:
+    branches: [master, main]
+    paths:
+      - 'services/nginx/**'
+      - '.github/workflows/ci-nginx.yml'
+      - '.github/workflows/publish-ecr.yml'
 
 permissions:
   contents: read

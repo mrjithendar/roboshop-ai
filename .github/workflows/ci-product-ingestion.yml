@@ -2,12 +2,12 @@ name: product-ingestion image
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [master, main]
-  #   paths:
-  #     - 'services/product-ingestion/**'
-  #     - '.github/workflows/ci-product-ingestion.yml'
-  #     - '.github/workflows/publish-ecr.yml'
+  push:
+    branches: [master, main]
+    paths:
+      - 'services/product-ingestion/**'
+      - '.github/workflows/ci-product-ingestion.yml'
+      - '.github/workflows/publish-ecr.yml'
 
 permissions:
   contents: read

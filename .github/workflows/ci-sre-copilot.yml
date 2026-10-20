@@ -2,12 +2,12 @@ name: sre-copilot image
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [master, main]
-  #   paths:
-  #     - 'services/sre-copilot/**'
-  #     - '.github/workflows/ci-sre-copilot.yml'
-  #     - '.github/workflows/publish-ecr.yml'
+  push:
+    branches: [master, main]
+    paths:
+      - 'services/sre-copilot/**'
+      - '.github/workflows/ci-sre-copilot.yml'
+      - '.github/workflows/publish-ecr.yml'
 
 permissions:
   contents: read

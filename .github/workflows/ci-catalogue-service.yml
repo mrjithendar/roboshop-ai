@@ -2,12 +2,12 @@ name: catalogue-service image
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [master, main]
-  #   paths:
-  #     - 'services/catalogue-service/**'
-  #     - '.github/workflows/ci-catalogue-service.yml'
-  #     - '.github/workflows/publish-ecr.yml'
+  push:
+    branches: [master, main]
+    paths:
+      - 'services/catalogue-service/**'
+      - '.github/workflows/ci-catalogue-service.yml'
+      - '.github/workflows/publish-ecr.yml'
 
 permissions:
   contents: read

@@ -2,12 +2,12 @@ name: finder image
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [master, main]
-  #   paths:
-  #     - 'services/finder/**'
-  #     - '.github/workflows/ci-finder.yml'
-  #     - '.github/workflows/publish-ecr.yml'
+  push:
+    branches: [master, main]
+    paths:
+      - 'services/finder/**'
+      - '.github/workflows/ci-finder.yml'
+      - '.github/workflows/publish-ecr.yml'
 
 permissions:
   contents: read

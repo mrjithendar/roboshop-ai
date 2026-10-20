@@ -2,12 +2,12 @@ name: ai-gateway image
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [master, main]
-  #   paths:
-  #     - 'services/ai-gateway/**'
-  #     - '.github/workflows/ci-ai-gateway.yml'
-  #     - '.github/workflows/publish-ecr.yml'
+  push:
+    branches: [master, main]
+    paths:
+      - 'services/ai-gateway/**'
+      - '.github/workflows/ci-ai-gateway.yml'
+      - '.github/workflows/publish-ecr.yml'
 
 permissions:
   contents: read

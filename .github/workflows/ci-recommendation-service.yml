@@ -2,12 +2,12 @@ name: recommendation-service image
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [master, main]
-  #   paths:
-  #     - 'services/recommendation-service/**'
-  #     - '.github/workflows/ci-recommendation-service.yml'
-  #     - '.github/workflows/publish-ecr.yml'
+  push:
+    branches: [master, main]
+    paths:
+      - 'services/recommendation-service/**'
+      - '.github/workflows/ci-recommendation-service.yml'
+      - '.github/workflows/publish-ecr.yml'
 
 permissions:
   contents: read

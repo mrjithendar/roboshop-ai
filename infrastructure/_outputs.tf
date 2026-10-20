@@ -38,3 +38,13 @@ output "eks_subnet_ids" {
 output "nat_gateway_ids" {
   value = aws_nat_gateway.ngw[*].id
 }
+
+output "ecr_repository_urls" {
+  description = "Docker push/pull URLs keyed by repository name."
+  value       = { for name, repository in aws_ecr_repository.services : name => repository.repository_url }
+}
+
+output "ecr_repository_arns" {
+  description = "Repository ARNs for scoping CI publishing and EKS pulling IAM permissions."
+  value       = { for name, repository in aws_ecr_repository.services : name => repository.arn }
+}

@@ -2,12 +2,12 @@ name: shipping-service image
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [master, main]
-  #   paths:
-  #     - 'services/shipping-service/**'
-  #     - '.github/workflows/ci-shipping-service.yml'
-  #     - '.github/workflows/publish-ecr.yml'
+  push:
+    branches: [master, main]
+    paths:
+      - 'services/shipping-service/**'
+      - '.github/workflows/ci-shipping-service.yml'
+      - '.github/workflows/publish-ecr.yml'
 
 permissions:
   contents: read

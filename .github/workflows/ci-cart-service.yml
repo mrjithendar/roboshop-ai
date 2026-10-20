@@ -2,12 +2,12 @@ name: cart-service image
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [master, main]
-  #   paths:
-  #     - 'services/cart-service/**'
-  #     - '.github/workflows/ci-cart-service.yml'
-  #     - '.github/workflows/publish-ecr.yml'
+  push:
+    branches: [master, main]
+    paths:
+      - 'services/cart-service/**'
+      - '.github/workflows/ci-cart-service.yml'
+      - '.github/workflows/publish-ecr.yml'
 
 permissions:
   contents: read
