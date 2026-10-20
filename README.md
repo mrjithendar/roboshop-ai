@@ -104,16 +104,19 @@ it without disabling the storefront. See its README for embedding and configurat
 
 ### Build and deploy from GitHub Actions
 
-Use **Actions → Build local images and deploy Minikube → Run workflow** on the
-repository's default branch. The workflow runs `bash build-images.sh --local`,
-then `bash deploy-minikube.sh --load-images` in the same job. It rebuilds all
+Use **Actions → Deploy-Minikube → Run workflow** on the
+repository's default branch. The workflow first deploys infrastructure dependencies. Each application then has
+a combined build-and-deploy step: `bash build-images.sh --service <name> --local`
+followed by `bash deploy-minikube.sh --service <name> --load-images`. Finally,
+`bash deploy-minikube.sh --finalize` publishes the catalogue and applies ingress/TLS. It rebuilds all
 application images without cache, replaces the old `:local` tags, loads them into
 Minikube, and restarts the application deployments. It does not push to ECR.
 
 One-time runner setup:
 
 - Register a Linux self-hosted GitHub Actions runner **on the Vultr Minikube host**
-  with the custom label `robotshop-minikube`. Run it as the OS user that owns the
+  with the labels `self-hosted` and `linux`. Ensure matching runners are on the
+  intended Minikube host. Run it as the OS user that owns the
   working Minikube profile and can run Docker and kubectl.
 - Make `docker`, `minikube`, `kubectl`, `python3` and the Python `yaml` module
   (PyYAML) available to the runner service, not just your interactive shell.
@@ -125,13 +128,31 @@ One-time runner setup:
 
 Choose profile `mk4` (default), or your installed profile. The workflow follows
 installer profile replacement records. Only the default branch can deploy; there
-is no pull-request or automatic push deployment. Runs are serialized, and a build
-failure prevents deployment. Existing application data and credentials are kept
+is no pull-request or automatic push deployment. Runs are serialized, and a failed build or rollout stops subsequent steps. Earlier service updates remain
+deployed; this is a sequential rollout, not an atomic release. Existing application data and credentials are kept
 by the deployment script. Finder remains optional as described above.
 
-If a run stays **Queued**, check the runner is online and has all three labels:
-`self-hosted`, `linux`, `robotshop-minikube`. If preflight fails, run `docker info`,
+If a run stays **Queued**, check the runner is online and has the required labels:
+`self-hosted`, `linux`. If preflight fails, run `docker info`,
 `minikube -p mk4 status`, and `kubectl --context=mk4 get nodes` as the runner's OS
 user. A missing `yaml` module means PyYAML must be installed for the `python3`
 resolved by that account. Full deployment can take a while on a small host; the
 job allows up to three hours.
+
+Build just one service locally with `bash build-images.sh --service frontend --local`.
+Omit `--service` to build every application image. The workflow keeps all build
+steps and deployment in one job so they share the same host Docker images; a
+failed service build stops its deployment and all subsequent service steps.
+
+To build and deploy one application manually (its dependencies must already exist):
+
+```bash
+bash build-images.sh --service frontend --local
+bash deploy-minikube.sh --service frontend --load-images
+```
+
+For a fresh staged deployment, run `bash deploy-minikube.sh --infrastructure` first,
+then process application services in the workflow order, and finish with
+`bash deploy-minikube.sh --finalize`. Single-service mode loads/restarts only that
+application and does not republish the catalogue or change ingress. The existing
+full-stack command `bash deploy-minikube.sh --load-images` remains supported.

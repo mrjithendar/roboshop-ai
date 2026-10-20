@@ -267,3 +267,12 @@ bash deploy-minikube.sh
 ```
 
 `kubectl.sh` uses `~/.kube/vultr-minikube.json` and fails clearly if it is missing. The deployment script also selects this file when present; on the Minikube host it falls back to the usual kubectl configuration. Both respect an existing `KUBECONFIG`. Neither changes your shell or overwrites `~/.kube/config`. Plain `kubectl` commands still use your shell's configuration.
+
+## JFrog artifact and Docker registry
+
+See [JFrog setup](jfrog/README.md) for the pinned Helm installation, DNS, storage,
+credentials and image publishing. Run `bash minikube/deploy-jfrog.sh --check`
+before installation. Its public UI is `https://jfrog.jithendar.com/ui/` with a
+`https://jithendar.com/jfrog` redirect. The standard profile requires a larger host. An explicit `JFROG_SIZE=minimal`
+profile is available for below-vendor-sizing sandbox experiments; see its memory
+budget and limitations in the JFrog README.

@@ -6,12 +6,15 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 IMAGE_PREFIX="${IMAGE_PREFIX:-robotshop}"
 IMAGE_TAG=local
 DRY_RUN=false
+SELECTED_SERVICE=
 BUILD_OPTIONS=(--no-cache)
 usage() {
   cat <<'EOF'
-Usage: ./build-images.sh [--local] [--dry-run] [--pull] [--no-cache] [--platform PLATFORM]
+Usage: ./build-images.sh [--service NAME] [--local] [--dry-run] [--pull] [--no-cache] [--platform PLATFORM]
 
-Builds all thirteen application images using their service-specific Dockerfiles.
+Builds all application images, or one selected service, using service-specific Dockerfiles.
+--service NAME builds and removes only that service's previous :local tag.
+Example: bash build-images.sh --service frontend --local
 Environment (export the same values when deploying to Minikube):
   IMAGE_PREFIX  Image repository prefix, e.g. registry.example.com/team/robotshop
                 Default: robotshop
@@ -30,6 +33,10 @@ EOF
 }
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --service)
+      [[ $# -ge 2 && -n "$2" && "$2" != --* ]] || { echo 'Missing --service value.' >&2; exit 2; }
+      [[ -z "$SELECTED_SERVICE" ]] || { echo 'Specify --service only once.' >&2; exit 2; }
+      SELECTED_SERVICE="$2"; shift 2 ;;
     --local) IMAGE_TAG=local; shift ;;
     --dry-run) DRY_RUN=true; shift ;;
     --pull) BUILD_OPTIONS+=("$1"); shift ;;
@@ -44,6 +51,14 @@ done
 [[ "$IMAGE_TAG" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$ ]] || { echo 'Invalid IMAGE_TAG.' >&2; exit 2; }
 [[ "$IMAGE_PREFIX" =~ ^[a-z0-9]([a-z0-9./:_-]*[a-z0-9])?$ && "$IMAGE_PREFIX" != */ ]] || { echo 'Invalid IMAGE_PREFIX (use a lowercase repository prefix).' >&2; exit 2; }
 services=(cart-service ai-gateway product-ingestion catalogue-service recommendation-service shopping-agent sre-copilot payment-service mcp-server shipping-service frontend nginx finder)
+if [[ -n "$SELECTED_SERVICE" ]]; then
+  found=false
+  for service in "${services[@]}"; do
+    if [[ "$service" == "$SELECTED_SERVICE" ]]; then found=true; break; fi
+  done
+  [[ "$found" == true ]] || { echo "Unknown service: $SELECTED_SERVICE" >&2; exit 2; }
+  services=("$SELECTED_SERVICE")
+fi
 for service in "${services[@]}"; do
   [[ -f "$ROOT/services/$service/Dockerfile" ]] || { echo "Missing Dockerfile for $service." >&2; exit 1; }
 done
@@ -73,12 +88,12 @@ for service in "${services[@]}"; do
     printf '%q ' "${command[@]}"; printf '\n'
   else
     if ! "${command[@]}"; then
-      printf "ERROR: Build failed for %s. Fix the error above and rerun; completed image tags remain available; the next run cleans and rebuilds all application images.\n" "$image" >&2
+      printf "ERROR: Build failed for %s. Fix the error above and rerun; completed image tags remain available; the next run cleans and rebuilds the selected images.\n" "$image" >&2
       exit 1
     fi
   fi
 done
 if [[ "$DRY_RUN" == false ]]; then
-  printf '\nBuilt all %s application images. Start them from %q with:\n' "${#services[@]}" "$ROOT"
+  printf '\nBuilt %s application image(s). Deploy (requires all application images) from %q with:\n' "${#services[@]}" "$ROOT"
   printf 'IMAGE_PREFIX=%q bash deploy-minikube.sh\n' "$IMAGE_PREFIX"
 fi

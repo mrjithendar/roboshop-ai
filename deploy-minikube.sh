@@ -8,8 +8,16 @@ load_images=true
 render_output=''
 mode_explicit=false
 registry_images=false
+selection=all
+selected_service=''
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --service)
+      [[ "$selection" == all && $# -ge 2 && -n "$2" && "$2" != --* ]] || fail 'Use --service NAME once, without --infrastructure or --finalize.'
+      selection=service; selected_service="$2"; shift 2 ;;
+    --infrastructure|--finalize)
+      [[ "$selection" == all ]] || fail 'Choose only one deployment selection.'
+      selection="${1#--}"; shift ;;
     --load-images) load_images=true; registry_images=false; mode_explicit=true; shift ;;
     --manifests-only) load_images=false; registry_images=false; mode_explicit=true; shift ;;
     --registry-images) load_images=false; registry_images=true; mode_explicit=true; shift ;;
@@ -17,18 +25,39 @@ while [[ $# -gt 0 ]]; do
       [[ $# -ge 2 && "$2" != --* ]] || fail '--render-only needs an output directory.'
       render_output="$2"; shift 2 ;;
     -h|--help)
-      echo 'Usage: bash deploy-minikube.sh [--load-images | --manifests-only | --registry-images] [--render-only DIR]'
-      echo 'Deploys 18 RobotShop services into robotshop-ai. Does not reset any existing application.'
+      echo 'Usage: bash deploy-minikube.sh [--service NAME | --infrastructure | --finalize] [--load-images | --manifests-only | --registry-images] [--render-only DIR]'
+      echo 'Deploys RobotShop services into robotshop-ai. Does not reset any existing application.'
       echo 'Overrides: PROFILE=mk4, KUBE_CONTEXT, IMAGE_PREFIX=robotshop, PUBLIC_ORIGIN=https://jithendar.com'
       echo 'Application images always use :local; exported IMAGE_TAG is ignored.'
       echo 'Default / --load-images: run on the Minikube host after build-images.sh; overwrite local images and restart applications.'
       echo '--manifests-only: apply configuration without refreshing images or forcing restarts.'
       echo '--registry-images: pull published application tags on each rollout; usable from a remote client.'
+      echo '--service NAME: load/restart only this application; dependencies must already exist.'
+      echo '--infrastructure: deploy databases, messaging and telemetry before application stages.'
+      echo '--finalize: publish catalogue and apply ingress/TLS after all application stages.'
       echo '--render-only DIR: validate/render YAML without any cluster access.'
       exit 0 ;;
     *) fail "Unknown option: $1" ;;
   esac
 done
+services=(mongodb postgres redis rabbitmq jaeger otel-collector product-ingestion catalogue-service recommendation-service shopping-agent sre-copilot cart-service payment-service shipping-service ai-gateway frontend nginx mcp-server finder)
+if [[ "$selection" == service ]]; then
+  found=false
+  for service in "${services[@]}"; do
+    if [[ "$service" == "$selected_service" && -f "$ROOT/services/$service/Dockerfile" ]]; then found=true; break; fi
+  done
+  [[ "$found" == true ]] || fail "Unknown application service: $selected_service"
+  services=("$selected_service")
+elif [[ "$selection" == infrastructure || "$selection" == finalize ]]; then
+  [[ "$mode_explicit" == false ]] || fail '--infrastructure/--finalize cannot be combined with image mode flags.'
+  load_images=false
+  if [[ "$selection" == infrastructure ]]; then
+    services=(mongodb postgres redis rabbitmq jaeger otel-collector)
+  else
+    services=()
+  fi
+fi
+[[ -z "$render_output" || "$selection" == all ]] || fail '--render-only renders the full stack; do not combine with a selection.'
 export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
 command -v python3 >/dev/null || fail 'Python 3 is required.'
 python3 -c 'import yaml' 2>/dev/null || fail 'PyYAML is required: python3 -m pip install PyYAML (use a virtual environment).'
@@ -54,6 +83,18 @@ k() { kubectl --context="$KUBE_CONTEXT" "$@"; }
 temp="$(mktemp -d)"
 trap 'rm -rf "$temp"' EXIT
 python3 "$ROOT/minikube/robotshop/deployment.py" render --output "$temp"
+if [[ "$selection" == service ]]; then
+  # The selected manifest is the source of truth for its image name (shipping differs).
+  python3 - "$temp" "$selected_service" <<'PYIMAGE'
+import sys
+from pathlib import Path
+import yaml
+root = Path(sys.argv[1])
+docs = list(yaml.safe_load_all((root / (sys.argv[2] + '-minikube.yaml')).read_text()))
+images = [doc['spec']['template']['spec']['containers'][0]['image'] for doc in docs if doc['kind'] == 'Deployment']
+(root / 'images.txt').write_text('\n'.join(images) + '\n')
+PYIMAGE
+fi
 k --request-timeout=15s get namespace kube-system >/dev/null
 k --request-timeout=15s get ingressclass traefik >/dev/null || fail 'Install Traefik first.'
 k --request-timeout=15s get crd middlewares.traefik.io >/dev/null
@@ -96,7 +137,6 @@ fi
 echo "Deploying RobotShop into context=$KUBE_CONTEXT namespace=robotshop-ai"
 k apply -f "$temp/config.yaml"
 python3 "$ROOT/minikube/robotshop/deployment.py" credentials --context "$KUBE_CONTEXT"
-services=(mongodb postgres redis rabbitmq jaeger otel-collector product-ingestion catalogue-service recommendation-service shopping-agent sre-copilot cart-service payment-service shipping-service ai-gateway frontend nginx mcp-server finder)
 step=0
 for service in "${services[@]}"; do
   step=$((step + 1))
@@ -123,8 +163,12 @@ for service in "${services[@]}"; do
   fi
   echo "[$step/${#services[@]}] Ready: $service"
 done
+if [[ "$selection" == service || "$selection" == infrastructure ]]; then
+  echo "Selected deployment complete. Run --finalize after all application stages."
+  exit 0
+fi
 k -n robotshop-ai get pods -o 'custom-columns=NAME:.metadata.name,NODE:.spec.nodeName,IMAGE:.spec.containers[0].image,IMAGE_ID:.status.containerStatuses[0].imageID'
-if [[ "$load_images" == true || "$registry_images" == true ]]; then
+if [[ "$selection" == finalize || "$load_images" == true || "$registry_images" == true ]]; then
   echo 'Publishing the merchant catalogue once all updated services are ready...'
   k --request-timeout=60s -n robotshop-ai exec deployment/product-ingestion -- node services/product-ingestion/publish-catalogue.mjs
 fi

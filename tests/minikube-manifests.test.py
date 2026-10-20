@@ -130,7 +130,7 @@ class ManifestTests(unittest.TestCase):
             self.assertEqual(len((Path(tmp)/'images.txt').read_text().splitlines()),len(deploy.APPS))
             self.assertEqual(list(yaml.safe_load_all((Path(tmp)/'config.yaml').read_text()))[1]['data']['PUBLIC_ORIGIN'],'https://shop.example.com')
 
-    def run_wrapper(self, fail_service='', load_images=False, mode=None):
+    def run_wrapper(self, fail_service='', load_images=False, mode=None, args=None):
         with tempfile.TemporaryDirectory() as tmp:
             home=Path(tmp)
             shutil.copytree(ROOT/'minikube/robotshop',home/'minikube/robotshop')
@@ -155,7 +155,7 @@ class ManifestTests(unittest.TestCase):
                 mock=bindir/name
                 mock.write_text('#!/bin/sh\necho "'+name+' $*" >> "$TEST_LOG"\n')
                 mock.chmod(0o755)
-            result=subprocess.run(['bash',str(home/'deploy-minikube.sh')]+([mode] if mode else (['--load-images'] if load_images else [])),text=True,capture_output=True,
+            result=subprocess.run(['bash',str(home/'deploy-minikube.sh')]+(args if args is not None else ([mode] if mode else (['--load-images'] if load_images else []))),text=True,capture_output=True,
                 env={**os.environ,'HOME':str(home),'KUBE_CONTEXT':'selected-cluster','PROFILE':'selected-cluster',
                      'PYTHONPATH':str(Path(yaml.__file__).resolve().parent.parent),
                      'TEST_LOG':str(home/'calls'),'ROLLOUT_EXIT':'1' if fail_service else '0'})
@@ -206,6 +206,47 @@ class ManifestTests(unittest.TestCase):
         self.assertIn('describe pods -l app=shipping-db',calls)
         self.assertNotIn('rollout status deployment/nginx',calls)
         self.assertNotIn(' delete ',calls)
+
+    def test_selected_service_loads_and_deploys_only_its_image(self):
+        result,calls=self.run_wrapper(args=['--service','shipping-service','--load-images'])
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(sum('image load' in line for line in calls.splitlines()),1)
+        self.assertIn('robotshop-shipping:local',calls)
+        self.assertEqual(sum('rollout status' in line for line in calls.splitlines()),1)
+        self.assertIn('rollout restart deployment/shipping-service',calls)
+        self.assertNotIn('publish-catalogue.mjs',calls)
+        self.assertNotIn('/ingress.yaml',calls)
+
+    def test_infrastructure_stage_has_no_application_images(self):
+        result,calls=self.run_wrapper(args=['--infrastructure'])
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(sum('rollout status' in line for line in calls.splitlines()),6)
+        self.assertNotIn('image load',calls)
+        self.assertNotIn('rollout restart',calls)
+        self.assertNotIn('publish-catalogue.mjs',calls)
+
+    def test_finalize_only_publishes_and_applies_ingress(self):
+        result,calls=self.run_wrapper(args=['--finalize'])
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertNotIn('image load',calls)
+        self.assertNotIn('rollout status',calls)
+        self.assertIn('publish-catalogue.mjs',calls)
+        self.assertIn('/ingress.yaml',calls)
+
+    def test_workflow_combines_build_and_deploy_in_dependency_order(self):
+        workflow=yaml.safe_load((ROOT/'.github/workflows/deploy-minikube-local.yml').read_text())
+        steps=workflow['jobs']['deploy']['steps']
+        pairs=[step['run'].splitlines() for step in steps if step.get('name','').startswith('Build and deploy ')]
+        self.assertEqual(len(pairs),len(deploy.APPS))
+        names=[]
+        for build,release in pairs:
+            name=build.split()[3]
+            self.assertEqual(release,f'bash deploy-minikube.sh --service {name} --load-images')
+            names.append(name)
+        self.assertEqual(set(names),deploy.APPS)
+        self.assertLess(names.index('product-ingestion'),names.index('ai-gateway'))
+        self.assertLess(names.index('shipping-service'),names.index('ai-gateway'))
+        self.assertLess(names.index('frontend'),names.index('nginx'))
 
     def test_existing_secret_is_preserved(self):
         value=json.dumps({'data':{key:'existing' for key in deploy.PASSWORD_KEYS}})

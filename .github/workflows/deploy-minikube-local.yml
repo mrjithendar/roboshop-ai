@@ -62,11 +62,76 @@ jobs:
           echo "KUBE_CONTEXT=$PROFILE" >> "$GITHUB_ENV"
           echo "KUBECONFIG=$KUBECONFIG" >> "$GITHUB_ENV"
 
-      - name: Build all application images with local tags
-        run: bash build-images.sh --local
+      - name: Deploy infrastructure dependencies
+        run: bash deploy-minikube.sh --infrastructure
 
-      - name: Load images and deploy service manifests
-        run: bash deploy-minikube.sh --load-images
+      - name: Build and deploy product-ingestion
+        run: |
+          bash build-images.sh --service product-ingestion --local
+          bash deploy-minikube.sh --service product-ingestion --load-images
+
+      - name: Build and deploy catalogue-service
+        run: |
+          bash build-images.sh --service catalogue-service --local
+          bash deploy-minikube.sh --service catalogue-service --load-images
+
+      - name: Build and deploy recommendation-service
+        run: |
+          bash build-images.sh --service recommendation-service --local
+          bash deploy-minikube.sh --service recommendation-service --load-images
+
+      - name: Build and deploy shopping-agent
+        run: |
+          bash build-images.sh --service shopping-agent --local
+          bash deploy-minikube.sh --service shopping-agent --load-images
+
+      - name: Build and deploy sre-copilot
+        run: |
+          bash build-images.sh --service sre-copilot --local
+          bash deploy-minikube.sh --service sre-copilot --load-images
+
+      - name: Build and deploy cart-service
+        run: |
+          bash build-images.sh --service cart-service --local
+          bash deploy-minikube.sh --service cart-service --load-images
+
+      - name: Build and deploy payment-service
+        run: |
+          bash build-images.sh --service payment-service --local
+          bash deploy-minikube.sh --service payment-service --load-images
+
+      - name: Build and deploy shipping-service
+        run: |
+          bash build-images.sh --service shipping-service --local
+          bash deploy-minikube.sh --service shipping-service --load-images
+
+      - name: Build and deploy ai-gateway
+        run: |
+          bash build-images.sh --service ai-gateway --local
+          bash deploy-minikube.sh --service ai-gateway --load-images
+
+      - name: Build and deploy frontend
+        run: |
+          bash build-images.sh --service frontend --local
+          bash deploy-minikube.sh --service frontend --load-images
+
+      - name: Build and deploy nginx
+        run: |
+          bash build-images.sh --service nginx --local
+          bash deploy-minikube.sh --service nginx --load-images
+
+      - name: Build and deploy mcp-server
+        run: |
+          bash build-images.sh --service mcp-server --local
+          bash deploy-minikube.sh --service mcp-server --load-images
+
+      - name: Build and deploy finder
+        run: |
+          bash build-images.sh --service finder --local
+          bash deploy-minikube.sh --service finder --load-images
+
+      - name: Publish catalogue and configure ingress TLS
+        run: bash deploy-minikube.sh --finalize
 
       - name: Record deployment
         if: success()
