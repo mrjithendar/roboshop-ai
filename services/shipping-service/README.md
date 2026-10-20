@@ -60,3 +60,17 @@ RabbitMQ message payloads and the shipment table contain delivery addresses: res
 ## Independent service build
 
 Run `docker build -t robotshop-shipping:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+
+### Gradle distribution download timeout
+
+If the Docker build fails while downloading Gradle, before `compileJava`, check
+the host/container outbound HTTPS connectivity. The wrapper allows 60 seconds
+per network operation and three retries, starting with a two-second backoff.
+The pinned distribution SHA-256 remains required. Rebuild with:
+
+```bash
+bash build-images.sh --service shipping-service --local
+```
+
+If all attempts fail, inspect the Gradle URL and its redirect destinations from
+the build host; retries do not fix blocked egress or DNS problems.
