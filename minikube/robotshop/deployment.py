@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SERVICES = ['mongodb', 'postgres', 'redis', 'rabbitmq', 'jaeger', 'otel-collector',
             'product-ingestion', 'catalogue-service', 'recommendation-service', 'shopping-agent',
             'sre-copilot', 'payment-service', 'shipping-service', 'ai-gateway',
-            'frontend', 'nginx', 'mcp-server', 'cart-service']
+            'frontend', 'finder', 'nginx', 'mcp-server', 'cart-service']
 APPS = {name for name in SERVICES if (ROOT / 'services' / name / 'Dockerfile').is_file()}
 PASSWORD_KEYS = ['MONGO_ROOT_PASSWORD', 'MONGO_APP_PASSWORD', 'SHIPPING_DB_PASSWORD',
                  'SHIPPING_APP_PASSWORD', 'REDIS_PASSWORD', 'RABBITMQ_PASSWORD',
@@ -45,6 +45,10 @@ def render(output, prefix, tag, public_origin):
                 image = f'{prefix}-{suffix}:{tag}'
                 item['spec']['template']['spec']['containers'][0]['image'] = image
                 images.append(image)
+                if name == 'finder':
+                    for env in item['spec']['template']['spec']['containers'][0]['env']:
+                        if env['name'] in ('ALLOWED_ORIGINS', 'UPSTREAM_ORIGIN'):
+                            env['value'] = public_origin
         (output / (name + '-minikube.yaml')).write_text(yaml.safe_dump_all(docs, sort_keys=False))
     (output / 'images.txt').write_text('\n'.join(images) + '\n')
 

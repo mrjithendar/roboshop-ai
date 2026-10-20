@@ -20,7 +20,7 @@ from store import Store, cents
 from cart_repository import CartRepository
 from events import OrderPublisher
 from llm import LLMConfiguration
-from llm_config import service_headers, unconfigured
+from llm_config import service_headers, unconfigured, authenticate_service
 from catalogue import retrieve
 from registration import Registration, client_address
 from reviews import Reviews
@@ -534,6 +534,7 @@ class Gateway:
                 ]
             return result
         if path == "/api/chat" and method == "POST":
+            authenticate_service(req.headers)
             self.limit(req, True)
             data = req.body()
             if set(data) != {"message"}:

@@ -94,3 +94,44 @@ The gateway’s durable JSON order ledger remains single-writer: keep one gatewa
 ## Service ownership
 
 Services build from their own directories and own their dependency manifests, assets and service-specific tooling. For example: `docker build -t robotshop-frontend:local services/frontend`. Root scripts coordinate the platform. See [service boundaries and repository extraction](docs/architecture/service-repositories.md) for local tests, service-owned libraries and the future repository split.
+
+### Optional Finder widget
+
+The standalone Python [Finder service](services/finder/README.md) supplies the
+assistant on every storefront page and supports embedding on other websites.
+It builds as `robotshop-finder:local`. Scale `deployment/finder` to zero to hide
+it without disabling the storefront. See its README for embedding and configuration.
+
+### Build and deploy from GitHub Actions
+
+Use **Actions → Build local images and deploy Minikube → Run workflow** on the
+repository's default branch. The workflow runs `bash build-images.sh --local`,
+then `bash deploy-minikube.sh --load-images` in the same job. It rebuilds all
+application images without cache, replaces the old `:local` tags, loads them into
+Minikube, and restarts the application deployments. It does not push to ECR.
+
+One-time runner setup:
+
+- Register a Linux self-hosted GitHub Actions runner **on the Vultr Minikube host**
+  with the custom label `robotshop-minikube`. Run it as the OS user that owns the
+  working Minikube profile and can run Docker and kubectl.
+- Make `docker`, `minikube`, `kubectl`, `python3` and the Python `yaml` module
+  (PyYAML) available to the runner service, not just your interactive shell.
+- Start the cluster and install the existing Traefik/cert-manager/Let's Encrypt
+  prerequisites first. The workflow checks them before spending time building.
+- The runner uses `$HOME/.kube/config`. If needed, set repository Actions variable
+  `MINIKUBE_KUBECONFIG` to an existing absolute kubeconfig path on that host.
+  Credentials stay on the host; no kubeconfig needs to be committed or uploaded.
+
+Choose profile `mk4` (default), or your installed profile. The workflow follows
+installer profile replacement records. Only the default branch can deploy; there
+is no pull-request or automatic push deployment. Runs are serialized, and a build
+failure prevents deployment. Existing application data and credentials are kept
+by the deployment script. Finder remains optional as described above.
+
+If a run stays **Queued**, check the runner is online and has all three labels:
+`self-hosted`, `linux`, `robotshop-minikube`. If preflight fails, run `docker info`,
+`minikube -p mk4 status`, and `kubectl --context=mk4 get nodes` as the runner's OS
+user. A missing `yaml` module means PyYAML must be installed for the `python3`
+resolved by that account. Full deployment can take a while on a small host; the
+job allows up to three hours.

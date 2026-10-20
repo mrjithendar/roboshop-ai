@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, relative } from 'node:path';
-const services=['frontend','nginx','shipping-service','ai-gateway','shopping-agent','mcp-server','cart-service','product-ingestion','catalogue-service','recommendation-service','payment-service','sre-copilot'];
+const services=['finder','frontend','nginx','shipping-service','ai-gateway','shopping-agent','mcp-server','cart-service','product-ingestion','catalogue-service','recommendation-service','payment-service','sre-copilot'];
 for(const service of services) test(`${service} owns its Docker build inputs`,()=>{
   const root=resolve('services',service);
   assert.ok(existsSync(resolve(root,'.dockerignore')));

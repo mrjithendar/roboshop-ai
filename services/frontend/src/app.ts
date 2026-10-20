@@ -20,7 +20,7 @@ interface Ops { summary: string; services: { name: string; status: string; laten
 class ApiError extends Error { constructor(message: string, readonly status: number) { super(message); } }
 const errorMessage = (error: unknown): string => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 const money = (value: number, currency = cart.currency || 'EUR') => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
-let products: Product[] = [], cart: Cart = { items: [], total: 0 }, category = '', chatBusy = false, cartBusy = false;
+let products: Product[] = [], cart: Cart = { items: [], total: 0 }, category = '', cartBusy = false;
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = '', content?: string): HTMLElementTagNameMap[K] => { const node = document.createElement(tag); if (className) node.className = className; if (content !== undefined) node.textContent = content; return node; };
 async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -83,22 +83,6 @@ async function updateCart(sku: string, quantity: number) {
   finally { cartBusy = false; renderCart(); }
 }
 function renderCart() { $('#bag-count').textContent = String(cart.items.reduce((n, item) => n + item.quantity, 0)); }
-for (const id of ['ask-nav', 'hero-assistant', 'banner-assistant', 'assistant-launcher']) $(`#${id}`).addEventListener('click', () => { show('assistant-dialog'); $('#message').focus(); });
-function chatMessage(role: 'user' | 'assistant', content: string) { const node = el('div', `chat-message ${role}`); node.append(el('span', 'message-label', role === 'user' ? 'YOU' : 'ROBOTSHOP ASSISTANT'), el('p', '', content)); $('#chat-messages').append(node); node.scrollIntoView({ block: 'nearest' }); return node; }
-async function chat(message: string) {
-  if (chatBusy || !message.trim()) return;
-  chatBusy = true; $('#send-message').disabled = true; $('#message').value = ''; chatMessage('user', message);
-  const pending = chatMessage('assistant', 'Finding your match…');
-  try {
-    const result = await api<{ answer: string; notice: string; products: Product[]; requestId?: string }>('/api/chat', { method: 'POST', body: JSON.stringify({ message }) });
-    pending.querySelector('p')!.textContent = result.answer; $('#assistant-mode').textContent = result.notice + (result.requestId ? ` (Request ${result.requestId})` : '');
-    for (const p of result.products) { const row = el('div', 'chat-product'), info = el('div'); info.append(el('strong', '', p.name), el('span', '', productPrice(p))); row.append(image(p), info, addButton(p)); pending.append(row); }
-  } catch (error) { pending.querySelector('p')!.textContent = errorMessage(error); }
-  finally { chatBusy = false; $('#send-message').disabled = false; $('#message').focus(); pending.scrollIntoView({ block: 'nearest' }); }
-}
-$('#chat-form').addEventListener('submit', event => { event.preventDefault(); chat($('#message').value); });
-$('#message').addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); chat($('#message').value); } });
-document.querySelectorAll<HTMLElement>('[data-prompt]').forEach(button => button.addEventListener('click', () => chat(button.dataset.prompt || '')));
 async function loadOps() {
   $('#ops-content').replaceChildren(el('p', '', 'Checking services…'));
   try {
@@ -117,6 +101,6 @@ await api<{ storeName: string; announcement: string; supportEmail: string; check
   const announcement = document.querySelector('.announcement span'); if (announcement) announcement.textContent = settings.announcement;
   const footer = document.querySelector('footer p'); if (footer && settings.supportEmail) footer.textContent = `Contact: ${settings.supportEmail}`;
 }).catch(() => {});
-await Promise.all([loadProducts(), loadRecommendations(), api<Cart>('/api/cart').then(result => { cart = result; renderCart(); }).catch(() => toast('Your bag could not be loaded. Please try again.')), api<{ assistantMode: string }>('/api/status').then(result => { $('#assistant-mode').textContent = result.assistantMode === 'ai' ? 'AI assistant connected · grounded in the catalogue' : 'Please connect an LLM to get AI recommendations.'; }).catch(() => {})]);
+await Promise.all([loadProducts(), loadRecommendations(), api<Cart>('/api/cart').then(result => { cart = result; renderCart(); }).catch(() => toast('Your bag could not be loaded. Please try again.'))]);
 
 if (new URLSearchParams(location.search).get('cart') === '1') location.replace(appPath('/cart'));

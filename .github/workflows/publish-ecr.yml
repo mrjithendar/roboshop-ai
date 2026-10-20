@@ -34,7 +34,7 @@ jobs:
           : "${AWS_REGION:?Set the AWS_REGION repository variable}"
           : "${AWS_ROLE_ARN:?Set the AWS_ROLE_ARN repository variable}"
           case "$SERVICE" in
-            cart-service|ai-gateway|product-ingestion|catalogue-service|recommendation-service|shopping-agent|sre-copilot|payment-service|mcp-server|shipping-service|frontend|nginx) ;;
+            cart-service|ai-gateway|product-ingestion|catalogue-service|recommendation-service|shopping-agent|sre-copilot|payment-service|mcp-server|shipping-service|frontend|nginx|finder) ;;
             *) echo 'Unsupported service' >&2; exit 1 ;;
           esac
           [[ "$REPOSITORY_PREFIX" =~ ^[a-z0-9]+([._/-][a-z0-9]+)*$ ]] || { echo 'Invalid ECR_REPOSITORY_PREFIX' >&2; exit 1; }

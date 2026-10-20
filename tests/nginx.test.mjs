@@ -50,6 +50,7 @@ test('NGINX serves assets and safely proxies API requests', { skip: process.env.
     assert.equal((await fetch(base+'/api/cart',{method:'POST',body:'x'.repeat(65537)})).status,413);
     assert.equal((await fetch(base+'/api/fail')).status,503);
     assert.equal((await fetch(base+'/ready')).status,200); assert.equal(seen.url,'/api/ready');
+    assert.equal((await fetch(`http://127.0.0.1:${port}/api/chat`, {method:'POST'})).status,403);
     assert.ok(!edge.logs().includes('secret-query')); assert.ok(!edge.logs().includes(signature));
   } finally { if(edge) await edge.stop(); await new Promise(r=>backend.close(r)); rmSync(dir,{recursive:true,force:true}); }
 });

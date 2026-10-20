@@ -431,17 +431,24 @@ class GatewayBoundaryTests(unittest.TestCase):
         self.env.start()
         self.addCleanup(self.env.stop)
 
+    def test_chat_requires_private_service_authentication(self):
+        with patch.object(gateway_module, "request") as remote:
+            for token in (None, "Bearer invalid"):
+                with self.assertRaises(HttpError):
+                    self.gateway.handle(req("/api/chat", "POST", {"message": "security"}, token=token))
+            remote.assert_not_called()
+
     def test_default_chat_no_dependencies_and_no_customer_override(self):
         with patch.object(gateway_module, "request") as remote:
             result = self.gateway.handle(
-                req("/api/chat", "POST", {"message": "security"})
+                req("/api/chat", "POST", {"message": "security"}, token="Bearer " + "a" * 64)
             )
             self.assertEqual(result["answer"], UNCONFIGURED)
             remote.assert_not_called()
             for extra in ("provider", "config", "model", "endpoint", "revision"):
                 with self.assertRaises(HttpError):
                     self.gateway.handle(
-                        req("/api/chat", "POST", {"message": "security", extra: "bad"})
+                        req("/api/chat", "POST", {"message": "security", extra: "bad"}, token="Bearer " + "a" * 64)
                     )
             remote.assert_not_called()
 
@@ -471,7 +478,7 @@ class GatewayBoundaryTests(unittest.TestCase):
         with patch.object(
             gateway_module, "request", return_value={"products": [], "mode": "ai"}
         ) as remote:
-            self.gateway.handle(req("/api/chat", "POST", {"message": "security"}))
+            self.gateway.handle(req("/api/chat", "POST", {"message": "security"}, token="Bearer " + "a" * 64))
             self.assertEqual(remote.call_args.args[1]["config"], BEDROCK)
             self.assertIn("/internal/chat", remote.call_args.args[0])
             with patch("llm.request", return_value={"ok": True}):
@@ -479,7 +486,7 @@ class GatewayBoundaryTests(unittest.TestCase):
                     req("/api/admin/llm/disconnect", "POST", {"revision": 1})
                 )
             self.assertEqual(
-                self.gateway.handle(req("/api/chat", "POST", {"message": "security"}))[
+                self.gateway.handle(req("/api/chat", "POST", {"message": "security"}, token="Bearer " + "a" * 64))[
                     "mode"
                 ],
                 "not-configured",

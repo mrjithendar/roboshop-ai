@@ -96,7 +96,7 @@ fi
 echo "Deploying RobotShop into context=$KUBE_CONTEXT namespace=robotshop-ai"
 k apply -f "$temp/config.yaml"
 python3 "$ROOT/minikube/robotshop/deployment.py" credentials --context "$KUBE_CONTEXT"
-services=(mongodb postgres redis rabbitmq jaeger otel-collector product-ingestion catalogue-service recommendation-service shopping-agent sre-copilot cart-service payment-service shipping-service ai-gateway frontend nginx mcp-server)
+services=(mongodb postgres redis rabbitmq jaeger otel-collector product-ingestion catalogue-service recommendation-service shopping-agent sre-copilot cart-service payment-service shipping-service ai-gateway frontend nginx mcp-server finder)
 step=0
 for service in "${services[@]}"; do
   step=$((step + 1))
@@ -115,6 +115,10 @@ for service in "${services[@]}"; do
     k --request-timeout=15s -n robotshop-ai describe pods -l "app=$name" || true
     k --request-timeout=15s -n robotshop-ai logs "$workload" --all-containers=true --tail=60 --pod-running-timeout=10s || true
     k --request-timeout=15s -n robotshop-ai logs "$workload" --all-containers=true --previous --tail=100 --pod-running-timeout=10s || true
+    if [[ "$service" == finder ]]; then
+      echo "WARNING: Optional Finder is unavailable; the storefront remains deployed." >&2
+      continue
+    fi
     fail "$service did not become ready. Fix the reported problem and rerun; data and credentials are preserved."
   fi
   echo "[$step/${#services[@]}] Ready: $service"

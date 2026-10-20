@@ -50,7 +50,7 @@ class ManifestTests(unittest.TestCase):
                     container=item['spec']['template']['spec']['containers'][0]
                     checked_in.add(container['image'])
                     self.assertEqual(container['imagePullPolicy'],'IfNotPresent')
-        self.assertEqual(len(built),12)
+        self.assertEqual(len(built),13)
         self.assertEqual(built,rendered)
         self.assertEqual(built,checked_in)
         self.assertTrue(all(image.endswith(':local') for image in built))
@@ -127,7 +127,7 @@ class ManifestTests(unittest.TestCase):
             docs=list(yaml.safe_load_all((Path(tmp)/'shipping-service-minikube.yaml').read_text()))
             pod=next(x for x in docs if x['kind']=='Deployment')['spec']['template']['spec']
             self.assertEqual(pod['containers'][0]['image'],'registry.example.com/team/robotshop-shipping:local')
-            self.assertEqual(len((Path(tmp)/'images.txt').read_text().splitlines()),12)
+            self.assertEqual(len((Path(tmp)/'images.txt').read_text().splitlines()),len(deploy.APPS))
             self.assertEqual(list(yaml.safe_load_all((Path(tmp)/'config.yaml').read_text()))[1]['data']['PUBLIC_ORIGIN'],'https://shop.example.com')
 
     def run_wrapper(self, fail_service='', load_images=False, mode=None):
@@ -166,10 +166,10 @@ class ManifestTests(unittest.TestCase):
         result,calls=self.run_wrapper()
         self.assertEqual(result.returncode,0,result.stderr)
         rollouts=[line for line in calls.splitlines() if 'rollout status' in line]
-        self.assertEqual(len(rollouts),18)
+        self.assertEqual(len(rollouts),len(deploy.SERVICES))
         self.assertTrue(all('--context=selected-cluster' in line for line in calls.splitlines() if not line.startswith(('docker ', 'minikube '))))
-        self.assertEqual(sum('image load' in line for line in calls.splitlines()),12)
-        self.assertEqual(sum('rollout restart' in line for line in calls.splitlines()),12)
+        self.assertEqual(sum('image load' in line for line in calls.splitlines()),len(deploy.APPS))
+        self.assertEqual(sum('rollout restart' in line for line in calls.splitlines()),len(deploy.APPS))
         self.assertLess(calls.index('rollout status deployment/shipping-db'),calls.index('rollout status deployment/shipping-service'))
         self.assertLess(calls.index('rollout status deployment/ai-gateway'),calls.index('rollout status deployment/nginx'))
         self.assertIn('rollout status statefulset/rabbitmq',calls)
@@ -179,10 +179,10 @@ class ManifestTests(unittest.TestCase):
         result,calls=self.run_wrapper(load_images=True)
         self.assertEqual(result.returncode,0,result.stderr)
         loads=[line for line in calls.splitlines() if 'image load' in line]
-        self.assertEqual(len(loads),12)
+        self.assertEqual(len(loads),len(deploy.APPS))
         self.assertTrue(all('--daemon --overwrite=true' in line and line.endswith(':local') for line in loads))
         restarts=[line for line in calls.splitlines() if 'rollout restart' in line]
-        self.assertEqual(len(restarts),12)
+        self.assertEqual(len(restarts),len(deploy.APPS))
         self.assertNotIn('rollout restart deployment/shipping-db',calls)
         self.assertLess(calls.index('image load'),calls.index('rollout restart'))
 
@@ -198,7 +198,7 @@ class ManifestTests(unittest.TestCase):
         result,calls=self.run_wrapper(mode='--registry-images')
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertNotIn('image load',calls)
-        self.assertEqual(sum('rollout restart' in line for line in calls.splitlines()),12)
+        self.assertEqual(sum('rollout restart' in line for line in calls.splitlines()),len(deploy.APPS))
 
     def test_wrapper_stops_on_failed_database(self):
         result,calls=self.run_wrapper('shipping-db')

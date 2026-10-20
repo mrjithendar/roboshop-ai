@@ -27,7 +27,7 @@ export async function startNginx({ port, gatewayPort, directory, tls }) {
   frontend.on('error', e => { frontendLogs += e.message; });
   async function stopFrontend() {
     if (image) { const child = spawn('docker', ['stop', '-t', '2', frontendName], { stdio: 'ignore' }); await once(child, 'exit'); }
-    else if (frontend.exitCode === null && frontend.signalCode === null) { frontend.kill('SIGQUIT'); await once(frontend, 'exit'); }
+    else if (frontend.exitCode === null && frontend.signalCode === null) { frontend.kill('SIGTERM'); await once(frontend, 'exit'); }
   }
   let ready = false;
   for (let i = 0; i < 150; i++) {
@@ -51,13 +51,14 @@ export async function startNginx({ port, gatewayPort, directory, tls }) {
   child.stderr.on('data', d => { logs = (logs+d).slice(-32000); });
   child.on('error', e => { logs += e.message; });
   async function stop() {
-    await stopFrontend();
+    // Test teardown must close idle HTTP keepalives rather than wait for their timeout.
     if (image) {
       const stop = spawn('docker', ['stop', '-t', '2', name], { stdio: 'ignore' });
       await once(stop, 'exit');
     } else if (child.exitCode === null && child.signalCode === null) {
-      child.kill('SIGQUIT'); await once(child, 'exit');
+      child.kill('SIGTERM'); await once(child, 'exit');
     }
+    await stopFrontend();
   }
   for (let i=0; i<150; i++) {
     try { if ((await fetch(`http://127.0.0.1:${port}/health`)).ok) return { stop, logs: () => logs }; } catch {}
