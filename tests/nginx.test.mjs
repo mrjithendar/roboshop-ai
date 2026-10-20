@@ -32,7 +32,7 @@ test('NGINX serves assets and safely proxies API requests', { skip: process.env.
   try {
     edge=await startNginx({port,gatewayPort,directory:dir});
     let r=await fetch(base); assert.match(await r.text(),/Find your kind of robot/); assert.equal(r.headers.get('cache-control'),'no-cache');
-    assert.match(r.headers.get('content-security-policy'),/checkout.razorpay.com/);
+    assert.match(r.headers.get('content-security-policy'),/checkout\.razorpay\.com/);
     for(const [path,type] of [['/login','html'],['/register','html'],['/auth.js','javascript'],['/account','html'],['/profile.js','javascript'],['/cart','html'],['/checkout','html'],['/checkout/','html'],['/checkout.js','javascript'],['/products/arduino-alvik','html'],['/product.js','javascript'],['/product-media/turtlebot3-burger.jpg','image/jpeg'],['/product-media/atlas-x1.png','image/png'],['/illustrations/robot.svg','image/svg+xml'],['/illustrations/kit.svg','image/svg+xml'],['/app.js','javascript'],['/account.js','javascript'],['/admin.js','javascript'],['/admin','html'],['/styles.css','css'],['/images/STAN-1.png','image/png']]) {
       r=await fetch(base+path); assert.equal(r.status,200); assert.ok(r.headers.get('content-type').includes(type)); assert.match(r.headers.get('cache-control'),['/admin','/cart','/checkout','/checkout/','/account','/login','/register'].includes(path) || path.startsWith('/products/') ? /no-store/ : /public/); assert.equal(r.headers.get('x-content-type-options'),'nosniff');
     }
@@ -76,7 +76,7 @@ test('optional HTTPS redirects HTTP and serves the storefront with security head
     });
     assert.equal(result.status,200);assert.match(result.body,/Find your kind of robot/);
     assert.match(result.headers['strict-transport-security'],/max-age=31536000/);
-    assert.match(result.headers['content-security-policy'],/checkout.razorpay.com/);
+    assert.match(result.headers['content-security-policy'],/checkout\.razorpay\.com/);
   } finally {if(edge)await edge.stop();await new Promise(r=>backend.close(r));rmSync(dir,{recursive:true,force:true});}
 });
 

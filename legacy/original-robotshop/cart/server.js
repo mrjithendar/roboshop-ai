@@ -11,6 +11,7 @@ const redis = require('redis');
 const request = require('request');
 const bodyParser = require('body-parser');
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const pino = require('pino');
 const expPino = require('express-pino-logger');
 // Prometheus
@@ -40,7 +41,12 @@ const expLogger = expPino({
 
 const app = express();
 
+app.set('trust proxy', 1);
 app.use(expLogger);
+app.use(rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100
+}));
 
 app.use((req, res, next) => {
     res.set('Timing-Allow-Origin', '*');
@@ -358,8 +364,11 @@ function calcTax(total) {
 }
 
 function getProduct(sku) {
+    if(!/^[A-Za-z0-9_-]{1,128}$/.test(sku)) {
+        return Promise.resolve(null);
+    }
     return new Promise((resolve, reject) => {
-        request('http://' + catalogueHost + ':8080/product/' + sku, (err, res, body) => {
+        request('http://' + catalogueHost + ':8080/product/' + encodeURIComponent(sku), (err, res, body) => {
             if(err) {
                 reject(err);
             } else if(res.statusCode != 200) {

@@ -28,6 +28,9 @@ public class CartHelper {
     // TODO - Remove deprecated calls
     public String addToCart(String id, String data) {
         logger.info("add shipping to cart {}", id);
+        if (id == null || !id.matches("[A-Za-z0-9_.@+-]{1,128}") || id.equals(".") || id.equals("..")) {
+            return "";
+        }
         StringBuilder buffer = new StringBuilder();
 
         CloseableHttpClient httpClient = null;

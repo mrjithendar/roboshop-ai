@@ -11,6 +11,7 @@ const mongoClient = require('mongodb').MongoClient;
 const mongoObjectID = require('mongodb').ObjectID;
 const bodyParser = require('body-parser');
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const pino = require('pino');
 const expPino = require('express-pino-logger');
 
@@ -30,7 +31,12 @@ var mongoConnected = false;
 
 const app = express();
 
+app.set('trust proxy', 1);
 app.use(expLogger);
+app.use(rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100
+}));
 
 app.use((req, res, next) => {
     res.set('Timing-Allow-Origin', '*');
@@ -109,7 +115,7 @@ app.get('/products/:cat', (req, res) => {
             if(products) {
                 res.json(products);
             } else {
-                res.status(404).send('No products for ' + req.params.cat);
+                res.status(404).send('No products found');
             }
         }).catch((e) => {
             req.log.error('ERROR', e);

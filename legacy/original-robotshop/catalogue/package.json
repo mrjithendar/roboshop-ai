@@ -11,6 +11,7 @@
   "dependencies": {
       "body-parser": "^1.18.1",
       "express": "^4.15.4",
+      "express-rate-limit": "6.11.2",
       "mongodb": "^3.5.3",
       "pino": "^5.10.8",
       "express-pino-logger": "^4.0.0",

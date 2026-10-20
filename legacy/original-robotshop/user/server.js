@@ -12,6 +12,7 @@ const mongoObjectID = require('mongodb').ObjectID;
 const redis = require('redis');
 const bodyParser = require('body-parser');
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const pino = require('pino');
 const expPino = require('express-pino-logger');
 
@@ -33,7 +34,12 @@ const expLogger = expPino({
 
 const app = express();
 
+app.set('trust proxy', 1);
 app.use(expLogger);
+app.use(rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100
+}));
 
 app.use((req, res, next) => {
     res.set('Timing-Allow-Origin', '*');
@@ -117,7 +123,7 @@ app.get('/users', (req, res) => {
 
 app.post('/login', (req, res) => {
     req.log.info('login', req.body);
-    if(req.body.name === undefined || req.body.password === undefined) {
+    if(typeof req.body.name !== 'string' || req.body.password === undefined) {
         req.log.warn('credentails not complete');
         res.status(400).send('name or passowrd not supplied');
     } else if(mongoConnected) {
@@ -147,7 +153,7 @@ app.post('/login', (req, res) => {
 // TODO - validate email address format
 app.post('/register', (req, res) => {
     req.log.info('register', req.body);
-    if(req.body.name === undefined || req.body.password === undefined || req.body.email === undefined) {
+    if(typeof req.body.name !== 'string' || req.body.password === undefined || req.body.email === undefined) {
         req.log.warn('insufficient data');
         res.status(400).send('insufficient data');
     } else if(mongoConnected) {
