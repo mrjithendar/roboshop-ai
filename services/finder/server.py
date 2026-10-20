@@ -1,13 +1,12 @@
-"""Optional, cookie-free embeddable assistant adapter. No shared service imports."""
+"""Optional, authenticated embeddable assistant adapter. No shared service imports."""
 import json
+from http.cookies import SimpleCookie
 import os
 from pathlib import Path
 import threading
 import time
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
-from urllib.parse import urlsplit
-from datetime import datetime, timezone
 
 CHAT_URL = os.getenv('CHAT_URL', 'http://ai-gateway:3000/api/chat')
 HEALTH_URLS = os.getenv('HEALTH_URLS', 'http://ai-gateway:3000/api/status,http://shopping-agent:4103/health').split(',')
@@ -46,49 +45,26 @@ def available():
         return HEALTH['ok']
 
 
-def protection_ready():
-    return bool(os.getenv('TURNSTILE_SITE_KEY') and os.getenv('TURNSTILE_SECRET_KEY') and len(os.getenv('LLM_SERVICE_TOKEN', '')) >= 32)
-
-
-class VerificationUnavailable(Exception):
-    pass
-
-
-def verify(token, origin):
-    if not isinstance(token, str) or not 1 <= len(token) <= 2048:
+def authenticated(environ):
+    # Only same-origin embeddings use the shop session; external websites stay cookie-free.
+    if environ.get('HTTP_ORIGIN', UPSTREAM_ORIGIN) != UPSTREAM_ORIGIN:
         return False
-    req = Request('https://challenges.cloudflare.com/turnstile/v0/siteverify',
-                  data=json.dumps({'secret': os.environ['TURNSTILE_SECRET_KEY'], 'response': token}).encode(),
-                  headers={'Content-Type': 'application/json'})
     try:
-        with urlopen(req, timeout=4) as response:
-            raw = response.read(16385)
-    except HTTPError as error:
-        raw = error.read(16385)
+        cookies = SimpleCookie(environ.get('HTTP_COOKIE', ''))
+        token = cookies['rs_auth'].value if 'rs_auth' in cookies else ''
+        if len(token) != 64 or any(c not in '0123456789abcdef' for c in token):
+            return False
+        req = Request(os.getenv('AUTH_URL', 'http://ai-gateway:3000/api/auth/me'),
+                      headers={'Cookie': 'rs_auth=' + token})
+        with urlopen(req, timeout=2) as response:
+            result = json.loads(response.read(16384))
+        return bool(result.get('user'))
     except Exception:
-        raise VerificationUnavailable('Verification service unavailable') from None
-    try:
-        if len(raw) > 16384:
-            raise ValueError()
-        result = json.loads(raw)
-        if not isinstance(result, dict):
-            raise ValueError()
-    except (ValueError, UnicodeError):
-        raise VerificationUnavailable('Invalid verification response') from None
-    codes = result.get('error-codes', [])
-    if any(code in codes for code in ('invalid-input-secret', 'missing-input-secret')):
-        # Never log the response token or secret.
-        print(json.dumps({'service': 'finder', 'event': 'verification_configuration_error'}), flush=True)
-        raise VerificationUnavailable('Verification configuration invalid')
-    if 'internal-error' in codes:
-        raise VerificationUnavailable('Verification service unavailable')
-    # Siteverify rejects expired and already-used tokens across all replicas.
-    if result.get('success') is not True:
         return False
-    issued = datetime.fromisoformat(result.get('challenge_ts', '').replace('Z', '+00:00'))
-    age = (datetime.now(timezone.utc) - issued).total_seconds()
-    return (result.get('success') is True and result.get('action') == 'finder'
-            and result.get('hostname') == urlsplit(origin).hostname and -10 <= age <= 300)
+
+
+def protection_ready():
+    return len(os.getenv('LLM_SERVICE_TOKEN', '')) >= 32
 
 
 RATE_LOCK = threading.Lock()
@@ -111,7 +87,7 @@ def application(environ, start_response):
         headers += [('Access-Control-Allow-Origin', origin), ('Vary', 'Origin')]
 
     def send(code, data):
-        reasons = {200: 'OK', 204: 'No Content', 400: 'Bad Request', 403: 'Forbidden', 404: 'Not Found', 413: 'Content Too Large', 429: 'Too Many Requests', 503: 'Service Unavailable'}
+        reasons = {200: 'OK', 204: 'No Content', 400: 'Bad Request', 401: 'Unauthorized', 403: 'Forbidden', 404: 'Not Found', 413: 'Content Too Large', 429: 'Too Many Requests', 503: 'Service Unavailable'}
         body = b'' if code == 204 else json.dumps(data).encode()
         start_response(f'{code} {reasons[code]}', headers + [('Content-Type', 'application/json'), ('Content-Length', str(len(body)))])
         return [body]
@@ -131,15 +107,17 @@ def application(environ, start_response):
         return send(204, None)
     if method == 'GET' and path == '/available':
         ok = protection_ready() and available()
-        return send(200 if ok else 503, {'available': ok, 'siteKey': os.getenv('TURNSTILE_SITE_KEY', '') if ok else ''})
+        return send(200 if ok else 503, {'available': ok, 'authenticated': authenticated(environ) if ok else False})
     if method != 'POST' or path != '/chat':
         return send(404, {})
     if origin not in ALLOWED_ORIGINS:
         return send(403, {})
     if not protection_ready():
-        return send(503, {'error': 'Human verification is not configured.'})
+        return send(503, {'error': 'Finder is not configured.'})
     if not allow_attempt():
         return send(429, {'error': 'Too many requests. Please wait a minute.'})
+    if not authenticated(environ):
+        return send(401, {'code': 'login-required', 'error': 'Please sign in to use Finder.'})
     try:
         size = int(environ.get('CONTENT_LENGTH') or 0)
         if size > 8192:
@@ -147,7 +125,7 @@ def application(environ, start_response):
         if size <= 0:
             return send(400, {})
         data = json.loads(environ['wsgi.input'].read(size))
-        if not isinstance(data, dict) or not {'message', 'challengeToken'} <= set(data) or set(data) - {'message', 'challengeToken', 'context'} or not isinstance(data['message'], str) or not 1 <= len(data['message'].strip()) <= 1000:
+        if not isinstance(data, dict) or not {'message'} <= set(data) or set(data) - {'message', 'context'} or not isinstance(data['message'], str) or not 1 <= len(data['message'].strip()) <= 1000:
             return send(400, {'error': 'Enter a question of up to 1,000 characters.'})
     except (ValueError, UnicodeError):
         return send(400, {})
@@ -156,8 +134,6 @@ def application(environ, start_response):
     if not SLOTS.acquire(blocking=False):
         return send(429, {'error': 'Please try again shortly.'})
     try:
-        if not verify(data.get('challengeToken'), origin):
-            return send(403, {'error': 'Complete a fresh human verification.'})
         message = data['message'].strip()
         context = data.get('context', '').strip()
         # Keep the current question complete; bound optional, untrusted context.
@@ -166,8 +142,6 @@ def application(environ, start_response):
         result = upstream(CHAT_URL, {'message': message}, timeout=22)
         return send(200, {'answer': result.get('answer', ''), 'notice': result.get('notice', ''), 'mode': result.get('mode', 'ai'),
                           'products': [{'name': p['name'], 'slug': p.get('slug') or p['sku'].lower()} for p in result.get('products', [])][:20]})
-    except VerificationUnavailable:
-        return send(503, {'code': 'verification-unavailable', 'error': 'Human verification is unavailable. Please contact the store administrator.'})
     except HTTPError as error:
         print(json.dumps({'service': 'finder', 'event': 'upstream_http_error', 'status': error.code}), flush=True)
         return send(429 if error.code == 429 else 503, {'error': 'Assistant unavailable. Please try later.'})

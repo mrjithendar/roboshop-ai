@@ -52,6 +52,18 @@ spec:
         image: robotshop-ai-gateway:local
         imagePullPolicy: IfNotPresent
         env:
+        - name: TURNSTILE_SITE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-secrets
+              key: TURNSTILE_SITE_KEY
+              optional: true
+        - name: TURNSTILE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-secrets
+              key: TURNSTILE_SECRET_KEY
+              optional: true
         - name: MONGO_APP_PASSWORD
           valueFrom:
             secretKeyRef:

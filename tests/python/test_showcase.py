@@ -178,6 +178,16 @@ class ChallengeTests(unittest.TestCase):
             self.assertEqual(connection.call_count, 1)
         self.assertNotIn("private-secret", json.dumps(self.registration.public()))
 
+    def test_login_requires_login_action_and_consumes_token(self):
+        with patch('registration.http.client.HTTPSConnection', return_value=self.connection(action='login')):
+            data = {'email':'user@example.com','password':'password','challengeToken':'login-token'}
+            self.registration.check(data, '192.0.2.1', 'login')
+            self.assertNotIn('challengeToken',data)
+            with self.assertRaises(HttpError):
+                self.registration.check({'challengeToken':'login-token'}, '192.0.2.1', 'login')
+        with patch('registration.http.client.HTTPSConnection', return_value=self.connection(action='register')), self.assertRaises(HttpError):
+            self.registration.check({'challengeToken':'wrong-action'}, '192.0.2.1', 'login')
+
     def test_failure_expiry_hostname_action_and_timeout(self):
         for changes in [
             {"success": False, "error-codes": ["timeout-or-duplicate"]},

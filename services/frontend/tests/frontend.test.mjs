@@ -18,7 +18,7 @@ async function waitFor(check) {
   assert.fail('UI did not reach expected state');
 }
 function setup(t, handler = () => undefined, storefront = false, auth = false) {
-  const dom = new JSDOM(auth ? authHtml : storefront ? html : checkoutHtml, { url: auth ? 'https://shop.example/register' : storefront ? 'https://shop.example/' : 'https://shop.example/checkout', runScripts: 'outside-only' });
+  const dom = new JSDOM(auth ? authHtml : storefront ? html : checkoutHtml, { url: auth ? 'https://shop.example/' + (auth === 'login' ? 'login' : 'register') : storefront ? 'https://shop.example/' : 'https://shop.example/checkout', runScripts: 'outside-only' });
   t.after(() => dom.window.close());
   const w = dom.window, calls = [];
   w.HTMLElement.prototype.scrollIntoView = () => {};
@@ -116,22 +116,22 @@ test('account navigation links to the profile page and sign out updates it', asy
  assert.equal(ui.$('#account-button').textContent,'Sign in');
 });
 
-test('registration uses server challenge config and consumes a fresh token after a failed attempt', async t => {
+for (const action of ['register', 'login']) test(`${action} verifies before credentials and consumes failed-attempt tokens`, async t => {
   let options, reset = 0, submitted;
   const ui = setup(t, (path, request) => {
     if (path === '/api/auth/me') return { ok: true, json: async () => ({ user: null }) };
     if (path === '/api/auth/challenge') return { ok: true, json: async () => ({ provider: 'turnstile', siteKey: 'public-key', action: 'register' }) };
-    if (path === '/api/auth/register') { submitted = JSON.parse(request.body); return { ok: false, json: async () => ({ error: 'Try another email.' }) }; }
-  }, false, true);
+    if (path === '/api/auth/' + action) { submitted = JSON.parse(request.body); return { ok: false, json: async () => ({ error: 'Try another email.' }) }; }
+  }, false, action);
   ui.w.turnstile = { render: (container, config) => { options = config; return 'widget'; }, remove() {}, getResponse: () => 'fresh-token', reset: () => { reset++; } };
   await ui.boot();
   assert.equal(ui.$('#account-mode'), null);
-  await waitFor(() => options); assert.equal(options.action, 'register'); assert.equal(options.sitekey, 'public-key');
+  await waitFor(() => options); assert.equal(options.action, action); assert.equal(options.sitekey, 'public-key');
   options.callback(); ui.$('#account-email').value = 'demo@example.com'; ui.$('#account-password').value = 'long-enough-test-password'; ui.$('#account-name').value = 'Demo';
   ui.$('#account-form').dispatchEvent(new ui.w.Event('submit', { cancelable: true }));
   await waitFor(() => reset === 1); assert.equal(submitted.challengeToken, 'fresh-token'); assert.equal(submitted.website, '');
   submitted = null; ui.$('#account-form').dispatchEvent(new ui.w.Event('submit', { cancelable: true }));
-  await waitFor(() => /Complete the registration challenge/.test(ui.$('#account-status').textContent)); assert.equal(submitted, null);
+  await waitFor(() => /Complete the (registration|sign-in) challenge/.test(ui.$('#account-status').textContent)); assert.equal(submitted, null);
 });
 
 test('empty checkout has a recovery link and cannot start payment', async t => {

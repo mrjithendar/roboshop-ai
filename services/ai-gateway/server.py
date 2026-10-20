@@ -181,8 +181,7 @@ class Gateway:
                 return {"loggedOut": True}
             self.auth.limit(client_address(req))
             data = req.body()
-            if path.endswith("/register"):
-                self.registration.check(data, client_address(req))
+            self.registration.check(data, client_address(req), "register" if path.endswith("/register") else "login")
             user = (
                 self.auth.register(data)
                 if path.endswith("/register")

@@ -42,18 +42,6 @@ spec:
           value: https://jithendar.com
         - name: UPSTREAM_ORIGIN
           value: https://jithendar.com
-        - name: TURNSTILE_SITE_KEY
-          valueFrom:
-            secretKeyRef:
-              name: robotshop-secrets
-              key: TURNSTILE_SITE_KEY
-              optional: true
-        - name: TURNSTILE_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: robotshop-secrets
-              key: TURNSTILE_SECRET_KEY
-              optional: true
         - name: LLM_SERVICE_TOKEN
           valueFrom:
             secretKeyRef:

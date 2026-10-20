@@ -1,148 +1,78 @@
 # Finder
 
-Optional Python service with an embeddable, framework-free shopping assistant. All
-runtime files belong to this directory; there are no sibling source imports.
-The browser needs a small JavaScript widget; the HTTP server runs Python/Waitress.
+Optional Python shopping assistant with an isolated, embeddable widget. Storefront
+pages load `/finder/widget.js` asynchronously, under `/roboshop/` on the public site.
+The store does not wait for Finder, and disabling it does not interrupt shopping.
 
-## RobotShop
+## Login required
 
-Every storefront HTML page loads `/finder/widget.js` asynchronously (under
-`/roboshop/finder/` on the public site). NGINX routes only this prefix to Finder.
-Existing catalogue, account, cart and checkout code does not wait for Finder.
-Finder calls the existing gateway and Python shopping-agent for recommendations;
-LLM credentials remain in the existing backend configuration. No user cookies,
-login tokens or page contents are forwarded. Results link to the store; the widget
-does not modify carts or take payments on third-party websites.
+Guests see **Please sign in to use Finder** and a sign-in link. The question form
+is hidden. `/chat` validates the `rs_auth` session with the gateway on every request
+and returns HTTP 401 with `code: login-required` for missing, expired, revoked or
+invalid sessions. Gateway failures also deny access. Guest verification passes and
+Cloudflare challenge tokens do not grant chat access.
 
-```bash
-bash build-images.sh --local
-bash deploy-minikube.sh
+Finder does not load Turnstile or need its keys. Login and registration perform
+Cloudflare verification through the authentication service. Finder's Minikube
+manifest only requires `LLM_SERVICE_TOKEN` for its private chat connection.
 
-# Disable only Finder; shopping and payment continue independently.
-kubectl -n robotshop-ai scale deployment/finder --replicas=0
-# Enable again; refresh pages that hid the unavailable widget.
-kubectl -n robotshop-ai scale deployment/finder --replicas=1
-```
+Same-origin widget requests include the login cookie. Finder forwards only
+`rs_auth` to the configured `AUTH_URL` (default
+`http://ai-gateway:3000/api/auth/me`), never to the LLM. `/available` returns only
+availability and an authenticated boolean, with `Cache-Control: no-store`.
 
-A full deployment reapplies the manifest and enables Finder again. If Finder fails
-to become ready, the deployment script reports a warning after deploying the other
-services.
+External embeddings omit cookies and show a link to the store's login page; they
+cannot reuse the store session across origins. The universal widget can be served
+behind another website's same-origin proxy with its own compatible authentication
+endpoint. CORS allowlisting alone does not authorize chat.
 
-New pages show nothing if Finder cannot load. Open visible pages check availability
-once every 60 seconds and hide the closed widget after a failure (up to roughly 62 seconds). An active conversation stays visible with a recoverable error and its draft intact.
-Health checks are cached server-side for 10 seconds. Hidden tabs do not poll.
-After failure polling stops until a page reload. There is a small script/health
-request overhead, not zero network cost. Four concurrent verification/chat calls and upstream
-timeouts bound the widget's use of the backend. These limits are per replica.
-Do not include Finder in another service's readiness checks.
-
-## Embed on another website
-
-Serve Finder behind HTTPS and add the embedding website's **exact origin** to
-`ALLOWED_ORIGINS` (comma-separated, without trailing slashes). No wildcard defaults.
-Then include:
+## Embed
 
 ```html
 <script async src="https://jithendar.com/roboshop/finder/widget.js"
-        data-label="Find my match"
-        data-store="https://jithendar.com/roboshop/"></script>
+        data-store="https://jithendar.com/roboshop/" data-label="Finder"></script>
 ```
 
-Default branding is “Finder”. `data-store` controls the result links, not the AI's
-catalogue. For another catalogue, configure a compatible backend using `CHAT_URL`
-and its health endpoints in `HEALTH_URLS`; embedding alone still searches RobotShop.
-The backend accepts `POST {"message":"..."}` and returns
-`{"answer":"...","products":[{"name":"...","slug":"..."}]}` (SKU is also accepted).
-Follow-ups include up to 500 characters of recent questions and suggested names, kept only in the open page. The backend caps the combined request at 1,000 characters. Site CSP must allow the widget origin in `script-src`
-and `connect-src`, and inline styles used inside its Shadow DOM. No global CSS,
-framework, host DOM scraping or third-party cookies are required. CORS is browser
-access control, not authentication; use perimeter rate limits for public production
-traffic. This service exposes only the question endpoint, never private admin APIs.
+`data-store` controls the sign-in and product links. Same-origin sign-in links
+preserve the current page in `returnTo`; the login page validates that destination.
+The widget uses Shadow DOM, never scrapes page contents, and never modifies carts
+or initiates payments.
 
-## Configuration and local checks
+## Configuration
 
-- `PORT`: `4110`.
-- `ALLOWED_ORIGINS`: `https://jithendar.com` by default.
-- `CHAT_URL`: `http://ai-gateway:3000/api/chat`.
-- `HEALTH_URLS`: `http://ai-gateway:3000/api/status,http://shopping-agent:4103/health`.
-- `UPSTREAM_ORIGIN`: `https://jithendar.com`, matching the gateway's configured origin.
+- `CHAT_URL`: private gateway chat URL; default `http://ai-gateway:3000/api/chat`.
+- `AUTH_URL`: gateway session-validation URL, described above.
+- `UPSTREAM_ORIGIN`: store origin, default `https://jithendar.com`.
+- `ALLOWED_ORIGINS`: comma-separated widget origins.
+- `LLM_SERVICE_TOKEN`: private service credential, at least 32 characters.
+- `HEALTH_URLS`: comma-separated backend health URLs.
+- `PORT`: service port, default `4110`.
+
+An active LLM provider must be configured and tested in the store's admin panel.
+Finder distinguishes `not-configured` from provider failures. Questions and bounded
+follow-up context go to the shopping agent; secrets and cookies are not included.
+
+## Failure handling
+
+A service outage hides a closed widget; an open conversation retains its draft
+and shows an error. Availability is checked once per visible minute and when the
+panel opens. Chat errors preserve the question for retry. Expired login sessions
+hide chat controls and display the sign-in prompt. Conversation state stays in
+page memory only.
+
+Requests are limited to 30 attempts per minute per replica, four concurrent chat
+requests, 1,000 characters per question and 500 characters of optional context.
+Production deployments should also enforce edge rate limits and provider budgets.
+`/health` reports process health; `/available` checks backend availability and
+service-token configuration. Direct public `/api/chat` access is blocked by Nginx.
+
+## Build and deploy
 
 ```bash
-python -m pip install -r requirements.txt
-python server.py
-python -m unittest discover -s tests -p 'test_*.py'
+bash build-images.sh --service finder --local
+bash deploy-minikube.sh --service finder --load-images
 ```
 
-`/health` is process health; `/available` checks verification configuration and the configured backend endpoints.
-If hidden, inspect `kubectl -n robotshop-ai logs deployment/finder`, the browser's
-network tab, allowed origins, and backend reachability. An unconfigured LLM returns
-its configuration notice. No deployment is necessary to build/test the source.
-
-## Required human verification
-
-Finder requires Cloudflare Turnstile for **every question**. The SDK loads only
-when the panel opens. The send button stays disabled until verification completes;
-a fresh token is required after every submission, including failed requests.
-Python validates the token using Siteverify and checks `success`, the `finder`
-action, the embedding origin's hostname and a maximum age of five minutes.
-Cloudflare rejects reused tokens. Timeout, missing keys, invalid tokens and provider
-errors never fall back to unverified chat.
-
-Create a Turnstile widget in your Cloudflare dashboard with `jithendar.com` (and any
-other approved embedding hostnames). Use real site/secret keys, not test keys.
-Set these existing Kubernetes Secret entries privately:
-
-```bash
-kubectl -n robotshop-ai edit secret robotshop-secrets
-```
-
-Keep existing `data` entries; add/merge a top-level `stringData` block:
-
-```yaml
-stringData:
-  TURNSTILE_SITE_KEY: "YOUR_CLOUDFLARE_SITE_KEY"
-  TURNSTILE_SECRET_KEY: "YOUR_CLOUDFLARE_SECRET_KEY"
-```
-
-Finder also receives the existing `LLM_SERVICE_TOKEN` from that Secret to authenticate
-its gateway calls. This value is never sent to browsers. Do not replace it or expose
-it in the embed tag. Build/deploy the changed Finder, gateway and NGINX together;
-the old public `/api/chat` URL is now blocked at NGINX, and the gateway requires
-private service authentication. After a keys-only change:
-
-```bash
-kubectl -n robotshop-ai rollout restart deployment/finder
-kubectl -n robotshop-ai rollout status deployment/finder
-```
-
-For embeddings, permit `https://challenges.cloudflare.com` in CSP `script-src`,
-`connect-src` and `frame-src`. RobotShop's CSP already permits these. Add each
-embedding origin to `ALLOWED_ORIGINS` and its hostname to the Turnstile widget.
-`/available` returns only the public site key; it returns 503 when verification
-configuration is missing. `/health` stays independent so misconfiguration does not
-restart the process continuously.
-
-Chat attempts are capped at 30/minute per Finder replica, including rejected
-attempts, plus four concurrent verification/chat operations. The global limit
-avoids trusting spoofable forwarded IP headers; it is intentionally conservative
-for this sandbox. For large traffic or several replicas use an edge rate limit
-and provider spending limits as well. Human verification reduces automated abuse;
-it cannot guarantee that all bots or paid challenge solvers are stopped.
-
-Reference: https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
-
-## Error recovery and verification appearance
-
-Chat errors no longer remove Finder. Verification rejection, throttling and server
-failures keep the question available for retry with a fresh token. Open panels
-survive availability-check failures; unopened widgets still hide when disabled.
-The supported Turnstile `interaction-only` appearance displays its challenge only
-when Cloudflare requires interaction. Branding is not cropped or overridden.
-
-A `not-configured` response means the store super admin must test and activate an
-LLM provider under the admin LLM settings. Finder cannot generate AI recommendations
-without that provider. Provider failures are distinguished from missing configuration.
-The shopping agent receives bounded product specifications, can ask clarifying
-questions and compare trade-offs using catalogue evidence. No purchase actions or
-unverified claims are enabled. Conversation context is untrusted and not persisted
-by Finder; questions are still sent to the configured AI provider when active.
+The Nginx Finder route must forward cookies for same-origin session validation.
+Tests: `python3 -m unittest discover -s services/finder/tests` and
+`node --test services/finder/tests/widget.test.mjs`.

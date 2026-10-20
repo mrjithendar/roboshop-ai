@@ -14,7 +14,8 @@ data:
   HOST: 0.0.0.0
   APP_ENV: development
   PUBLIC_ORIGIN: https://jithendar.com
-  REGISTRATION_CHALLENGE_PROVIDER: disabled
+  REGISTRATION_CHALLENGE_PROVIDER: turnstile
+  TURNSTILE_HOSTNAME: jithendar.com
   PAYMENT_MODE: test
   MONGODB_DATABASE: robotshop
   CART_URL: http://cart-service:4107

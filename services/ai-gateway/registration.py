@@ -1,4 +1,4 @@
-"""Fail-closed registration challenge boundary and persistent per-IP limits."""
+"""Fail-closed human verification challenge boundary and persistent per-IP limits."""
 
 import hashlib
 import http.client
@@ -36,17 +36,17 @@ def client_address(req):
 
 
 class DisabledChallenge:
-    def verify(self, token, ip):
+    def verify(self, token, ip, action="register"):
         return
 
 
 class TurnstileChallenge:
-    def verify(self, token, ip):
+    def verify(self, token, ip, action="register"):
         if not SLOTS.acquire(blocking=False):
             raise HttpError(
                 503, "Challenge verification is busy. Retry with a fresh challenge."
             )
-        future = POOL.submit(self._verify, token, ip)
+        future = POOL.submit(self._verify, token, ip, action)
         future.add_done_callback(lambda _: SLOTS.release())
         try:
             return future.result(timeout=5)
@@ -55,16 +55,16 @@ class TurnstileChallenge:
                 503, "Challenge verification timed out. Retry with a fresh challenge."
             )
 
-    def _verify(self, token, ip):
+    def _verify(self, token, ip, action="register"):
         secret, hostname = os.getenv("TURNSTILE_SECRET_KEY", ""), os.getenv(
             "TURNSTILE_HOSTNAME", ""
         )
         if not secret or not hostname or not os.getenv("TURNSTILE_SITE_KEY"):
             raise HttpError(
-                503, "Registration protection is unavailable. Please try later."
+                503, "Authentication protection is unavailable. Please try later."
             )
         if not isinstance(token, str) or not 1 <= len(token) <= 2048:
-            raise HttpError(400, "Complete a fresh registration challenge.")
+            raise HttpError(400, "Complete a fresh human verification challenge.")
         conn = http.client.HTTPSConnection("challenges.cloudflare.com", timeout=4)
         try:
             conn.request(
@@ -90,7 +90,7 @@ class TurnstileChallenge:
             valid = (
                 result.get("success") is True
                 and result.get("hostname") == hostname
-                and result.get("action") == "register"
+                and result.get("action") == action
                 and 0 <= age <= 300
             )
         except HttpError:
@@ -125,9 +125,9 @@ class Registration:
             "action": "register",
         }
 
-    def check(self, data, ip):
+    def check(self, data, ip, action="register"):
         window = int(time.time() // 900)
-        key = hashlib.sha256(f"{ip}:{window}".encode()).hexdigest()
+        key = hashlib.sha256(f"{action}:{ip}:{window}".encode()).hexdigest()
         row = self.db.registration_limits.find_one_and_update(
             {"_id": key},
             {
@@ -137,9 +137,9 @@ class Registration:
             upsert=True,
             return_document=ReturnDocument.AFTER,
         )
-        if row["count"] > 5:
+        if row["count"] > (5 if action == "register" else 20):
             raise HttpError(
-                429, "Too many registration attempts. Wait 15 minutes before retrying."
+                429, "Too many authentication attempts. Wait 15 minutes before retrying."
             )
         if data.pop("website", "") != "":
             raise HttpError(
@@ -156,10 +156,10 @@ class Registration:
             return
         if mode != "turnstile":
             raise HttpError(
-                503, "Registration protection must be configured. Please try later."
+                503, "Authentication protection must be configured. Please try later."
             )
         if not isinstance(token, str) or not 1 <= len(token) <= 2048:
-            raise HttpError(400, "Complete a fresh registration challenge.")
+            raise HttpError(400, "Complete a fresh human verification challenge.")
         # Claim before external verification; every attempt consumes its token across replicas.
         try:
             self.db.registration_tokens.insert_one(
@@ -170,4 +170,4 @@ class Registration:
             )
         except DuplicateKeyError:
             raise HttpError(400, "Challenge already used. Complete a fresh challenge.")
-        TurnstileChallenge().verify(token, ip)
+        TurnstileChallenge().verify(token, ip, action)
