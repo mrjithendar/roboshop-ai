@@ -10,7 +10,10 @@ import threading
 from datetime import datetime, timedelta, timezone
 
 from runtime import HttpError, now, trace_span
-from store import cents
+from decimal import Decimal, ROUND_HALF_UP
+
+def cents(value):
+    return int((Decimal(str(value)) * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
 def timestamp(value):
@@ -28,8 +31,8 @@ def address_from(shipping):
 
 
 class Customers:
-    def __init__(self, db, store):
-        self.db, self.store = db, store
+    def __init__(self, db):
+        self.db = db
         self.lock = threading.RLock()
         self.stopped = threading.Event()
         self.retention = int(os.getenv("LOGIN_ACTIVITY_RETENTION_DAYS", "90"))
@@ -146,57 +149,6 @@ class Customers:
             )
             self.save_address(user_id, order["shipping"])
         return True
-
-    def sync(self):
-        with self.store.lock:
-            orders = copy.deepcopy(
-                [
-                    o
-                    for o in self.store.state["orders"]
-                    if o["status"] == "paid" and not o.get("customerSyncedAt")
-                ]
-            )
-            # Backfill old account orders only when a recorded account/cart relationship exists.
-            for order in orders:
-                if not order.get("userId"):
-                    order["userId"] = (
-                        self.store.state["sessions"]
-                        .get(order["session"], {})
-                        .get("userId")
-                    )
-        for order in [o for o in orders if o.get("userId")][:100]:
-            if self.project(order):
-                with self.store.lock:
-                    state = copy.deepcopy(self.store.state)
-                    stored = next(o for o in state["orders"] if o["id"] == order["id"])
-                    stored["userId"] = order["userId"]
-                    stored["customerSyncedAt"] = now().isoformat()
-                    self.store.save(state)
-
-    def run(self):
-        while not self.stopped.is_set():
-            try:
-                self.sync()
-            except Exception:
-                print(
-                    json.dumps(
-                        {
-                            "service": "ai-gateway",
-                            "event": "customer_history_sync_pending",
-                        }
-                    ),
-                    flush=True,
-                )
-            self.stopped.wait(2)
-
-    def start(self):
-        self.thread = threading.Thread(target=self.run, daemon=True)
-        self.thread.start()
-
-    def stop(self):
-        self.stopped.set()
-        if hasattr(self, "thread"):
-            self.thread.join(timeout=3)
 
     def profile(self, user_id):
         with trace_span(

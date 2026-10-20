@@ -2,7 +2,7 @@ import re
 from pymongo.errors import DuplicateKeyError
 from runtime import HttpError, text, now
 from catalogue import normalize
-from auth import require_role, public_user, email_address
+from auth import require_role, email_address
 
 DEFAULTS = {
     "storeName": "RobotShop",
@@ -109,24 +109,6 @@ def routes(req, db, auth, store):
                     raise HttpError(409, "SKU already exists.")
         return {"saved": True}, 200 if match else 201, []
     require_role(actor, ["superadmin"])
-    if path == "/api/admin/users" and method == "GET":
-        after = req.query.get("after", "")
-        if len(after) > 100:
-            raise HttpError(400, "Invalid cursor.")
-        users = list(
-            auth.users.find(
-                {"_id": {"$gt": after}} if after else {}, {"passwordHash": 0}
-            )
-            .sort("_id", 1)
-            .limit(101)
-        )
-        return {
-            "users": [public_user(u) for u in users[:100]],
-            "next": users[99]["_id"] if len(users) > 100 else None,
-        }
-    match = re.fullmatch(r"/api/admin/users/([a-f0-9-]{36})", path)
-    if match and method == "PATCH":
-        return {"user": auth.change_user(actor, match[1], req.body())}
     if path == "/api/admin/settings":
         if method == "GET":
             return settings(db)

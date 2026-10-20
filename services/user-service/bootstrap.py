@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
-from auth import Auth, connect_mongo
+from accounts import Auth, connect_mongo
 
 if __name__ == "__main__":
     client = None

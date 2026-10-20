@@ -42,7 +42,7 @@ jobs:
           export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
           echo "/usr/local/bin" >> "$GITHUB_PATH"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          for tool in docker minikube kubectl python3; do
+          for tool in docker minikube kubectl python3 openssl; do
             command -v "$tool" >/dev/null || { echo "Missing runner tool: $tool" >&2; exit 1; }
           done
           python3 -c 'import yaml' || { echo 'Install PyYAML for the runner python3 before running this workflow.' >&2; exit 1; }
@@ -64,6 +64,11 @@ jobs:
 
       - name: Deploy infrastructure dependencies
         run: bash deploy-minikube.sh --infrastructure
+
+      - name: Build and deploy smtp-server
+        run: |
+          bash build-images.sh --service smtp-server --local
+          bash minikube/deploy-smtp.sh
 
       - name: Build and deploy product-ingestion
         run: |
@@ -142,5 +147,7 @@ jobs:
             echo "Minikube profile: $PROFILE"
             echo 'Image tags: robotshop-*:local'
             echo 'Application: https://jithendar.com/roboshop/'
+            echo 'SMTP: deployed with DKIM and cert-manager client certificates before ai-gateway.'
+            echo 'Publish the DKIM TXT record from the SMTP step; mail delivery requires mail DNS/PTR and outbound TCP 25.'
             echo 'Check deployment logs for optional Finder readiness warnings.'
           } >> "$GITHUB_STEP_SUMMARY"

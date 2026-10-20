@@ -6,7 +6,7 @@ import re
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from PIL import Image, ImageOps, UnidentifiedImageError
-from auth import public_user
+from accounts import public_user
 from runtime import HttpError, now
 
 FIELDS = {"phone": 32, "company": 100, "jobTitle": 100, "bio": 500, "countryCode": 2, "timezone": 64}

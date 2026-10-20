@@ -16,7 +16,7 @@ from urllib.parse import quote, urlencode
 from cryptography.fernet import Fernet, InvalidToken
 from pymongo import ReturnDocument
 import segno
-from auth import digest, email_address, hash_password, verify
+from accounts import digest, email_address, hash_password, verify
 from runtime import HttpError, now
 
 

@@ -12,10 +12,9 @@ SERVICE_ROOT = Path(__file__).resolve().parent
 STATIC_ROOT = Path(os.environ["FRONTEND_DIST"]).resolve() if os.getenv("FRONTEND_DIST") else None
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
 from runtime import HttpError, serve, request, upstream, text, configure_telemetry
-from customers import Customers
-from user_profile import read_profile, update_profile, update_photo
-from auth import Auth, connect_mongo, public_user, require_role
-from account_security import AccountSecurity
+from user_client import UserClient
+from purchase_sync import PurchaseSync
+from auth import connect_mongo, require_role
 from admin import routes as admin_routes, settings
 from store import Store, cents
 from cart_repository import CartRepository
@@ -23,7 +22,7 @@ from events import OrderPublisher
 from llm import LLMConfiguration
 from llm_config import service_headers, unconfigured, authenticate_service
 from catalogue import retrieve
-from registration import Registration, client_address
+from client_address import client_address
 from reviews import Reviews
 from product_details import related, require_purchasable
 
@@ -48,10 +47,7 @@ class Gateway:
     def __init__(self, db, store):
         self.db = db
         self.store = store
-        self.auth = Auth(db)
-        self.auth.initialize()
-        self.security = AccountSecurity(self.auth)
-        self.registration = Registration(db)
+        self.auth = UserClient()
         demo_db = None
         if os.getenv('DEMO_MONGODB_URL'):
             from pymongo import MongoClient
@@ -62,7 +58,7 @@ class Gateway:
             demo_db = self.demo_client[name]
         self.reviews = Reviews(db, demo_db)
         configure_telemetry("ai-gateway")
-        self.customers = Customers(db, store)
+        self.customers = PurchaseSync(self.auth, store)
         self.limits = {}
         self.limit_lock = threading.Lock()
         self.origin = os.getenv(
@@ -164,59 +160,19 @@ class Gateway:
                 raise HttpError(403, "Origin not allowed.")
             if req.headers.get("sec-fetch-site") == "cross-site":
                 raise HttpError(403, "Cross-site requests are not allowed.")
-        token = req.cookie("rs_auth", r"[a-f0-9]{64}")
+        if path.startswith('/api/auth/') or path.startswith('/api/account/') or path == '/api/admin/users' or path.startswith('/api/admin/users/'):
+            result = self.auth.forward(req)
+            body, status, _ = result
+            if method == 'POST' and path in ('/api/auth/login', '/api/auth/register', '/api/auth/mfa/verify') and body.get('user'):
+                req.user = body['user']
+                cart_id = self.session(req)
+                with self.store.lock:
+                    shipping = self.store.state['sessions'][cart_id].get('shipping')
+                if shipping:
+                    self.customers.save_address(req.user['id'], shipping)
+            return result
+        token = req.cookie('rs_auth', r'[a-f0-9]{64}')
         req.user = self.auth.current(token)
-        if path == "/api/auth/challenge" and method == "GET":
-            return self.registration.public()
-        if path == "/api/auth/me" and method == "GET":
-            return {"user": req.user}
-        if path == "/api/auth/mfa" and method == "GET":
-            return self.security.status(require_role(req.user))
-        if path in ("/api/auth/mfa/enroll", "/api/auth/mfa/confirm", "/api/auth/mfa/disable", "/api/auth/password/request", "/api/auth/password/reset") and method == "POST":
-            if req.headers.get("origin") != self.origin:
-                raise HttpError(403, "Origin not allowed.")
-            self.auth.limit(client_address(req))
-            data = req.body()
-            if path.startswith("/api/auth/mfa/"):
-                actor = require_role(req.user)
-                self.auth.limit("mfa:" + actor["id"])
-                action = path.rsplit("/", 1)[1]
-                result = getattr(self.security, action)(actor, data)
-                if result.get("signInAgain"):
-                    req.set_cookie("rs_auth", "", 0)
-                return result
-            if path.endswith("/request"):
-                self.registration.check(data, client_address(req), "login")
-                return self.security.request_reset(data)
-            return self.security.reset_password(data)
-        if path in ("/api/auth/register", "/api/auth/login", "/api/auth/logout", "/api/auth/mfa/verify") and method == "POST":
-            if req.headers.get("origin") != self.origin:
-                raise HttpError(403, "Origin not allowed.")
-            if path.endswith("/logout"):
-                self.auth.logout(token)
-                req.set_cookie("rs_auth", "", 0)
-                req.set_cookie("rs_session", "", 0)
-                return {"loggedOut": True}
-            self.auth.limit(client_address(req))
-            data = req.body()
-            if path.endswith("/mfa/verify"):
-                user = self.security.finish_login(data)
-            else:
-                self.registration.check(data, client_address(req), "register" if path.endswith("/register") else "login")
-                user = self.auth.register(data) if path.endswith("/register") else self.auth.login(data)
-                if user.get("mfa"):
-                    return self.security.challenge(user)
-            self.customers.record_login(user["_id"], client_address(req), req.headers.get("user-agent", ""), registration=path.endswith("/register"))
-            new = self.auth.issue(user)
-            self.auth.logout(token)
-            req.set_cookie("rs_auth", new, 28800)
-            req.user = public_user(user)
-            cart_id = self.session(req)
-            with self.store.lock:
-                shipping = self.store.state["sessions"][cart_id].get("shipping")
-            if shipping:
-                self.customers.save_address(req.user["id"], shipping)
-            return {"user": req.user}, 201 if path.endswith("/register") else 200, []
         if method == "GET" and (path == "/api/catalogue/categories" or re.fullmatch(r"/api/catalogue/(?:product|category|search)/[^/]+", path)):
             result = upstream(self.urls["catalogue"] + path)
             def available(row):
@@ -272,46 +228,6 @@ class Gateway:
         match = re.fullmatch(r"/api/admin/reviews/([A-Za-z0-9:_-]{1,160})", path)
         if match and method == "PATCH":
             return self.reviews.moderate(match[1], req.user, req.body())
-        if path.startswith("/api/account/"):
-            require_role(req.user)
-            user_id = req.user["id"]
-            if path == "/api/account/profile":
-                if method == "GET":
-                    return {**self.customers.profile(user_id), **read_profile(self.db, user_id)}
-                if method == "PUT":
-                    return update_profile(self.db, user_id, req.body())
-            if path == "/api/account/photo" and method == "PUT":
-                return update_photo(self.db, user_id, req.body())
-            if path == "/api/account/addresses" and method == "POST":
-                data = req.body()
-                if set(data) != {"cityId", "recipient", "line1", "postalCode"}:
-                    raise HttpError(400, "Send a city and delivery address.")
-                shipping = upstream(self.urls["shipping"] + "/api/shipping/quote", data, timeout=5)
-                self.customers.save_address(user_id, shipping)
-                return {"addresses": self.customers.profile(user_id)["addresses"]}
-            address = re.fullmatch(r"/api/account/addresses/([a-f0-9]{64})", path)
-            if address and method == "DELETE":
-                deleted = self.db.customer_addresses.delete_one({"_id": address[1], "userId": user_id})
-                if not deleted.deleted_count:
-                    raise HttpError(404, "Address not found.")
-                return {"deleted": True}
-            if path == "/api/account/purchases" and method == "GET":
-                return self.customers.purchases(user_id, req.query.get("cursor", ""))
-            if path == "/api/account/activity" and method == "GET":
-                return self.customers.activity(user_id)
-            return
-        customer = re.fullmatch(
-            r"/api/admin/users/([a-f0-9-]{36})/(profile|purchases|activity)", path
-        )
-        if customer and method == "GET":
-            require_role(req.user, ["superadmin"])
-            if not self.db.users.find_one({"_id": customer[1]}, {"_id": 1}):
-                raise HttpError(404, "User not found.")
-            if customer[2] == "profile":
-                return self.customers.profile(customer[1])
-            if customer[2] == "activity":
-                return self.customers.activity(customer[1])
-            return self.customers.purchases(customer[1], req.query.get("cursor", ""))
         if path.startswith("/api/admin/"):
             if (
                 method not in ("GET", "HEAD")

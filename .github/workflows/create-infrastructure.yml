@@ -34,8 +34,8 @@ jobs:
       TF_IN_AUTOMATION: 'true'
       TF_INPUT: 'false'
       TF_WORKSPACE: default
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      AWS_INFRA_ROLE_ARN: ${{ vars.AWS_INFRA_ROLE_ARN || vars.AWS_ROLE_ARN }}
+      # AWS_REGION: ${{ vars.AWS_REGION }}
+      # AWS_INFRA_ROLE_ARN: ${{ vars.AWS_INFRA_ROLE_ARN || vars.AWS_ROLE_ARN }}
     steps:
       - name: Prepare isolated Terraform working data
         id: paths
@@ -69,12 +69,12 @@ jobs:
 
       - name: Assume AWS infrastructure role
         uses: aws-actions/configure-aws-credentials@v6.3.0
-        with:
-          role-to-assume: ${{ env.AWS_INFRA_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-          role-session-name: terraform-${{ github.run_id }}
-          role-duration-seconds: 3600
-          unset-current-credentials: true
+        # with:
+        #   role-to-assume: ${{ env.AWS_INFRA_ROLE_ARN }}
+        #   aws-region: ${{ env.AWS_REGION }}
+        #   role-session-name: terraform-${{ github.run_id }}
+        #   role-duration-seconds: 3600
+        #   unset-current-credentials: true
 
       - name: Check formatting
         run: terraform fmt -check -recursive

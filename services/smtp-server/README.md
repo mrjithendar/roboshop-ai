@@ -49,6 +49,14 @@ bash build-images.sh --service frontend --local
 bash deploy-minikube.sh --service frontend --load-images
 ```
 
+The **Deploy-Minikube** GitHub Actions workflow now builds and deploys
+`smtp-server` immediately after infrastructure dependencies, before `ai-gateway`.
+Its preflight checks include OpenSSL. The SMTP step prints the public DKIM record;
+repeat runs preserve the existing signing and authenticator encryption keys.
+
+For a quick update of an existing cluster, run just the SMTP, gateway and frontend
+commands above; rebuilding the other application images is unnecessary.
+
 SMTP has its own installer because its CA, DKIM key and encryption key must exist
 before account recovery is enabled. `build-images.sh --local` includes its image;
 `deploy-minikube.sh` keeps its existing app deployment scope. Use `deploy-smtp.sh`
