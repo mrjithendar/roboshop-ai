@@ -136,11 +136,24 @@ async function loadDemoReviews(append = false): Promise<void> {
 }
 get('more-demo-reviews').addEventListener('click', () => { void loadDemoReviews(true); });
 
+function selectedRating(): number {
+  return Number(document.querySelector<HTMLInputElement>('#review-rating input:checked')?.value || 0);
+}
+function renderRating(value: number): void {
+  document.querySelectorAll<HTMLInputElement>('#review-rating input').forEach(input => {
+    input.checked = Number(input.value) === value;
+    input.parentElement?.classList.toggle('filled', Number(input.value) <= value);
+  });
+  get('rating-value').textContent = `${value} out of 5 stars`;
+}
+get('review-rating').addEventListener('change', () => renderRating(selectedRating()));
+renderRating(5);
+
 async function loadMine(): Promise<void> {
-  mine = null; get<HTMLInputElement>('review-title').value = ''; get<HTMLTextAreaElement>('review-body').value = ''; get('review-delete').hidden = true; get('review-form').hidden = !currentUser; get('review-status').textContent = currentUser ? 'Reviews are moderated before publication.' : 'Log in to write a review.';
+  mine = null; renderRating(5); get<HTMLInputElement>('review-title').value = ''; get<HTMLTextAreaElement>('review-body').value = ''; get('review-delete').hidden = true; get('review-form').hidden = !currentUser; get('review-status').textContent = currentUser ? 'Your review will be published immediately.' : 'Log in to write a review.';
   if (!currentUser || !product) return;
   const userId = currentUser.id;
-  try { const result = await api<{ review: Review | null }>(endpoint + '/reviews/mine'); if (currentUser?.id !== userId) return; mine = result.review; get<HTMLInputElement>('review-title').value = mine?.title || ''; get<HTMLTextAreaElement>('review-body').value = mine?.body || ''; get<HTMLSelectElement>('review-rating').value = String(mine?.rating || 5); get('review-delete').hidden = !mine; if (mine) get('review-status').textContent = `Your review is ${mine.status}. Editing resubmits it for moderation.`; }
+  try { const result = await api<{ review: Review | null }>(endpoint + '/reviews/mine'); if (currentUser?.id !== userId) return; mine = result.review; get<HTMLInputElement>('review-title').value = mine?.title || ''; get<HTMLTextAreaElement>('review-body').value = mine?.body || ''; renderRating(mine?.rating || 5); get('review-delete').hidden = !mine; if (mine) get('review-status').textContent = `Your review is ${mine.status}. Changes are published immediately.`; }
   catch (e) { get('review-status').textContent = error(e); }
 }
 get('review-filter').addEventListener('change', () => { void loadReviews(); });
@@ -148,7 +161,7 @@ get('review-filter').addEventListener('change', () => { void loadReviews(); });
 get('more-reviews').addEventListener('click', () => { void loadReviews(true); });
 get('review-form').addEventListener('submit', async event => {
   event.preventDefault(); if (!currentUser) { showLogin(); return; } const button = get<HTMLButtonElement>('review-save'); button.disabled = true;
-  try { await api(endpoint + '/reviews', mine ? 'PUT' : 'POST', { rating: Number(get<HTMLSelectElement>('review-rating').value), title: get<HTMLInputElement>('review-title').value, body: get<HTMLTextAreaElement>('review-body').value }); await loadMine(); await loadReviews(); } catch (e) { get('review-status').textContent = error(e); } finally { button.disabled = false; }
+  try { await api(endpoint + '/reviews', mine ? 'PUT' : 'POST', { rating: selectedRating(), title: get<HTMLInputElement>('review-title').value, body: get<HTMLTextAreaElement>('review-body').value }); await loadMine(); await loadReviews(); } catch (e) { get('review-status').textContent = error(e); } finally { button.disabled = false; }
 });
 get('review-delete').addEventListener('click', async () => { const button = get<HTMLButtonElement>('review-delete'); button.disabled = true; try { await api(endpoint + '/reviews', 'DELETE'); await loadMine(); await loadReviews(); } catch (e) { get('review-status').textContent = error(e); } finally { button.disabled = false; } });
 document.querySelectorAll<HTMLElement>('[data-close]').forEach(button => button.addEventListener('click', () => get<HTMLDialogElement>(button.dataset.close || '').close()));

@@ -85,7 +85,10 @@ function renderCart() {
     }
     const remove = el('button', 'remove-button', 'Remove'); remove.addEventListener('click', () => updateCart(p.sku, 0));
     if (pendingOrder) { qty.querySelectorAll('button').forEach(button => button.disabled = true); remove.disabled = true; }
-    info.append(el('h3', '', p.name), el('p', '', money(p.lineTotal)), qty); row.append(image(p), info, remove); return row;
+    const href = appPath('/products/' + encodeURIComponent(p.slug || p.sku.toLowerCase()));
+    const title = el('h3'), productLink = el('a', 'cart-product-link', p.name); productLink.href = href; title.append(productLink);
+    const imageLink = el('a', 'cart-product-image'); imageLink.href = href; imageLink.setAttribute('aria-label', `View ${p.name}`); imageLink.append(image(p));
+    info.append(title, el('p', '', money(p.lineTotal)), qty); row.append(imageLink, info, remove); return row;
   });
   $('#cart-items').replaceChildren(...(rows.length ? rows : [el('p', 'empty-state', 'Your next companion is waiting. Explore the collection to fill your bag.')]));
 }

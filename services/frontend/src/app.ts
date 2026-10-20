@@ -92,14 +92,14 @@ async function loadOps() {
     const steps = el('ul'); for (const step of result.nextSteps) steps.append(el('li', '', step)); nodes.push(steps, el('p', '', `Checked ${new Date(result.checkedAt).toLocaleTimeString()}. No infrastructure actions executed.`)); $('#ops-content').replaceChildren(...nodes);
   } catch (error) { $('#ops-content').replaceChildren(el('p', '', errorMessage(error))); }
 }
-$('#ops-button').addEventListener('click', () => { show('ops-dialog'); loadOps(); }); $('#refresh-ops').addEventListener('click', loadOps);
+$('#refresh-ops').addEventListener('click', loadOps);
 
 await initAccount(async () => { cart = await api<Cart>('/api/cart'); renderCart(); });
 await api<{ storeName: string; announcement: string; supportEmail: string; checkoutEnabled: boolean }>('/api/settings').then(settings => {
   document.title = settings.storeName;
   document.querySelectorAll<HTMLAnchorElement>('.wordmark').forEach(brand => { brand.textContent = settings.storeName; brand.setAttribute('aria-label', `${settings.storeName} home`); });
-  const announcement = document.querySelector('.announcement span'); if (announcement) announcement.textContent = settings.announcement;
-  const footer = document.querySelector('footer p'); if (footer && settings.supportEmail) footer.textContent = `Contact: ${settings.supportEmail}`;
+  const announcement = document.querySelector('.store-topline > span'); if (announcement && settings.announcement) announcement.textContent = settings.announcement;
+  const footer = document.querySelector<HTMLElement>('#store-support'); if (footer && settings.supportEmail) { footer.textContent = `Contact: ${settings.supportEmail}`; footer.hidden = false; }
 }).catch(() => {});
 await Promise.all([loadProducts(), loadRecommendations(), api<Cart>('/api/cart').then(result => { cart = result; renderCart(); }).catch(() => toast('Your bag could not be loaded. Please try again.'))]);
 

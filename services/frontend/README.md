@@ -73,3 +73,7 @@ Run `docker build -t robotshop-frontend:local .` from this directory. The Docker
 The client crops uploads to a small JPEG before sending them; the gateway independently validates and normalizes the image. Photos and profile edits persist in MongoDB. Email and roles are read-only here. Address changes do not silently replace checkout shipping details. The page clears private data when the user signs out.
 
 Rebuild/deploy frontend, gateway and NGINX together for the new routes and image-processing dependency. No data reset or account migration is required.
+
+### Shared page layout
+
+Edit `templates/header.html` and `templates/footer.html` to update navigation across all pages. `npm run build` inserts these templates into each page before producing `dist/`; no browser-side layout fetch is needed. Account controls show a generic label, while personal details stay on the account page. The admin page uses a direct account link. Cart counts appear where the page already loads the cart. Shared styles use the `store-` prefix in `styles.css`.

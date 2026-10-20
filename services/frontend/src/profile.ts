@@ -42,7 +42,7 @@ function details(profile: Pick<Profile,'user'|'details'>) {
   control('profile-display-name').textContent = profile.user.name;
   control('profile-initials').textContent = profile.user.name.trim().split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase();
   control('profile-email').textContent = profile.user.email;
-  control('account-button').textContent = profile.user.name;
+  control('account-button').textContent = 'Account';
   input('profile-name').value = profile.user.name;
   for (const key of ['phone','company','jobTitle','bio','countryCode','timezone'] as const) input('profile-'+key).value = profile.details[key] || '';
 }

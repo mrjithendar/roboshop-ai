@@ -80,6 +80,25 @@ class FinderTests(unittest.TestCase):
                 self.assertEqual(s.verify('token','https://jithendar.com'),valid)
                 self.assertEqual(call.call_args.args[0].full_url,'https://challenges.cloudflare.com/turnstile/v0/siteverify')
 
+    def test_invalid_secret_http_error_is_configuration_failure(self):
+        from urllib.error import HTTPError
+        response = io.BytesIO(json.dumps({'success': False, 'error-codes': ['invalid-input-secret']}).encode())
+        error = HTTPError('https://challenges.cloudflare.com/turnstile/v0/siteverify', 400, 'Bad Request', {}, response)
+        with patch.object(s, 'urlopen', side_effect=error), patch.object(s, 'upstream') as backend:
+            status, _, body = self.call('/chat', 'POST', {'message': 'help', 'challengeToken': 'token'}, 'https://jithendar.com')
+            self.assertTrue(status.startswith('503'))
+            self.assertEqual(json.loads(body)['code'], 'verification-unavailable')
+            backend.assert_not_called()
+
+    def test_invalid_token_http_error_requires_fresh_verification(self):
+        from urllib.error import HTTPError
+        response = io.BytesIO(json.dumps({'success': False, 'error-codes': ['invalid-input-response']}).encode())
+        error = HTTPError('https://challenges.cloudflare.com/turnstile/v0/siteverify', 400, 'Bad Request', {}, response)
+        with patch.object(s, 'urlopen', side_effect=error), patch.object(s, 'upstream') as backend:
+            status, _, _ = self.call('/chat', 'POST', {'message': 'help', 'challengeToken': 'token'}, 'https://jithendar.com')
+            self.assertTrue(status.startswith('403'))
+            backend.assert_not_called()
+
     def test_context_is_bounded_and_mode_is_preserved(self):
         with patch.object(s, 'verify', return_value=True), patch.object(s, 'upstream', return_value={'answer':'Connect AI','mode':'not-configured'}) as backend:
             status, _, body = self.call('/chat','POST',{'message':'Which is cheaper?','challengeToken':'token','context':'Compare A and B'},'https://jithendar.com')

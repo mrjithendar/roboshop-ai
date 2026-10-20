@@ -21,6 +21,8 @@ function setup(t,handler=()=>undefined){
 }
 test('account page renders private profile safely under the ingress prefix',async t=>{
  const ui=setup(t);await ui.boot();assert.equal(ui.$('#profile-content').hidden,false);
+ assert.equal(ui.$('#account-button').textContent,'Account');
+ assert.ok(!ui.$('.store-header').textContent.includes(user.name));
  assert.match(ui.$('#profile-display-name').textContent,/<script>/);assert.equal(ui.$('#profile-display-name script'),null);
  assert.equal(ui.$('#profile-company').value,'Robotics');assert.match(ui.$('#profile-orders').textContent,/No completed/);
 });

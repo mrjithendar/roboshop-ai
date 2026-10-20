@@ -5,14 +5,16 @@ import { JSDOM } from 'jsdom';
 const root = new URL('../dist/', import.meta.url);
 const html = await readFile(new URL('product.html', root), 'utf8');
 const source = (await Promise.all(['paths.js','account.js','product.js'].map(async name => (await readFile(new URL(name,root),'utf8')).replace(/^import .*$/gm,'').replace(/^export /gm,'').replaceAll('import.meta.url',JSON.stringify('https://shop.example/roboshop/paths.js'))))).join('\n');
-async function setup(t, product, {quantity=0, fail=false, demo=false}={}) {
+async function setup(t, product, {quantity=0, fail=false, demo=false, signedIn=false}={}) {
   const dom = new JSDOM(html,{url:'https://shop.example/roboshop/products/test-robot',runScripts:'outside-only'}); t.after(()=>dom.window.close());
-  const w=dom.window, writes=[];
+  const w=dom.window, writes=[]; let savedReview=null;
   w.fetch=async(path,options={})=>{
     assert.ok(path.startsWith('/roboshop/api/'));
     let body={};
-    if(path.endsWith('/auth/me')) body={user:null};
+    if(path.endsWith('/auth/me')) body={user:signedIn ? {id:'customer',name:'Customer',email:'customer@example.com',role:'customer'} : null};
     else if(path.endsWith('/products/test-robot')) body={product,related:[product]};
+    else if(path.endsWith('/reviews/mine')) body={review:savedReview};
+    else if(path.endsWith('/reviews')) {savedReview={...JSON.parse(options.body),status:'published'};writes.push(savedReview);body={saved:true};}
     else if(path.includes('/reviews?')) body={reviews:demo && path.includes('kind=demo') ? [{id:'demo',synthetic:true,rating:4,title:'Example',body:'Synthetic test review'}] : [],next:null,summary:{count:0,average:null}};
     else if(path.endsWith('/cart')) {
       if(options.method==='POST') {writes.push(JSON.parse(options.body)); if(fail)return {ok:false,json:async()=>({error:'Stock changed. Please retry.'})};}
@@ -46,3 +48,16 @@ test('demo reviews display separately without a dataset selector or customer rat
  assert.equal(ui.$('#demo-reviews-section').hidden,false);
  assert.match(ui.$('#rating-summary').textContent,/0 reviews/);
 });
+
+ test('star selection submits its rating and restores the published review',async t=>{
+ const ui=await setup(t,product,{signedIn:true});
+ assert.equal(ui.$('#review-rating select'),null);
+ ui.$('#review-rating input[value="3"]').click();
+ assert.equal(ui.$('#rating-value').textContent,'3 out of 5 stars');
+ assert.equal(ui.w.document.querySelectorAll('#review-rating .filled').length,3);
+ ui.$('#review-title').value='Useful robot';ui.$('#review-body').value='Easy to set up and use at home.';
+ ui.$('#review-form').dispatchEvent(new ui.w.Event('submit',{bubbles:true,cancelable:true}));
+ for(let i=0;i<50&&ui.$('#review-save').disabled;i++)await new Promise(r=>setTimeout(r,5));
+ assert.equal(ui.writes[0].rating,3);assert.equal(ui.$('#review-rating input:checked').value,'3');
+ assert.match(ui.$('#review-status').textContent,/published/);assert.doesNotMatch(ui.$('#review-status').textContent,/moderation/);
+ });

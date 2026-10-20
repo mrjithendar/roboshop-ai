@@ -177,3 +177,10 @@ test('payment reconciliation errors block another payment until retry succeeds',
   assert.equal(ui.$('#checkout-error').hidden,false);
   assert.match(ui.$('#checkout-error-message').textContent,/Reconciliation unavailable/);
 });
+
+test('cart product titles and images link to their detail page',async t=>{
+ const ui=setup(t);await ui.boot();
+ assert.equal(ui.$('.cart-product-link').getAttribute('href'),'/products/test');
+ assert.equal(ui.$('.cart-product-image').getAttribute('href'),'/products/test');
+ assert.equal(ui.$('.cart-product-link').textContent,product.name);
+});

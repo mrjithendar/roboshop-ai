@@ -13,7 +13,7 @@ export async function initAccount(changed: () => Promise<void>): Promise<void> {
   const mode = accountElement<HTMLSelectElement>('account-mode');
   const status = accountElement<HTMLElement>('account-status');
   const render = () => {
-    accountElement('account-button').textContent = currentUser ? currentUser.name : 'Log in';
+    accountElement('account-button').textContent = currentUser ? 'Account' : 'Sign in';
     accountElement('logout-button').hidden = !currentUser;
     form.hidden = Boolean(currentUser);
     accountElement('account-details').hidden = !currentUser;

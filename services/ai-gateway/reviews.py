@@ -158,7 +158,7 @@ class Reviews:
                     | value
                     | {
                         "_id": str(uuid.uuid4()),
-                        "status": "pending",
+                        "status": "published",
                         "createdAt": now(),
                         "updatedAt": now(),
                     }
@@ -169,11 +169,11 @@ class Reviews:
                 )
         else:
             result = self.db.reviews.update_one(
-                key, {"$set": value | {"status": "pending", "updatedAt": now()}}
+                key, {"$set": value | {"status": "published", "updatedAt": now()}}
             )
             if not result.matched_count:
                 raise HttpError(404, "Your review was not found.")
-        return {"saved": True, "message": "Your review is awaiting moderation."}
+        return {"saved": True, "message": "Your review is published."}
 
     def moderate(self, id, user, data):
         require_role(user, ("admin", "superadmin"))

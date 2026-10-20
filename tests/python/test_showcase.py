@@ -44,10 +44,10 @@ class ReviewTests(unittest.TestCase):
         self.db = mongomock.MongoClient(tz_aware=True).db
         self.reviews = Reviews(self.db)
 
-    def test_ownership_uniqueness_moderation_aggregates(self):
+    def test_immediate_publication_ownership_and_admin_removal(self):
         r = self.reviews
         r.write("P", CUSTOMER, "POST", CONTENT)
-        self.assertEqual(r.listing("P", {})["summary"]["count"], 0)
+        self.assertEqual(r.listing("P", {})["summary"]["count"], 1)
         with self.assertRaises(HttpError):
             r.write("P", CUSTOMER, "POST", CONTENT)
         with self.assertRaises(HttpError):
@@ -58,7 +58,7 @@ class ReviewTests(unittest.TestCase):
         r.moderate(row["_id"], ADMIN, {"status": "published"})
         self.assertEqual(r.listing("P", {})["summary"], {"count": 1, "average": 4})
         r.write("P", CUSTOMER, "PUT", {**CONTENT, "rating": 2})
-        self.assertEqual(r.listing("P", {})["summary"]["count"], 0)
+        self.assertEqual(r.listing("P", {})["summary"]["count"], 1)
         r.moderate(row["_id"], ADMIN, {"status": "published"})
         self.assertEqual(r.listing("P", {})["summary"]["average"], 2)
         r.moderate(row["_id"], ADMIN, {"status": "hidden"})

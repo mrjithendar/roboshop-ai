@@ -50,17 +50,38 @@ def protection_ready():
     return bool(os.getenv('TURNSTILE_SITE_KEY') and os.getenv('TURNSTILE_SECRET_KEY') and len(os.getenv('LLM_SERVICE_TOKEN', '')) >= 32)
 
 
+class VerificationUnavailable(Exception):
+    pass
+
+
 def verify(token, origin):
     if not isinstance(token, str) or not 1 <= len(token) <= 2048:
         return False
     req = Request('https://challenges.cloudflare.com/turnstile/v0/siteverify',
                   data=json.dumps({'secret': os.environ['TURNSTILE_SECRET_KEY'], 'response': token}).encode(),
                   headers={'Content-Type': 'application/json'})
-    with urlopen(req, timeout=4) as response:
-        raw = response.read(16385)
+    try:
+        with urlopen(req, timeout=4) as response:
+            raw = response.read(16385)
+    except HTTPError as error:
+        raw = error.read(16385)
+    except Exception:
+        raise VerificationUnavailable('Verification service unavailable') from None
+    try:
         if len(raw) > 16384:
-            return False
+            raise ValueError()
         result = json.loads(raw)
+        if not isinstance(result, dict):
+            raise ValueError()
+    except (ValueError, UnicodeError):
+        raise VerificationUnavailable('Invalid verification response') from None
+    codes = result.get('error-codes', [])
+    if any(code in codes for code in ('invalid-input-secret', 'missing-input-secret')):
+        # Never log the response token or secret.
+        print(json.dumps({'service': 'finder', 'event': 'verification_configuration_error'}), flush=True)
+        raise VerificationUnavailable('Verification configuration invalid')
+    if 'internal-error' in codes:
+        raise VerificationUnavailable('Verification service unavailable')
     # Siteverify rejects expired and already-used tokens across all replicas.
     if result.get('success') is not True:
         return False
@@ -145,6 +166,8 @@ def application(environ, start_response):
         result = upstream(CHAT_URL, {'message': message}, timeout=22)
         return send(200, {'answer': result.get('answer', ''), 'notice': result.get('notice', ''), 'mode': result.get('mode', 'ai'),
                           'products': [{'name': p['name'], 'slug': p.get('slug') or p['sku'].lower()} for p in result.get('products', [])][:20]})
+    except VerificationUnavailable:
+        return send(503, {'code': 'verification-unavailable', 'error': 'Human verification is unavailable. Please contact the store administrator.'})
     except HTTPError as error:
         print(json.dumps({'service': 'finder', 'event': 'upstream_http_error', 'status': error.code}), flush=True)
         return send(429 if error.code == 429 else 503, {'error': 'Assistant unavailable. Please try later.'})
