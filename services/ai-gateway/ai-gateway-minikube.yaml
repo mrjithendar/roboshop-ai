@@ -45,6 +45,8 @@ spec:
         app: ai-gateway
         app.kubernetes.io/part-of: robotshop-ai
     spec:
+      securityContext:
+        fsGroup: 1000
       enableServiceLinks: false
       automountServiceAccountToken: false
       containers:
@@ -52,6 +54,66 @@ spec:
         image: robotshop-ai-gateway:local
         imagePullPolicy: IfNotPresent
         env:
+        - name: AUTH_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-auth
+              key: AUTH_ENCRYPTION_KEY
+              optional: true
+        - name: SMTP_HOST
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-auth
+              key: SMTP_HOST
+              optional: true
+        - name: SMTP_PORT
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-auth
+              key: SMTP_PORT
+              optional: true
+        - name: SMTP_FROM
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-auth
+              key: SMTP_FROM
+              optional: true
+        - name: SMTP_SECURITY
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-auth
+              key: SMTP_SECURITY
+              optional: true
+        - name: SMTP_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-auth
+              key: SMTP_USERNAME
+              optional: true
+        - name: SMTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-auth
+              key: SMTP_PASSWORD
+              optional: true
+        - name: SMTP_CA_FILE
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-auth
+              key: SMTP_CA_FILE
+              optional: true
+        - name: SMTP_CLIENT_CERT
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-auth
+              key: SMTP_CLIENT_CERT
+              optional: true
+        - name: SMTP_CLIENT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-auth
+              key: SMTP_CLIENT_KEY
+              optional: true
         - name: TURNSTILE_SITE_KEY
           valueFrom:
             secretKeyRef:
@@ -128,6 +190,9 @@ spec:
             drop:
             - ALL
         volumeMounts:
+        - name: smtp-client-tls
+          mountPath: /etc/robotshop-smtp
+          readOnly: true
         - name: tmp
           mountPath: /tmp
         - name: data
@@ -148,6 +213,11 @@ spec:
           httpGet: *id001
           timeoutSeconds: 3
       volumes:
+      - name: smtp-client-tls
+        secret:
+          secretName: smtp-client-tls
+          optional: true
+          defaultMode: 288
       - name: tmp
         emptyDir: {}
       - name: data

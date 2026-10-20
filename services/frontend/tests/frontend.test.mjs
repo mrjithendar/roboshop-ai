@@ -10,7 +10,7 @@ const checkoutHtml = await readFile(new URL('../dist/checkout.html', import.meta
 const checkoutScript = pathsScript + '\n' + accountScript + '\n' + (await readFile(new URL('../dist/checkout.js', import.meta.url), 'utf8')).replace(/^export \{\};?$/m, '').replace(/^import .*$/gm, '');
 const script = pathsScript + '\n' + accountScript + '\n' + (await readFile(new URL('../dist/app.js', import.meta.url), 'utf8')).replace(/^export \{\};?$/m, '').replace(/^import .*$/gm, '');
 const authHtml = await readFile(new URL('../dist/auth.html', import.meta.url), 'utf8');
-const authScript = pathsScript + '\n' + accountScript + '\n' + (await readFile(new URL('../dist/auth.js', import.meta.url), 'utf8')).replace(/^import .*$/gm, '');
+const authScript = pathsScript + '\n' + accountScript + '\n' + (await readFile(new URL('../dist/auth.js', import.meta.url), 'utf8')).replace(/^import .*$/gm, '').replace('location.replace(destination)', 'window.testRedirect = destination');
 const product = { sku: 'TEST', name: '<img src=x onerror=alert(1)>', price: 12, instock: 3, categories: ['robot'], description: 'Test robot', image: '/images/placeholder.png' };
 const cart = { items: [{ ...product, quantity: 1, lineTotal: 12 }], subtotal: 12, total: 15, shipping: { address: { recipient: 'Test', line1: 'Test street' }, city: { name: 'Hyderabad', country: 'IN' }, cost: 3, distanceKm: 60, quotedAt: new Date().toISOString() } };
 async function waitFor(check) {
@@ -172,4 +172,50 @@ test('cart product titles and images link to their detail page',async t=>{
  assert.equal(ui.$('.cart-product-link').getAttribute('href'),'/products/test');
  assert.equal(ui.$('.cart-product-image').getAttribute('href'),'/products/test');
  assert.equal(ui.$('.cart-product-link').textContent,product.name);
+});
+
+test('signed-in visitors never see the login form or load a challenge', async t => {
+  const ui = setup(t, undefined, false, 'login');
+  await ui.boot();
+  assert.equal(ui.$('#auth-main').hidden, true);
+  assert.equal(ui.w.testRedirect, '/account');
+  assert.ok(!ui.calls.includes('/api/auth/challenge'));
+});
+
+test('MFA sign-in sends only the challenge and code on the second step', async t => {
+  let second;
+  const ui = setup(t, (path, options) => {
+    const payload = path === '/api/auth/me' ? {user:null} : path === '/api/auth/challenge' ? {provider:'disabled'} : path === '/api/auth/login' ? {mfaRequired:true, challengeId:'pending'} : null;
+    if (path === '/api/auth/mfa/verify') { second=JSON.parse(options.body); return {ok:false,json:async()=>({error:'Code expired'})}; }
+    if (payload) return {ok:true,json:async()=>payload};
+  }, false, 'login');
+  await ui.boot(); ui.$('#account-email').value='alice@example.com'; ui.$('#account-password').value='correct password 123';
+  ui.$('#account-form').dispatchEvent(new ui.w.Event('submit',{cancelable:true}));
+  await waitFor(()=>!ui.$('#account-code-label').hidden);
+  assert.equal(ui.$('#account-password').value,''); assert.equal(ui.$('#account-password').required,false);
+  ui.$('#account-code').value='123456';ui.$('#account-form').dispatchEvent(new ui.w.Event('submit',{cancelable:true}));
+  await waitFor(()=>second); assert.deepEqual(second,{challengeId:'pending',code:'123456'});
+  await waitFor(()=>ui.$('#account-status').textContent==='Code expired');
+});
+
+test('password reset requests email then verifies a code with the new password', async t => {
+  let sent, reset;
+  const ui = setup(t,(path,options)=>{
+    let payload;
+    if(path==='/api/auth/me')payload={user:null};
+    if(path==='/api/auth/challenge')payload={provider:'disabled'};
+    if(path==='/api/auth/password/request'){sent=JSON.parse(options.body);payload={resetId:'reset-id',message:'Check your email. Code expires in five minutes.'};}
+    if(path==='/api/auth/password/reset'){reset=JSON.parse(options.body);payload={message:'Password updated. Sign in again.'};}
+    if(payload)return{ok:true,json:async()=>payload};
+  },false,'login');
+  await ui.boot();ui.$('#forgot-password').click();
+  await waitFor(()=>ui.calls.filter(p=>p==='/api/auth/challenge').length===2);
+  await new Promise(r=>setTimeout(r,5));
+  ui.$('#account-email').value='alice@example.com';ui.$('#account-form').dispatchEvent(new ui.w.Event('submit',{cancelable:true}));
+  await waitFor(()=>!ui.$('#account-code-label').hidden);
+  assert.equal(sent.email,'alice@example.com');assert.equal(sent.password,undefined);
+  ui.$('#account-code').value='123456';ui.$('#account-password').value='new password 456';
+  ui.$('#account-form').dispatchEvent(new ui.w.Event('submit',{cancelable:true}));
+  await waitFor(()=>ui.$('#account-form').hidden);
+  assert.deepEqual(reset,{resetId:'reset-id',code:'123456',password:'new password 456'});
 });

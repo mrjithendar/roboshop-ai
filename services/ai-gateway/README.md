@@ -56,3 +56,22 @@ Photos arrive as bounded JPEG/PNG/WebP data URLs. The gateway uses Pillow to ver
 `POST /api/account/addresses` validates a destination through shipping before saving it; `DELETE /api/account/addresses/<id>` removes only the signed-in user's address. Address-book edits do not change existing orders or current checkout shipping quotes. No database migration is needed.
 
 Run the profile security tests with `python -m unittest discover -s tests -v` from this service directory after installing `requirements.txt` and the test dependency `mongomock`.
+
+## Authenticator and email password recovery
+
+Local-account TOTP enrollment, one-use backup codes and five-minute email OTP
+password reset live in `account_security.py`. Login issues no session until MFA
+verification completes. Password recovery preserves MFA and revokes old sessions.
+See [SMTP deployment and recovery instructions](../smtp-server/README.md).
+
+Configuration is loaded from the optional `robotshop-auth` Secret in Minikube.
+`AUTH_ENCRYPTION_KEY` must be a persistent Fernet key. Email uses `SMTP_HOST`,
+`SMTP_PORT`, `SMTP_FROM`, `SMTP_SECURITY` (`starttls` or `tls`), optional
+`SMTP_USERNAME`/`SMTP_PASSWORD`, and optional `SMTP_CA_FILE`, `SMTP_CLIENT_CERT`,
+`SMTP_CLIENT_KEY` for the internal mutually authenticated SMTP connection.
+Missing security configuration disables enrollment/recovery, not existing
+password-only accounts. Existing MFA accounts always require their second factor.
+
+Endpoints: `GET /api/auth/mfa`; `POST /api/auth/mfa/enroll`, `/confirm`, `/disable`,
+`/verify`; `POST /api/auth/password/request`, `/reset`. All mutations require the
+store Origin. Recovery requests use the existing Turnstile `login` action.

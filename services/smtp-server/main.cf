@@ -1,0 +1,36 @@
+compatibility_level = 3.6
+myhostname = mail.jithendar.com
+myorigin = jithendar.com
+mydestination = localhost
+inet_interfaces = all
+inet_protocols = ipv4
+mynetworks = 127.0.0.0/8
+relayhost =
+maillog_file = /dev/stdout
+# Only the gateway's dedicated private CA can authenticate SMTP clients.
+smtpd_tls_security_level = encrypt
+smtpd_tls_req_ccert = yes
+smtpd_tls_cert_file = /etc/mail-tls/tls.crt
+smtpd_tls_key_file = /etc/mail-tls/tls.key
+smtpd_tls_CAfile = /etc/mail-tls/ca.crt
+smtpd_tls_mandatory_protocols = >=TLSv1.2
+smtpd_relay_restrictions = permit_tls_all_clientcerts, reject
+smtpd_recipient_restrictions = permit_tls_all_clientcerts, reject
+smtpd_sender_restrictions = check_sender_access regexp:/etc/postfix/allowed-senders, reject
+smtpd_helo_required = yes
+disable_vrfy_command = yes
+# Internet delivery is direct to recipient MX servers, never an upstream relay.
+smtp_tls_security_level = may
+smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+smtp_helo_name = $myhostname
+smtpd_milters = inet:127.0.0.1:8891
+non_smtpd_milters = $smtpd_milters
+milter_default_action = tempfail
+milter_protocol = 6
+message_size_limit = 1048576
+smtpd_recipient_limit = 1
+maximal_queue_lifetime = 5m
+bounce_queue_lifetime = 5m
+minimal_backoff_time = 30s
+maximal_backoff_time = 60s
+queue_run_delay = 30s

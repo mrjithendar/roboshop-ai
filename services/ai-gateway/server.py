@@ -15,6 +15,7 @@ from runtime import HttpError, serve, request, upstream, text, configure_telemet
 from customers import Customers
 from user_profile import read_profile, update_profile, update_photo
 from auth import Auth, connect_mongo, public_user, require_role
+from account_security import AccountSecurity
 from admin import routes as admin_routes, settings
 from store import Store, cents
 from cart_repository import CartRepository
@@ -49,6 +50,7 @@ class Gateway:
         self.store = store
         self.auth = Auth(db)
         self.auth.initialize()
+        self.security = AccountSecurity(self.auth)
         self.registration = Registration(db)
         demo_db = None
         if os.getenv('DEMO_MONGODB_URL'):
@@ -168,10 +170,26 @@ class Gateway:
             return self.registration.public()
         if path == "/api/auth/me" and method == "GET":
             return {"user": req.user}
-        if (
-            path in ("/api/auth/register", "/api/auth/login", "/api/auth/logout")
-            and method == "POST"
-        ):
+        if path == "/api/auth/mfa" and method == "GET":
+            return self.security.status(require_role(req.user))
+        if path in ("/api/auth/mfa/enroll", "/api/auth/mfa/confirm", "/api/auth/mfa/disable", "/api/auth/password/request", "/api/auth/password/reset") and method == "POST":
+            if req.headers.get("origin") != self.origin:
+                raise HttpError(403, "Origin not allowed.")
+            self.auth.limit(client_address(req))
+            data = req.body()
+            if path.startswith("/api/auth/mfa/"):
+                actor = require_role(req.user)
+                self.auth.limit("mfa:" + actor["id"])
+                action = path.rsplit("/", 1)[1]
+                result = getattr(self.security, action)(actor, data)
+                if result.get("signInAgain"):
+                    req.set_cookie("rs_auth", "", 0)
+                return result
+            if path.endswith("/request"):
+                self.registration.check(data, client_address(req), "login")
+                return self.security.request_reset(data)
+            return self.security.reset_password(data)
+        if path in ("/api/auth/register", "/api/auth/login", "/api/auth/logout", "/api/auth/mfa/verify") and method == "POST":
             if req.headers.get("origin") != self.origin:
                 raise HttpError(403, "Origin not allowed.")
             if path.endswith("/logout"):
@@ -181,18 +199,14 @@ class Gateway:
                 return {"loggedOut": True}
             self.auth.limit(client_address(req))
             data = req.body()
-            self.registration.check(data, client_address(req), "register" if path.endswith("/register") else "login")
-            user = (
-                self.auth.register(data)
-                if path.endswith("/register")
-                else self.auth.login(data)
-            )
-            self.customers.record_login(
-                user["_id"],
-                client_address(req),
-                req.headers.get("user-agent", ""),
-                registration=path.endswith("/register"),
-            )
+            if path.endswith("/mfa/verify"):
+                user = self.security.finish_login(data)
+            else:
+                self.registration.check(data, client_address(req), "register" if path.endswith("/register") else "login")
+                user = self.auth.register(data) if path.endswith("/register") else self.auth.login(data)
+                if user.get("mfa"):
+                    return self.security.challenge(user)
+            self.customers.record_login(user["_id"], client_address(req), req.headers.get("user-agent", ""), registration=path.endswith("/register"))
             new = self.auth.issue(user)
             self.auth.logout(token)
             req.set_cookie("rs_auth", new, 28800)

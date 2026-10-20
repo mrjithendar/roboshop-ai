@@ -1,0 +1,70 @@
+# Private CA exclusively for RobotShop SMTP; no public DNS validation needed.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: smtp-bootstrap
+  namespace: robotshop-ai
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: smtp-ca
+  namespace: robotshop-ai
+spec:
+  isCA: true
+  commonName: RobotShop SMTP CA
+  secretName: smtp-ca
+  duration: 87600h
+  renewBefore: 8760h
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    rotationPolicy: Never
+  issuerRef:
+    name: smtp-bootstrap
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: smtp-ca
+  namespace: robotshop-ai
+spec:
+  ca:
+    secretName: smtp-ca
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: smtp-server-tls
+  namespace: robotshop-ai
+spec:
+  secretName: smtp-server-tls
+  duration: 2160h
+  renewBefore: 720h
+  dnsNames:
+  - smtp-server.robotshop-ai.svc.cluster.local
+  - smtp-server.robotshop-ai.svc
+  - smtp-server
+  usages: [server auth]
+  privateKey:
+    rotationPolicy: Always
+  issuerRef:
+    name: smtp-ca
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: smtp-client-tls
+  namespace: robotshop-ai
+spec:
+  secretName: smtp-client-tls
+  duration: 2160h
+  renewBefore: 720h
+  commonName: robotshop-ai-gateway
+  usages: [client auth]
+  privateKey:
+    rotationPolicy: Always
+  issuerRef:
+    name: smtp-ca

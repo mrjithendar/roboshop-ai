@@ -17,6 +17,7 @@ const date = (value?: string) => value ? new Date(value).toLocaleString() : 'Not
 let generation = 0, next: string | null = null, searchVersion = 0;
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 function clearPrivate() {
+  clearMfa();
   control('profile-content').hidden = true;
   for (const id of ['profile-display-name','profile-email','profile-member','profile-last-login','profile-orders','profile-activity','address-list']) control(id).replaceChildren();
   control<HTMLImageElement>('profile-photo').removeAttribute('src');
@@ -138,6 +139,47 @@ control('address-form').addEventListener('submit',async event=>{
   try{const result=await request<{addresses:Address[]}>('/api/account/addresses','POST',{cityId:Number(control<HTMLSelectElement>('address-city').value),recipient:input('address-recipient').value,line1:input('address-line1').value,postalCode:input('address-postcode').value});if(version===generation){addresses(result.addresses);control('address-status').textContent='Address saved.';control<HTMLFormElement>('address-form').reset();control<HTMLSelectElement>('address-city').replaceChildren(new Option('Select a search result',''));}}
   catch(e){if(version===generation)control('address-status').textContent=errorText(e);}finally{button.disabled=false;}
 });
+function clearMfa() {
+  for (const id of ['mfa-controls', 'mfa-confirm', 'mfa-backup', 'mfa-setup', 'mfa-disable']) control(id).hidden = true;
+  for (const id of ['mfa-key', 'mfa-backup-codes', 'mfa-status', 'mfa-state']) control(id).textContent = '';
+  control('mfa-qr').removeAttribute('src');
+  for (const id of ['mfa-password', 'mfa-confirm-code', 'mfa-disable-password', 'mfa-disable-code']) input(id).value = '';
+}
+control('mfa-manage').addEventListener('click', async () => {
+  const version = generation; clearMfa();
+  try {
+    const state = await request<{enabled:boolean; available:boolean; backupCodesRemaining:number}>('/api/auth/mfa');
+    if (version !== generation) return;
+    control('mfa-controls').hidden = false;
+    control('mfa-state').textContent = state.enabled ? `Authenticator enabled. ${state.backupCodesRemaining} backup codes remaining.` : state.available ? 'Authenticator is not enabled.' : 'Authenticator setup is not configured. Contact the store.';
+    control('mfa-setup').hidden = state.enabled || !state.available;
+    control('mfa-disable').hidden = !state.enabled;
+  } catch (e) { if (version === generation) control('mfa-status').textContent = errorText(e); }
+});
+for (const action of ['setup', 'confirm', 'disable'] as const) {
+  control('mfa-' + action).addEventListener('submit', async event => {
+    event.preventDefault(); const version = generation;
+    const button = (event.currentTarget as HTMLFormElement).querySelector('button')!; button.disabled = true;
+    control('mfa-status').textContent = 'Please wait…';
+    try {
+      const data = action === 'setup' ? {password: input('mfa-password').value} : action === 'confirm' ? {code: input('mfa-confirm-code').value.trim()} : {password: input('mfa-disable-password').value, code: input('mfa-disable-code').value.trim()};
+      const result = await request<{secret?:string; qr?:string; backupCodes?:string[]}>('/api/auth/mfa/' + (action === 'setup' ? 'enroll' : action), 'POST', data);
+      if (version !== generation) return;
+      clearMfa(); control('mfa-status').textContent = '';
+      if (action === 'setup') {
+        control('mfa-controls').hidden = false; control('mfa-confirm').hidden = false;
+        control('mfa-key').textContent = result.secret || '';
+        control<HTMLImageElement>('mfa-qr').src = result.qr || '';
+        input('mfa-confirm-code').focus();
+      } else if (action === 'confirm') {
+        control('mfa-backup').hidden = false;
+        control('mfa-backup-codes').textContent = (result.backupCodes || []).join('\n');
+        control('mfa-manage').hidden = true;
+      } else location.assign(appPath('/login'));
+    } catch (e) { if (version === generation) control('mfa-status').textContent = errorText(e); }
+    finally { button.disabled = false; }
+  });
+}
 await initAccount(load);
 await load();
 request<{countries:{code:string;name:string;cityCount:number}[]}>('/api/shipping/countries').then(result=>{for(const country of result.countries){const option=new Option(country.name,country.code);option.disabled=!country.cityCount;control<HTMLSelectElement>('address-country').append(option);}}).catch(()=>{control('address-status').textContent='Address search is unavailable. Reload to try again.';});

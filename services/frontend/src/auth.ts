@@ -1,10 +1,14 @@
 import { appPath } from './paths.js';
-import { initAccount, accountRequest } from './account.js';
+import { initAccount, accountRequest, currentUser } from './account.js';
 const accountElement = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 const form = accountElement<HTMLFormElement>('account-form');
 const status = accountElement('account-status');
 const mode = { value: location.pathname.replace(/\/$/, '').endsWith('/register') ? 'register' : 'login' };
 const registering = mode.value === 'register';
+let step: 'credentials' | 'mfa' | 'request-reset' | 'reset' = 'credentials';
+let loginChallenge = '', resetId = '';
+accountElement('forgot-password').hidden = registering;
+accountElement<HTMLAnchorElement>('auth-restart').href = appPath('/login');
 // Only return to known storefront routes on this origin; never trust arbitrary URLs.
 const candidate = new URLSearchParams(location.search).get('returnTo') || appPath('/account');
 let destination = appPath('/account');
@@ -55,14 +59,75 @@ switchLink.href = appPath(registering ? '/login' : '/register') + '?returnTo=' +
   form.addEventListener('submit', async event => {
     event.preventDefault(); const button = accountElement<HTMLButtonElement>('account-submit'); button.disabled = true; status.textContent = 'Please wait…';
     try {
-      if (!challengeReady) throw new Error('Complete the ' + (registering ? 'registration' : 'sign-in') + ' challenge before continuing.');
+      if ((step === 'credentials' || step === 'request-reset') && !challengeReady) throw new Error('Complete the ' + (registering ? 'registration' : 'sign-in') + ' challenge before continuing.');
       const data = { email: accountElement<HTMLInputElement>('account-email').value, password: accountElement<HTMLInputElement>('account-password').value, website: website.value, challengeToken: challengeId ? window.turnstile?.getResponse(challengeId) || '' : '', ...(registering ? { name: accountElement<HTMLInputElement>('account-name').value } : {}) };
-      await accountRequest(`/api/auth/${mode.value === 'register' ? 'register' : 'login'}`, data);
-      accountElement<HTMLInputElement>('account-password').value = '';
-      location.assign(destination);
+      if (step === 'mfa') {
+        await accountRequest('/api/auth/mfa/verify', {challengeId: loginChallenge, code: accountElement<HTMLInputElement>('account-code').value.trim()});
+        location.assign(destination);
+      } else if (step === 'reset') {
+        const result = await accountRequest('/api/auth/password/reset', {resetId, code: accountElement<HTMLInputElement>('account-code').value.trim(), password: data.password});
+        form.hidden = true; status.textContent = result.message || 'Password updated. Sign in again.';
+        accountElement('auth-description').textContent = status.textContent;
+      } else if (step === 'request-reset') {
+        const result = await accountRequest('/api/auth/password/request', {email:data.email, website:data.website, challengeToken:data.challengeToken});
+        resetId = result.resetId || ''; step = 'reset';
+        accountElement('auth-description').textContent = result.message || '';
+        accountElement('account-password-label').hidden = false;
+        accountElement('account-password-label').firstChild!.textContent = 'New password';
+        accountElement<HTMLInputElement>('account-code').inputMode = 'numeric';
+        accountElement<HTMLInputElement>('account-code').maxLength = 6;
+        accountElement<HTMLInputElement>('account-password').required = true;
+        accountElement<HTMLInputElement>('account-password').autocomplete = 'new-password';
+        accountElement('password-help').hidden = false;
+        showCode('Email code', 'Update password');
+      } else {
+        const result = await accountRequest(`/api/auth/${registering ? 'register' : 'login'}`, data);
+        accountElement<HTMLInputElement>('account-password').value = '';
+        if (result.mfaRequired) {
+          loginChallenge = result.challengeId || ''; step = 'mfa';
+          accountElement('auth-title').textContent = 'Verify your sign-in';
+          accountElement('auth-description').textContent = 'Enter the six-digit code from Microsoft Authenticator or another authenticator app, or use a backup code.';
+          accountElement('account-password-label').hidden = true;
+          accountElement<HTMLInputElement>('account-password').required = false;
+          accountElement('password-help').hidden = true;
+          showCode('Authenticator or backup code', 'Verify and sign in');
+        } else location.assign(destination);
+      }
     } catch (error) { status.textContent = error instanceof Error ? error.message : 'Login failed.'; }
-    finally { button.disabled = false; if (challengeMode === 'turnstile') { challengeReady = false; if (challengeId) window.turnstile?.reset(challengeId); } }
+    finally { button.disabled = false; if ((step === 'credentials' || step === 'request-reset') && challengeMode === 'turnstile') { challengeReady = false; if (challengeId) window.turnstile?.reset(challengeId); } }
   });
 
+function showCode(label: string, button: string) {
+  accountElement('account-email-label').hidden = true;
+  accountElement<HTMLInputElement>('account-email').required = false;
+  const codeLabel = accountElement('account-code-label'); codeLabel.hidden = false;
+  codeLabel.firstChild!.textContent = label;
+  accountElement<HTMLInputElement>('account-code').required = true;
+  accountElement<HTMLInputElement>('account-code').focus();
+  accountElement('account-submit').textContent = button;
+  if (challengeId) { window.turnstile?.remove(challengeId); challengeId = null; }
+  challenge.hidden = true; accountElement('forgot-password').hidden = true;
+  accountElement('auth-restart').hidden = false; status.textContent = '';
+}
+accountElement('forgot-password').addEventListener('click', async () => {
+  step = 'request-reset';
+  accountElement('auth-title').textContent = 'Reset your password';
+  accountElement('auth-description').textContent = 'We’ll email a one-use code valid for five minutes.';
+  accountElement('account-password-label').hidden = true;
+  accountElement<HTMLInputElement>('account-password').required = false;
+  accountElement<HTMLInputElement>('account-password').value = '';
+  accountElement('password-help').hidden = true;
+  accountElement('account-submit').textContent = 'Send reset code';
+  accountElement('forgot-password').hidden = true;
+  accountElement('auth-restart').hidden = false;
+  status.textContent = '';
+  await prepareChallenge();
+});
+
 await initAccount(async () => {});
-await prepareChallenge();
+if (currentUser) {
+  location.replace(destination);
+} else {
+  accountElement('auth-main').hidden = false;
+  await prepareChallenge();
+}

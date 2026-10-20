@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: smtp-queue
+  namespace: robotshop-ai
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: smtp-server
+  namespace: robotshop-ai
+spec:
+  type: ClusterIP
+  selector:
+    app: smtp-server
+  ports:
+  - name: submission
+    port: 587
+    targetPort: 587
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smtp-server
+  namespace: robotshop-ai
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: smtp-server
+  template:
+    metadata:
+      labels:
+        app: smtp-server
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: smtp-server
+        image: robotshop-smtp-server:local
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 587
+        securityContext:
+          allowPrivilegeEscalation: false
+        resources:
+          requests: {cpu: 25m, memory: 64Mi}
+          limits: {cpu: 250m, memory: 256Mi}
+        volumeMounts:
+        - {name: queue, mountPath: /var/spool/postfix}
+        - {name: tls, mountPath: /etc/mail-tls, readOnly: true}
+        - {name: dkim, mountPath: /run/mail-dkim, readOnly: true}
+        readinessProbe:
+          tcpSocket: {port: 587}
+          periodSeconds: 10
+        startupProbe:
+          tcpSocket: {port: 587}
+          periodSeconds: 5
+          failureThreshold: 60
+      volumes:
+      - name: queue
+        persistentVolumeClaim: {claimName: smtp-queue}
+      - name: tls
+        secret: {secretName: smtp-server-tls, defaultMode: 256}
+      - name: dkim
+        secret: {secretName: smtp-dkim, defaultMode: 256}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: smtp-gateway-only
+  namespace: robotshop-ai
+spec:
+  podSelector:
+    matchLabels: {app: smtp-server}
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels: {app: ai-gateway}
+    ports:
+    - {protocol: TCP, port: 587}

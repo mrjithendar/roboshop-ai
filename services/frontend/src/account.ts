@@ -6,7 +6,7 @@ export function loginPath(): string {
   return appPath('/login') + '?returnTo=' + encodeURIComponent(location.pathname + location.search + location.hash);
 }
 export function showLogin(): void { location.assign(loginPath()); }
-export async function accountRequest(path: string, data?: object): Promise<{ user: User | null }> {
+export async function accountRequest(path: string, data?: object): Promise<{ user: User | null; mfaRequired?: boolean; challengeId?: string; resetId?: string; message?: string }> {
   const response = await fetch(appPath(path), { method: data ? 'POST' : 'GET', headers: { 'content-type': 'application/json' }, ...(data ? { body: JSON.stringify(data) } : {}), signal: AbortSignal.timeout(15000) });
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || 'Account service unavailable.');

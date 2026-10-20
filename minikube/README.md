@@ -276,3 +276,11 @@ before installation. Its public UI is `https://jfrog.jithendar.com/ui/` with a
 `https://jithendar.com/jfrog` redirect. The standard profile requires a larger host. An explicit `JFROG_SIZE=minimal`
 profile is available for below-vendor-sizing sandbox experiments; see its memory
 budget and limitations in the JFrog README.
+
+## Own SMTP server and password reset
+
+Use [the SMTP setup guide](../services/smtp-server/README.md) to build and deploy
+Postfix/OpenDKIM with cert-manager client certificates, then enable five-minute
+email OTP password recovery. Run `bash minikube/deploy-smtp.sh --check` first.
+Mail delivery requires DNS/PTR configuration and outbound TCP 25 allowed by Vultr.
+The internal SMTP service is separate from HTTP/HTTPS ingress and is not public.

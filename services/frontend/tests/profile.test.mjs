@@ -44,3 +44,16 @@ test('invalid upload is rejected before sending photo data',async t=>{
  ui.$('#photo-file').dispatchEvent(new ui.w.Event('change'));await waitFor(()=>ui.$('#photo-status').textContent.includes('Choose a JPEG'));
  assert.ok(!ui.calls.some(c=>c.endpoint==='/api/account/photo'));
 });
+
+test('authenticator setup shows QR and one-time backup codes, logout clears secrets',async t=>{
+ const ui=setup(t,(path,options)=>{
+  const responses={'/api/auth/mfa':{enabled:false,available:true,backupCodesRemaining:0},'/api/auth/mfa/enroll':{secret:'TESTKEY',qr:'data:image/png;base64,AA=='},'/api/auth/mfa/confirm':{backupCodes:['backup-one','backup-two']}};
+  if(responses[path])return{ok:true,json:async()=>responses[path]};
+ });
+ await ui.boot();ui.$('#mfa-manage').click();await waitFor(()=>!ui.$('#mfa-setup').hidden);
+ ui.$('#mfa-password').value='current password';ui.$('#mfa-setup').dispatchEvent(new ui.w.Event('submit',{cancelable:true}));
+ await waitFor(()=>!ui.$('#mfa-confirm').hidden);assert.equal(ui.$('#mfa-key').textContent,'TESTKEY');assert.equal(ui.$('#mfa-password').value,'');
+ ui.$('#mfa-confirm-code').value='123456';ui.$('#mfa-confirm').dispatchEvent(new ui.w.Event('submit',{cancelable:true}));
+ await waitFor(()=>!ui.$('#mfa-backup').hidden);assert.match(ui.$('#mfa-backup-codes').textContent,/backup-one/);assert.equal(ui.$('#mfa-key').textContent,'');
+ ui.$('#logout-button').click();await waitFor(()=>!ui.$('#profile-login').hidden);assert.equal(ui.$('#mfa-backup-codes').textContent,'');
+});
