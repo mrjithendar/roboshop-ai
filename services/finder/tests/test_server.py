@@ -80,4 +80,15 @@ class FinderTests(unittest.TestCase):
                 self.assertEqual(s.verify('token','https://jithendar.com'),valid)
                 self.assertEqual(call.call_args.args[0].full_url,'https://challenges.cloudflare.com/turnstile/v0/siteverify')
 
+    def test_context_is_bounded_and_mode_is_preserved(self):
+        with patch.object(s, 'verify', return_value=True), patch.object(s, 'upstream', return_value={'answer':'Connect AI','mode':'not-configured'}) as backend:
+            status, _, body = self.call('/chat','POST',{'message':'Which is cheaper?','challengeToken':'token','context':'Compare A and B'},'https://jithendar.com')
+            self.assertTrue(status.startswith('200'))
+            self.assertEqual(json.loads(body)['mode'],'not-configured')
+            self.assertIn('Compare A and B',backend.call_args.args[1]['message'])
+            self.assertLessEqual(len(backend.call_args.args[1]['message']),1000)
+            backend.reset_mock()
+            self.assertTrue(self.call('/chat','POST',{'message':'hello','challengeToken':'token','context':'x'*501},'https://jithendar.com')[0].startswith('400'))
+            backend.assert_not_called()
+
 if __name__ == '__main__': unittest.main()

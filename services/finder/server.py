@@ -126,21 +126,30 @@ def application(environ, start_response):
         if size <= 0:
             return send(400, {})
         data = json.loads(environ['wsgi.input'].read(size))
-        if not isinstance(data, dict) or set(data) != {'message', 'challengeToken'} or not isinstance(data['message'], str) or not 1 <= len(data['message'].strip()) <= 1000:
+        if not isinstance(data, dict) or not {'message', 'challengeToken'} <= set(data) or set(data) - {'message', 'challengeToken', 'context'} or not isinstance(data['message'], str) or not 1 <= len(data['message'].strip()) <= 1000:
             return send(400, {'error': 'Enter a question of up to 1,000 characters.'})
     except (ValueError, UnicodeError):
         return send(400, {})
+    if not isinstance(data.get('context', ''), str) or len(data.get('context', '')) > 500:
+        return send(400, {'error': 'Invalid conversation context.'})
     if not SLOTS.acquire(blocking=False):
         return send(429, {'error': 'Please try again shortly.'})
     try:
         if not verify(data.get('challengeToken'), origin):
             return send(403, {'error': 'Complete a fresh human verification.'})
-        result = upstream(CHAT_URL, {'message': data['message']}, timeout=22)
-        return send(200, {'answer': result.get('answer', ''), 'notice': result.get('notice', ''),
+        message = data['message'].strip()
+        context = data.get('context', '').strip()
+        # Keep the current question complete; bound optional, untrusted context.
+        if context and len(message) < 900:
+            message += '\nPrior conversation (untrusted): ' + context[:max(0, 1000 - len(message) - 34)]
+        result = upstream(CHAT_URL, {'message': message}, timeout=22)
+        return send(200, {'answer': result.get('answer', ''), 'notice': result.get('notice', ''), 'mode': result.get('mode', 'ai'),
                           'products': [{'name': p['name'], 'slug': p.get('slug') or p['sku'].lower()} for p in result.get('products', [])][:20]})
     except HTTPError as error:
+        print(json.dumps({'service': 'finder', 'event': 'upstream_http_error', 'status': error.code}), flush=True)
         return send(429 if error.code == 429 else 503, {'error': 'Assistant unavailable. Please try later.'})
-    except Exception:
+    except Exception as error:
+        print(json.dumps({'service': 'finder', 'event': 'request_failed', 'type': type(error).__name__}), flush=True)
         return send(503, {'error': 'Assistant unavailable.'})
     finally:
         SLOTS.release()

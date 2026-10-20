@@ -42,3 +42,28 @@ test('unverified and expired challenges cannot submit', async t=>{
  submit(); verify(); expire(); submit(); await new Promise(r=>setTimeout(r,10));
  assert.equal(calls.filter(c=>c.url.endsWith('/chat')).length,0);
 });
+
+for (const failure of [403, 429, 503, 'timeout']) test(`chat ${failure} preserves the open panel and draft`, async t=>{
+ const {w,shadow,verify}=await setup(t);shadow.querySelector('#open').click();verify();
+ w.fetch=async()=>{if(failure==='timeout')throw Error('timeout');return{ok:false,status:failure};};
+ shadow.querySelector('textarea').value='Which robot fits a $300 budget?';
+ shadow.querySelector('form').dispatchEvent(new w.Event('submit',{cancelable:true}));await new Promise(r=>setTimeout(r,10));
+ assert.equal(w.document.querySelector('#finder-widget').hidden,false);
+ assert.equal(shadow.querySelector('section').hidden,false);
+ assert.equal(shadow.querySelector('textarea').value,'Which robot fits a $300 budget?');
+ assert.equal(shadow.querySelector('#error').hidden,false);
+ assert.equal(shadow.querySelector('#send').disabled,true);
+ assert.ok(!shadow.querySelector('#messages').textContent.includes('Checking the catalogue'));
+});
+test('health failure keeps an active conversation open',async t=>{
+ const {w,shadow,poll,setHealth}=await setup(t);shadow.querySelector('#open').click();Object.defineProperty(w.document,'hidden',{value:false});setHealth(false);await poll();await new Promise(r=>setTimeout(r,10));
+ assert.equal(w.document.querySelector('#finder-widget').hidden,false);assert.equal(shadow.querySelector('#error').hidden,false);
+});
+test('successful follow-ups send bounded context',async t=>{
+ const {w,shadow,verify,calls}=await setup(t);shadow.querySelector('#open').click();
+ for(const q of ['Find a garden robot under $300','Which one is easiest to maintain?']){
+  verify();shadow.querySelector('textarea').value=q;shadow.querySelector('form').dispatchEvent(new w.Event('submit',{cancelable:true}));await new Promise(r=>setTimeout(r,10));
+ }
+ const payload=JSON.parse(calls.filter(c=>c.url.endsWith('/chat'))[1].options.body);
+ assert.match(payload.context,/garden robot/);assert.match(payload.context,/Result/);assert.ok(payload.context.length<=500);
+});

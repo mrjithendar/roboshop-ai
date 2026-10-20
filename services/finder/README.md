@@ -29,7 +29,7 @@ to become ready, the deployment script reports a warning after deploying the oth
 services.
 
 New pages show nothing if Finder cannot load. Open visible pages check availability
-once every 60 seconds and hide it after a failure (up to roughly 62 seconds).
+once every 60 seconds and hide the closed widget after a failure (up to roughly 62 seconds). An active conversation stays visible with a recoverable error and its draft intact.
 Health checks are cached server-side for 10 seconds. Hidden tabs do not poll.
 After failure polling stops until a page reload. There is a small script/health
 request overhead, not zero network cost. Four concurrent verification/chat calls and upstream
@@ -53,7 +53,7 @@ catalogue. For another catalogue, configure a compatible backend using `CHAT_URL
 and its health endpoints in `HEALTH_URLS`; embedding alone still searches RobotShop.
 The backend accepts `POST {"message":"..."}` and returns
 `{"answer":"...","products":[{"name":"...","slug":"..."}]}` (SKU is also accepted).
-Each question is independent. Site CSP must allow the widget origin in `script-src`
+Follow-ups include up to 500 characters of recent questions and suggested names, kept only in the open page. The backend caps the combined request at 1,000 characters. Site CSP must allow the widget origin in `script-src`
 and `connect-src`, and inline styles used inside its Shadow DOM. No global CSS,
 framework, host DOM scraping or third-party cookies are required. CORS is browser
 access control, not authentication; use perimeter rate limits for public production
@@ -130,3 +130,19 @@ and provider spending limits as well. Human verification reduces automated abuse
 it cannot guarantee that all bots or paid challenge solvers are stopped.
 
 Reference: https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
+
+## Error recovery and verification appearance
+
+Chat errors no longer remove Finder. Verification rejection, throttling and server
+failures keep the question available for retry with a fresh token. Open panels
+survive availability-check failures; unopened widgets still hide when disabled.
+The supported Turnstile `interaction-only` appearance displays its challenge only
+when Cloudflare requires interaction. Branding is not cropped or overridden.
+
+A `not-configured` response means the store super admin must test and activate an
+LLM provider under the admin LLM settings. Finder cannot generate AI recommendations
+without that provider. Provider failures are distinguished from missing configuration.
+The shopping agent receives bounded product specifications, can ask clarifying
+questions and compare trade-offs using catalogue evidence. No purchase actions or
+unverified claims are enabled. Conversation context is untrusted and not persisted
+by Finder; questions are still sent to the configured AI provider when active.
