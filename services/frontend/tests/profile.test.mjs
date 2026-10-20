@@ -35,7 +35,7 @@ test('profile save submits only editable fields and retains confirmation',async 
 test('guest sees login instead of private data and logout clears profile',async t=>{
  const guest=setup(t,path=>path==='/api/auth/me'?{ok:true,json:async()=>({user:null})}:undefined);await guest.boot();
  assert.equal(guest.$('#profile-login').hidden,false);assert.ok(!guest.calls.some(c=>c.endpoint==='/api/account/profile'));
- guest.$('#profile-signin').click();assert.equal(guest.$('#account-dialog').open,true);
+ assert.equal(guest.$('#account-dialog'),null);assert.match(guest.$('#account-button').getAttribute('href'),/^\/roboshop\/login\?returnTo=/);
  const ui=setup(t);await ui.boot();ui.$('#logout-button').click();await waitFor(()=>!ui.$('#profile-login').hidden);
  assert.equal(ui.$('#profile-display-name').textContent,'');assert.equal(ui.$('#profile-content').hidden,true);assert.equal(ui.$('#profile-company').value,'');
 });

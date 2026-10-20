@@ -9,14 +9,16 @@ const pathsScript = (await readFile(new URL('../dist/paths.js', import.meta.url)
 const checkoutHtml = await readFile(new URL('../dist/checkout.html', import.meta.url), 'utf8');
 const checkoutScript = pathsScript + '\n' + accountScript + '\n' + (await readFile(new URL('../dist/checkout.js', import.meta.url), 'utf8')).replace(/^export \{\};?$/m, '').replace(/^import .*$/gm, '');
 const script = pathsScript + '\n' + accountScript + '\n' + (await readFile(new URL('../dist/app.js', import.meta.url), 'utf8')).replace(/^export \{\};?$/m, '').replace(/^import .*$/gm, '');
+const authHtml = await readFile(new URL('../dist/auth.html', import.meta.url), 'utf8');
+const authScript = pathsScript + '\n' + accountScript + '\n' + (await readFile(new URL('../dist/auth.js', import.meta.url), 'utf8')).replace(/^import .*$/gm, '');
 const product = { sku: 'TEST', name: '<img src=x onerror=alert(1)>', price: 12, instock: 3, categories: ['robot'], description: 'Test robot', image: '/images/placeholder.png' };
 const cart = { items: [{ ...product, quantity: 1, lineTotal: 12 }], subtotal: 12, total: 15, shipping: { address: { recipient: 'Test', line1: 'Test street' }, city: { name: 'Hyderabad', country: 'IN' }, cost: 3, distanceKm: 60, quotedAt: new Date().toISOString() } };
 async function waitFor(check) {
   for (let i = 0; i < 100; i++) { if (check()) return; await new Promise(resolve => setTimeout(resolve, 5)); }
   assert.fail('UI did not reach expected state');
 }
-function setup(t, handler = () => undefined, storefront = false) {
-  const dom = new JSDOM(storefront ? html : checkoutHtml, { url: storefront ? 'https://shop.example/' : 'https://shop.example/checkout', runScripts: 'outside-only' });
+function setup(t, handler = () => undefined, storefront = false, auth = false) {
+  const dom = new JSDOM(auth ? authHtml : storefront ? html : checkoutHtml, { url: auth ? 'https://shop.example/register' : storefront ? 'https://shop.example/' : 'https://shop.example/checkout', runScripts: 'outside-only' });
   t.after(() => dom.window.close());
   const w = dom.window, calls = [];
   w.HTMLElement.prototype.scrollIntoView = () => {};
@@ -37,7 +39,7 @@ function setup(t, handler = () => undefined, storefront = false) {
     assert.ok(Object.hasOwn(defaults, path), `Unexpected request: ${path}`);
     return { ok: true, status: 200, json: async () => defaults[path] };
   };
-  return { w, calls, boot: () => w.eval(`(async () => { ${storefront ? script : checkoutScript}\n })()`), $: selector => w.document.querySelector(selector) };
+  return { w, calls, boot: () => w.eval(`(async () => { ${auth ? authScript : storefront ? script : checkoutScript}\n })()`), $: selector => w.document.querySelector(selector) };
 }
 
 test('compiled storefront renders safe product text and filters the catalogue', async t => {
@@ -99,33 +101,20 @@ test('guest checkout opens login and does not load Razorpay', async t => {
   const ui = setup(t, path => path === '/api/auth/me' ? { ok: true, status: 200, json: async () => ({ user: null }) } : undefined);
   await ui.boot();
   assert.equal(ui.$('#checkout').textContent, 'Log in to checkout');
-  ui.$('#checkout').click();
-  assert.equal(ui.$('#account-dialog').open, true);
+  assert.equal(ui.$('#account-dialog'), null);
+  assert.equal(ui.$('#account-button').getAttribute('href'), '/login?returnTo=%2Fcheckout');
   assert.equal(ui.$('script[src*="checkout.razorpay"]'), null);
   assert.ok(!ui.calls.includes('/api/payments/orders'));
   assert.equal(ui.$('#admin-link').hidden, true);
 });
 
-test('account panel shows private history safely and clears it on logout', async t => {
-  const payloads = {
-    '/api/account/profile': { activity: { lastLoginAt: '2026-10-18T10:00:00Z', lastLoginIp: '192.0.2.1' }, addresses: [{ address: { recipient: 'Buyer', line1: '<img src=x onerror=alert(1)>', postalCode: '500001' }, city: { name: 'Hyderabad', country: 'India' } }] },
-    '/api/account/activity': { retentionDays: 90, events: [{ occurredAt: '2026-10-18T10:00:00Z', ipAddress: '192.0.2.1', userAgent: '<script>unsafe</script>' }] },
-    '/api/account/purchases': { purchases: [{ id: 'order-1', paidAt: '2026-10-18T10:00:00Z', total: 15, currency: 'EUR', items: [{ name: 'Robot', quantity: 1 }] }], next: null },
-    '/api/auth/logout': { loggedOut: true },
-  };
-  const ui = setup(t, path => Object.hasOwn(payloads, path) ? { ok: true, status: 200, json: async () => payloads[path] } : undefined);
-  await ui.boot(); ui.$('#account-button').click();
-  await waitFor(() => ui.$('#account-details').textContent.includes('order-1'));
-  assert.equal(ui.$('#account-form').hidden, true);
-  assert.match(ui.$('#account-details').textContent, /192\.0\.2\.1/);
-  assert.match(ui.$('#account-details').textContent, /<img/);
-  assert.equal(ui.$('#account-details img'), null);
-  assert.equal(ui.$('#account-details script'), null);
-  ui.$('#logout-button').click();
-  await waitFor(() => ui.$('#account-details').hidden);
-  assert.equal(ui.$('#account-details').textContent, '');
+test('account navigation links to the profile page and sign out updates it', async t => {
+ const ui=setup(t,path=>path==='/api/auth/logout'?{ok:true,json:async()=>({loggedOut:true})}:undefined);
+ await ui.boot();assert.equal(ui.$('#account-button').getAttribute('href'),'/account');
+ assert.equal(ui.$('#account-dialog'),null);ui.$('#logout-button').click();
+ await waitFor(()=>ui.$('#logout-button').hidden);
+ assert.equal(ui.$('#account-button').textContent,'Sign in');
 });
-
 
 test('registration uses server challenge config and consumes a fresh token after a failed attempt', async t => {
   let options, reset = 0, submitted;
@@ -133,10 +122,10 @@ test('registration uses server challenge config and consumes a fresh token after
     if (path === '/api/auth/me') return { ok: true, json: async () => ({ user: null }) };
     if (path === '/api/auth/challenge') return { ok: true, json: async () => ({ provider: 'turnstile', siteKey: 'public-key', action: 'register' }) };
     if (path === '/api/auth/register') { submitted = JSON.parse(request.body); return { ok: false, json: async () => ({ error: 'Try another email.' }) }; }
-  });
+  }, false, true);
   ui.w.turnstile = { render: (container, config) => { options = config; return 'widget'; }, remove() {}, getResponse: () => 'fresh-token', reset: () => { reset++; } };
   await ui.boot();
-  ui.$('#account-mode').value = 'register'; ui.$('#account-mode').dispatchEvent(new ui.w.Event('change'));
+  assert.equal(ui.$('#account-mode'), null);
   await waitFor(() => options); assert.equal(options.action, 'register'); assert.equal(options.sitekey, 'public-key');
   options.callback(); ui.$('#account-email').value = 'demo@example.com'; ui.$('#account-password').value = 'long-enough-test-password'; ui.$('#account-name').value = 'Demo';
   ui.$('#account-form').dispatchEvent(new ui.w.Event('submit', { cancelable: true }));

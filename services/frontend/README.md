@@ -77,3 +77,5 @@ Rebuild/deploy frontend, gateway and NGINX together for the new routes and image
 ### Shared page layout
 
 Edit `templates/header.html` and `templates/footer.html` to update navigation across all pages. `npm run build` inserts these templates into each page before producing `dist/`; no browser-side layout fetch is needed. Account controls show a generic label, while personal details stay on the account page. The admin page uses a direct account link. Cart counts appear where the page already loads the cart. Shared styles use the `store-` prefix in `styles.css`.
+
+Sign-in and registration use `/login` and `/register` (under the configured storefront prefix). Both render `auth.html` with `auth.ts`; there is no account modal or action dropdown. Successful authentication returns to an allowlisted storefront route supplied by `returnTo`, defaulting to `/account`. Update and deploy both frontend and nginx when adding routes.

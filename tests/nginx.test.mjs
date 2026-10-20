@@ -33,8 +33,8 @@ test('NGINX serves assets and safely proxies API requests', { skip: process.env.
     edge=await startNginx({port,gatewayPort,directory:dir});
     let r=await fetch(base); assert.match(await r.text(),/Find your kind of robot/); assert.equal(r.headers.get('cache-control'),'no-cache');
     assert.match(r.headers.get('content-security-policy'),/checkout.razorpay.com/);
-    for(const [path,type] of [['/account','html'],['/profile.js','javascript'],['/cart','html'],['/checkout','html'],['/checkout/','html'],['/checkout.js','javascript'],['/products/arduino-alvik','html'],['/product.js','javascript'],['/product-media/turtlebot3-burger.jpg','image/jpeg'],['/product-media/atlas-x1.png','image/png'],['/illustrations/robot.svg','image/svg+xml'],['/illustrations/kit.svg','image/svg+xml'],['/app.js','javascript'],['/account.js','javascript'],['/admin.js','javascript'],['/admin','html'],['/styles.css','css'],['/images/STAN-1.png','image/png']]) {
-      r=await fetch(base+path); assert.equal(r.status,200); assert.ok(r.headers.get('content-type').includes(type)); assert.match(r.headers.get('cache-control'),['/admin','/cart','/checkout','/checkout/','/account'].includes(path) || path.startsWith('/products/') ? /no-store/ : /public/); assert.equal(r.headers.get('x-content-type-options'),'nosniff');
+    for(const [path,type] of [['/login','html'],['/register','html'],['/auth.js','javascript'],['/account','html'],['/profile.js','javascript'],['/cart','html'],['/checkout','html'],['/checkout/','html'],['/checkout.js','javascript'],['/products/arduino-alvik','html'],['/product.js','javascript'],['/product-media/turtlebot3-burger.jpg','image/jpeg'],['/product-media/atlas-x1.png','image/png'],['/illustrations/robot.svg','image/svg+xml'],['/illustrations/kit.svg','image/svg+xml'],['/app.js','javascript'],['/account.js','javascript'],['/admin.js','javascript'],['/admin','html'],['/styles.css','css'],['/images/STAN-1.png','image/png']]) {
+      r=await fetch(base+path); assert.equal(r.status,200); assert.ok(r.headers.get('content-type').includes(type)); assert.match(r.headers.get('cache-control'),['/admin','/cart','/checkout','/checkout/','/account','/login','/register'].includes(path) || path.startsWith('/products/') ? /no-store/ : /public/); assert.equal(r.headers.get('x-content-type-options'),'nosniff');
     }
     r=await fetch(base+'/products/arduino-alvik'); assert.match(await r.text(), /product-main/);
     assert.match((await fetch(base+'/app.js')).headers.get('cache-control'), /max-age=0, must-revalidate/);
@@ -91,7 +91,7 @@ test('subpath HTML links and module assets survive ingress prefix stripping', {s
     edge=await startNginx({port,gatewayPort,directory:dir});
     // Traefik strips /roboshop before forwarding these requests to NGINX.
     const base=`http://127.0.0.1:${port}`;
-    for(const path of ['/','/admin','/products/arduino-alvik','/cart','/checkout','/account']) {
+    for(const path of ['/','/admin','/products/arduino-alvik','/cart','/checkout','/account','/login','/register']) {
       const html=await (await fetch(base+path)).text();
       assert.match(html,/href="\/roboshop\/styles.css"/);
       assert.match(html,/src="\/roboshop\/[a-z]+.js"/);

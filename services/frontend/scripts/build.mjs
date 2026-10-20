@@ -10,10 +10,10 @@ if (result.status !== 0) process.exit(result.status || 1);
 await mkdir(new URL('dist/', frontend), { recursive: true });
 const header = await readFile(new URL('templates/header.html', frontend), 'utf8');
 const footer = await readFile(new URL('templates/footer.html', frontend), 'utf8');
-for (const name of ['index.html', 'admin.html', 'product.html', 'checkout.html', 'profile.html']) {
+for (const name of ['index.html', 'admin.html', 'product.html', 'checkout.html', 'profile.html', 'auth.html']) {
   const account = name === 'admin.html'
     ? '<a class="store-account" href="/account">My account</a>'
-    : '<button class="store-account" id="account-button">Sign in</button><a id="admin-link" href="/admin" hidden>Manage store</a><button class="store-signout" id="logout-button" hidden>Sign out</button>';
+    : '<a class="store-account" id="account-button" href="/login">Sign in</a><a id="admin-link" href="/admin" hidden>Manage store</a><button class="store-signout" id="logout-button" hidden>Sign out</button>';
   const count = ['index.html', 'checkout.html'].includes(name) ? '<span id="bag-count" aria-label="Items in cart">0</span>' : '';
   const html = (await readFile(new URL(name, frontend), 'utf8'))
     .replace('<!-- STORE_HEADER -->', header.replace('{{ACCOUNT_CONTROL}}', account).replace('{{CART_COUNT}}', count))
