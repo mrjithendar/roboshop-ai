@@ -8,7 +8,6 @@ import logging
 import uuid
 import json
 import requests
-import traceback
 from flask import Flask
 from flask import Response
 from flask import request
@@ -35,7 +34,7 @@ PromMetrics['AVS'] = Histogram('cart_value', 'Avergae Value Sale', buckets=(100,
 @app.errorhandler(Exception)
 def exception_handler(err):
     app.logger.error(str(err))
-    return str(err), 500
+    return 'An internal error occurred.', 500
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -64,7 +63,7 @@ def pay(id):
         req = requests.get('http://{user}:8080/check/{id}'.format(user=USER, id=id))
     except requests.exceptions.RequestException as err:
         app.logger.error(err)
-        return str(err), 500
+        return 'A dependent service is unavailable.', 500
     if req.status_code == 200:
         anonymous_user = False
 
@@ -85,7 +84,7 @@ def pay(id):
         app.logger.info('{} returned {}'.format(PAYMENT_GATEWAY, req.status_code))
     except requests.exceptions.RequestException as err:
         app.logger.error(err)
-        return str(err), 500
+        return 'A dependent service is unavailable.', 500
     if req.status_code != 200:
         return 'payment error', req.status_code
 
@@ -109,7 +108,7 @@ def pay(id):
             app.logger.info('order history returned {}'.format(req.status_code))
         except requests.exceptions.RequestException as err:
             app.logger.error(err)
-            return str(err), 500
+            return 'A dependent service is unavailable.', 500
 
     # delete cart
     try:
@@ -117,7 +116,7 @@ def pay(id):
         app.logger.info('cart delete returned {}'.format(req.status_code))
     except requests.exceptions.RequestException as err:
         app.logger.error(err)
-        return str(err), 500
+        return 'A dependent service is unavailable.', 500
     if req.status_code != 200:
         return 'order history update error', req.status_code
 

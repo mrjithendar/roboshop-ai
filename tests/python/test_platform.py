@@ -240,6 +240,30 @@ class RuntimeTests(unittest.TestCase):
         self.assertTrue(captured["status"].startswith("400"))
         self.assertEqual(captured["headers"]["X-Request-ID"], "a" * 32)
 
+    def test_http_error_does_not_expose_exception_message(self):
+        def fail(req):
+            raise HttpError(400, "internal details")
+
+        app = application("test", fail)
+        captured = {}
+
+        def start(status, headers):
+            captured.update(status=status, headers=dict(headers))
+
+        with patch("runtime.telemetry"):
+            result = app(
+                {
+                    "REQUEST_METHOD": "GET",
+                    "PATH_INFO": "/api/chat",
+                    "wsgi.input": io.BytesIO(b""),
+                },
+                start,
+            )
+
+        self.assertTrue(captured["status"].startswith("400"))
+        self.assertNotIn(b"internal details", result[0])
+        self.assertIn(b"The request could not be completed.", result[0])
+
 
 if __name__ == "__main__":
     unittest.main()

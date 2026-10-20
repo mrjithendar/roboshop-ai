@@ -85,7 +85,7 @@ app.get('/cart/:id', (req, res) => {
     redisClient.get(req.params.id, (err, data) => {
         if(err) {
             req.log.error('ERROR', err);
-            res.status(500).send(err);
+            res.status(500).send('An internal error occurred.');
         } else {
             if(data == null) {
                 res.status(404).send('cart not found');
@@ -102,7 +102,7 @@ app.delete('/cart/:id', (req, res) => {
     redisClient.del(req.params.id, (err, data) => {
         if(err) {
             req.log.error('ERROR', err);
-            res.status(500).send(err);
+            res.status(500).send('An internal error occurred.');
         } else {
             if(data == 1) {
                 res.send('OK');
@@ -118,7 +118,7 @@ app.get('/rename/:from/:to', (req, res) => {
     redisClient.get(req.params.from, (err, data) => {
         if(err) {
             req.log.error('ERROR', err);
-            res.status(500).send(err);
+            res.status(500).send('An internal error occurred.');
         } else {
             if(data == null) {
                 res.status(404).send('cart not found');
@@ -128,7 +128,7 @@ app.get('/rename/:from/:to', (req, res) => {
                     res.json(cart);
                 }).catch((err) => {
                     req.log.error(err);
-                    res.status(500).send(err);
+                    res.status(500).send('An internal error occurred.');
                 });
             }
         }
@@ -165,7 +165,7 @@ app.get('/add/:id/:sku/:qty', (req, res) => {
         redisClient.get(req.params.id, (err, data) => {
             if(err) {
                 req.log.error('ERROR', err);
-                res.status(500).send(err);
+                res.status(500).send('An internal error occurred.');
             } else {
                 var cart;
                 if(data == null) {
@@ -199,13 +199,13 @@ app.get('/add/:id/:sku/:qty', (req, res) => {
                     res.json(cart);
                 }).catch((err) => {
                     req.log.error(err);
-                    res.status(500).send(err);
+                    res.status(500).send('An internal error occurred.');
                 });
             }
         });
     }).catch((err) => {
         req.log.error(err);
-        res.status(500).send(err);
+        res.status(500).send('An internal error occurred.');
     });
 });
 
@@ -227,7 +227,7 @@ app.get('/update/:id/:sku/:qty', (req, res) => {
     redisClient.get(req.params.id, (err, data) => {
         if(err) {
             req.log.error('ERROR', err);
-            res.status(500).send(err);
+            res.status(500).send('An internal error occurred.');
         } else {
             if(data == null) {
                 res.status(404).send('cart not found');
@@ -257,7 +257,7 @@ app.get('/update/:id/:sku/:qty', (req, res) => {
                         res.json(cart);
                     }).catch((err) => {
                         req.log.error(err);
-                        res.status(500).send(err);
+                        res.status(500).send('An internal error occurred.');
                     });
                 }
             }
@@ -276,7 +276,7 @@ app.post('/shipping/:id', (req, res) => {
         redisClient.get(req.params.id, (err, data) => {
             if(err) {
                 req.log.error('ERROR', err);
-                res.status(500).send(err);
+                res.status(500).send('An internal error occurred.');
             } else {
                 if(data == null) {
                     req.log.info('no cart for', req.params.id);
@@ -313,7 +313,7 @@ app.post('/shipping/:id', (req, res) => {
                         res.json(cart);
                     }).catch((err) => {
                         req.log.error(err);
-                        res.status(500).send(err);
+                        res.status(500).send('An internal error occurred.');
                     });
                 }
             }
@@ -404,4 +404,3 @@ const port = process.env.CART_SERVER_PORT || '8080';
 app.listen(port, () => {
     logger.info('Started on port', port);
 });
-

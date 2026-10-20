@@ -417,7 +417,7 @@ def application(service, handler):
                     headers = extra + headers
         except HttpError as error:
             status, result = error.status, {
-                "error": str(error),
+                "error": "The request could not be completed.",
                 "requestId": context["traceId"],
             }
         except Exception:
