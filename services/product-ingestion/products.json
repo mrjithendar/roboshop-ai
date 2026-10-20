@@ -4,8 +4,8 @@
     "slug": "atlas-x1",
     "name": "Atlas X1",
     "description": "Meet Atlas X1, part of the RobotShop robotics collection.",
-    "price": 499,
-    "currency": "USD",
+    "price": 999,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -27,15 +27,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "NOVACLEAN-PRO",
     "slug": "novaclean-pro",
     "name": "NovaClean Pro",
     "description": "Meet NovaClean Pro, part of the RobotShop robotics collection.",
-    "price": 199,
-    "currency": "USD",
+    "price": 241,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -57,15 +57,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "TITANLIFT-T500",
     "slug": "titanlift-t500",
     "name": "TitanLift T500",
     "description": "Meet TitanLift T500, part of the RobotShop robotics collection.",
-    "price": 449,
-    "currency": "USD",
+    "price": 857,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -87,15 +87,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "SCOUT-ROVER-S3",
     "slug": "scout-rover-s3",
     "name": "Scout Rover S3",
     "description": "Meet Scout Rover S3, part of the RobotShop robotics collection.",
-    "price": 249,
-    "currency": "USD",
+    "price": 383,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -117,15 +117,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "GUARDIAN-G7",
     "slug": "guardian-g7",
     "name": "Guardian G7",
     "description": "Meet Guardian G7, part of the RobotShop robotics collection.",
-    "price": 349,
-    "currency": "USD",
+    "price": 620,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -147,15 +147,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "MECHAARM-M6",
     "slug": "mechaarm-m6",
     "name": "MechaArm M6",
     "description": "Meet MechaArm M6, part of the RobotShop robotics collection.",
-    "price": 399,
-    "currency": "USD",
+    "price": 762,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -177,15 +177,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "COMPANION-C2",
     "slug": "companion-c2",
     "name": "Companion C2",
     "description": "Meet Companion C2, part of the RobotShop robotics collection.",
-    "price": 299,
-    "currency": "USD",
+    "price": 525,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -207,15 +207,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "AGROBOT-A200",
     "slug": "agrobot-a200",
     "name": "AgroBot A200",
     "description": "Meet AgroBot A200, part of the RobotShop robotics collection.",
-    "price": 379,
-    "currency": "USD",
+    "price": 715,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -237,15 +237,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "SWIFTCARRY-D4",
     "slug": "swiftcarry-d4",
     "name": "SwiftCarry D4",
     "description": "Meet SwiftCarry D4, part of the RobotShop robotics collection.",
-    "price": 329,
-    "currency": "USD",
+    "price": 573,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -267,15 +267,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "EDUBOT-SPARK",
     "slug": "edubot-spark",
     "name": "EduBot Spark",
     "description": "Meet EduBot Spark, part of the RobotShop robotics collection.",
-    "price": 100,
-    "currency": "USD",
+    "price": 99,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -297,15 +297,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "MEDIASSIST-M10",
     "slug": "mediassist-m10",
     "name": "MediAssist M10",
     "description": "Meet MediAssist M10, part of the RobotShop robotics collection.",
-    "price": 459,
-    "currency": "USD",
+    "price": 904,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -327,15 +327,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "CHEFMATE-C8",
     "slug": "chefmate-c8",
     "name": "ChefMate C8",
     "description": "Meet ChefMate C8, part of the RobotShop robotics collection.",
-    "price": 289,
-    "currency": "USD",
+    "price": 478,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -357,15 +357,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "AQUASCOUT-R2",
     "slug": "aquascout-r2",
     "name": "AquaScout R2",
     "description": "Meet AquaScout R2, part of the RobotShop robotics collection.",
-    "price": 269,
-    "currency": "USD",
+    "price": 431,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -387,15 +387,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "FIRESHIELD-F5",
     "slug": "fireshield-f5",
     "name": "FireShield F5",
     "description": "Meet FireShield F5, part of the RobotShop robotics collection.",
-    "price": 489,
-    "currency": "USD",
+    "price": 952,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -417,15 +417,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "BUILDBOT-B300",
     "slug": "buildbot-b300",
     "name": "BuildBot B300",
     "description": "Meet BuildBot B300, part of the RobotShop robotics collection.",
-    "price": 429,
-    "currency": "USD",
+    "price": 810,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -447,15 +447,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "SOLARSWEEP-S6",
     "slug": "solarsweep-s6",
     "name": "SolarSweep S6",
     "description": "Meet SolarSweep S6, part of the RobotShop robotics collection.",
-    "price": 219,
-    "currency": "USD",
+    "price": 288,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -477,15 +477,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "PETPAL-P3",
     "slug": "petpal-p3",
     "name": "PetPal P3",
     "description": "Meet PetPal P3, part of the RobotShop robotics collection.",
-    "price": 149,
-    "currency": "USD",
+    "price": 146,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -507,15 +507,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "AEROINSPECT-A9",
     "slug": "aeroinspect-a9",
     "name": "AeroInspect A9",
     "description": "Meet AeroInspect A9, part of the RobotShop robotics collection.",
-    "price": 359,
-    "currency": "USD",
+    "price": 667,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -537,15 +537,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "SHELFSENSE-R8",
     "slug": "shelfsense-r8",
     "name": "ShelfSense R8",
     "description": "Meet ShelfSense R8, part of the RobotShop robotics collection.",
-    "price": 239,
-    "currency": "USD",
+    "price": 336,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -567,15 +567,15 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   },
   {
     "sku": "LAWNPILOT-L4",
     "slug": "lawnpilot-l4",
     "name": "LawnPilot L4",
     "description": "Meet LawnPilot L4, part of the RobotShop robotics collection.",
-    "price": 189,
-    "currency": "USD",
+    "price": 194,
+    "currency": "INR",
     "priceType": "sale",
     "showcase": false,
     "synthetic": false,
@@ -597,6 +597,6 @@
     "imageAttribution": {
       "credit": "AI-generated concept render; not a manufacturer photograph"
     },
-    "catalogueVersion": "merchant-20-v1"
+    "catalogueVersion": "merchant-20-inr-v1"
   }
 ]

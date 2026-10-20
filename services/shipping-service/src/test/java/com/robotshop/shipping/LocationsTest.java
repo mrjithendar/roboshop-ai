@@ -20,7 +20,8 @@ class LocationsTest {
         var locations=new Locations(jdbc,new tools.jackson.databind.ObjectMapper(),org.mockito.Mockito.mock(LocationCache.class));
         var input=new java.util.HashMap<String,Object>(java.util.Map.of("cityId",1,"recipient","Customer","line1","1 Test Street","currency","USD"));
         assertEquals("USD",locations.quote(input).get("currency"));
-        input.remove("currency"); assertEquals("EUR",locations.quote(input).get("currency"));
+        input.put("currency","INR"); assertEquals("INR",locations.quote(input).get("currency"));
+        input.remove("currency"); assertEquals("INR",locations.quote(input).get("currency"));
         input.put("currency","XYZ"); assertThrows(org.springframework.web.server.ResponseStatusException.class,()->locations.quote(input));
         input.put("currency",null); assertThrows(org.springframework.web.server.ResponseStatusException.class,()->locations.quote(input));
     }

@@ -19,7 +19,7 @@ interface Cart { currency?: string; items: CartItem[]; total: number; subtotal?:
 interface Ops { summary: string; services: { name: string; status: string; latencyMs: number }[]; nextSteps: string[]; checkedAt: string }
 class ApiError extends Error { constructor(message: string, readonly status: number) { super(message); } }
 const errorMessage = (error: unknown): string => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
-const money = (value: number, currency = cart.currency || 'EUR') => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
+const money = (value: number, currency = cart.currency || 'INR') => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
 let products: Product[] = [], cart: Cart = { items: [], total: 0 }, category = '', cartBusy = false;
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = '', content?: string): HTMLElementTagNameMap[K] => { const node = document.createElement(tag); if (className) node.className = className; if (content !== undefined) node.textContent = content; return node; };

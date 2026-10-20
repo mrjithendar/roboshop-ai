@@ -32,7 +32,7 @@ def purchasable(p):
     return (
         not p.get("showcase")
         and not p.get("synthetic")
-        and p.get("currency", "EUR") in ("EUR", "USD")
+        and p.get("currency", "EUR") in ("EUR", "USD", "INR")
         and p.get("priceType", "sale") == "sale"
         and not p.get("archived")
     )

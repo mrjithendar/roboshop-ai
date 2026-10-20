@@ -9,7 +9,7 @@ service remains a simulator and is not used by the new checkout.
 
 The public key ID goes to Checkout; secret keys never reach the browser. No card data
 is collected by RobotShop. The amount is calculated from the server's catalogue in
-integer EUR cents. Your account must support EUR/international payments. The existing
+integer minor units (paise for the INR catalogue). Historical EUR and USD orders retain their currency. The existing
 fictional catalogue does not become a real fulfilment operation through this integration.
 
 For sandbox testing, use PAYMENT_MODE=test and test keys. No mock-provider switch exists

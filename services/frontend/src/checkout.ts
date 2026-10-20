@@ -29,7 +29,7 @@ interface Country { code: string; name: string; cityCount: number }
 interface City { id: number; name: string; region?: string }
 class ApiError extends Error { constructor(message: string, readonly status: number) { super(message); } }
 const errorMessage = (error: unknown): string => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
-const money = (value: number, currency = cart.currency || 'EUR') => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
+const money = (value: number, currency = cart.currency || 'INR') => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
 let cart: Cart = { items: [], total: 0 }, cartBusy = false;
 let checkoutKey: string | null = null;
 let toastTimer: ReturnType<typeof setTimeout> | undefined, citySearchTimer: ReturnType<typeof setTimeout> | undefined;

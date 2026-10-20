@@ -97,7 +97,7 @@ def routes(req, db, auth, store):
                             "_id": product["sku"],
                             **product,
                             "slug": product["sku"].lower().replace("_", "-"),
-                            "currency": "EUR",
+                            "currency": "INR",
                             "priceType": "sale",
                             "showcase": False,
                             "revision": 1,

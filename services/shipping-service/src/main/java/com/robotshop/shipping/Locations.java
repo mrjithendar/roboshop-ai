@@ -37,8 +37,8 @@ public class Locations {
         return cache.read(seedHash+":cities:"+country+":"+query, java.time.Duration.ofMinutes(10), () -> jdbc.queryForList("SELECT id,country_code AS \"countryCode\",name,region FROM shipping.cities WHERE country_code=? AND search_name>=? AND search_name<? ORDER BY search_name,id LIMIT 30",country,prefix,prefix+'\uffff'));
     }
     public Map<String,Object> quote(Map<String,Object> input) {
-        Object currencyValue = input.getOrDefault("currency", "EUR");
-        if (!(currencyValue instanceof String currency) || !java.util.Set.of("EUR", "USD").contains(currency)) throw bad("Unsupported shipping currency.");
+        Object currencyValue = input.getOrDefault("currency", "INR");
+        if (!(currencyValue instanceof String currency) || !java.util.Set.of("EUR", "USD", "INR").contains(currency)) throw bad("Unsupported shipping currency.");
         Object id = input.get("cityId");
         if (!(id instanceof Number n) || n.doubleValue() != n.intValue() || n.intValue() < 1) throw bad("Select a city from the search results.");
         var rows = jdbc.queryForList("SELECT cities.id,cities.name,region,latitude,longitude,country_code AS \"countryCode\",countries.name AS country FROM shipping.cities JOIN shipping.countries ON countries.code=cities.country_code WHERE cities.id=?", ((Number)id).intValue());

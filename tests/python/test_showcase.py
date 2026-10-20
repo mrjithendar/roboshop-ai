@@ -290,8 +290,9 @@ class ShowcaseTests(unittest.TestCase):
         }
         require_purchasable(p)
         require_purchasable({**p, "currency": "USD"})
+        require_purchasable({**p, "currency": "INR"})
         for change in [
-            {"currency": "INR"},
+            {"currency": "XYZ"},
             {"priceType": "reference"},
             {"synthetic": True},
             {"showcase": True},

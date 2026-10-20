@@ -465,8 +465,8 @@ class Gateway:
         if path == "/api/products" and method == "GET":
             return {
                 "products": self.products(),
-                "checkoutCurrency": "EUR",
-                "currencyPolicy": "Reference prices retain source currency. Only sale-priced EUR live inventory is purchasable.",
+                "checkoutCurrency": "INR",
+                "currencyPolicy": "Current catalogue prices are in INR. Historical orders retain their original currency.",
             }
         if path == "/api/compare" and method == "GET":
             skus = req.query.get("skus", "").split(",")
@@ -510,7 +510,7 @@ class Gateway:
             return {
                 "products": picks,
                 "basis": "cart-categories" if categories else "in-stock-catalogue",
-                "currency": "EUR",
+                "currency": cart.get("currency", "INR"),
             }
         if path == "/api/recommendations" and method == "GET":
             params = dict(req.query)

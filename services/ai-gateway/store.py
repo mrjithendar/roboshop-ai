@@ -152,7 +152,7 @@ class Store:
         currencies = {item.get("currency", "EUR") for item in items}
         if len(currencies) > 1:
             raise HttpError(409, "Your cart contains mixed currencies. Remove items and retry.")
-        currency = next(iter(currencies), "EUR")
+        currency = next(iter(currencies), "INR")
         subtotal = sum(cents(i["lineTotal"]) for i in items) / 100
         shipping = self.state["sessions"][id].get("shipping") if items else None
         if shipping and shipping.get("currency", "EUR") != currency:

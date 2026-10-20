@@ -44,3 +44,9 @@ test('USD orders retain their currency and cents through provider creation',asyn
  const order=await provider.create({amount:19900,currency:'USD',receipt:'12345678-1234-1234-1234-123456789abc'});
  assert.equal(order.currency,'USD');assert.equal(order.amount,19900);
 });
+
+test('INR prices are passed to Razorpay as paise without another conversion',async()=>{
+ const provider=new Razorpay(config,async(url,options)=>({ok:true,json:async()=>({id:'order_INR',...JSON.parse(options.body),status:'created'})}));
+ const order=await provider.create({amount:99900,currency:'INR',receipt:'12345678-1234-1234-1234-123456789abc'});
+ assert.equal(order.currency,'INR');assert.equal(order.amount,99900);
+});

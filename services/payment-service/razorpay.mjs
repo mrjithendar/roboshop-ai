@@ -27,7 +27,7 @@ export class Razorpay {
     } catch { throw new HttpError(502, 'Payment provider unavailable. Check payment status before trying again.'); }
   }
   async create({ amount, currency, receipt }) {
-    if (!Number.isSafeInteger(amount) || amount <= 0 || !['EUR', 'USD'].includes(currency) || !/^[a-f0-9-]{36}$/.test(receipt || '')) throw new HttpError(400, 'Invalid payment order.');
+    if (!Number.isSafeInteger(amount) || amount <= 0 || !['EUR', 'USD', 'INR'].includes(currency) || !/^[a-f0-9-]{36}$/.test(receipt || '')) throw new HttpError(400, 'Invalid payment order.');
     const order = await this.api('/orders', { amount, currency, receipt, partial_payment: false });
     if (!/^order_[A-Za-z0-9]+$/.test(order.id || '') || order.amount !== amount || order.currency !== currency || order.receipt !== receipt || order.status !== 'created') throw new HttpError(502, 'Unexpected payment order response.');
     return { orderId: order.id, amount, currency, keyId: this.config.RAZORPAY_KEY_ID };
