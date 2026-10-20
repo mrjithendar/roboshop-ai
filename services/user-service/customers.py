@@ -42,6 +42,7 @@ class Customers:
         db.login_activity.create_index("expiresAt", expireAfterSeconds=0)
         db.customer_addresses.create_index([("userId", 1), ("updatedAt", -1)])
         db.purchase_history.create_index([("userId", 1), ("paidAt", -1), ("_id", -1)])
+        db.purchase_history.create_index([("userId", 1), ("items.sku", 1), ("status", 1)])
 
     def record_login(self, user_id, address, agent, registration=False):
         try:
@@ -243,3 +244,17 @@ class Customers:
             ),
             "retentionDays": self.retention,
         }
+
+    def verified(self, row):
+        if row.get('synthetic'):
+            return False
+        created_at = row.get('createdAt')
+        if isinstance(created_at, str):
+            created_at = timestamp(created_at)
+        if not isinstance(created_at, datetime) or any(not isinstance(row.get(k), str) for k in ('authorId', 'productId')):
+            raise HttpError(400, 'Invalid purchase verification.')
+        return bool(self.db.purchase_history.find_one({
+            'userId': row['authorId'], 'items.sku': row['productId'], 'status': 'paid',
+            'synthetic': {'$ne': True}, 'paymentCaptured': True, 'paymentMode': 'live',
+            'paidAt': {'$lte': created_at},
+        }, {'_id': 1}))

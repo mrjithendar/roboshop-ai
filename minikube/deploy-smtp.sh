@@ -34,5 +34,5 @@ k apply -f "$ROOT/services/smtp-server/smtp-server-minikube.yaml"
 k -n robotshop-ai rollout restart deployment/smtp-server
 k -n robotshop-ai rollout status deployment/smtp-server --timeout=180s
 # Do not apply the gateway manifest here: it must use the newly built gateway image.
-echo 'SMTP is installed. Build and deploy the updated ai-gateway and frontend next (see services/smtp-server/README.md).'
+echo 'SMTP is installed. Build and deploy the updated user-service, ai-gateway and frontend next (see services/smtp-server/README.md).'
 echo 'Inbox delivery is not yet verified. Publish the printed DKIM record and complete the mail DNS/port checks.'

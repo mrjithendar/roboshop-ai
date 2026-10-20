@@ -419,7 +419,7 @@ class GatewayBoundaryTests(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.db = mongomock.MongoClient().test
-        with patch.object(gateway_module.Auth, "initialize"):
+        with patch.dict(os.environ, {"USER_SERVICE_TOKEN": "u" * 64}):
             self.gateway = gateway_module.Gateway(self.db, Store(self.directory.name))
         self.user = {"id": "root", "role": "superadmin"}
         self.gateway.auth.current = Mock(side_effect=lambda _: self.user)

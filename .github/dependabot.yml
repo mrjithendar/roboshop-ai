@@ -29,6 +29,7 @@ updates:
   - package-ecosystem: docker
     directories:
       - /services/ai-gateway
+      - /services/user-service
       - /services/product-ingestion
       - /services/catalogue-service
       - /services/recommendation-service
@@ -120,6 +121,7 @@ updates:
   - package-ecosystem: pip
     directories:
       - /services/ai-gateway
+      - /services/user-service
       - /services/shopping-agent
       - /services/cart-service
     schedule:

@@ -15,9 +15,11 @@ import mongomock
 from pymongo import MongoClient
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.append(str(ROOT / "services/user-service"))
 sys.path[:0] = [str(ROOT / "services/ai-gateway/lib"), str(ROOT / "services/ai-gateway")]
 from runtime import HttpError, now, Request
 from reviews import Reviews
+from customers import Customers
 from registration import Registration, TurnstileChallenge, client_address
 from product_details import related, require_purchasable
 from store import Store
@@ -42,7 +44,7 @@ CONTENT = {
 class ReviewTests(unittest.TestCase):
     def setUp(self):
         self.db = mongomock.MongoClient(tz_aware=True).db
-        self.reviews = Reviews(self.db)
+        self.reviews = Reviews(self.db, verification=Customers(self.db).verified)
 
     def test_immediate_publication_ownership_and_admin_removal(self):
         r = self.reviews
@@ -325,7 +327,7 @@ class ShowcaseTests(unittest.TestCase):
     def test_detail_api_unknown_slug_and_direct_refresh(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
-        with patch("auth.hash_password", return_value="test-hash"):
+        with patch.dict(os.environ, {"USER_SERVICE_TOKEN": "u" * 64}):
             gateway = Gateway(
                 mongomock.MongoClient(tz_aware=True).db, Store(directory.name)
             )
@@ -355,7 +357,7 @@ class ShowcaseTests(unittest.TestCase):
     def test_gateway_blocks_provider_calls_and_challenge_before_hash(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
-        with patch("auth.hash_password", return_value="test-hash"):
+        with patch.dict(os.environ, {"USER_SERVICE_TOKEN": "u" * 64}):
             gateway = Gateway(
                 mongomock.MongoClient(tz_aware=True).db, Store(directory.name)
             )
@@ -385,10 +387,9 @@ class ShowcaseTests(unittest.TestCase):
         with self.assertRaises(HttpError):
             gateway.handle(req("/api/payments/orders", {}))
         gateway.payment.assert_not_called()
-        gateway.registration.check = Mock(
+        gateway.auth.forward = Mock(
             side_effect=HttpError(400, "challenge failed")
         )
-        gateway.auth.register = Mock()
         with self.assertRaises(HttpError):
             gateway.handle(
                 req(
@@ -400,7 +401,7 @@ class ShowcaseTests(unittest.TestCase):
                     },
                 )
             )
-        gateway.auth.register.assert_not_called()
+        gateway.auth.forward.assert_called_once()
 
 
 @unittest.skipUnless(

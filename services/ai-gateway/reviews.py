@@ -17,7 +17,6 @@ def indexes(db):
     )
     db.reviews.create_index([("status", 1), ("_id", 1)])
     db.reviews.create_index([("synthetic", 1), ("datasetId", 1)])
-    db.purchase_history.create_index([("userId", 1), ("items.sku", 1), ("status", 1)])
 
 
 def content(data):
@@ -42,28 +41,16 @@ def content(data):
 
 
 class Reviews:
-    def __init__(self, db, demo_db=None):
+    def __init__(self, db, demo_db=None, verification=None):
         self.db = db
         self.demo_db = demo_db
+        self.verification = verification
         indexes(db)
 
     def verified(self, row):
         if row.get("synthetic"):
             return False
-        return bool(
-            self.db.purchase_history.find_one(
-                {
-                    "userId": row["authorId"],
-                    "items.sku": row["productId"],
-                    "status": "paid",
-                    "synthetic": {"$ne": True},
-                    "paymentCaptured": True,
-                    "paymentMode": "live",
-                    "paidAt": {"$lte": row["createdAt"]},
-                },
-                {"_id": 1},
-            )
-        )
+        return bool(self.verification(row)) if self.verification else False
 
     def public(self, row):
         return {

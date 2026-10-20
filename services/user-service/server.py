@@ -36,7 +36,7 @@ class UserService:
             self.db.command('ping')
             return {'ready': True}
         supplied = req.headers.get('x-user-service-token', '')
-        if not supplied or not hmac.compare_digest(supplied, self.service_token):
+        if not supplied or not hmac.compare_digest(supplied.encode(), self.service_token.encode()):
             raise HttpError(401, 'User service authentication required.')
         if req.method != 'POST':
             raise HttpError(405, 'Method not allowed.')
@@ -61,6 +61,8 @@ class UserService:
                 raise HttpError(404, 'Account not found.')
             self.customers.save_address(user_id, data.get('shipping'))
             return {'saved': True}
+        if req.path == '/internal/verified-purchase':
+            return {'verified': self.customers.verified(data)}
         if req.path == '/internal/purchase':
             order = data.get('order', {})
             if not isinstance(order, dict) or order.get('status') != 'paid':

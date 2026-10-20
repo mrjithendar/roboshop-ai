@@ -40,7 +40,7 @@ while [[ $# -gt 0 ]]; do
     *) fail "Unknown option: $1" ;;
   esac
 done
-services=(mongodb postgres redis rabbitmq jaeger otel-collector product-ingestion catalogue-service recommendation-service shopping-agent sre-copilot cart-service payment-service shipping-service ai-gateway frontend nginx mcp-server finder)
+services=(mongodb postgres redis rabbitmq jaeger otel-collector product-ingestion catalogue-service recommendation-service shopping-agent sre-copilot cart-service payment-service shipping-service user-service ai-gateway frontend nginx mcp-server finder)
 if [[ "$selection" == service ]]; then
   found=false
   for service in "${services[@]}"; do

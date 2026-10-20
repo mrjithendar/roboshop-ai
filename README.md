@@ -37,7 +37,7 @@ Requires Node.js 24+, Python 3.11+, Java/Gradle-compatible JDK, PostgreSQL and M
 ```bash
 npm ci
 python3 -m venv .venv
-.venv/bin/python -m pip install -r services/ai-gateway/requirements.txt -r services/shopping-agent/requirements.txt
+.venv/bin/python -m pip install -r services/ai-gateway/requirements.txt -r services/user-service/requirements.txt -r services/shopping-agent/requirements.txt
 export PYTHON="$PWD/.venv/bin/python"
 npm run dev
 ```
@@ -50,7 +50,8 @@ Open **http://localhost:3000**. Ctrl+C stops the launcher’s child processes. `
 | --- | --- |
 | `services/frontend` | TypeScript storefront, product pages, cart and admin UI |
 | `services/nginx` | Edge proxy, asset routing and security headers |
-| `services/ai-gateway` | Public API, authentication, authorization and order ledger |
+| `services/ai-gateway` | Public API routing, authorization and order ledger |
+| `services/user-service` | MongoDB accounts, sessions, profiles, MFA, email recovery and purchase history |
 | `services/catalogue-service` | MongoDB catalogue reads and legacy-compatible product APIs |
 | `services/product-ingestion` | Validated catalogue imports and publication |
 | `services/cart-service` | Redis-backed carts |

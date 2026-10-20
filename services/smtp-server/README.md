@@ -5,9 +5,9 @@ OpenDKIM signs mail as `jithendar.com`, using selector `robotshop`.
 The sender is `no-reply@jithendar.com`; this is an outbound service, not a mailbox server.
 
 The SMTP service is internal (`ClusterIP`, port 587). There is no public SMTP port,
-Ingress, or open relay. The gateway uses STARTTLS with a client certificate signed
+Ingress, or open relay. The user service uses STARTTLS with a client certificate signed
 by a dedicated private CA. cert-manager manages both certificates. A NetworkPolicy
-also limits access to ai-gateway when the cluster CNI supports policy enforcement.
+also limits access to user-service when the cluster CNI supports policy enforcement.
 Certificate authentication remains required even without NetworkPolicy support.
 
 ## Before deployment
@@ -43,6 +43,8 @@ bash minikube/deploy-smtp.sh --check
 bash build-images.sh --service smtp-server --local
 bash minikube/deploy-smtp.sh
 
+bash build-images.sh --service user-service --local
+bash deploy-minikube.sh --service user-service --load-images
 bash build-images.sh --service ai-gateway --local
 bash deploy-minikube.sh --service ai-gateway --load-images
 bash build-images.sh --service frontend --local
@@ -50,11 +52,11 @@ bash deploy-minikube.sh --service frontend --load-images
 ```
 
 The **Deploy-Minikube** GitHub Actions workflow now builds and deploys
-`smtp-server` immediately after infrastructure dependencies, before `ai-gateway`.
+`smtp-server` immediately after infrastructure dependencies, before `user-service` and `ai-gateway`.
 Its preflight checks include OpenSSL. The SMTP step prints the public DKIM record;
 repeat runs preserve the existing signing and authenticator encryption keys.
 
-For a quick update of an existing cluster, run just the SMTP, gateway and frontend
+For a quick update of an existing cluster, run just the SMTP, user service, gateway and frontend
 commands above; rebuilding the other application images is unnecessary.
 
 SMTP has its own installer because its CA, DKIM key and encryption key must exist
@@ -105,7 +107,7 @@ kubectl -n robotshop-ai get pods -l app=smtp-server
 kubectl -n robotshop-ai get certificates smtp-ca smtp-server-tls smtp-client-tls
 kubectl -n robotshop-ai logs deployment/smtp-server --tail=100
 kubectl -n robotshop-ai exec deployment/smtp-server -- postqueue -p
-kubectl -n robotshop-ai logs deployment/ai-gateway --tail=100
+kubectl -n robotshop-ai logs deployment/user-service --tail=100
 ```
 
 Check received-message headers for SPF, DKIM and DMARC results. SMTP acceptance
@@ -121,14 +123,14 @@ access and retention. The application does not log passwords, OTPs or MFA seeds.
 - **Spam/rejected**: verify A/PTR, SPF and the `robotshop._domainkey` record; inspect
   the recipient server's rejection. Inbox placement also depends on IP reputation.
 - **TLS or client-certificate error**: check all three certificates are Ready and
-  `smtp-client-tls` is mounted at `/etc/robotshop-smtp` in ai-gateway. Do not disable
-  certificate verification. Gateway loads current certificates for each send;
+  `smtp-client-tls` is mounted at `/etc/robotshop-smtp` in user-service. Do not disable
+  certificate verification. User service loads current certificates for each send;
   Postfix reads renewed files in newly spawned SMTP workers. Restart SMTP after
   manual CA changes. CA rotation requires a coordinated reissue of both leaf certs.
-- **Recovery not configured**: deploy the updated gateway manifest and image after
-  running the SMTP installer; check that `robotshop-auth` exists. Old gateway pods
+- **Recovery not configured**: deploy the updated user-service manifest and image after
+  running the SMTP installer; check that `robotshop-auth` exists. Old user-service pods
   do not pick up Secret environment changes until restarted.
-- **No message but generic success**: inspect gateway/SMTP logs. Delivery failures
+- **No message but generic success**: inspect user-service/SMTP logs. Delivery failures
   deliberately do not expose account existence or SMTP credentials to the caller.
 - **Code rejected**: use the newest code, within five minutes and five attempts.
   Request a new code if you closed the page; its reset identifier lives only in

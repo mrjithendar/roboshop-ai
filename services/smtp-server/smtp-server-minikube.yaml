@@ -83,6 +83,6 @@ spec:
   ingress:
   - from:
     - podSelector:
-        matchLabels: {app: ai-gateway}
+        matchLabels: {app: user-service}
     ports:
     - {protocol: TCP, port: 587}

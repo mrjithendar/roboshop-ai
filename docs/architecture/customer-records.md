@@ -2,7 +2,9 @@
 
 # Customer records in MongoDB
 
-The existing Python gateway owns customer records; there is no new microservice.
+The Python `user-service` owns customer records and authentication, following the
+legacy RobotShop user-service boundary. The gateway forwards public account APIs
+and checks sessions through authenticated internal HTTP calls.
 Authenticated registration/login records the server-derived IP address, sanitized
 browser user-agent (up to 512 characters), UTC timestamp and login count. The
 `users` document also receives `lastLoginAt` and `updatedAt`. Registration activity
@@ -34,11 +36,12 @@ collected.
 
 The existing JSON ledger remains the authoritative single-writer checkout ledger.
 Each new order captures its account owner before payment. After verified capture,
-a gateway background worker upserts the paid snapshot into MongoDB and only then
+a gateway background worker sends the paid snapshot to the user service, which
+upserts it into MongoDB. Only after success does the gateway
 marks the ledger record synchronized. Order IDs prevent duplicate history entries
 on repeated webhooks, verification, restarts or retries. Shipping snapshots and item
 prices come from the verified server-side order, never browser-submitted history.
-A temporary MongoDB failure leaves the record pending for replay, without undoing
+A temporary user-service or MongoDB failure leaves the record pending for replay, without undoing
 payment capture. Monetary summary totals use integer minor units. History usually
 appears within a few seconds; prolonged errors emit `customer_history_sync_pending`.
 

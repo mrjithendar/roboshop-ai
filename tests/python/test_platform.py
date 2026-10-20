@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.append(str(ROOT / "services/user-service"))
 sys.path[:0] = [
     str(ROOT / "services/ai-gateway/lib"),
     str(ROOT / "services/ai-gateway"),
@@ -17,7 +18,7 @@ sys.path[:0] = [
 from agent import answer
 from catalogue import retrieve
 from store import Store, cents
-from auth import hash_password, verify
+from accounts import hash_password, verify
 from runtime import HttpError, application
 
 spec = importlib.util.spec_from_file_location(

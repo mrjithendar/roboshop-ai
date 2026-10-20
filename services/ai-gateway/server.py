@@ -56,7 +56,7 @@ class Gateway:
                 raise RuntimeError('Demo reviews require an isolated robotshop_demo_ database.')
             self.demo_client = MongoClient(os.environ['DEMO_MONGODB_URL'], serverSelectionTimeoutMS=3000, socketTimeoutMS=5000)
             demo_db = self.demo_client[name]
-        self.reviews = Reviews(db, demo_db)
+        self.reviews = Reviews(db, demo_db, verification=self.auth.verified_purchase)
         configure_telemetry("ai-gateway")
         self.customers = PurchaseSync(self.auth, store)
         self.limits = {}

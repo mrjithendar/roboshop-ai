@@ -9,9 +9,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.append(str(ROOT / "services/user-service"))
 sys.path[:0] = [str(ROOT / "services/ai-gateway/lib"), str(ROOT / "services/ai-gateway")]
 from pymongo import MongoClient
 from customers import Customers
+from purchase_sync import PurchaseSync
 from store import Store
 from runtime import now, iso, HttpError
 
@@ -25,7 +27,8 @@ class CustomerTests(unittest.TestCase):
         self.db = self.client["customers_test_" + uuid.uuid4().hex]
         self.directory = tempfile.TemporaryDirectory()
         self.store = Store(self.directory.name)
-        self.customers = Customers(self.db, self.store)
+        self.customers = Customers(self.db)
+        self.sync = PurchaseSync(self.customers, self.store)
 
     def tearDown(self):
         self.client.drop_database(self.db.name)
@@ -102,10 +105,10 @@ class CustomerTests(unittest.TestCase):
             side_effect=RuntimeError("temporary failure"),
         ):
             with self.assertRaises(RuntimeError):
-                self.customers.sync()
+                self.sync.sync()
         self.assertNotIn("customerSyncedAt", self.store.state["orders"][0])
-        self.customers.sync()
-        self.customers.sync()
+        self.sync.sync()
+        self.sync.sync()
         self.assertEqual(self.db.purchase_history.count_documents({}), 1)
         self.assertEqual(self.store.state["orders"][0]["userId"], "alice")
         self.assertIn("customerSyncedAt", self.store.state["orders"][0])
@@ -144,7 +147,7 @@ class CustomerTests(unittest.TestCase):
             {"id": str(uuid.uuid4()), "session": "unknown", "status": "paid"}
             for _ in range(101)
         ]
-        self.customers.sync()
+        self.sync.sync()
         self.assertTrue(
             all(not o.get("customerSyncedAt") for o in self.store.state["orders"])
         )

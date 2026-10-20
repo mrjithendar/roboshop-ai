@@ -18,6 +18,7 @@ data:
   TURNSTILE_HOSTNAME: jithendar.com
   PAYMENT_MODE: test
   MONGODB_DATABASE: robotshop
+  USER_URL: http://user-service:4109
   CART_URL: http://cart-service:4107
   CATALOGUE_URL: http://catalogue-service:4108
   RECOMMENDATION_URL: http://recommendation-service:4102

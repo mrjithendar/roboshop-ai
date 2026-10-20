@@ -2,19 +2,9 @@ name: Create infrastructure
 
 on:
   workflow_dispatch:
-    inputs:
-      action:
-        description: Plan changes, or plan and apply the VPC and ECR stack
-        type: choice
-        required: true
-        default: plan
-        options:
-          - plan
-          - apply
 
 permissions:
   contents: read
-  id-token: write
 
 # Serialize access to the stack; never cancel an active Terraform apply.
 concurrency:
@@ -23,58 +13,23 @@ concurrency:
 
 jobs:
   terraform:
-    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: self-hosted
     timeout-minutes: 60
     defaults:
       run:
         shell: bash
         working-directory: infrastructure
-    env:
-      TF_IN_AUTOMATION: 'true'
-      TF_INPUT: 'false'
-      TF_WORKSPACE: default
-      # AWS_REGION: ${{ vars.AWS_REGION }}
-      # AWS_INFRA_ROLE_ARN: ${{ vars.AWS_INFRA_ROLE_ARN || vars.AWS_ROLE_ARN }}
-    steps:
-      - name: Prepare isolated Terraform working data
-        id: paths
-        working-directory: ${{ runner.temp }}
-        run: |
-          set -euo pipefail
-          umask 077
-          tf_directory="$(mktemp -d "$RUNNER_TEMP/robotshop-terraform.XXXXXX")"
-          printf 'TF_DATA_DIR=%s\nPLAN_FILE=%s/plan.tfplan\n' "$tf_directory" "$tf_directory" >> "$GITHUB_ENV"
 
+    steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-
-      - name: Check AWS configuration
-        run: |
-          set -euo pipefail
-          : "${AWS_REGION:?Set the AWS_REGION repository variable}"
-          : "${AWS_INFRA_ROLE_ARN:?Set AWS_INFRA_ROLE_ARN (or AWS_ROLE_ARN) with infrastructure permissions}"
-          # The selected tfvars has us-east-1 AZs and the backend is in us-east-1.
-          [[ "$AWS_REGION" == us-east-1 ]] || {
-            echo 'vars/dev.tfvars currently uses us-east-1. Update its region and availability zones before using another region.' >&2
-            exit 1
-          }
 
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: 1.10.5
           terraform_wrapper: false
-
-      - name: Assume AWS infrastructure role
-        uses: aws-actions/configure-aws-credentials@v6.3.0
-        # with:
-        #   role-to-assume: ${{ env.AWS_INFRA_ROLE_ARN }}
-        #   aws-region: ${{ env.AWS_REGION }}
-        #   role-session-name: terraform-${{ github.run_id }}
-        #   role-duration-seconds: 3600
-        #   unset-current-credentials: true
 
       - name: Check formatting
         run: terraform fmt -check -recursive
@@ -92,31 +47,14 @@ jobs:
         run: |
           umask 077
           terraform plan -input=false -no-color -lock-timeout=5m \
-            -var-file=vars/dev.tfvars -out="$PLAN_FILE"
+            -var-file=vars/dev.tfvars -out=infra.tfplan
 
       - name: Apply saved plan
-        if: inputs.action == 'apply'
-        run: terraform apply -input=false -no-color -lock-timeout=5m "$PLAN_FILE"
+        run: terraform apply -input=false -no-color -lock-timeout=5m infra.tfplan
 
       - name: Show infrastructure outputs
-        if: inputs.action == 'apply'
         run: terraform output -no-color
 
-      - name: Summarize run
-        env:
-          ACTION: ${{ inputs.action }}
-        run: |
-          printf '### Infrastructure %s completed\n\n' "$ACTION" >> "$GITHUB_STEP_SUMMARY"
-          printf 'Stack: `infrastructure/` · Variables: `vars/dev.tfvars`\n\n' >> "$GITHUB_STEP_SUMMARY"
-          if [[ "$ACTION" == plan ]]; then
-            printf 'No AWS resources changed. Review the plan in the job logs; select **apply** in a new manual run to provision the stack. That run generates and applies a fresh plan.\n' >> "$GITHUB_STEP_SUMMARY"
-          else
-            printf 'Applied the saved plan from this run. VPC and ECR outputs are available in the job logs.\n' >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-      - name: Remove local plan and Terraform working data
-        if: always() && steps.paths.outcome == 'success'
-        working-directory: ${{ runner.temp }}
-        run: |
-          rm -f -- "$PLAN_FILE"
-          rm -rf -- "${TF_DATA_DIR:?}"
+      - name: Remove saved plan
+        if: always()
+        run: rm -f infra.tfplan

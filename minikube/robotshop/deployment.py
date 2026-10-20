@@ -1,5 +1,6 @@
 """Render service manifests and initialize cluster-local RobotShop credentials."""
 import argparse
+import base64
 import json
 import os
 from pathlib import Path
@@ -13,12 +14,12 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 SERVICES = ['mongodb', 'postgres', 'redis', 'rabbitmq', 'jaeger', 'otel-collector',
             'product-ingestion', 'catalogue-service', 'recommendation-service', 'shopping-agent',
-            'sre-copilot', 'payment-service', 'shipping-service', 'ai-gateway',
+            'sre-copilot', 'payment-service', 'shipping-service', 'user-service', 'ai-gateway',
             'frontend', 'finder', 'nginx', 'mcp-server', 'cart-service']
 APPS = {name for name in SERVICES if (ROOT / 'services' / name / 'Dockerfile').is_file()}
 PASSWORD_KEYS = ['MONGO_ROOT_PASSWORD', 'MONGO_APP_PASSWORD', 'SHIPPING_DB_PASSWORD',
                  'SHIPPING_APP_PASSWORD', 'REDIS_PASSWORD', 'RABBITMQ_PASSWORD',
-                 'PAYMENT_SERVICE_TOKEN', 'LLM_SERVICE_TOKEN']
+                 'PAYMENT_SERVICE_TOKEN', 'LLM_SERVICE_TOKEN', 'USER_SERVICE_TOKEN']
 
 
 def render(output, prefix, tag, public_origin):
@@ -63,9 +64,19 @@ def ensure_credentials(context):
     current = read(['get', 'secret', 'robotshop-secrets', '--ignore-not-found', '-o', 'json'])
     if current:
         data = json.loads(current).get('data', {})
-        if any(not data.get(key) for key in PASSWORD_KEYS):
+        if any(not data.get(key) for key in PASSWORD_KEYS if key != 'USER_SERVICE_TOKEN'):
             raise RuntimeError('Existing robotshop-secrets is incomplete; restore missing credentials rather than rotating database passwords.')
-        print('Reusing robotshop-secrets; no credentials changed.')
+        if not data.get('USER_SERVICE_TOKEN'):
+            patch = [
+                {'op': 'test', 'path': '/metadata/resourceVersion', 'value': json.loads(current)['metadata']['resourceVersion']},
+                {'op': 'add', 'path': '/data/USER_SERVICE_TOKEN', 'value': base64.b64encode(secrets.token_hex(32).encode()).decode()},
+            ]
+            result = subprocess.run(base + ['patch', 'secret', 'robotshop-secrets', '--type=json', '--patch-file=/dev/stdin'], input=json.dumps(patch), text=True, capture_output=True)
+            if result.returncode:
+                raise RuntimeError('Could not add user service credential. Rerun after checking for concurrent changes.')
+            print('Added USER_SERVICE_TOKEN; existing credentials preserved.')
+        else:
+            print('Reusing robotshop-secrets; no credentials changed.')
         return
     claims = read(['get', 'pvc', 'mongodb-data', 'shipping-postgres', 'rabbitmq-data', 'gateway-data',
                    '--ignore-not-found', '-o', 'name'])

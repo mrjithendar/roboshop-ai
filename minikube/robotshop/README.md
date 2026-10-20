@@ -73,7 +73,7 @@ Do not add `-t` for stdio protocol clients. Set a valid `MCP_SESSION_TOKEN` in `
 | --- | --- |
 | Data and messaging | mongodb, postgres (workload `shipping-db`), redis, rabbitmq |
 | Tracing | jaeger, otel-collector |
-| APIs and AI | product-ingestion, recommendation-service, shopping-agent, sre-copilot, payment-service, shipping-service, ai-gateway |
+| APIs and AI | product-ingestion, recommendation-service, shopping-agent, sre-copilot, payment-service, shipping-service, user-service, ai-gateway |
 | Web and tools | frontend, nginx, mcp-server |
 
 - `minikube/robotshop/config.yaml`: namespace and common non-secret application settings.
@@ -129,3 +129,12 @@ The installer stops at the first failing rollout and prints diagnostics. Fix the
 If the previous container log reports `spring.data.redis.port` cannot parse `tcp://...:6379`, Kubernetes service-link variables collided with the application's `REDIS_PORT` setting. The manifests disable service links and shipping explicitly sets `REDIS_PORT=6379` and `RABBITMQ_PORT=5672`. Apply the updated shipping manifest or rerun the deployment script; no image rebuild or database reset is needed. Service discovery continues using Kubernetes DNS.
 
 ### HTTPS returns 502 with NGINX "Host not found"
+
+## User service
+
+The local deployment workflow builds `user-service` before `ai-gateway`.
+Account data stays in the existing MongoDB collections. See
+[the user-service migration and deployment guide](../../services/user-service/README.md).
+`deploy-minikube.sh` adds a missing `USER_SERVICE_TOKEN` to the existing Secret
+without rotating stored database passwords. Reapply SMTP with
+`bash minikube/deploy-smtp.sh` to allow the user-service pod through its NetworkPolicy.

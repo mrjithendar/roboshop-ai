@@ -58,47 +58,29 @@ apply pipeline against untrusted pull-request code. Mock tests do not access AWS
 ## GitHub Actions deployment
 
 The [Create infrastructure workflow](../.github/workflows/create-infrastructure.yml)
-runs on the existing self-hosted runner and uses GitHub OIDC for AWS credentials.
-It provisions this combined VPC/ECR stack with `vars/dev.tfvars`; it does not create
-EKS or deploy application containers.
+runs manually on the self-hosted runner. It checks formatting, initializes remote
+state, validates and tests the configuration, then creates and applies a saved
+plan using `vars/dev.tfvars`. It provisions VPC/ECR resources, not EKS or application
+containers. Every run applies changes; there is no plan-only option.
 
-Set these repository variables under **Settings → Secrets and variables → Actions → Variables**:
+The runner must already have AWS credentials (for example, an EC2 instance role)
+with permission to manage VPC/ECR resources and access the existing S3 state and
+lockfile. No OIDC role or AWS access keys are configured in this workflow. The S3
+backend bucket must exist before the run.
 
-- `AWS_REGION`: `us-east-1`, matching the current dev region and availability zones.
-- `AWS_INFRA_ROLE_ARN`: the AWS role permitted to manage VPC/ECR resources and access
-  the existing S3 state and lockfile. If omitted, the workflow uses `AWS_ROLE_ARN`;
-  an ECR image-publishing role alone usually lacks infrastructure permissions.
+Open **Actions → Create infrastructure → Run workflow** and select your intended
+branch. Runs are serialized, Terraform uses S3 state locking, and the saved plan
+is removed even if a step fails. Do not run the Jenkins deployment concurrently
+against the same state.
 
-The role must trust GitHub's OIDC provider with audience `sts.amazonaws.com` and
-subject `repo:OWNER/REPOSITORY:ref:refs/heads/DEFAULT_BRANCH`. Replace the placeholders
-with this repository and its default branch. The S3 backend bucket must already
-exist. Terraform cannot create its own backend bucket during initialization.
-
-Commit the workflow to the default branch, then open **Actions → Create infrastructure
-→ Run workflow**, select that branch and choose:
-
-- **plan** (default): check formatting, initialize state, validate, run mocked tests
-  and show the proposed changes in the job logs. No resources are applied.
-- **apply**: run the same checks, generate a fresh plan and apply that exact saved
-  plan within the same job. This can create, update or delete VPC/ECR resources.
-
-Only default-branch manual runs are allowed. Pushes and pull requests do not deploy
-infrastructure. Runs are serialized and use Terraform's S3 state lock. The plan
-and temporary Terraform data are removed at job completion; no plan/state artifact
-is uploaded. AWS access keys are not stored in the workflow. Do not run the legacy
-Jenkins deployment concurrently against the same state.
-
-The action installs Terraform 1.10.5, independently of the runner's system version.
-It requires a self-hosted runner compatible with the existing checkout and AWS
-Actions, plus access to GitHub, HashiCorp downloads, AWS APIs and the state bucket.
-See [Terraform setup action](https://github.com/hashicorp/setup-terraform) for its
-runner requirements.
+The workflow installs Terraform 1.10.5. The self-hosted runner needs access to
+GitHub, HashiCorp downloads, AWS APIs and the state bucket.
 
 ## ECR repositories
 
 `ecr.tf` creates one private repository per name in the `list(string)` variable
 `ecr_repository_names`, using `for_each = toset(var.ecr_repository_names)`.
-The default list in `_variables.tf` covers all 14 custom service images, including
+The default list in `_variables.tf` covers all 15 custom service images, including
 SMTP. It matches CI's default `ECR_REPOSITORY_PREFIX=robotshop`; shipping uses
 `robotshop-shipping`, not `robotshop-shipping-service`. Official third-party
 images such as MongoDB, Redis and RabbitMQ do not need project repositories.

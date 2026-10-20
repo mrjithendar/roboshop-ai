@@ -50,7 +50,7 @@ while [[ $# -gt 0 ]]; do
 done
 [[ "$IMAGE_TAG" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$ ]] || { echo 'Invalid IMAGE_TAG.' >&2; exit 2; }
 [[ "$IMAGE_PREFIX" =~ ^[a-z0-9]([a-z0-9./:_-]*[a-z0-9])?$ && "$IMAGE_PREFIX" != */ ]] || { echo 'Invalid IMAGE_PREFIX (use a lowercase repository prefix).' >&2; exit 2; }
-services=(cart-service ai-gateway product-ingestion catalogue-service recommendation-service shopping-agent sre-copilot payment-service mcp-server shipping-service frontend nginx finder smtp-server)
+services=(user-service cart-service ai-gateway product-ingestion catalogue-service recommendation-service shopping-agent sre-copilot payment-service mcp-server shipping-service frontend nginx finder smtp-server)
 if [[ -n "$SELECTED_SERVICE" ]]; then
   found=false
   for service in "${services[@]}"; do

@@ -110,6 +110,11 @@ jobs:
           bash build-images.sh --service shipping-service --local
           bash deploy-minikube.sh --service shipping-service --load-images
 
+      - name: Build and deploy user-service
+        run: |
+          bash build-images.sh --service user-service --local
+          bash deploy-minikube.sh --service user-service --load-images
+
       - name: Build and deploy ai-gateway
         run: |
           bash build-images.sh --service ai-gateway --local
@@ -147,7 +152,7 @@ jobs:
             echo "Minikube profile: $PROFILE"
             echo 'Image tags: robotshop-*:local'
             echo 'Application: https://jithendar.com/roboshop/'
-            echo 'SMTP: deployed with DKIM and cert-manager client certificates before ai-gateway.'
+            echo 'SMTP: deployed with DKIM and cert-manager client certificates before user-service.'
             echo 'Publish the DKIM TXT record from the SMTP step; mail delivery requires mail DNS/PTR and outbound TCP 25.'
             echo 'Check deployment logs for optional Finder readiness warnings.'
           } >> "$GITHUB_STEP_SUMMARY"

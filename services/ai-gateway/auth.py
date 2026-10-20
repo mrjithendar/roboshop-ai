@@ -22,16 +22,6 @@ def connect_mongo():
 
 
 
-def public_user(u):
-    return {
-        "id": u["_id"],
-        "email": u["email"],
-        "name": u["name"],
-        "role": u["role"],
-        "disabled": u.get("disabled") is True,
-    }
-
-
 def email_address(value):
     if (
         not isinstance(value, str)

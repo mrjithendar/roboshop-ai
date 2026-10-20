@@ -22,6 +22,7 @@ Each service owns its `lib/` directory. Edit and test those files in that servic
 
 ## What lives where
 
+- User service: MongoDB accounts/sessions, role administration, MFA, email OTP recovery, profiles and purchase-history projection. Owns its security tests and SMTP/Turnstile credentials.
 - Frontend: TypeScript, HTML/CSS, product/legacy images, build tool, dependencies and UI unit tests. Original legacy-image source is retained as an archive; active builds use `frontend/images/`.
 - Catalogue and payment: their unit tests are under each service's `tests/` directory.
 - Shipping: GeoNames preparation tool is under `shipping-service/scripts/` alongside its data and Java build.

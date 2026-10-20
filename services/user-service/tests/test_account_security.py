@@ -10,7 +10,7 @@ from unittest.mock import patch, Mock, MagicMock
 sys.path[:0] = [str(Path(__file__).resolve().parents[1]), str(Path(__file__).resolve().parents[1] / 'lib')]
 import mongomock
 from cryptography.fernet import Fernet
-from auth import Auth, public_user, digest, verify
+from accounts import Auth, public_user, digest, verify
 from account_security import AccountSecurity, totp
 from runtime import HttpError, now
 
@@ -177,11 +177,11 @@ class SecurityTests(unittest.TestCase):
             self.assertIn('123456', message.get_content())
 
     def test_gateway_does_not_issue_cookie_until_second_factor(self):
-        from server import Gateway
+        from server import UserService
         from types import SimpleNamespace
         import threading
         _, codes, user = self.enroll()
-        gateway = Gateway.__new__(Gateway)
+        gateway = UserService.__new__(UserService)
         gateway.auth, gateway.security = self.auth, self.security
         gateway.origin = 'https://shop.example'
         gateway.limit = Mock()
@@ -191,20 +191,20 @@ class SecurityTests(unittest.TestCase):
         gateway.store = SimpleNamespace(lock=threading.Lock(), state={'sessions': {'cart': {}}})
         request = SimpleNamespace(path='/api/auth/login', method='POST', headers={'origin': gateway.origin}, cookie=Mock(return_value=''), set_cookie=Mock(), body=Mock(return_value={'email': user['email'], 'password': 'correct password 123'}))
         with patch('server.client_address', return_value='192.0.2.1'):
-            challenge = gateway.handle(request)
+            challenge = gateway.handle_public(request)
             self.assertTrue(challenge['mfaRequired'])
             request.set_cookie.assert_not_called()
             gateway.customers.record_login.assert_not_called()
             request.path = '/api/auth/mfa/verify'
             request.body.return_value = {'challengeId': challenge['challengeId'], 'code': codes['backupCodes'][0]}
-            result = gateway.handle(request)
+            result = gateway.handle_public(request)
             self.assertEqual(result[0]['user']['id'], user['_id'])
             self.assertEqual(request.set_cookie.call_args.args[0], 'rs_auth')
             gateway.customers.record_login.assert_called_once()
             request.path = '/api/auth/password/request'
             request.headers['origin'] = 'https://attacker.example'
             with self.assertRaises(HttpError) as error:
-                gateway.handle(request)
+                gateway.handle_public(request)
             self.assertEqual(error.exception.status, 403)
 
 

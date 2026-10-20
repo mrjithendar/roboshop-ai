@@ -66,6 +66,7 @@ variable "ecr_repository_names" {
     "robotshop-shipping",
     "robotshop-shopping-agent",
     "robotshop-smtp-server",
+    "robotshop-user-service",
     "robotshop-sre-copilot",
   ]
 

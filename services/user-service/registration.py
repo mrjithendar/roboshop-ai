@@ -82,7 +82,7 @@ class TurnstileChallenge:
                 raise ValueError()
             codes = result.get("error-codes", [])
             if any(code in codes for code in ("invalid-input-secret", "missing-input-secret")):
-                print(json.dumps({"service": "ai-gateway", "event": "turnstile_configuration_error"}), flush=True)
+                print(json.dumps({"service": "user-service", "event": "turnstile_configuration_error"}), flush=True)
                 raise HttpError(503, "Sign-in verification is misconfigured. Please contact the store administrator.")
             if response.status >= 500 or "internal-error" in codes:
                 raise HttpError(503, "Verification service is temporarily unavailable. Please try again later.")

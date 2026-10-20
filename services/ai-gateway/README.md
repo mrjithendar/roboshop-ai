@@ -14,9 +14,9 @@ Cookies are HttpOnly, SameSite=Strict and Secure on HTTPS. Mutation origins are 
 DATA_DIR defaults to `.data/`. Only one process may write this ledger.
 See [payment-service](../payment-service/README.md) for activation and recovery boundaries.
 
-MongoDB stores users, hashed login sessions, editable products and public store
-settings. `auth.mjs` and `admin.mjs` implement authentication and server-enforced
-roles inside this gateway. Login is mandatory for payment browser APIs; signed
+MongoDB stores editable products and public store settings for this gateway.
+The user service owns users and hashed sessions; `admin.py` enforces roles on
+product and store-setting operations. Login is mandatory for payment browser APIs; signed
 provider webhooks remain independent of browser sessions. See
 [identity and admin](../../docs/architecture/identity-and-admin.md).
 
@@ -27,7 +27,7 @@ provider webhooks remain independent of browser sessions. See
 `requirements.txt` for native execution; `npm run dev` uses the `PYTHON` environment
 variable or `python3`. The image contains Python gateway code and its local libraries only.
 
-MongoDB auth, public settings, admin role checks, CSRF/origin checks, payment
+Delegated authentication, public settings, admin role checks, CSRF/origin checks, payment
 verification and the single-writer JSON ledger preserve existing formats. A
 reentrant lock serializes ledger writes and inventory/admin checkout operations.
 The background Pika publisher uses durable quorum queues, mandatory routing and
@@ -47,31 +47,21 @@ for access rules, retention, backfill behavior and the remaining single-writer l
 
 Run `docker build -t robotshop-ai-gateway:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
 
-## Customer profile API
+## User-service integration
 
-Authenticated customers can read `GET /api/account/profile`, update editable personal fields with `PUT /api/account/profile`, and upload/remove their picture with `PUT /api/account/photo`. Profiles are stored on the MongoDB user record; login metadata stays in the existing customer activity collections. Email, role, disabled state and login metadata cannot be changed through these endpoints.
+Authentication, MFA, password recovery, profiles, photos, addresses, account activity,
+purchase history and admin user management are owned by
+[`user-service`](../user-service/README.md). The public `/api/auth/*`, `/api/account/*`
+and `/api/admin/users*` routes remain unchanged; `user_client.py` forwards them to
+`USER_URL` (default `http://127.0.0.1:4109`) using `USER_SERVICE_TOKEN`.
 
-Photos arrive as bounded JPEG/PNG/WebP data URLs. The gateway uses Pillow to verify, crop to 128×128, remove metadata and re-encode JPEG before storing. Empty `image` removes the photo. External URLs, SVG, oversized and multi-frame images are rejected. The existing request-size limit stays unchanged.
+Session checks fail closed if the service is unavailable. Anonymous catalogue
+reads do not require a user-service session lookup. Login still links the gateway
+cart to the authenticated account. `purchase_sync.py` retries paid-order projections
+through the service API, marking the checkout ledger only after success. Review
+purchase verification also calls the user service; the gateway no longer accesses
+user/auth/profile/history collections or holds SMTP, MFA or Turnstile credentials.
 
-`POST /api/account/addresses` validates a destination through shipping before saving it; `DELETE /api/account/addresses/<id>` removes only the signed-in user's address. Address-book edits do not change existing orders or current checkout shipping quotes. No database migration is needed.
-
-Run the profile security tests with `python -m unittest discover -s tests -v` from this service directory after installing `requirements.txt` and the test dependency `mongomock`.
-
-## Authenticator and email password recovery
-
-Local-account TOTP enrollment, one-use backup codes and five-minute email OTP
-password reset live in `account_security.py`. Login issues no session until MFA
-verification completes. Password recovery preserves MFA and revokes old sessions.
-See [SMTP deployment and recovery instructions](../smtp-server/README.md).
-
-Configuration is loaded from the optional `robotshop-auth` Secret in Minikube.
-`AUTH_ENCRYPTION_KEY` must be a persistent Fernet key. Email uses `SMTP_HOST`,
-`SMTP_PORT`, `SMTP_FROM`, `SMTP_SECURITY` (`starttls` or `tls`), optional
-`SMTP_USERNAME`/`SMTP_PASSWORD`, and optional `SMTP_CA_FILE`, `SMTP_CLIENT_CERT`,
-`SMTP_CLIENT_KEY` for the internal mutually authenticated SMTP connection.
-Missing security configuration disables enrollment/recovery, not existing
-password-only accounts. Existing MFA accounts always require their second factor.
-
-Endpoints: `GET /api/auth/mfa`; `POST /api/auth/mfa/enroll`, `/confirm`, `/disable`,
-`/verify`; `POST /api/auth/password/request`, `/reset`. All mutations require the
-store Origin. Recovery requests use the existing Turnstile `login` action.
+Run cross-service HTTP contract tests from the repository root after installing
+both service requirements and `mongomock`:
+`python -m unittest discover -s services/ai-gateway/tests -v`.

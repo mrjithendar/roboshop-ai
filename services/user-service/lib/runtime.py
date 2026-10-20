@@ -368,6 +368,8 @@ def application(service, handler):
             if req.path.startswith("/api/")
             else "other"
         )
+        if req.path in ('/internal/request', '/internal/session', '/internal/limit', '/internal/address', '/internal/purchase', '/internal/verified-purchase'):
+            route = req.path
         if route not in [
             "/api/" + s
             for s in (
@@ -389,7 +391,8 @@ def application(service, handler):
                 "compare",
             )
         ]:
-            route = "other"
+            if not route.startswith("/internal/"):
+                route = "other"
         if req.path in ("/internal/chat", "/internal/llm/test"):
             route = req.path
         try:

@@ -1,5 +1,11 @@
 # Login and administration
 
+Account persistence and authentication now run in `services/user-service/` (port
+4109). The gateway forwards the existing auth/account/admin-user endpoints and
+checks sessions over authenticated HTTP. Superadmin bootstrap is owned by the
+user service; `npm run admin:bootstrap` remains the supported root command.
+
+
 Accounts use MongoDB, following the legacy application's database choice. The legacy
 implementation stored plaintext passwords and exposed debug user data; neither
 behavior is carried forward. Authentication and admin APIs live inside the existing

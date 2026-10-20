@@ -17,10 +17,10 @@ test('MongoDB accounts, one super admin, server-side roles, persistent sessions 
   const database = `auth_test_${randomUUID().replaceAll('-', '')}`;
   const { client, db } = await connectMongo(process.env.MONGODB_URL, database);
   const directory = mkdtempSync(join(tmpdir(), 'robotshop-auth-'));
-  const gatewayPort = await port(), cataloguePort = await port(), base = `http://127.0.0.1:${gatewayPort}`;
+  const gatewayPort = await port(), cataloguePort = await port(), userPort = await port(), base = `http://127.0.0.1:${gatewayPort}`;
   const children = []; let logs = '';
   async function start(name, servicePort) {
-    const child = spawn(name === 'ai-gateway' ? (process.env.PYTHON || 'python3') : process.execPath, [`services/${name}/server.${name === 'ai-gateway' ? 'py' : 'mjs'}`], { env: { ...process.env, APP_ENV: 'development', REGISTRATION_CHALLENGE_PROVIDER: 'disabled', CATALOGUE_FILE: fileURLToPath(new URL('./fixtures/catalogue/fictional-products.json', import.meta.url)), MONGODB_DATABASE: database, DATA_DIR: directory, PUBLIC_ORIGIN: base, HOST: '127.0.0.1', PORT: String(servicePort), INGESTION_URL: `http://127.0.0.1:${cataloguePort}`, RABBITMQ_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: '', PAYMENT_SERVICE_TOKEN: 'test-only-token' }, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(['ai-gateway', 'user-service'].includes(name) ? (process.env.PYTHON || 'python3') : process.execPath, [`services/${name}/server.${['ai-gateway', 'user-service'].includes(name) ? 'py' : 'mjs'}`], { env: { ...process.env, APP_ENV: 'development', REGISTRATION_CHALLENGE_PROVIDER: 'disabled', CATALOGUE_FILE: fileURLToPath(new URL('./fixtures/catalogue/fictional-products.json', import.meta.url)), MONGODB_DATABASE: database, DATA_DIR: directory, PUBLIC_ORIGIN: base, HOST: '127.0.0.1', PORT: String(servicePort), INGESTION_URL: `http://127.0.0.1:${cataloguePort}`, USER_URL: `http://127.0.0.1:${userPort}`, USER_SERVICE_TOKEN: 'test-user-token-0123456789abcdef0123456789', RABBITMQ_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: '', PAYMENT_SERVICE_TOKEN: 'test-only-token' }, stdio: ['ignore', 'pipe', 'pipe'] });
     children.push(child); child.stdout.on('data', chunk => logs += chunk); child.stderr.on('data', chunk => logs += chunk);
     for (let i = 0; i < 100; i++) { try { if ((await fetch(`http://127.0.0.1:${servicePort}/health`)).ok) return child; } catch {} await new Promise(resolve => setTimeout(resolve, 50)); }
     assert.fail(logs);
@@ -40,7 +40,7 @@ test('MongoDB accounts, one super admin, server-side roles, persistent sessions 
     assert.equal(winners.filter(result => result.status === 'fulfilled').length, 1);
     assert.equal(await db.collection('users').countDocuments({ role: 'superadmin' }), 1);
     const superUser = winners.find(result => result.status === 'fulfilled').value;
-    await start('product-ingestion', cataloguePort); let gateway = await start('ai-gateway', gatewayPort);
+    await start('product-ingestion', cataloguePort); let userProcess = await start('user-service', userPort); let gateway = await start('ai-gateway', gatewayPort);
     const customer = browser(), other = browser(), admin = browser();
     assert.equal((await customer.call('/api/admin/products')).status, 401);
     assert.equal((await customer.call('/api/account/profile')).status, 401);
@@ -119,7 +119,8 @@ test('MongoDB accounts, one super admin, server-side roles, persistent sessions 
     assert.equal((await admin.call('/api/admin/settings', 'PUT', settings)).status, 200);
     assert.deepEqual((await other.call('/api/settings')).data, settings);
     assert.equal((await other.call('/api/payments/orders', 'POST', {})).status, 503);
-    // Mongo sessions and JSON account-cart ownership survive gateway restart.
+    // Mongo sessions and JSON account-cart ownership survive both service restarts.
+    userProcess.kill('SIGTERM'); await once(userProcess, 'exit'); userProcess = await start('user-service', userPort);
     gateway.kill('SIGTERM'); await once(gateway, 'exit'); gateway = await start('ai-gateway', gatewayPort);
     assert.equal((await customer.call('/api/auth/me')).data.user.id, stored._id);
     assert.equal((await customer.call('/api/cart')).data.items[0].quantity, 1);
