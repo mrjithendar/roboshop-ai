@@ -49,7 +49,7 @@ switchLink.href = appPath(registering ? '/login' : '/register') + '?returnTo=' +
       });
       if (generation !== challengeGeneration) return;
       if (!window.turnstile) throw new Error('Challenge unavailable. Retry registration.');
-      challengeId = window.turnstile.render(challenge, { sitekey: config.siteKey, action: mode.value, appearance: 'interaction-only', callback: () => { challengeReady = true; status.textContent = 'Challenge complete.'; }, 'expired-callback': () => { challengeReady = false; status.textContent = 'Challenge expired. Please complete a fresh challenge.'; }, 'error-callback': () => { challengeReady = false; status.textContent = 'Challenge unavailable. Please retry.'; } });
+      challengeId = window.turnstile.render(challenge, { sitekey: config.siteKey, action: mode.value, appearance: 'interaction-only', callback: () => { challengeReady = true; }, 'expired-callback': () => { challengeReady = false; status.textContent = 'Challenge expired. Please complete a fresh challenge.'; }, 'error-callback': () => { challengeReady = false; status.textContent = 'Challenge unavailable. Please retry.'; } });
     } catch (error) { if (generation === challengeGeneration) status.textContent = error instanceof Error ? error.message : 'Challenge unavailable.'; }
   }
   form.addEventListener('submit', async event => {

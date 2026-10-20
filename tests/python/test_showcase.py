@@ -188,6 +188,16 @@ class ChallengeTests(unittest.TestCase):
         with patch('registration.http.client.HTTPSConnection', return_value=self.connection(action='register')), self.assertRaises(HttpError):
             self.registration.check({'challengeToken':'wrong-action'}, '192.0.2.1', 'login')
 
+    def test_invalid_secret_is_not_reported_as_timeout(self):
+        conn = self.connection(success=False, **{'error-codes':['invalid-input-secret']})
+        conn.getresponse.return_value.status = 400
+        with patch('registration.http.client.HTTPSConnection', return_value=conn):
+            with self.assertRaises(HttpError) as error:
+                TurnstileChallenge().verify('token', '192.0.2.1', 'login')
+            self.assertIn('misconfigured', str(error.exception))
+            self.assertNotIn('timed out', str(error.exception))
+        conn.close.assert_called_once()
+
     def test_failure_expiry_hostname_action_and_timeout(self):
         for changes in [
             {"success": False, "error-codes": ["timeout-or-duplicate"]},
