@@ -35,14 +35,14 @@ bash runner/setup.sh mrjithendar/roboshop-ai roboshop-ai us-east-1
 ```
 
 Setup refuses to update tools while that service is active. It restarts the service
-after successful setup. Reruns refresh the private Python tooling environment;
+after successful setup. Reruns reuse healthy private Python, pip and AWS CLI v2 installations;
 install project dependencies in project virtual environments or workflow steps.
 They preserve runner registration and do not fetch a new GitHub secret for an
 already registered runner. If tool installation or registration configuration fails, the service remains stopped until fixed.
 
 Targets are modern Ubuntu/Debian, CentOS Stream/RHEL/Rocky/AlmaLinux/Fedora/Amazon Linux and openSUSE/SLES systems with matching package repositories. Requires **systemd, Python 3.9+, x86_64 or arm64**, and either root or a regular user with sudo access. Python is installed automatically, but an old release whose repositories provide only an older Python must be upgraded. Alpine/musl, OpenRC-only hosts, end-of-life releases and arbitrary Linux distributions are not guaranteed compatible. zypper package availability varies by SUSE release. Setup checks the runner runtime before fetching registration credentials.
 
-The installer downloads runner 2.337.0 and verifies its pinned SHA-256 checksum. Initial registration fetches the specified AWS secret. The AWS identity needs `secretsmanager:GetSecretValue` (plus KMS decrypt permission for a customer-managed key). Provide an EC2 instance role or configure AWS credentials/profile for your user before running. The installer does not create GitHub access tokens or AWS credentials. Outbound HTTPS to package repositories, GitHub, AWS and PyPI, astral.sh, python-build-standalone release downloads and awscli.amazonaws.com is required.
+When working runner files are absent, the installer downloads runner 2.337.0 and verifies its pinned SHA-256 checksum. Initial registration fetches the specified AWS secret. The AWS identity needs `secretsmanager:GetSecretValue` (plus KMS decrypt permission for a customer-managed key). Provide an EC2 instance role or configure AWS credentials/profile for your user before running. The installer does not create GitHub access tokens or AWS credentials. Outbound HTTPS to package repositories, GitHub, AWS and PyPI, astral.sh, python-build-standalone release downloads and awscli.amazonaws.com is required.
 
 This installs the runner service, not workflow-specific software such as Docker. Workflows requiring Docker need a separately installed daemon and appropriate runner-user permissions.
 
@@ -268,3 +268,36 @@ is online: check the completion message and GitHub's runner status.
 
 Invalid secret contents, rejected GitHub registration and tool installation errors
 still fail setup. Existing registered runners do not need the AWS secret again.
+
+### Root shell repair for the unrelated pip `aws` command
+
+Running setup as root now verifies the installed official CLI identifies itself
+as AWS CLI v2, backs up any conflicting `/usr/local/bin/aws` command under
+`/usr/local/bin/aws-command-backup-*`, then atomically replaces it with a link to
+the official runner-managed binary. This repairs the exact command path cached by
+the current root shell, so no PATH export or shell restart is required. The Python
+package and its dependencies are not uninstalled. The link depends on the runner's
+permanent directory; with the default `/root/actions-runner` it is intended for
+root's use, not other local users. Non-root setup retains user-local PATH handling.
+
+After the updated setup completes (even with registration pending), run
+`aws configure` normally. Credentials still must be supplied by you; setup does
+not invent or retrieve AWS credentials from the GitHub registration secret.
+
+### Retrying installation after registration failure
+
+Setup checks OS packages before installing missing ones. It reuses working private
+Python/pip and AWS CLI v2, and reuses extracted runner files when their runtime
+version check succeeds. Missing or broken tools are repaired. Normal reruns do
+not upgrade working tools or clear the Python environment.
+
+A GitHub 404 is an authentication/repository-access failure, not a missing
+installation. Update the selected AWS secret with a fresh repository registration
+token or an authorized PAT in `github_token`, then rerun:
+
+```bash
+bash runner/setup.sh mrjithendar/roboshop-ai roboshop-ai us-east-1
+```
+
+A PAT is exchanged for a fresh registration token on each registration attempt.
+Setup cannot refresh an expired raw registration token without an authorized PAT.

@@ -58,7 +58,7 @@ def main():
         subprocess.run(['./config.sh', '--unattended', '--url', 'https://github.com/' + repo,
                         '--name', name, '--work', '_work'], env=env, check=True)
     except subprocess.CalledProcessError:
-        raise RegistrationError('GitHub rejected runner configuration. Verify the printed repository URL. If using runner_token/password, obtain a fresh repository registration token (valid one hour) from that exact repository, not organization settings. Alternatively use github_token with repository Administration write access. The WordPress password cannot register a runner.') from None
+        raise RegistrationError('GitHub rejected runner configuration. Verify the printed repository URL. If using runner_token/password, obtain a fresh repository registration token (valid one hour) from that exact repository, not organization settings. Alternatively use github_token with repository Administration write access. Installed tools and runner files are preserved; rerunning setup will reuse them. Update the configured AWS secret before retrying.') from None
 
 
 if __name__ == '__main__':

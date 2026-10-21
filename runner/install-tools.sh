@@ -15,25 +15,35 @@ mkdir -p "$runner_tools/bin"
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 fetch() { curl --fail --silent --show-error --location --retry 3 --connect-timeout 15 --max-time 600 "$@"; }
-# Refresh uv so its managed-Python catalogue includes the latest stable CPython.
-# Official installer handles architecture and verifies its downloaded release archive.
-fetch https://astral.sh/uv/install.sh -o "$work/uv-install.sh"
-UV_UNMANAGED_INSTALL="$runner_tools/bin" sh "$work/uv-install.sh"
+# Reuse working private tools on registration retries. Never reset a healthy
+# virtual environment just because GitHub rejected an unrelated credential.
 export PATH="$runner_tools/bin:$PATH"
-export UV_PYTHON_INSTALL_DIR="$runner_tools/interpreters"
-export UV_PYTHON_BIN_DIR="$runner_tools/bin"
-"$runner_tools/bin/uv" python install 3 --reinstall
-# This environment belongs only to setup/workflow tooling. Refresh Python + pip
-# without touching registration, source checkouts, or project virtual environments.
-"$runner_tools/bin/uv" venv --managed-python --python 3 --seed --clear "$runner_tools/python"
-"$runner_tools/python/bin/python" -m pip install --upgrade pip
+if ! "$runner_tools/python/bin/python" -c 'import sys; assert sys.version_info >= (3, 9)' >/dev/null 2>&1; then
+  if ! "$runner_tools/bin/uv" --version >/dev/null 2>&1; then
+    fetch https://astral.sh/uv/install.sh -o "$work/uv-install.sh"
+    UV_UNMANAGED_INSTALL="$runner_tools/bin" sh "$work/uv-install.sh"
+  fi
+  export UV_PYTHON_INSTALL_DIR="$runner_tools/interpreters"
+  export UV_PYTHON_BIN_DIR="$runner_tools/bin"
+  "$runner_tools/bin/uv" python install 3
+  "$runner_tools/bin/uv" venv --managed-python --python 3 --seed --clear "$runner_tools/python"
+else
+  echo 'Reusing installed Python.'
+fi
+if ! "$runner_tools/python/bin/python" -m pip --version >/dev/null 2>&1; then
+  "$runner_tools/python/bin/python" -m ensurepip --upgrade
+fi
 
-# AWS CLI v2 official Linux bundle, independent of the Python environment above.
-fetch "https://awscli.amazonaws.com/awscli-exe-linux-$aws_arch.zip" -o "$work/aws.zip"
-unzip -q "$work/aws.zip" -d "$work"
-args=(--install-dir "$runner_tools/aws-cli" --bin-dir "$runner_tools/bin")
-[[ ! -d "$runner_tools/aws-cli/v2" ]] || args+=(--update)
-"$work/aws/install" "${args[@]}"
+# AWS CLI v2 is independent of Python; reject the unrelated pip package "aws".
+if aws_version=$("$runner_tools/bin/aws" --version 2>/dev/null) && [[ $aws_version == aws-cli/2.* ]]; then
+  echo 'Reusing installed AWS CLI v2.'
+else
+  fetch "https://awscli.amazonaws.com/awscli-exe-linux-$aws_arch.zip" -o "$work/aws.zip"
+  unzip -q "$work/aws.zip" -d "$work"
+  args=(--install-dir "$runner_tools/aws-cli" --bin-dir "$runner_tools/bin")
+  [[ ! -d "$runner_tools/aws-cli/v2" ]] || args+=(--update)
+  "$work/aws/install" "${args[@]}"
+fi
 "$runner_tools/python/bin/python" --version
 "$runner_tools/python/bin/python" -m pip --version
 "$runner_tools/bin/aws" --version

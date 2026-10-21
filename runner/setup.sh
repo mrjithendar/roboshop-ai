@@ -17,18 +17,36 @@ fi
 [[ -d /run/systemd/system ]] || { echo 'A running systemd host is required (not Alpine/OpenRC or a plain container).' >&2; exit 1; }
 case $(uname -m) in x86_64|aarch64|arm64) ;; *) echo 'Supported architectures: x86_64 and arm64.' >&2; exit 1;; esac
 source /etc/os-release
-# Install prerequisites before checking for commands on minimal server images.
+# Package queries avoid network/package transactions when prerequisites exist.
+install_missing() {
+  local package
+  local missing=()
+  for package in "$@"; do
+    if command -v dpkg-query >/dev/null; then
+      [[ $(dpkg-query -W -f='${Status}' "$package" 2>/dev/null || true) == 'install ok installed' ]] || missing+=("$package")
+    else
+      rpm -q "$package" >/dev/null 2>&1 || missing+=("$package")
+    fi
+  done
+  if (( ${#missing[@]} == 0 )); then return; fi
+  case "$package_manager" in
+    apt-get) as_root apt-get update; as_root apt-get install -y "${missing[@]}" ;;
+    zypper) as_root zypper --non-interactive install "${missing[@]}" ;;
+    *) as_root "$package_manager" install -y "${missing[@]}" ;;
+  esac
+}
 if command -v apt-get >/dev/null; then
-  as_root apt-get update
-  as_root apt-get install -y ca-certificates curl tar gzip coreutils util-linux python3 python3-venv unzip git
+  package_manager=apt-get
+  install_missing ca-certificates curl tar gzip coreutils util-linux python3 python3-venv unzip git
 elif command -v dnf >/dev/null || command -v yum >/dev/null; then
   package_manager=dnf
   command -v dnf >/dev/null || package_manager=yum
-  as_root "$package_manager" install -y ca-certificates tar gzip coreutils util-linux python3 python3-pip unzip git libicu openssl-libs krb5-libs zlib libstdc++ libgcc
+  install_missing ca-certificates tar gzip coreutils util-linux python3 python3-pip unzip git libicu openssl-libs krb5-libs zlib libstdc++ libgcc
   # Keep curl-minimal where installed, avoiding RPM package conflicts.
   command -v curl >/dev/null || as_root "$package_manager" install -y curl
 elif command -v zypper >/dev/null; then
-  as_root zypper --non-interactive install ca-certificates curl tar gzip coreutils util-linux python3 python3-pip unzip git libicu libopenssl3 libkrb5-3 libz1 libstdc++6 libgcc_s1
+  package_manager=zypper
+  install_missing ca-certificates curl tar gzip coreutils util-linux python3 python3-pip unzip git libicu libopenssl3 libkrb5-3 libz1 libstdc++6 libgcc_s1
 else
   echo "No supported package manager found on ${ID:-unknown}; supported: apt, dnf/yum, zypper." >&2
   exit 1
@@ -54,7 +72,7 @@ repo=${1:-mrjithendar/roboshop-ai}
 export RUNNER_SECRET_NAME=${2:-roboshop-ai}
 export AWS_REGION=${3:-us-east-1}
 [[ "$repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Repository must be OWNER/REPOSITORY.' >&2; exit 1; }
-# Upgrade tools on every setup, including already registered runners.
+# Check tools on every setup; install only missing or broken private tools.
 # Do not replace interpreters while a runner service may be executing a job.
 if [[ -f .service ]]; then
   runner_service=$(cat .service)
@@ -70,29 +88,38 @@ printf '%s\n' "$PATH" > .path
 python3 --version
 python3 -m pip --version
 aws --version
+# Root's existing shell may have /usr/local/bin/aws cached from `pip install aws`.
+# Replacing that same path fixes it without sourcing PATH or restarting the shell.
+if [[ $EUID == 0 ]]; then
+  python3 "$script_dir/publish_aws.py" "$runner_dir/.tools/bin/aws" /usr/local/bin/aws
+fi
 export AWS_PAGER=""
 
 if [[ ! -f .runner ]]; then
-  case $(uname -m) in
-    x86_64) arch=x64; checksum=70920811a4f8ad4328818682bca5c6469c1c942fab52448868071d0063816613;;
-    aarch64|arm64) arch=arm64; checksum=9b1dc70626422526e3c94767cf024896beb15da5342a3f4819bf2feac13e0393;;
-    *) echo 'Supported architectures: x86_64 and arm64.' >&2; exit 1;;
-  esac
-  archive=$(mktemp)
-  trap 'rm -f -- "$archive"' EXIT
-  curl --fail --location --retry 3 --connect-timeout 15 \
-    "https://github.com/actions/runner/releases/download/v2.337.0/actions-runner-linux-$arch-2.337.0.tar.gz" -o "$archive"
-  printf '%s  %s\n' "$checksum" "$archive" | sha256sum --check --status
-  tar --no-same-owner -xzf "$archive"
-  rm -f -- "$archive"
-  trap - EXIT
-  # RPM/SUSE runtime libraries were installed above; Debian/Ubuntu package
-  # names vary by release, so use the runner's own dependency detection there.
-  if command -v apt-get >/dev/null; then
-    as_root bash ./bin/installdependencies.sh
+  if [[ -x ./config.sh && -x ./bin/Runner.Listener && -f ./svc.sh ]] && ./config.sh --version >/dev/null 2>&1; then
+    echo 'Reusing installed runner files; retrying registration.'
+  else
+    case $(uname -m) in
+      x86_64) arch=x64; checksum=70920811a4f8ad4328818682bca5c6469c1c942fab52448868071d0063816613;;
+      aarch64|arm64) arch=arm64; checksum=9b1dc70626422526e3c94767cf024896beb15da5342a3f4819bf2feac13e0393;;
+      *) echo 'Supported architectures: x86_64 and arm64.' >&2; exit 1;;
+    esac
+    archive=$(mktemp)
+    trap 'rm -f -- "$archive"' EXIT
+    curl --fail --location --retry 3 --connect-timeout 15 \
+      "https://github.com/actions/runner/releases/download/v2.337.0/actions-runner-linux-$arch-2.337.0.tar.gz" -o "$archive"
+    printf '%s  %s\n' "$checksum" "$archive" | sha256sum --check --status
+    tar --no-same-owner -xzf "$archive"
+    rm -f -- "$archive"
+    trap - EXIT
+    # RPM/SUSE runtime libraries were installed above; Debian/Ubuntu package
+    # names vary by release, so use the runner's own dependency detection there.
+    if command -v apt-get >/dev/null; then
+      as_root bash ./bin/installdependencies.sh
+    fi
+    # Fail before fetching credentials if the runner runtime cannot start.
+    ./config.sh --version
   fi
-  # Fail before fetching credentials if the runner runtime cannot start.
-  ./config.sh --version
   # AWS is called as the invoking user, retaining their AWS profile/credentials.
   if python3 "$script_dir/register.py" "$repo" "${RUNNER_NAME:-$(hostname)}"; then
     :
