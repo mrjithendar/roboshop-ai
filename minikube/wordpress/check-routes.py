@@ -6,7 +6,7 @@ import sys
 def conflicts(data):
     for ingress in data.get('items', []):
         meta = ingress.get('metadata', {})
-        if (meta.get('namespace'), meta.get('name')) == ('jithendar-com', 'wordpress'):
+        if (meta.get('namespace'), meta.get('name')) == ('jithendar', 'wordpress'):
             continue
         for rule in ingress.get('spec', {}).get('rules', []):
             if rule.get('host') not in ('jithendar.com', '*.com', None, ''):

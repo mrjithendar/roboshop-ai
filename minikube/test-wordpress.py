@@ -19,17 +19,17 @@ class WordPressTests(unittest.TestCase):
         def ingress(name, path, namespace='roboshop-ai'):
             return {'metadata': {'name': name, 'namespace': namespace},
                     'spec': {'rules': [{'host': 'jithendar.com', 'http': {'paths': [{'path': path}]}}]}}
-        self.assertEqual(list(routes.conflicts({'items': [ingress('grafana', '/grafana'), ingress('wordpress', '/', 'jithendar-com')]})), [])
+        self.assertEqual(list(routes.conflicts({'items': [ingress('grafana', '/grafana'), ingress('wordpress', '/', 'jithendar')]})), [])
         self.assertEqual(list(routes.conflicts({'items': [ingress('roboshop', '/')]})), ['roboshop-ai/roboshop'])
 
     def test_chart_storage_tls_and_private_initial_install(self):
         def render(enabled):
             output = subprocess.check_output(['helm', 'template', 'wordpress', str(ROOT / 'wordpress'),
-                                              '-n', 'jithendar-com', '--set', f'ingress.enabled={enabled}'], text=True)
+                                              '-n', 'jithendar', '--set', f'ingress.enabled={enabled}'], text=True)
             return [x for x in yaml.safe_load_all(output) if x]
         self.assertFalse(any(x['kind'] == 'Ingress' for x in render('false')))
         items = render('true')
-        self.assertTrue(all(x['metadata']['namespace'] == 'jithendar-com' for x in items))
+        self.assertTrue(all(x['metadata']['namespace'] == 'jithendar' for x in items))
         cert = next(x for x in items if x['kind'] == 'Certificate')
         self.assertEqual(cert['spec']['dnsNames'], ['jithendar.com'])
         self.assertEqual(cert['spec']['secretName'], 'jithendar-com-tls')
@@ -91,8 +91,8 @@ class WordPressTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertLess(calls.index('exec -i deployment/wordpress'), calls.index('ingress.enabled=true'))
         self.assertLess(calls.index('certificate/jithendar-com'), calls.index('ingress.enabled=true'))
-        self.assertIn('--namespace jithendar-com', calls)
-        self.assertIn('-n jithendar-com exec', calls)
+        self.assertIn('--namespace jithendar', calls)
+        self.assertIn('-n jithendar exec', calls)
         self.assertNotIn('create -f ', calls)  # Existing credentials are reused.
 
 

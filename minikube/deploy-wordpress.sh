@@ -64,7 +64,7 @@ k -n jithendar wait --for=condition=Ready certificate/jithendar-com --timeout=10
 h upgrade --install wordpress "$SCRIPT_DIR/wordpress" --namespace jithendar \
   --set ingress.enabled=true --wait --timeout 10m
 echo 'WordPress initialized and Redis cache verified. Site: https://jithendar.com/'
-echo 'Admin login: https://jithendar.com/wp-admin/ (default user: siteadmin).'
+echo 'Admin login: https://jithendar.com/wp-admin/ (default user: admin).'
 echo 'Retrieve the initial password using:'
 printf 'kubectl --context=%q -n jithendar get secret wordpress-credentials -o jsonpath=' "$KUBE_CONTEXT"
 printf "'{.data.admin-password}' | base64 --decode; echo\n"

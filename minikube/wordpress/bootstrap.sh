@@ -8,9 +8,13 @@ until [ -s wp-config.php ] && [ -f wp-includes/version.php ]; do
   sleep 2
 done
 if ! wp core is-installed; then
-  printf '%s\n' "$WP_ADMIN_PASSWORD" | wp core install \
-    --url="$WP_URL" --title="$WP_TITLE" --admin_user="$WP_ADMIN_USER" \
-    --admin_email="$WP_ADMIN_EMAIL" --skip-email --prompt=admin_password
+  # Read credentials inside PHP: WP-CLI's interactive prompt echoes passwords.
+  wp eval '
+    add_filter("pre_wp_mail", "__return_true");
+    require_once ABSPATH . "wp-admin/includes/upgrade.php";
+    wp_install(getenv("WP_TITLE"), getenv("WP_ADMIN_USER"),
+      getenv("WP_ADMIN_EMAIL"), true, "", getenv("WP_ADMIN_PASSWORD"));
+  '
 fi
 if ! wp plugin is-installed redis-cache; then
   wp plugin install redis-cache --version="$REDIS_PLUGIN_VERSION"
