@@ -73,7 +73,7 @@ lockfile. No OIDC role or AWS access keys are configured in this workflow. The S
 backend bucket must exist before the run.
 
 Open **Actions → Create infrastructure → Run workflow** on the default branch.
-Supply admin IAM ARNs and API access CIDRs as explained in the
+No form inputs are needed. The workflow detects the runner IAM role/user and public IPv4 /32 as explained in the
 [EKS pipeline guide](eks-addons/README.md#deploy-through-github-actions). Runs are serialized, Terraform uses S3 state locking, and the saved plan
 is removed even if a step fails. Do not run the Jenkins deployment concurrently
 against the same state.
@@ -85,7 +85,7 @@ GitHub, HashiCorp downloads, AWS APIs and the state bucket.
 
 `ecr.tf` creates one private repository per name in the `list(string)` variable
 `ecr_repository_names`, using `for_each = toset(var.ecr_repository_names)`.
-The default list in `_variables.tf` covers 14 active custom service images. The retired SMTP repository entry is
+The default list in `_variables.tf` covers 16 active custom service images. The retired SMTP repository entry is
 commented out; applying this change removes that repository from Terraform-managed
 infrastructure and can delete its images because `force_delete` is enabled. It matches CI's default `ECR_REPOSITORY_PREFIX=roboshop`; shipping uses
 `roboshop-shipping`, not `roboshop-shipping-service`. Official third-party

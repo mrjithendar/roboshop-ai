@@ -128,18 +128,18 @@ Commit/push the infrastructure and workflow changes to the default branch first.
 Open **Actions → Create infrastructure → Run workflow**. This action applies
 infrastructure and can incur AWS charges; it is not a preview-only workflow.
 
-Supply:
+No dispatch inputs are needed. The workflow detects its AWS identity via STS.
+Assumed roles are resolved through IAM GetRole so role paths are preserved.
+The detected IAM role/user becomes the EKS administrator. AWS root and STS
+federated-user credentials are rejected before Terraform applies anything.
 
-- `admin_principal_arns`: comma-separated IAM role/user ARNs. Include the IAM identity
-  used by the self-hosted runner plus any human admin roles. For an assumed role,
-  use its IAM role ARN (including its actual IAM path), not the STS session ARN.
-- `api_access_cidrs`: comma-separated public IPv4 CIDRs, such as your runner egress
-  IP `/32` and workstation IP `/32`. Blank selects private-only access. Supply `private_api_cidrs` for the runner
-  and ensure it has VPC/VPN routing. These inputs replace the complete configured
-  lists on every run, so include all identities/addresses you want to retain.
-- `private_api_cidrs`: connected private runner/admin networks allowed to reach
-  TCP 443 on the cluster security group. This does not create VPNs, routes or DNS
-  forwarding. Supply at least one public or private CIDR list.
+The runner's public IPv4 address is detected through HTTPS to
+checkip.amazonaws.com and allowed as a single /32. This mode expects the runner
+to reach the public EKS endpoint using that same egress IP. It does not configure
+private VPN access or workstation access. Rerunning from a different runner
+replaces the workflow-managed administrator and public CIDR with that runner's
+identity/address; use a stable runner identity and egress IP. Additional
+administrators/private access require explicitly adapting this configuration.
 
 The Linux self-hosted runner needs AWS CLI, kubectl, Python 3, existing AWS
 credentials with infrastructure provisioning permissions, access to both S3 state
@@ -148,19 +148,17 @@ Terraform itself. It creates a temporary kubeconfig and removes it after complet
 it does not alter the runner's default kubeconfig. No new repository secrets or
 variables are required.
 
-The workflow uses `vars/dev.tfvars`, enables EKS with your supplied access inputs,
+The workflow uses `vars/dev.tfvars`, enables EKS with the detected runner access settings,
 and keeps node/version defaults from `eks.tf`. It plans and applies AWS resources,
 reads the resulting cluster name, then plans/applies add-ons and applies both
 Let's Encrypt issuers. It does not install RoboShop workloads or change DNS.
-If add-ons fail after EKS creation, fix the reported issue and rerun with the same
-inputs; Terraform reuses the infrastructure already recorded in state.
+If add-ons fail after EKS creation, fix the reported issue and rerun from the same
+runner; Terraform reuses the infrastructure already recorded in state.
 
-CLI equivalent for dispatch (replace the example IAM ARN and CIDRs):
+CLI equivalent for dispatch:
 
 ```bash
-gh workflow run create-infrastructure.yml --ref master \
-  -f admin_principal_arns='arn:aws:iam::881026659929:role/YOUR_RUNNER_ROLE' \
-  -f api_access_cidrs='YOUR_RUNNER_PUBLIC_IP/32,YOUR_LOCAL_PUBLIC_IP/32'
+gh workflow run create-infrastructure.yml --ref master
 gh run list --workflow=create-infrastructure.yml --limit 5
 ```
 

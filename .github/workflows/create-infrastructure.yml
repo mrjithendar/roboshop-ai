@@ -2,22 +2,6 @@ name: Create infrastructure
 
 on:
   workflow_dispatch:
-    inputs:
-      admin_principal_arns:
-        description: 'Comma-separated IAM admin role/user ARNs (include the runner identity; no STS session ARNs)'
-        required: true
-        type: string
-      api_access_cidrs:
-        description: 'Comma-separated admin/runner public IPv4 CIDRs; blank for a runner with private VPC access'
-        required: false
-        default: ''
-        type: string
-
-      private_api_cidrs:
-        description: 'Connected runner private IPv4 CIDRs for API port 443; requires existing VPC/VPN routing'
-        required: false
-        default: ''
-        type: string
 
 permissions:
   contents: read
@@ -40,49 +24,40 @@ jobs:
       AWS_DEFAULT_REGION: us-east-1
       TF_IN_AUTOMATION: 'true'
       TF_INPUT: 'false'
-      ADMIN_PRINCIPAL_ARNS: ${{ inputs.admin_principal_arns }}
-      PRIVATE_API_CIDRS: ${{ inputs.private_api_cidrs }}
-      API_ACCESS_CIDRS: ${{ inputs.api_access_cidrs }}
 
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
-      - name: Check runner and prepare EKS inputs
+      - name: Detect runner identity and API access
         run: |
           set -euo pipefail
           umask 077
           export EKS_VARS="$RUNNER_TEMP/roboshop-eks-$GITHUB_RUN_ID.tfvars.json"
-          export KUBECONFIG="$RUNNER_TEMP/roboshop-eks-$GITHUB_RUN_ID.kubeconfig"
           echo "EKS_VARS=$EKS_VARS" >> "$GITHUB_ENV"
-          echo "KUBECONFIG=$KUBECONFIG" >> "$GITHUB_ENV"
+          echo "KUBECONFIG=$RUNNER_TEMP/roboshop-eks-$GITHUB_RUN_ID.kubeconfig" >> "$GITHUB_ENV"
           for tool in aws kubectl python3; do command -v "$tool" >/dev/null; done
-          aws sts get-caller-identity
-          # Inputs are data, never interpolated into shell commands.
           python3 - <<'PY'
-          import ipaddress, json, os, re, subprocess
-          admins = [s.strip() for s in os.environ['ADMIN_PRINCIPAL_ARNS'].split(',') if s.strip()]
-          cidrs = [s.strip() for s in os.environ['API_ACCESS_CIDRS'].split(',') if s.strip()]
-          if not admins or not all(re.fullmatch(r'arn:aws:iam::[0-9]{12}:(role|user)/[A-Za-z0-9+=,.@_/-]+', a) for a in admins):
-              raise SystemExit('Supply IAM role/user ARNs, including the runner role/user. STS assumed-role session ARNs are not accepted.')
-          private_cidrs = [s.strip() for s in os.environ['PRIVATE_API_CIDRS'].split(',') if s.strip()]
-          if not cidrs and not private_cidrs:
-              raise SystemExit('Provide public API CIDRs or connected private runner CIDRs before creating EKS.')
-          caller = json.loads(subprocess.check_output(['aws', 'sts', 'get-caller-identity', '--output', 'json']))
-          caller_arn = caller['Arn']
-          matched = caller_arn in admins
-          if ':assumed-role/' in caller_arn:
-              role_name = caller_arn.split(':assumed-role/', 1)[1].split('/')[0]
-              matched = any(a.startswith('arn:aws:iam::' + caller['Account'] + ':role/') and a.rsplit('/', 1)[-1] == role_name for a in admins)
-          if not matched:
-              raise SystemExit('Include the runner IAM role/user in admin_principal_arns; otherwise add-on deployment cannot authenticate.')
-          for cidr in cidrs + private_cidrs:
-              network = ipaddress.ip_network(cidr, strict=True)
-              if network.version != 4 or network.prefixlen == 0:
-                  raise SystemExit('Use restricted IPv4 CIDRs, not 0.0.0.0/0.')
+          import ipaddress, json, os, re, subprocess, urllib.request
+          def aws_json(*args):
+              return json.loads(subprocess.check_output(['aws', *args, '--output', 'json'], timeout=30))
+          caller = aws_json('sts', 'get-caller-identity')
+          principal = caller['Arn']
+          if ':assumed-role/' in principal:
+              role_name = principal.split(':assumed-role/', 1)[1].split('/')[0]
+              principal = aws_json('iam', 'get-role', '--role-name', role_name)['Role']['Arn']
+          if not re.fullmatch(r'arn:aws:iam::' + re.escape(caller['Account']) + r':(role|user)/[A-Za-z0-9+=,.@_/-]+', principal):
+              raise SystemExit('EKS requires an IAM role or user. Configure the runner with IAM credentials instead of AWS root/federated-user credentials, then rerun. No infrastructure has been applied.')
+          with urllib.request.urlopen('https://checkip.amazonaws.com', timeout=15) as response:
+              address = ipaddress.ip_address(response.read(128).decode().strip())
+          if address.version != 4 or not address.is_global:
+              raise SystemExit('Could not detect a public IPv4 address; no infrastructure has been applied.')
+          cidr = str(address) + '/32'
+          print('Detected EKS administrator:', principal)
+          print('Detected runner API access:', cidr)
           with open(os.environ['EKS_VARS'], 'w') as f:
-              json.dump({'eks_enabled': True, 'eks_admin_principal_arns': sorted(set(admins)), 'eks_public_access_cidrs': cidrs, 'eks_private_access_cidrs': private_cidrs}, f)
+              json.dump({'eks_enabled': True, 'eks_admin_principal_arns': [principal], 'eks_public_access_cidrs': [cidr], 'eks_private_access_cidrs': []}, f)
           PY
 
       - name: Install Terraform
