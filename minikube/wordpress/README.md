@@ -16,7 +16,7 @@ bash minikube/deploy-cert-manager.sh
 bash minikube/deploy-wordpress.sh
 ```
 
-DNS must point to the Minikube host, with TCP 80/443 reachable through its firewall and the host proxy. Helm, kubectl, Python 3 and a default StorageClass are required. The cluster needs outbound access to Docker Hub and WordPress.org for images and the Redis plugin.
+DNS must point to the Minikube host, with TCP 80/443 reachable through its firewall and the host proxy. The WordPress installer checks Helm, kubectl and Python 3, installs missing dependencies, and replaces a broken Helm launcher with the official Kubernetes Helm. A default StorageClass is required. The cluster needs outbound access to Docker Hub and WordPress.org for images and the Redis plugin.
 
 The installer follows the saved Minikube profile. You can run the WordPress installer from a Mac using your remote kubeconfig:
 
@@ -96,3 +96,28 @@ Changing the deployment namespace does not move existing MySQL data, uploads, Se
 For an existing site, plan a maintenance window: back up MySQL with a consistent logical dump, archive the WordPress files, and securely export `wordpress-credentials`; restore them into new PVCs and a Secret in `jithendar`. Verify the restored site privately before moving the root ingress. Preserve the old volumes and backups until the new site is verified. RoboShop resources in `roboshop-ai` and Grafana resources in `monitoring` do not need to move. This deployment script performs fresh installs and same-namespace upgrades; it does not automate cross-namespace data migration.
 
 For a fresh cluster, run the installer normally; all WordPress resources and generated credentials are created in `jithendar`.
+
+
+### Automatic command-line dependencies
+
+Run `bash minikube/deploy-wordpress.sh` normally. It reuses working tools,
+installs missing Python/curl/tar/gzip/OpenSSL through apt/dnf/yum on Linux
+(or Homebrew on macOS), and installs missing Helm/kubectl from official downloads.
+Helm uses its official checksum-verifying installer; kubectl is SHA-256 verified.
+The default kubectl version is v1.37.0 to match this Minikube setup; override
+`KUBECTL_VERSION` when using another cluster version.
+
+Root installs Helm/kubectl in /usr/local/bin; regular users use ~/.local/bin.
+Broken binaries at the installation destination are backed up before replacement.
+The unrelated pip package named helm is not used or uninstalled. OS package
+installation requires root or sudo; no package transaction occurs when the
+required tools already work. Missing Homebrew must be installed separately.
+
+For dependencies only (before installing Traefik or cert-manager):
+
+```bash
+bash minikube/install-dependencies.sh
+```
+
+This installs client tools; it does not create a cluster, configure kubeconfig,
+install ingress/cert-manager, or expose the server's ports.

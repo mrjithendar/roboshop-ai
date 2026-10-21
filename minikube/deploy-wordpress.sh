@@ -9,9 +9,7 @@ if [[ "${1:-}" == --help ]]; then
 fi
 [[ $# == 0 ]] || fail 'No positional arguments expected.'
 export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
-for command in helm kubectl python3; do
-  command -v "$command" >/dev/null 2>&1 || fail "$command is required."
-done
+source "$SCRIPT_DIR/install-dependencies.sh"
 PROFILE="${PROFILE:-mk4}"
 [[ "$PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || fail 'Invalid PROFILE.'
 if [[ -z "${KUBE_CONTEXT:-}" ]]; then

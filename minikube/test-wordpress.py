@@ -51,6 +51,7 @@ class WordPressTests(unittest.TestCase):
                 tool.write_text('#!/bin/sh\n'
                     f'echo "{name} $*" >> "$TEST_LOG"\n'
                     'case "$*" in\n'
+                    ' "version --short") echo v3.19.0;;\n'
                     ' *"-n roboshop-ai get pvc"*) if [ "$LEGACY_DATA" = yes ]; then echo persistentvolumeclaim/wordpress-mysql; fi;;\n'
                     ' *"get ingress --all-namespaces"*) echo \'{"items":[]}\';;\n'
                     ' *"get secret wordpress-credentials"*) echo secret/wordpress-credentials;;\n'
@@ -73,7 +74,7 @@ class WordPressTests(unittest.TestCase):
         result, calls = self.run_installer(0, legacy_data=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Existing WordPress data', result.stderr)
-        self.assertNotIn('helm ', calls)
+        self.assertNotIn('helm upgrade', calls)
         self.assertNotIn('apply ', calls)
 
     def test_old_namespace_root_route_is_not_ignored(self):
