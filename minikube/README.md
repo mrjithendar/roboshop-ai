@@ -283,3 +283,36 @@ User-service sends five-minute password-reset codes through Amazon SES on port
 587. See [SES infrastructure setup](../infrastructure/README.md#amazon-ses-transactional-email)
 and [user-service configuration](../services/user-service/README.md). The former
 self-hosted SMTP microservice has been removed.
+
+## Networking startup fails with `fsnotify watcher init: too many open files`
+
+Linux `install.sh start` (also called by `setup.sh`) now checks host inotify
+limits before changing/starting clusters. Low limits are raised to at least
+1,024 instances and 1,048,576 watches and persisted in
+`/etc/sysctl.d/99-minikube-inotify.conf`. Existing higher values are preserved.
+Root runs directly; regular users need sudo when limits need raising. macOS is
+unchanged. This helper must run on the Docker host, not a remote Docker client.
+A failed read or apply stops startup; it does not reset clusters or restart Docker.
+
+For an already running cluster, apply just the host fix:
+
+```bash
+cd ~/roboshop-ai
+bash minikube/host-limits.sh
+```
+
+Then recreate the failed node's kube-proxy and kindnet pods (their DaemonSets
+recreate them automatically):
+
+```bash
+kubectl --context=mk4 -n kube-system delete pods \
+  --field-selector spec.nodeName=mk4-m04 -l k8s-app=kube-proxy
+kubectl --context=mk4 -n kube-system delete pods \
+  --field-selector spec.nodeName=mk4-m04 -l app=kindnet
+kubectl --context=mk4 wait --for=condition=Ready node/mk4-m04 --timeout=180s
+```
+
+If a selector matches no pods, inspect `kubectl -n kube-system get pods --show-labels`
+and select the affected pod by name. If the error persists with sufficient inotify
+limits, inspect process file-descriptor limits and current pod logs; this message
+can also indicate descriptor exhaustion. Do not copy another node's CNI configuration.

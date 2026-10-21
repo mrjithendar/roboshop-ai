@@ -16,6 +16,7 @@ class InstallerTests(unittest.TestCase):
         self.bin = self.root / 'bin'
         self.bin.mkdir()
         mocks = {
+            'sysctl': 'case "$*" in *max_user_instances*) echo 1024;; *max_user_watches*) echo 1048576;; esac',
             'uname': 'if [ "$1" = -s ]; then echo Linux; else echo x86_64; fi',
             'docker': '''case "$*" in
 *MemTotal*) echo 4093640704;;

@@ -108,7 +108,10 @@ diagnose() {
   echo '=== Docker capacity and running containers ==='
   docker info --format 'CPUs={{.NCPU}} MemoryBytes={{.MemTotal}}' || true
   docker stats --no-stream || true
-  if [[ "$OS" == linux ]]; then free -m || true; df -h / || true; fi
+  if [[ "$OS" == linux ]]; then
+    free -m || true; df -h / || true
+    sysctl fs.inotify.max_user_instances fs.inotify.max_user_watches || true
+  fi
   echo '=== Minikube logs ==='
   minikube --profile="$PROFILE" logs --problems || true
 }
@@ -195,6 +198,10 @@ network_matches() {
   if [[ -f "$STATE_DIR/$1.network" ]]; then saved="$(cat "$STATE_DIR/$1.network")"; fi
   [[ "$saved" == "$NETWORK_ID" ]]
 }
+# Fix host limits before stopping/replacing or starting any cluster.
+if [[ "$OS" == linux ]]; then
+  bash "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/host-limits.sh"
+fi
 existing_config="$(profile_config "$PROFILE")"
 if [[ -f "$existing_config" ]]; then
   jq -e '.Driver and .Memory and .CPUs and (.Nodes | type == "array")' "$existing_config" >/dev/null || fail 'Cannot parse existing profile configuration; no cluster changed.'
