@@ -1,0 +1,3 @@
+# Optional Python synthetic fixture seed/export tools (not the Node server).
+pymongo==4.19.0
+dnspython==2.9.0

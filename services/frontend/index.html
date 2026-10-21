@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ef4a2f">
+  <meta name="description" content="Find your next robot with RobotShop's catalogue-backed shopping assistant.">
+  <title>RobotShop — A little more extraordinary.</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" type="module"></script>
+  <script async src="/finder/widget.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#collection">Skip to collection</a>
+  <!-- STORE_HEADER -->
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy"><p class="eyebrow"><span class="status-dot"></span> HUMAN NEEDS. ROBOT POSSIBILITIES.</p><h1 id="hero-title">A little more<br><em>extraordinary.</em></h1><p class="hero-description">Explore real educational kits, robot arms, mobile platforms and components. Read source-backed specifications and compare options for your next robotics project.</p><div class="hero-actions"><a class="button primary" href="#collection">Explore the collection <span>↗</span></a></div><div class="hero-note"><span class="tiny-stars">✧ ✧ ✧</span><span>Less searching. More discovering.</span></div></div>
+      <div class="hero-art"><span class="orbit orbit-one"></span><span class="orbit orbit-two"></span><span class="art-cross cross-one">+</span><span class="art-cross cross-two">+</span><span class="hero-edition">ROBOTICS / EXPLORE & LEARN</span><img class="hero-robot" src="/product-media/atlas-x1.png" alt="Atlas X1 · AI-generated concept render" width="360" height="400"><div class="floating-label"><span class="status-dot"></span> BUILD YOUR KNOWLEDGE<span>Kits, arms, platforms and components.</span></div><div class="art-caption"><span>BUILT FOR YOUR WORLD</span><span>20 ROBOTS · CONCEPT RENDERS</span></div></div>
+    </section>
+    <section class="benefits" aria-label="Shopping features"><p><span>✧</span> A smarter way to find your match</p><p><span>◎</span> Compare specifications and availability.</p><p><span>↗</span> A new companion for every mission</p></section>
+    <section class="collection section" id="collection" aria-labelledby="collection-title">
+      <div class="section-top"><div><p class="eyebrow">GOOD COMPANY, GREAT CAPABILITIES</p><h2 id="collection-title">Find your kind of robot.</h2></div><p class="section-aside">A little practical. A little unexpected.<br>Entirely your kind of extraordinary.</p></div>
+      <div class="catalogue-tools"><div class="tabs" role="group" aria-label="Filter by category"><button class="tab selected" data-category="" aria-pressed="true">All products <span id="product-count">—</span></button><button class="tab" data-category="educational kits" aria-pressed="false">Educational Kits</button><button class="tab" data-category="robot arms" aria-pressed="false">Robot Arms</button><button class="tab" data-category="mobile robots" aria-pressed="false">Mobile Robots</button><button class="tab" data-category="components" aria-pressed="false">Components</button><button class="tab" data-category="accessories" aria-pressed="false">Accessories</button></div><div class="search-sort"><label class="search-box"><span aria-hidden="true">⌕</span><input type="search" id="search" placeholder="Find something brilliant…" aria-label="Search products"></label><label class="sr-only" for="sort">Sort products</label><label class="sr-only" for="collection">Collection</label><select id="collection"><option value="">All collections</option><option value="merchant">Merchant products</option><option value="demo">Demo products</option></select><select id="sort"><option value="featured">Featured</option><option value="price-low">Price: low to high (by currency and type)</option><option value="price-high">Price: high to low (by currency and type)</option><option value="name">Name</option></select></div></div>
+      <div class="results-meta"><span id="result-count" aria-live="polite">Loading the collection…</span><label><input type="checkbox" id="in-stock"> In stock only</label></div>
+      <div class="product-grid" id="products" aria-live="polite"></div><div id="catalogue-error" class="empty-state" hidden><h3>The collection is taking a moment.</h3><p>Please check the services and try again.</p><button class="button secondary" id="retry-products">Try again</button></div>
+    </section>
+    <section class="section recommendations" aria-labelledby="picks-title"><div class="section-top"><div><p class="eyebrow">A GOOD PLACE TO START</p><h2 id="picks-title">Explore robotics.</h2></div><span class="section-aside">Reference and demo listings are labeled separately.</span></div><div id="recommendations" class="product-grid compact-grid"></div></section>
+  </main>
+  <!-- STORE_FOOTER -->
+  <dialog id="product-dialog" class="product-dialog" aria-labelledby="detail-name"><button class="close-button detail-close" data-close="product-dialog" aria-label="Close product">×</button><div id="product-detail"></div></dialog>
+  <dialog id="ops-dialog" class="ops-dialog" aria-labelledby="ops-title"><div class="dialog-heading"><div><p class="eyebrow">BEHIND THE SCENES</p><h2 id="ops-title">System status</h2></div><button class="close-button" data-close="ops-dialog" aria-label="Close system status">×</button></div><p>Live health probes and read-only runbook guidance.</p><div id="ops-content" aria-live="polite"></div><button class="button secondary" id="refresh-ops">Refresh status</button></dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

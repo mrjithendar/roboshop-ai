@@ -1,0 +1,150 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { JSDOM } from 'jsdom';
+const html = await readFile(new URL('../dist/admin.html', import.meta.url), 'utf8');
+const paths = (await readFile(new URL('../dist/paths.js', import.meta.url), 'utf8')).replace(/^export /gm, '').replaceAll('import.meta.url', JSON.stringify('https://shop.example/paths.js'));
+const script = paths + '\n' + (await readFile(new URL('../dist/admin.js', import.meta.url), 'utf8')).replace(/^export \{\};?$/m, '').replace(/^import .*$/gm, '');
+const product = { sku: 'TEST', name: '<img src=x onerror=alert(1)>', price: 20, instock: 5, available: 3, categories: ['Robot'], description: 'Robot', archived: false, revision: 1 };
+function setup(t, role) {
+  const dom = new JSDOM(html, { url: 'https://shop.example/admin', runScripts: 'outside-only' });
+  t.after(() => dom.window.close());
+  const calls = [], w = dom.window;
+  w.fetch = async (path, options) => {
+    calls.push({ path, options });
+    const defaults = {
+      '/api/auth/me': { user: { id: 'root', name: 'Operator', email: 'operator@example.com', role } },
+      '/api/admin/products': { products: [product] },
+      '/api/admin/users': { users: [{ id: 'root', name: 'Operator', email: 'operator@example.com', role: 'superadmin' }, { id: 'customer', name: 'Buyer', email: 'buyer@example.com', role: 'customer', disabled: false }], next: null },
+      '/api/admin/llm': { config: { provider: 'none' }, revision: 0, status: 'not-configured', endpoints: ['private-ec2'] },
+      '/api/admin/settings': { storeName: 'Test shop', announcement: 'Welcome', supportEmail: 'support@example.com', checkoutEnabled: true },
+    };
+    return { ok: true, status: 200, json: async () => defaults[path] || { saved: true } };
+  };
+  return { calls, w, $: selector => w.document.querySelector(selector), boot: () => w.eval(`(async () => { ${script}\n })()`) };
+}
+test('customer cannot open the admin interface or trigger privileged reads', async t => {
+  const ui = setup(t, 'customer'); await ui.boot();
+  assert.equal(ui.$('#admin-content').hidden, true);
+  assert.equal(ui.$('#admin-login').hidden, false);
+  assert.equal(ui.calls.length, 1);
+});
+test('admin sees safe product editor but no super-admin controls', async t => {
+  const ui = setup(t, 'admin'); await ui.boot();
+  assert.equal(ui.$('#admin-content').hidden, false);
+  assert.equal(ui.$('#users-section').hidden, true);
+  assert.equal(ui.$('#settings-section').hidden, true);
+  assert.equal(ui.$('#llm-section').hidden, true);
+  assert.ok(!ui.calls.some(call => call.path.startsWith('/api/admin/llm')));
+  assert.equal(ui.$('#admin-products img'), null);
+  ui.$('#admin-products button').click();
+  assert.equal(ui.$('#product-sku').readOnly, true);
+  assert.equal(ui.$('#product-price').value, '20');
+  ui.$('#product-price').value = '25';
+  ui.$('#product-form').dispatchEvent(new ui.w.Event('submit', { cancelable: true }));
+  await new Promise(resolve => setTimeout(resolve, 10));
+  const save = ui.calls.find(call => call.options.method === 'PUT');
+  assert.equal(save.path, '/api/admin/products/TEST');
+  assert.deepEqual(JSON.parse(save.options.body).revision, 1);
+  assert.equal(JSON.parse(save.options.body).price, 25);
+  assert.ok(!ui.calls.some(call => call.path === '/api/admin/users'));
+});
+test('super admin sees user access controls and bounded store configuration', async t => {
+  const ui = setup(t, 'superadmin'); await ui.boot();
+  assert.equal(ui.$('#users-section').hidden, false);
+  assert.equal(ui.$('#settings-section').hidden, false);
+  assert.equal(ui.$('#llm-section').hidden, false);
+  assert.match(ui.$('#llm-current').textContent, /not-configured/);
+  assert.equal(ui.$('#setting-name').value, 'Test shop');
+  assert.match(ui.$('#admin-users').firstElementChild.textContent, /protected/);
+  assert.equal(ui.$('#admin-users').firstElementChild.querySelector('select'), null);
+  const role = ui.$('#admin-users select'); role.value = 'admin';
+  [...ui.w.document.querySelectorAll('#admin-users button')].find(button => button.textContent === 'Save access').click();
+  await new Promise(resolve => setTimeout(resolve, 10));
+  const update = ui.calls.find(call => call.options.method === 'PATCH');
+  assert.equal(update.path, '/api/admin/users/customer');
+  assert.deepEqual(JSON.parse(update.options.body), { role: 'admin', disabled: false });
+});
+
+test('super-admin customer details are fetched only on explicit inspection', async t => {
+  const ui = setup(t, 'superadmin'); await ui.boot();
+  assert.ok(!ui.calls.some(call => call.path.endsWith('/profile')));
+  const original = ui.w.fetch;
+  ui.w.fetch = async (path, options) => {
+    if (path.endsWith('/profile')) { ui.calls.push({ path, options }); return { ok: true, json: async () => ({ activity: { lastLoginIp: '192.0.2.1', loginCount: 2 }, addresses: [] }) }; }
+    if (path.endsWith('/purchases')) { ui.calls.push({ path, options }); return { ok: true, json: async () => ({ purchases: [], next: null }) }; }
+    return original(path, options);
+  };
+  [...ui.w.document.querySelectorAll('#admin-users button')].find(button => button.textContent === 'Customer details').click();
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.match(ui.$('.customer-details').textContent, /192\.0\.2\.1/);
+  assert.equal(ui.$('.customer-details').hidden, false);
+});
+
+test('LLM proposed connection test does not activate and disconnect uses revision', async t => {
+  const ui = setup(t, 'superadmin'); await ui.boot();
+  ui.$('#llm-provider').value = 'ollama'; ui.$('#llm-provider').dispatchEvent(new ui.w.Event('change'));
+  assert.equal(ui.$('#llm-region-field').hidden, true);
+  assert.equal(ui.$('#llm-endpoint-field').hidden, false);
+  ui.$('#llm-model').value = 'qwen3:4b';
+  ui.$('#llm-test').click(); await new Promise(resolve => setTimeout(resolve, 10));
+  const testCall = ui.calls.find(c => c.path === '/api/admin/llm/test');
+  assert.deepEqual(JSON.parse(testCall.options.body), { revision: 0, config: { provider: 'ollama', model: 'qwen3:4b', endpoint: 'private-ec2' } });
+  assert.ok(!ui.calls.some(c => c.options.method === 'PUT'));
+  assert.match(ui.$('#llm-current').textContent, /none/);
+  const original = ui.w.fetch;
+  ui.w.fetch = async (path, options) => {
+    if (path === '/api/admin/llm/disconnect') {
+      ui.calls.push({ path, options });
+      return { ok: true, json: async () => ({ config: { provider: 'none' }, revision: 1, status: 'not-configured', endpoints: ['private-ec2'] }) };
+    }
+    return original(path, options);
+  };
+  ui.$('#llm-disconnect').click(); await new Promise(resolve => setTimeout(resolve, 10));
+  assert.match(ui.$('#llm-current').textContent, /revision 1/);
+  assert.match(ui.$('#llm-status').textContent, /not been stopped or deleted/);
+});
+
+test('failed LLM save preserves displayed active revision and shows request ID', async t => {
+  const ui = setup(t, 'superadmin'); await ui.boot();
+  ui.w.fetch = async () => ({ ok: false, status: 409, json: async () => ({ error: 'Refresh before saving.', requestId: 'test-trace' }) });
+  ui.$('#llm-form').dispatchEvent(new ui.w.Event('submit', { cancelable: true }));
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.match(ui.$('#llm-current').textContent, /revision 0/);
+  assert.match(ui.$('#llm-status').textContent, /test-trace/);
+  assert.equal(ui.$('#llm-save').disabled, false);
+});
+
+test('failover requires explicit opt-in and submits both configurations with revision', async t => {
+  const ui = setup(t, 'superadmin'); await ui.boot();
+  assert.equal(ui.$('#llm-failover').checked, false);
+  assert.equal(ui.$('#llm-fallback-fields').hidden, true);
+  ui.$('#llm-provider').value = 'ollama';
+  ui.$('#llm-provider').dispatchEvent(new ui.w.Event('change'));
+  assert.equal(ui.$('#llm-fallback-fields').hidden, false);
+  assert.match(ui.$('#llm-fallback-fields').textContent, /usage charges/);
+  assert.match(ui.$('#llm-fallback-fields').textContent, /catalogue context/);
+  ui.$('#llm-model').value = 'qwen3:8b';
+  ui.$('#llm-failover').checked = true;
+  ui.$('#llm-fallback-region').value = 'us-east-1';
+  ui.$('#llm-fallback-model').value = 'model-id';
+  const original = ui.w.fetch;
+  ui.w.fetch = async (path, options) => {
+    if (path === '/api/admin/llm' && options.method === 'PUT') {
+      ui.calls.push({ path, options });
+      return { ok: true, json: async () => ({ ...JSON.parse(options.body), revision: 1, status: 'configured', verifiedAt: 'now', endpoints: ['private-ec2'] }) };
+    }
+    return original(path, options);
+  };
+  ui.$('#llm-form').dispatchEvent(new ui.w.Event('submit', { cancelable: true }));
+  await new Promise(resolve => setTimeout(resolve, 10));
+  const save = ui.calls.find(c => c.path === '/api/admin/llm' && c.options.method === 'PUT');
+  assert.deepEqual(JSON.parse(save.options.body), { revision: 0, config: { provider: 'ollama', endpoint: 'private-ec2', model: 'qwen3:8b', automaticFailover: true, fallback: { provider: 'bedrock', region: 'us-east-1', model: 'model-id' } } });
+  assert.match(ui.$('#llm-status').textContent, /Both providers tested/);
+  assert.equal(ui.$('#llm-failover').checked, true);
+  ui.$('#llm-failover').checked = false;
+  ui.$('#llm-test').click();
+  await new Promise(resolve => setTimeout(resolve, 10));
+  const check = ui.calls.find(c => c.path === '/api/admin/llm/test');
+  assert.equal(JSON.parse(check.options.body).config.automaticFailover, undefined);
+});

@@ -1,0 +1,35 @@
+{
+  "name": "robotshop-ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env scripts/dev.mjs",
+    "start": "node --env-file-if-exists=.env scripts/dev.mjs",
+    "test": "node --test tests/*.test.mjs services/*/tests/*.test.mjs",
+    "evaluate": "node scripts/run-python.mjs scripts/evaluate.py",
+    "ingest": "node services/product-ingestion/import.mjs",
+    "mcp": "node --env-file-if-exists=.env scripts/run-python.mjs services/mcp-server/server.py",
+    "shipping:build": "sh services/shipping-service/gradlew -p services/shipping-service --no-daemon test bootJar",
+    "predev": "npm run frontend:build && npm run shipping:build",
+    "prestart": "npm run frontend:build && npm run shipping:build",
+    "pretest": "npm run frontend:build && npm run shipping:build && npm run test:python",
+    "test:nginx": "NGINX_TEST=true node --test tests/nginx.test.mjs",
+    "frontend:build": "npm --prefix services/frontend run build",
+    "frontend:typecheck": "npm --prefix services/frontend run typecheck",
+    "pretest:nginx": "npm run frontend:build",
+    "admin:bootstrap": "node --env-file-if-exists=.env scripts/run-python.mjs services/user-service/bootstrap.py",
+    "test:python": "node scripts/run-python.mjs -m unittest discover -s tests/python -v && node scripts/run-python.mjs -m unittest discover -s services/ai-gateway/tests -v && node scripts/run-python.mjs -m unittest discover -s services/user-service/tests -v && node scripts/run-python.mjs -m unittest discover -s services/finder/tests -v"
+  },
+  "dependencies": {
+    "amqplib": "^2.2.0",
+    "mongodb": "7.7.0"
+  },
+  "devDependencies": {
+    "jsdom": "30.1.3",
+    "typescript": "7.0.2"
+  }
+}

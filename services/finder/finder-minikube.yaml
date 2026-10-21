@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: finder
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  selector:
+    app: finder
+  ports:
+  - name: p4110
+    port: 4110
+    targetPort: 4110
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finder
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: finder
+  template:
+    metadata:
+      labels:
+        app: finder
+        app.kubernetes.io/part-of: robotshop-ai
+    spec:
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      imagePullSecrets:
+      - name: ecr-pull
+      containers:
+      - name: finder
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/robotshop-finder:latest
+        imagePullPolicy: Always
+        env:
+        - name: ALLOWED_ORIGINS
+          value: https://jithendar.com
+        - name: UPSTREAM_ORIGIN
+          value: https://jithendar.com
+        - name: LLM_SERVICE_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: robotshop-secrets
+              key: LLM_SERVICE_TOKEN
+              optional: true
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        ports:
+        - containerPort: 4110
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        startupProbe:
+          httpGet: &id001
+            path: /health
+            port: 4110
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 120
+        livenessProbe:
+          httpGet: *id001
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 4110
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 3
+      volumes:
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate

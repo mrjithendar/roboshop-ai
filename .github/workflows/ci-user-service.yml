@@ -1,0 +1,37 @@
+name: user-service image
+
+on:
+  workflow_dispatch:
+  push:
+    # branches: [master, main]
+    paths:
+      - 'services/user-service/**'
+      - '.github/workflows/ci-user-service.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - run: python -m pip install -r services/user-service/requirements.txt -r services/user-service/tests/requirements.txt
+      - run: python -m unittest discover -s services/user-service/tests -v
+
+  publish:
+    needs: verify
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    uses: ./.github/workflows/publish-ecr.yml
+    with:
+      service: user-service

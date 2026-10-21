@@ -1,0 +1,60 @@
+name: Create infrastructure
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Serialize access to the stack; never cancel an active Terraform apply.
+concurrency:
+  group: terraform-infrastructure-dev
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    runs-on: self-hosted
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+        working-directory: infrastructure
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.10.5
+          terraform_wrapper: false
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+
+      - name: Initialize remote state
+        run: terraform init -input=false -no-color
+
+      - name: Validate configuration
+        run: terraform validate -no-color
+
+      # - name: Run mocked infrastructure tests
+      #   run: terraform test -no-color
+
+      - name: Create saved plan
+        run: |
+          umask 077
+          terraform plan -input=false -no-color -lock-timeout=5m \
+            -var-file=vars/dev.tfvars -out=infra.tfplan
+
+      - name: Apply saved plan
+        run: terraform apply -input=false -no-color -lock-timeout=5m infra.tfplan
+
+      - name: Show infrastructure outputs
+        run: terraform output -no-color
+
+      - name: Remove saved plan
+        if: always()
+        run: rm -f infra.tfplan

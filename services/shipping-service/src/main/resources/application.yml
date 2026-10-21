@@ -1,0 +1,75 @@
+spring:
+  application:
+    name: shipping-service
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:default}
+      password: ${REDIS_PASSWORD:}
+      connect-timeout: 300ms
+      timeout: 300ms
+      ssl:
+        enabled: ${REDIS_TLS:false}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:127.0.0.1}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    connection-timeout: 5s
+    ssl:
+      enabled: ${RABBITMQ_TLS:false}
+    listener:
+      simple:
+        observation-enabled: true
+        auto-startup: ${MESSAGING_ENABLED:false}
+        prefetch: 10
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 5
+          initial-interval: 1s
+          multiplier: 2
+          max-interval: 10s
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
+server:
+  address: ${HOST:127.0.0.1}
+  port: ${PORT:4106}
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+management:
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: prometheus
+      path-mapping:
+        prometheus: metrics
+  tracing:
+    enabled: ${SHIPPING_TRACING_ENABLED:false}
+    sampling:
+      probability: 1.0
+  opentelemetry:
+    resource-attributes:
+      service.version: ${OTEL_SERVICE_VERSION:0.2.0}
+      deployment.environment.name: ${DEPLOYMENT_ENVIRONMENT:development}
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+    logging:
+      export:
+        otlp:
+          enabled: false
+  metrics:
+    tags:
+      service: shipping-service
+
+robotshop:
+  cache-enabled: ${CACHE_ENABLED:false}
+  messaging-enabled: ${MESSAGING_ENABLED:false}

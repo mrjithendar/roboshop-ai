@@ -1,0 +1,88 @@
+# Minikube sandbox deployment; apply with ./deploy-minikube.sh.
+apiVersion: v1
+kind: Service
+metadata:
+  name: sre-copilot
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  selector:
+    app: sre-copilot
+  ports:
+  - name: p4104
+    port: 4104
+    targetPort: 4104
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sre-copilot
+  namespace: robotshop-ai
+  labels:
+    app.kubernetes.io/part-of: robotshop-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sre-copilot
+  template:
+    metadata:
+      labels:
+        app: sre-copilot
+        app.kubernetes.io/part-of: robotshop-ai
+    spec:
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      imagePullSecrets:
+      - name: ecr-pull
+      containers:
+      - name: sre-copilot
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/robotshop-sre-copilot:latest
+        imagePullPolicy: Always
+        env: []
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        ports:
+        - containerPort: 4104
+        envFrom:
+        - configMapRef:
+            name: robotshop-config
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        startupProbe:
+          httpGet: &id001
+            path: /health
+            port: 4104
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 120
+        livenessProbe:
+          httpGet: *id001
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 4104
+          timeoutSeconds: 1
+          periodSeconds: 10
+          failureThreshold: 3
+      volumes:
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate

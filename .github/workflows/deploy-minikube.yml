@@ -1,0 +1,179 @@
+name: Deploy-Minikube
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Existing kubeconfig context to deploy to
+        required: true
+        default: mk4
+        type: string
+
+permissions:
+  contents: read
+
+# Serialize deployment commands to the same namespace.
+concurrency:
+  group: robotshop-minikube-local
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux]
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      KUBE_CONTEXT: ${{ inputs.profile }}
+      AWS_REGION: us-east-1
+      ECR_REGISTRY: 881026659929.dkr.ecr.us-east-1.amazonaws.com
+      RUNNER_KUBECONFIG: ${{ vars.MINIKUBE_KUBECONFIG }}
+
+    steps:
+      - name: git checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Check cluster prerequisites
+        run: |
+          set -euo pipefail
+          for tool in kubectl aws python3; do command -v "$tool" >/dev/null; done
+          export KUBECONFIG="${RUNNER_KUBECONFIG:-${KUBECONFIG:-$HOME/.kube/config}}"
+          [[ -f "$KUBECONFIG" && "$KUBECONFIG" != *$'\n'* ]] || { echo 'Kubeconfig file is missing or invalid.' >&2; exit 1; }
+          echo "KUBECONFIG=$KUBECONFIG" >> "$GITHUB_ENV"
+          kubectl --context="$KUBE_CONTEXT" --request-timeout=15s get namespace robotshop-ai >/dev/null
+          # This workflow updates an already configured cluster; it does not recreate credentials.
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai get secret robotshop-secrets -o name
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai get configmap robotshop-config -o name
+          kubectl --context="$KUBE_CONTEXT" get ingressclass traefik -o name
+          kubectl --context="$KUBE_CONTEXT" get crd middlewares.traefik.io -o name
+          kubectl --context="$KUBE_CONTEXT" get clusterissuer letsencrypt-prod -o name
+
+      - name: Refresh ECR pull credential
+        run: |
+          set -euo pipefail
+          aws ecr get-authorization-token --registry-ids 881026659929 --query 'authorizationData[0].authorizationToken' --output text |
+            python3 -c 'import base64,json,os,sys; token=sys.stdin.read().strip(); assert token and token != "None", "Missing ECR token"; config=json.dumps({"auths":{os.environ["ECR_REGISTRY"]:{"auth":token}}}); print(json.dumps({"apiVersion":"v1","kind":"Secret","metadata":{"name":"ecr-pull","namespace":"robotshop-ai"},"type":"kubernetes.io/dockerconfigjson","data":{".dockerconfigjson":base64.b64encode(config.encode()).decode()}}))' |
+            kubectl --context="$KUBE_CONTEXT" apply --server-side --field-manager=robotshop-ecr -f -
+
+      - name: Apply consolidated configuration
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f minikube/robotshop/config.yaml
+          for service in mongodb postgres redis rabbitmq otel-collector; do
+            kubectl --context="$KUBE_CONTEXT" apply -f "services/$service/$service-minikube.yaml"
+          done
+
+      - name: Deploy product-ingestion from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "services/product-ingestion/product-ingestion-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout restart deployment/product-ingestion
+
+      - name: Deploy catalogue-service from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "services/catalogue-service/catalogue-service-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout restart deployment/catalogue-service
+
+      - name: Deploy recommendation-service from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "services/recommendation-service/recommendation-service-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout restart deployment/recommendation-service
+
+      - name: Deploy shopping-agent from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "services/shopping-agent/shopping-agent-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout restart deployment/shopping-agent
+
+      - name: Deploy sre-copilot from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "services/sre-copilot/sre-copilot-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout restart deployment/sre-copilot
+
+      - name: Deploy cart-service from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "services/cart-service/cart-service-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout restart deployment/cart-service
+
+      - name: Deploy payment-service from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "services/payment-service/payment-service-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout restart deployment/payment-service
+
+      - name: Import PostgreSQL location database
+        run: |
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai exec -i deployment/shipping-db -- \
+            sh -c 'exec psql -X --set=ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"' \
+            < services/postgres/shipping.sql
+
+      - name: Deploy shipping-service from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "services/shipping-service/shipping-service-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout restart deployment/shipping-service
+
+      - name: Deploy user-service from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "services/user-service/user-service-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout restart deployment/user-service
+
+      - name: Remove retired SMTP workload
+        run: |
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai delete deployment/smtp-server service/smtp-server networkpolicy/smtp-gateway-only --ignore-not-found
+          # Preserve the old queue PVC and keys; removal does not discard queued mail.
+
+      - name: Deploy ai-gateway from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "services/ai-gateway/ai-gateway-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout restart deployment/ai-gateway
+
+      - name: Deploy optional currency-service from ECR
+        continue-on-error: true
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f services/currency-service/currency-service-minikube.yaml
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout restart deployment/currency-service
+
+      - name: Deploy frontend from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "services/frontend/frontend-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout restart deployment/frontend
+
+      - name: Deploy nginx from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "services/nginx/nginx-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout restart deployment/nginx
+
+      - name: Deploy mcp-server from ECR
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "services/mcp-server/mcp-server-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout restart deployment/mcp-server
+
+      - name: Deploy finder from ECR
+        id: finder
+        continue-on-error: true
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f "services/finder/finder-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n robotshop-ai rollout restart deployment/finder
+
+      # product-ingestion seeds missing listings on startup before serving requests.
+      # Do not exec into a container that may still be restarting (Recreate strategy).
+      - name: Apply ingress and TLS configuration
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f minikube/robotshop/ingress.yaml
+
+      - name: Record deployment
+        if: success()
+        run: |
+          {
+            echo '### ECR deployment commands submitted'
+            echo "Deployment configuration commit: $GITHUB_SHA"
+            echo "Kubernetes context: $KUBE_CONTEXT"
+            echo 'Images: :latest from each service ECR repository'
+            echo 'Application: https://jithendar.com/roboshop/'
+            echo 'Manifests applied and application restarts requested; workload and TLS readiness are not checked.'
+            echo 'Catalogue publication runs during product-ingestion startup; completion is not checked by this workflow.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report optional Finder failure
+        if: steps.finder.outcome == 'failure'
+        run: echo '::warning::Finder apply or restart failed. Other service deployment commands were not blocked.'

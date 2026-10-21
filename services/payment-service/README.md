@@ -1,0 +1,71 @@
+# RobotShop payment service — Razorpay
+
+Replaces the dummy legacy payment behavior in the active application, while preserving
+the original source under `legacy/`. The active implementation uses Node built-ins,
+port 4105, and Razorpay's REST API plus hosted Standard Checkout. The old Flask payment
+service remains a simulator and is not used by the new checkout.
+
+## Sandbox by default
+
+The public key ID goes to Checkout; secret keys never reach the browser. No card data
+is collected by RobotShop. The amount is calculated from the server's catalogue in
+integer minor units (paise for the INR catalogue). Historical EUR and USD orders retain their currency. The existing
+fictional catalogue does not become a real fulfilment operation through this integration.
+
+The default is PAYMENT_MODE=test. Use the environment-specific test keys described
+in the [sandbox deployment and manual checklist](../../docs/deployment/razorpay-sandbox.md).
+Demo inventory is rejected by live checkout. No mock-provider switch exists
+in production code. Tests inject a fake fetch implementation directly into the adapter.
+
+## Payment lifecycle
+
+`POST /api/payments/orders` snapshots and reserves the authenticated customer cart,
+then creates a Razorpay order. Idempotency keys and one pending order per session avoid
+parallel checkout creation. The browser receives only the public Checkout configuration.
+Cart changes are locked while that payment is pending.
+
+`POST /api/payments/verify` verifies HMAC-SHA256 using the server-stored order ID, then
+fetches payment details from Razorpay. Captured status, amount, currency, order ID and
+zero refunded amount must match. Only then is inventory sold and the cart cleared.
+
+`POST /api/payments/webhook` validates HMAC over exact raw bytes and reconciles captured
+payments server-side. Duplicate events and callbacks are idempotent. GET status/current
+supports recovery when a browser callback was missed. No browser success flag alone
+can confirm payment. The previous `POST /api/orders` demo endpoint returns HTTP 410.
+
+Internal `/api/payment/*` routes require X-Payment-Service-Token. Credentials are confined
+to the payment process. Request bodies, signatures, secrets and payment details are not
+included in application logs or trace attributes.
+
+## Operational boundaries
+
+The order ledger still requires a single gateway writer. Back up `.data/store.json`
+(or the container volume). Do not scale the gateway or run multiple local launchers
+against the same file. A database/outbox migration is needed for resilient production
+operations. No live activation/deployment is performed by the code change.
+
+If creating a provider order times out, the local order enters payment_review and keeps
+its reservation; it is not retried blindly. Status checks and checkout retries call the
+internal read-only `/api/payment/recover` endpoint to look up the exact UUID receipt.
+Only a unique order with matching amount, currency and original payment account is
+attached. Missing, duplicate or invalid results stay under review; no second create
+is sent. `/api/payment/lookup` supports recovery from a verified webhook that arrives
+before the original create response. Unresolved cases need merchant dashboard review. Abandoned checkouts also
+retain reservations: automatic cancellation/release/refunds are not implemented because
+the provider order could still be paid. Do not delete ledger records for charged orders.
+Refunds, disputes, tax/shipping calculation and fulfilment remain merchant operations.
+
+Reference: [Razorpay integration steps](https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/integration-steps/),
+[webhook validation](https://razorpay.com/docs/webhooks/validate-test/).
+
+## Independent service build
+
+Run `docker build -t robotshop-payment-service:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+
+
+The gateway persists and reserves the checkout before calling this service. Mode
+and public key ID are included as expected account identity for creation, recovery,
+verification and reconciliation. Environment-specific credentials preserve old test
+orders after a mode switch; missing or rotated original account credentials fail closed. The gateway
+uses short revision-checked ledger transitions around network calls. See the
+[gateway state machine and one-writer requirements](../ai-gateway/README.md#checkout-locking-and-recovery).

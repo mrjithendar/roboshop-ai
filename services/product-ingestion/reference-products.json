@@ -1,0 +1,1197 @@
+[
+  {
+    "sku": "REF-POLOLU-5011",
+    "slug": "pololu-5011",
+    "name": "Zumo 2040 Robot (Assembled with 50:1 HP Motors)",
+    "manufacturer": "Pololu",
+    "model": "Zumo 2040 Robot (Assembled with 50:1 HP Motors) (item #5011)",
+    "productType": "complete robot",
+    "description": "A tracked programming platform with wheel encoders, line and proximity sensing, and an inertial measurement unit.",
+    "specifications": {
+      "Controller": "Raspberry Pi RP2040",
+      "Display": "Graphical OLED",
+      "Lighting": "Six RGB LEDs",
+      "Motors": "Two 50:1 HP micro metal gearmotors",
+      "Assembly": "Assembled"
+    },
+    "compatibility": [
+      "USB-C connection to a computer"
+    ],
+    "includedItems": [],
+    "requiredAccessories": [
+      "Four AA batteries",
+      "USB-C cable"
+    ],
+    "categories": [
+      "mobile robots",
+      "Zumo"
+    ],
+    "collection": "reference",
+    "price": 194.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/5011",
+    "priceCheckedAt": "2026-10-20T15:13:30.045614+00:00",
+    "checkedAt": "2026-10-20T15:13:30.045614+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/5011"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-5012",
+    "slug": "pololu-5012",
+    "name": "Zumo 2040 Robot (Assembled with 75:1 HP Motors)",
+    "manufacturer": "Pololu",
+    "model": "Zumo 2040 Robot (Assembled with 75:1 HP Motors) (item #5012)",
+    "productType": "complete robot",
+    "description": "A tracked programming platform with wheel encoders, line and proximity sensing, and an inertial measurement unit.",
+    "specifications": {
+      "Controller": "Raspberry Pi RP2040",
+      "Display": "Graphical OLED",
+      "Lighting": "Six RGB LEDs",
+      "Motors": "Two 75:1 HP micro metal gearmotors",
+      "Assembly": "Assembled"
+    },
+    "compatibility": [
+      "USB-C connection to a computer"
+    ],
+    "includedItems": [],
+    "requiredAccessories": [
+      "Four AA batteries",
+      "USB-C cable"
+    ],
+    "categories": [
+      "mobile robots",
+      "Zumo"
+    ],
+    "collection": "reference",
+    "price": 194.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/5012",
+    "priceCheckedAt": "2026-10-20T15:13:29.198454+00:00",
+    "checkedAt": "2026-10-20T15:13:29.198454+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/5012"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-5013",
+    "slug": "pololu-5013",
+    "name": "Zumo 2040 Robot (Assembled with 100:1 HP Motors)",
+    "manufacturer": "Pololu",
+    "model": "Zumo 2040 Robot (Assembled with 100:1 HP Motors) (item #5013)",
+    "productType": "complete robot",
+    "description": "A tracked programming platform with wheel encoders, line and proximity sensing, and an inertial measurement unit.",
+    "specifications": {
+      "Controller": "Raspberry Pi RP2040",
+      "Display": "Graphical OLED",
+      "Lighting": "Six RGB LEDs",
+      "Motors": "Two 100:1 HP micro metal gearmotors",
+      "Assembly": "Assembled"
+    },
+    "compatibility": [
+      "USB-C connection to a computer"
+    ],
+    "includedItems": [],
+    "requiredAccessories": [
+      "Four AA batteries",
+      "USB-C cable"
+    ],
+    "categories": [
+      "mobile robots",
+      "Zumo"
+    ],
+    "collection": "reference",
+    "price": 194.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/5013",
+    "priceCheckedAt": "2026-10-20T15:13:29.204975+00:00",
+    "checkedAt": "2026-10-20T15:13:29.204975+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/5013"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-5010",
+    "slug": "pololu-5010",
+    "name": "Zumo 2040 Robot Kit (No Motors)",
+    "manufacturer": "Pololu",
+    "model": "Zumo 2040 Robot Kit (No Motors) (item #5010)",
+    "productType": "kit",
+    "description": "A tracked programming platform with wheel encoders, line and proximity sensing, and an inertial measurement unit.",
+    "specifications": {
+      "Controller": "Raspberry Pi RP2040",
+      "Display": "Graphical OLED",
+      "Lighting": "Six RGB LEDs",
+      "Motors": "Not included",
+      "Assembly": "Soldering and assembly required"
+    },
+    "compatibility": [
+      "USB-C connection to a computer"
+    ],
+    "includedItems": [],
+    "requiredAccessories": [
+      "Four AA batteries",
+      "USB-C cable",
+      "Two micro metal gearmotors"
+    ],
+    "categories": [
+      "educational kits",
+      "Zumo"
+    ],
+    "collection": "reference",
+    "price": 129.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/5010",
+    "priceCheckedAt": "2026-10-20T15:13:30.049524+00:00",
+    "checkedAt": "2026-10-20T15:13:30.049524+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/5010"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-5014",
+    "slug": "pololu-5014",
+    "name": "Zumo 2040 Main Board",
+    "manufacturer": "Pololu",
+    "model": "Zumo 2040 Main Board (item #5014)",
+    "productType": "component",
+    "description": "A replacement control board for a Zumo 2040 build. The OLED display is a separate purchase.",
+    "specifications": {
+      "Role": "Main control board",
+      "Display": "Not included"
+    },
+    "compatibility": [
+      "Zumo 2040"
+    ],
+    "includedItems": [
+      "Through-hole components",
+      "Magnetic encoder discs",
+      "Mounting hardware"
+    ],
+    "requiredAccessories": [],
+    "categories": [
+      "components",
+      "Zumo"
+    ],
+    "collection": "reference",
+    "price": 74.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/5014",
+    "priceCheckedAt": "2026-10-20T15:13:33.169450+00:00",
+    "checkedAt": "2026-10-20T15:13:33.169450+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/5014"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-5015",
+    "slug": "pololu-5015",
+    "name": "Zumo 2040 Front Sensor Array",
+    "manufacturer": "Pololu",
+    "model": "Zumo 2040 Front Sensor Array (item #5015)",
+    "productType": "component",
+    "description": "Replacement front sensing hardware for the Zumo 2040. It is not intended for older Zumo controller platforms.",
+    "specifications": {
+      "Role": "Front sensor array"
+    },
+    "compatibility": [
+      "Zumo 2040 only; not Zumo 32U4 or Zumo Robot for Arduino"
+    ],
+    "includedItems": [
+      "Header pins",
+      "Infrared LEDs"
+    ],
+    "requiredAccessories": [],
+    "categories": [
+      "components",
+      "Zumo"
+    ],
+    "collection": "reference",
+    "price": 24.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/5015",
+    "priceCheckedAt": "2026-10-20T15:13:33.172162+00:00",
+    "checkedAt": "2026-10-20T15:13:33.172162+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/5015"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-3121",
+    "slug": "pololu-3121",
+    "name": "Zumo Windowed Blade (for 32U4/2040)",
+    "manufacturer": "Pololu",
+    "model": "Zumo Windowed Blade (for 32U4/2040) (item #3121)",
+    "productType": "accessory",
+    "description": "A front blade for Zumo 32U4 and 2040 robots, supplied with a holder for the infrared LEDs.",
+    "specifications": {
+      "Material": "Stainless steel",
+      "Included holder": "Plastic IR LED holder"
+    },
+    "compatibility": [
+      "Zumo 32U4",
+      "Zumo 2040"
+    ],
+    "includedItems": [],
+    "requiredAccessories": [],
+    "categories": [
+      "accessories",
+      "Zumo"
+    ],
+    "collection": "reference",
+    "price": 6.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/3121",
+    "priceCheckedAt": "2026-10-20T15:13:33.410926+00:00",
+    "checkedAt": "2026-10-20T15:13:33.410926+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/3121"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-5001",
+    "slug": "pololu-5001",
+    "name": "3pi+ 2040 Robot - Standard Edition (30:1 MP Motors), Assembled",
+    "manufacturer": "Pololu",
+    "model": "3pi+ 2040 Robot - Standard Edition (30:1 MP Motors), Assembled (item #5001)",
+    "productType": "complete robot",
+    "description": "A compact wheeled platform for experimenting with feedback control and navigation. This variant includes 30:1 MP motors.",
+    "specifications": {
+      "Controller": "Raspberry Pi RP2040",
+      "Motors": "30:1 MP 6V Micro Metal Gearmotors",
+      "Sensors": "Quadrature encoders, line sensors, front bump sensors, IMU",
+      "Display": "Graphical OLED",
+      "Assembly": "Assembled"
+    },
+    "compatibility": [
+      "C, C++, Arduino and Python programming (3pi+ 2040 platform)"
+    ],
+    "includedItems": [],
+    "requiredAccessories": [],
+    "categories": [
+      "mobile robots",
+      "3pi+"
+    ],
+    "collection": "reference",
+    "price": 194.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/5001",
+    "priceCheckedAt": "2026-10-20T15:13:33.426598+00:00",
+    "checkedAt": "2026-10-20T15:13:33.426598+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/5001"
+      },
+      {
+        "label": "Pololu 3pi+ 2040 platform documentation",
+        "url": "https://www.pololu.com/category/300/3pi-plus-2040-robot"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-5002",
+    "slug": "pololu-5002",
+    "name": "3pi+ 2040 Robot - Turtle Edition (75:1 LP Motors), Assembled",
+    "manufacturer": "Pololu",
+    "model": "3pi+ 2040 Robot - Turtle Edition (75:1 LP Motors), Assembled (item #5002)",
+    "productType": "complete robot",
+    "description": "A compact wheeled platform for experimenting with feedback control and navigation. This variant includes 75:1 LP motors.",
+    "specifications": {
+      "Controller": "Raspberry Pi RP2040",
+      "Motors": "75:1 LP 6V Micro Metal Gearmotors",
+      "Sensors": "Quadrature encoders, line sensors, front bump sensors, IMU",
+      "Display": "Graphical OLED",
+      "Assembly": "Assembled"
+    },
+    "compatibility": [
+      "C, C++, Arduino and Python programming (3pi+ 2040 platform)"
+    ],
+    "includedItems": [],
+    "requiredAccessories": [],
+    "categories": [
+      "mobile robots",
+      "3pi+"
+    ],
+    "collection": "reference",
+    "price": 194.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/5002",
+    "priceCheckedAt": "2026-10-20T15:13:37.695641+00:00",
+    "checkedAt": "2026-10-20T15:13:37.695641+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/5002"
+      },
+      {
+        "label": "Pololu 3pi+ 2040 platform documentation",
+        "url": "https://www.pololu.com/category/300/3pi-plus-2040-robot"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-5000",
+    "slug": "pololu-5000",
+    "name": "3pi+ 2040 Robot - Hyper Edition (15:1 HPCB Motors), Assembled",
+    "manufacturer": "Pololu",
+    "model": "3pi+ 2040 Robot - Hyper Edition (15:1 HPCB Motors), Assembled (item #5000)",
+    "productType": "complete robot",
+    "description": "A compact wheeled platform for experimenting with feedback control and navigation. This variant includes 15:1 HPCB motors. The manufacturer recommends this fast variant only for advanced users because impacts can damage it.",
+    "specifications": {
+      "Controller": "Raspberry Pi RP2040",
+      "Motors": "15:1 HPCB 6V Micro Metal Gearmotors",
+      "Sensors": "Quadrature encoders, line sensors, front bump sensors, IMU",
+      "Display": "Graphical OLED",
+      "Assembly": "Assembled"
+    },
+    "compatibility": [
+      "C, C++, Arduino and Python programming (3pi+ 2040 platform)"
+    ],
+    "includedItems": [],
+    "requiredAccessories": [],
+    "categories": [
+      "mobile robots",
+      "3pi+"
+    ],
+    "collection": "reference",
+    "price": 208.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/5000",
+    "priceCheckedAt": "2026-10-20T15:13:37.698814+00:00",
+    "checkedAt": "2026-10-20T15:13:37.698814+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/5000"
+      },
+      {
+        "label": "Pololu 3pi+ 2040 platform documentation",
+        "url": "https://www.pololu.com/category/300/3pi-plus-2040-robot"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-5004",
+    "slug": "pololu-5004",
+    "name": "3pi+ 2040 Robot Kit with 30:1 MP Motors (Standard Edition Kit)",
+    "manufacturer": "Pololu",
+    "model": "3pi+ 2040 Robot Kit with 30:1 MP Motors (Standard Edition Kit) (item #5004)",
+    "productType": "kit",
+    "description": "A compact wheeled platform for experimenting with feedback control and navigation. This variant includes 30:1 MP motors.",
+    "specifications": {
+      "Controller": "Raspberry Pi RP2040",
+      "Motors": "30:1 MP 6V Micro Metal Gearmotors",
+      "Sensors": "Quadrature encoders, line sensors, front bump sensors, IMU",
+      "Display": "Graphical OLED",
+      "Assembly": "Soldering and assembly required"
+    },
+    "compatibility": [
+      "C, C++, Arduino and Python programming (3pi+ 2040 platform)"
+    ],
+    "includedItems": [],
+    "requiredAccessories": [],
+    "categories": [
+      "educational kits",
+      "3pi+"
+    ],
+    "collection": "reference",
+    "price": 179.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/5004",
+    "priceCheckedAt": "2026-10-20T15:13:37.973298+00:00",
+    "checkedAt": "2026-10-20T15:13:37.973298+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/5004"
+      },
+      {
+        "label": "Pololu 3pi+ 2040 platform documentation",
+        "url": "https://www.pololu.com/category/300/3pi-plus-2040-robot"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-5005",
+    "slug": "pololu-5005",
+    "name": "3pi+ 2040 Robot Kit with 75:1 LP Motors (Turtle Edition Kit)",
+    "manufacturer": "Pololu",
+    "model": "3pi+ 2040 Robot Kit with 75:1 LP Motors (Turtle Edition Kit) (item #5005)",
+    "productType": "kit",
+    "description": "A compact wheeled platform for experimenting with feedback control and navigation. This variant includes 75:1 LP motors.",
+    "specifications": {
+      "Controller": "Raspberry Pi RP2040",
+      "Motors": "75:1 LP 6V Micro Metal Gearmotors",
+      "Sensors": "Quadrature encoders, line sensors, front bump sensors, IMU",
+      "Display": "Graphical OLED",
+      "Assembly": "Soldering and assembly required"
+    },
+    "compatibility": [
+      "C, C++, Arduino and Python programming (3pi+ 2040 platform)"
+    ],
+    "includedItems": [],
+    "requiredAccessories": [],
+    "categories": [
+      "educational kits",
+      "3pi+"
+    ],
+    "collection": "reference",
+    "price": 179.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/5005",
+    "priceCheckedAt": "2026-10-20T15:13:37.957218+00:00",
+    "checkedAt": "2026-10-20T15:13:37.957218+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/5005"
+      },
+      {
+        "label": "Pololu 3pi+ 2040 platform documentation",
+        "url": "https://www.pololu.com/category/300/3pi-plus-2040-robot"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-5003",
+    "slug": "pololu-5003",
+    "name": "3pi+ 2040 Robot Kit with 15:1 HPCB Motors (Hyper Edition Kit)",
+    "manufacturer": "Pololu",
+    "model": "3pi+ 2040 Robot Kit with 15:1 HPCB Motors (Hyper Edition Kit) (item #5003)",
+    "productType": "kit",
+    "description": "A compact wheeled platform for experimenting with feedback control and navigation. This variant includes 15:1 HPCB motors. The manufacturer recommends this fast variant only for advanced users because impacts can damage it.",
+    "specifications": {
+      "Controller": "Raspberry Pi RP2040",
+      "Motors": "15:1 HPCB 6V Micro Metal Gearmotors",
+      "Sensors": "Quadrature encoders, line sensors, front bump sensors, IMU",
+      "Display": "Graphical OLED",
+      "Assembly": "Soldering and assembly required"
+    },
+    "compatibility": [
+      "C, C++, Arduino and Python programming (3pi+ 2040 platform)"
+    ],
+    "includedItems": [],
+    "requiredAccessories": [],
+    "categories": [
+      "educational kits",
+      "3pi+"
+    ],
+    "collection": "reference",
+    "price": 193.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/5003",
+    "priceCheckedAt": "2026-10-20T15:13:39.252870+00:00",
+    "checkedAt": "2026-10-20T15:13:39.252870+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/5003"
+      },
+      {
+        "label": "Pololu 3pi+ 2040 platform documentation",
+        "url": "https://www.pololu.com/category/300/3pi-plus-2040-robot"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-5006",
+    "slug": "pololu-5006",
+    "name": "3pi+ 2040 Control Board",
+    "manufacturer": "Pololu",
+    "model": "3pi+ 2040 Control Board (item #5006)",
+    "productType": "component",
+    "description": "A replacement board for the 3pi+ 2040 family, also usable as the controller in a custom chassis build.",
+    "specifications": {
+      "Role": "Control board"
+    },
+    "compatibility": [
+      "3pi+ 2040 Standard, Turtle and Hyper editions",
+      "3pi+ Chassis Kit with 6V Micro Metal Gearmotors with extended shafts and graphical OLED display"
+    ],
+    "includedItems": [],
+    "requiredAccessories": [],
+    "categories": [
+      "components",
+      "3pi+"
+    ],
+    "collection": "reference",
+    "price": 74.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/5006",
+    "priceCheckedAt": "2026-10-20T15:13:39.262027+00:00",
+    "checkedAt": "2026-10-20T15:13:39.262027+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/5006"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-3550",
+    "slug": "pololu-3550",
+    "name": "Robot Arm Kit for Romi",
+    "manufacturer": "Pololu",
+    "model": "Robot Arm Kit for Romi (item #3550)",
+    "productType": "kit",
+    "description": "An arm accessory for a Romi robot with separate servo control of arm height, gripper tilt and gripping motion.",
+    "specifications": {
+      "Servos": "Three, with accessible feedback potentiometers",
+      "End effector": "Micro gripper"
+    },
+    "compatibility": [
+      "Romi chassis"
+    ],
+    "includedItems": [],
+    "requiredAccessories": [],
+    "categories": [
+      "educational kits",
+      "Romi"
+    ],
+    "collection": "reference",
+    "price": 99.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/3550",
+    "priceCheckedAt": "2026-10-20T15:13:39.597974+00:00",
+    "checkedAt": "2026-10-20T15:13:39.597974+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/3550"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-3560",
+    "slug": "pololu-3560",
+    "name": "Romi Chassis Expansion Plate - Black",
+    "manufacturer": "Pololu",
+    "model": "Romi Chassis Expansion Plate - Black (item #3560)",
+    "productType": "accessory",
+    "description": "A half-circle mounting plate for adding a tier to a Romi chassis. Two plates can form a full circular platform.",
+    "specifications": {
+      "Material": "Black ABS",
+      "Shape": "Semicircular",
+      "Mounting": "Holes and slots"
+    },
+    "compatibility": [
+      "Romi chassis"
+    ],
+    "includedItems": [],
+    "requiredAccessories": [],
+    "categories": [
+      "accessories",
+      "Romi"
+    ],
+    "collection": "reference",
+    "price": 6.49,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/3560",
+    "priceCheckedAt": "2026-10-20T15:13:39.527234+00:00",
+    "checkedAt": "2026-10-20T15:13:39.527234+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/3560"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-3542",
+    "slug": "pololu-3542",
+    "name": "Romi Encoder Pair Kit, 12 CPR, 3.5-18V",
+    "manufacturer": "Pololu",
+    "model": "Romi Encoder Pair Kit, 12 CPR, 3.5-18V (item #3542)",
+    "productType": "kit",
+    "description": "A pair of magnetic encoders for measuring motor-shaft movement on a Romi chassis.",
+    "specifications": {
+      "Resolution": "12 counts per motor-shaft revolution",
+      "Operating voltage": "3.5–18 V",
+      "Sensing": "Hall effect, quadrature digital output"
+    },
+    "compatibility": [
+      "Mini plastic gearmotors on the Romi chassis"
+    ],
+    "includedItems": [
+      "Two encoder boards",
+      "Two magnetic discs"
+    ],
+    "requiredAccessories": [],
+    "categories": [
+      "educational kits",
+      "Romi"
+    ],
+    "collection": "reference",
+    "price": 9.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/3542",
+    "priceCheckedAt": "2026-10-20T15:13:40.969266+00:00",
+    "checkedAt": "2026-10-20T15:13:40.969266+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/3542"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-3544",
+    "slug": "pololu-3544",
+    "name": "Romi 32U4 Control Board",
+    "manufacturer": "Pololu",
+    "model": "Romi 32U4 Control Board (item #3544)",
+    "productType": "component",
+    "description": "A programmable controller for the Romi chassis with motor drivers and inertial sensing. It can interface with an added Raspberry Pi.",
+    "specifications": {
+      "Controller": "ATmega32U4",
+      "Motor drivers": "Dual integrated drivers",
+      "Expansion": "Encoder and optional LCD connections"
+    },
+    "compatibility": [
+      "Romi chassis",
+      "Arduino-compatible ATmega32U4 programming"
+    ],
+    "includedItems": [],
+    "requiredAccessories": [],
+    "categories": [
+      "components",
+      "Romi"
+    ],
+    "collection": "reference",
+    "price": 74.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/3544",
+    "priceCheckedAt": "2026-10-20T15:13:40.857716+00:00",
+    "checkedAt": "2026-10-20T15:13:40.857716+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/3544"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-3543",
+    "slug": "pololu-3543",
+    "name": "Motor Driver and Power Distribution Board for Romi Chassis",
+    "manufacturer": "Pololu",
+    "model": "Motor Driver and Power Distribution Board for Romi Chassis (item #3543)",
+    "productType": "component",
+    "description": "A board combining motor control and regulated power for a Romi chassis. Add a controller and sensors for a programmable robot.",
+    "specifications": {
+      "Motor driver": "Two channels",
+      "Regulator output": "5 V or 3.3 V, 2.5 A continuous",
+      "Protection": "Reverse voltage protection"
+    },
+    "compatibility": [
+      "Romi chassis"
+    ],
+    "includedItems": [],
+    "requiredAccessories": [
+      "Microcontroller",
+      "Sensors"
+    ],
+    "categories": [
+      "components",
+      "Romi"
+    ],
+    "collection": "reference",
+    "price": 34.95,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/3543",
+    "priceCheckedAt": "2026-10-20T15:13:41.199475+00:00",
+    "checkedAt": "2026-10-20T15:13:41.199475+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/3543"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  },
+  {
+    "sku": "REF-POLOLU-1418",
+    "slug": "pololu-1418",
+    "name": "Zumo Chassis Kit (No Motors)",
+    "manufacturer": "Pololu",
+    "model": "Zumo Chassis Kit (No Motors) (item #1418)",
+    "productType": "kit",
+    "description": "A tracked mechanical base for building a small robot. Motors and batteries must be supplied separately.",
+    "specifications": {
+      "Chassis material": "Black ABS",
+      "Battery compartment": "Four AA cells",
+      "Motor sockets": "Two micro metal gearmotors",
+      "Mounting plate": "1/16 inch acrylic"
+    },
+    "compatibility": [
+      "Micro metal gearmotors"
+    ],
+    "includedItems": [
+      "Two silicone tracks",
+      "Two drive sprockets",
+      "Two idler sprockets",
+      "Mounting hardware"
+    ],
+    "requiredAccessories": [
+      "Motors",
+      "Batteries"
+    ],
+    "categories": [
+      "educational kits",
+      "Zumo"
+    ],
+    "collection": "reference",
+    "price": 23.49,
+    "currency": "USD",
+    "priceType": "reference",
+    "priceSourceUrl": "https://www.pololu.com/product/1418",
+    "priceCheckedAt": "2026-10-20T15:13:41.710876+00:00",
+    "checkedAt": "2026-10-20T15:13:41.710876+00:00",
+    "priceBasis": "Manufacturer public unit price; quantity 1. Not a RobotShop offer. Tax, shipping and destination charges not verified.",
+    "sources": [
+      {
+        "label": "Pololu official product page",
+        "url": "https://www.pololu.com/product/1418"
+      }
+    ],
+    "sourceKind": "manufacturer",
+    "catalogueVersion": "reference-pololu-2026-10-20-v1",
+    "showcase": true,
+    "demo": false,
+    "synthetic": false,
+    "instock": 0,
+    "inventoryStatus": "simulated",
+    "fulfilment": "simulated",
+    "image": "/images/placeholder.png",
+    "imageAttribution": {
+      "credit": "RobotShop category illustration — not a product photograph",
+      "license": "Repository-owned category artwork; manufacturer image permission not established"
+    },
+    "unresolvedFields": [
+      "Manufacturer image reuse permission",
+      "Merchant sale price",
+      "Integrated inventory and delivery",
+      "Destination taxes and shipping charges"
+    ]
+  }
+]
