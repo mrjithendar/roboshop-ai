@@ -9,6 +9,9 @@ PUBLIC_HOST=jithendar.com PROFILE=mk4 NODES=4 CPUS=2 MEMORY=2048 bash minikube/s
 VULTR_HOST=root@jithendar.com API_HOST=jithendar.com PROFILE=mk4 bash minikube/kubeconfig.sh
 
 #VPC
-cd vpc
-terraform init
-terraform plan -var-file=vars/dev.tfvars -out=plan.tfplan
+terraform -chdir=infrastructure fmt -check
+terraform -chdir=infrastructure init -input=false -no-color
+terraform -chdir=infrastructure validate -no-color
+terraform -chdir=infrastructure plan -input=false -no-color -lock-timeout=5m \
+            -out=tf.tfplan --var-file=vars/terraform.tfvars
+terraform -chdir=infrastructure apply -input=false -no-color -lock-timeout=5m tf.tfplan
