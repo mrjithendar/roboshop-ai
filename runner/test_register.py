@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from urllib.error import HTTPError
-from setup_lab.docker.runner.register import registration_token
+from register import registration_token
 
 
 class RegistrationTests(unittest.TestCase):

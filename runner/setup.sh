@@ -20,15 +20,15 @@ source /etc/os-release
 # Install prerequisites before checking for commands on minimal server images.
 if command -v apt-get >/dev/null; then
   as_root apt-get update
-  as_root apt-get install -y ca-certificates curl tar gzip coreutils util-linux python3 python3-venv git
+  as_root apt-get install -y ca-certificates curl tar gzip coreutils util-linux python3 python3-venv unzip git
 elif command -v dnf >/dev/null || command -v yum >/dev/null; then
   package_manager=dnf
   command -v dnf >/dev/null || package_manager=yum
-  as_root "$package_manager" install -y ca-certificates tar gzip coreutils util-linux python3 python3-pip git libicu openssl-libs krb5-libs zlib libstdc++ libgcc
+  as_root "$package_manager" install -y ca-certificates tar gzip coreutils util-linux python3 python3-pip unzip git libicu openssl-libs krb5-libs zlib libstdc++ libgcc
   # Keep curl-minimal where installed, avoiding RPM package conflicts.
   command -v curl >/dev/null || as_root "$package_manager" install -y curl
 elif command -v zypper >/dev/null; then
-  as_root zypper --non-interactive install ca-certificates curl tar gzip coreutils util-linux python3 python3-pip git libicu libopenssl3 libkrb5-3 libz1 libstdc++6 libgcc_s1
+  as_root zypper --non-interactive install ca-certificates curl tar gzip coreutils util-linux python3 python3-pip unzip git libicu libopenssl3 libkrb5-3 libz1 libstdc++6 libgcc_s1
 else
   echo "No supported package manager found on ${ID:-unknown}; supported: apt, dnf/yum, zypper." >&2
   exit 1
@@ -54,12 +54,22 @@ repo=${1:-mrjithendar/roboshop-ai}
 export RUNNER_SECRET_NAME=${2:-roboshop-ai}
 export AWS_REGION=${3:-us-east-1}
 [[ "$repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Repository must be OWNER/REPOSITORY.' >&2; exit 1; }
-# Reuse AWS CLI if available; otherwise isolate it from system Python packages.
-if [[ ! -f .runner ]] && ! command -v aws >/dev/null; then
-  python3 -m venv .setup-tools
-  .setup-tools/bin/python -m pip install --disable-pip-version-check 'awscli>=1.32,<2'
-  export PATH="$runner_dir/.setup-tools/bin:$PATH"
+# Upgrade tools on every setup, including already registered runners.
+# Do not replace interpreters while a runner service may be executing a job.
+if [[ -f .service ]]; then
+  runner_service=$(cat .service)
+  if systemctl is-active --quiet "$runner_service"; then
+    echo 'Runner service is active. Wait until it is Idle, then run sudo ./svc.sh stop from the runner directory and rerun setup.' >&2
+    exit 1
+  fi
 fi
+bash "$script_dir/install-tools.sh" "$runner_dir"
+export PATH="$runner_dir/.tools/python/bin:$runner_dir/.tools/bin:$PATH"
+# The runner loads .path at service startup; shell-only PATH changes are insufficient.
+printf '%s\n' "$PATH" > .path
+python3 --version
+python3 -m pip --version
+aws --version
 export AWS_PAGER=""
 
 if [[ ! -f .runner ]]; then

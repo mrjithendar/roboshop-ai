@@ -6,7 +6,7 @@ Run from the checkout as root or your regular Linux user (for example `ec2-user`
 bash runner/setup.sh mrjithendar/roboshop-ai roboshop-ai us-east-1
 ```
 
-This is the single deployment entry point; keep `runner/register.py` beside it. With no arguments, the same repository, secret and region are used.
+This is the single deployment entry point; keep the entire `runner/` directory together. With no arguments, the same repository, secret and region are used.
 
 | Argument | Purpose |
 | --- | --- |
@@ -14,11 +14,35 @@ This is the single deployment entry point; keep `runner/register.py` beside it. 
 | `roboshop-ai` | AWS Secrets Manager secret holding a GitHub token |
 | `us-east-1` | AWS region containing that secret |
 
-Setup detects apt, dnf/yum or zypper and installs Python, download utilities, Git and runner runtime dependencies. It retains an existing curl/curl-minimal package. If AWS CLI is absent, setup installs AWS CLI v1 into a private `.setup-tools` virtual environment under the runner directory, without changing system Python. Existing AWS CLI v1/v2 installations are reused. AWS calls run as the invoking user; service and package operations run directly for root, or use sudo for regular users.
+Setup detects apt, dnf/yum or zypper and installs bootstrap Python, download
+utilities, unzip, Git and runner dependencies. `install-tools.sh` then installs
+fresh uv, the latest stable CPython available in uv's managed distribution catalogue,
+latest pip, and the latest official AWS CLI v2 Linux bundle (x86_64 or ARM64).
+These private tools live under `$RUNNER_DIR/.tools`; OS Python and existing global
+AWS installations remain untouched. Managed Python uses Astral python-build-standalone
+binaries, not your distribution's Python packages. The runner's `.path` file ensures
+workflow steps can use `python`, `python3`, `pip`, `pip3` and `aws` after startup.
+AWS credentials/profile still belong to the invoking user; no credentials are created.
+
+For an existing runner, wait until GitHub shows **Idle**, then stop its service
+before updating tools:
+
+```bash
+cd "$HOME/actions-runner"
+sudo ./svc.sh stop
+cd /path/to/roboshop-ai
+bash runner/setup.sh mrjithendar/roboshop-ai roboshop-ai us-east-1
+```
+
+Setup refuses to update tools while that service is active. It restarts the service
+after successful setup. Reruns refresh the private Python tooling environment;
+install project dependencies in project virtual environments or workflow steps.
+They preserve runner registration and do not fetch a new GitHub secret for an
+already registered runner. If setup fails, the service remains stopped until fixed.
 
 Targets are modern Ubuntu/Debian, CentOS Stream/RHEL/Rocky/AlmaLinux/Fedora/Amazon Linux and openSUSE/SLES systems with matching package repositories. Requires **systemd, Python 3.9+, x86_64 or arm64**, and either root or a regular user with sudo access. Python is installed automatically, but an old release whose repositories provide only an older Python must be upgraded. Alpine/musl, OpenRC-only hosts, end-of-life releases and arbitrary Linux distributions are not guaranteed compatible. zypper package availability varies by SUSE release. Setup checks the runner runtime before fetching registration credentials.
 
-The installer downloads runner 2.337.0 and verifies its pinned SHA-256 checksum. Initial registration fetches the specified AWS secret. The AWS identity needs `secretsmanager:GetSecretValue` (plus KMS decrypt permission for a customer-managed key). Provide an EC2 instance role or configure AWS credentials/profile for your user before running. The installer does not create GitHub access tokens or AWS credentials. Outbound HTTPS to package repositories, GitHub, AWS and PyPI (when installing AWS CLI) is required.
+The installer downloads runner 2.337.0 and verifies its pinned SHA-256 checksum. Initial registration fetches the specified AWS secret. The AWS identity needs `secretsmanager:GetSecretValue` (plus KMS decrypt permission for a customer-managed key). Provide an EC2 instance role or configure AWS credentials/profile for your user before running. The installer does not create GitHub access tokens or AWS credentials. Outbound HTTPS to package repositories, GitHub, AWS and PyPI, astral.sh, python-build-standalone release downloads and awscli.amazonaws.com is required.
 
 This installs the runner service, not workflow-specific software such as Docker. Workflows requiring Docker need a separately installed daemon and appropriate runner-user permissions.
 
