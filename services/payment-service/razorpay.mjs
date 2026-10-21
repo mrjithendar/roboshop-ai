@@ -1,6 +1,9 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { HttpError, clientSpan } from './lib/runtime.mjs';
 
+// The ledger currently supports only currencies with two decimal subunits.
+const CHECKOUT_CURRENCIES = ['EUR', 'USD', 'INR', 'GBP', 'SGD', 'AUD', 'CAD', 'NZD', 'CHF', 'CNY', 'HKD', 'CZK', 'DKK', 'HUF', 'PLN', 'RON', 'NOK', 'SEK', 'TRY', 'BRL', 'MXN', 'ZAR', 'MYR', 'PHP', 'THB', 'IDR', 'ILS'];
+
 export function signatureValid(payload, signature, secret) {
   if (!secret || typeof signature !== 'string' || !/^[a-f0-9]{64}$/i.test(signature)) return false;
   const expected = createHmac('sha256', secret).update(payload).digest();
@@ -48,14 +51,14 @@ export class Razorpay {
     if (scoped !== this) return scoped.create(data);
     if (this.settings().mode === 'live' && (data.demo !== false || data.inventoryProvenance !== 'merchant')) throw new HttpError(409, 'Demo or unverified inventory cannot use live payments.');
     const { amount, currency, receipt } = data;
-    if (!Number.isSafeInteger(amount) || amount <= 0 || !['EUR', 'USD', 'INR'].includes(currency) || !/^[a-f0-9-]{36}$/.test(receipt || '')) throw new HttpError(400, 'Invalid payment order.');
+    if (!Number.isSafeInteger(amount) || amount <= 0 || !CHECKOUT_CURRENCIES.includes(currency) || !/^[a-f0-9-]{36}$/.test(receipt || '')) throw new HttpError(400, 'Invalid payment order.');
     const order = await this.api('/orders', { amount, currency, receipt, partial_payment: false });
     if (!/^order_[A-Za-z0-9]+$/.test(order.id || '') || order.amount !== amount || order.currency !== currency || order.receipt !== receipt || order.status !== 'created') throw new HttpError(502, 'Unexpected payment order response.');
     return { orderId: order.id, receipt, amount, currency, keyId: this.credentials().keyId, mode: this.settings().mode };
   }
   orderResult(order) {
     if (!/^order_[A-Za-z0-9]+$/.test(order.id || '') || !/^[a-f0-9-]{36}$/.test(order.receipt || '') ||
-        !Number.isSafeInteger(order.amount) || order.amount <= 0 || !['EUR', 'USD', 'INR'].includes(order.currency) ||
+        !Number.isSafeInteger(order.amount) || order.amount <= 0 || !CHECKOUT_CURRENCIES.includes(order.currency) ||
         !['created', 'attempted', 'paid'].includes(order.status) || order.partial_payment === true) throw new HttpError(502, 'Unexpected payment order response.');
     return { orderId: order.id, receipt: order.receipt, amount: order.amount, currency: order.currency,
       keyId: this.credentials().keyId, mode: this.settings().mode };

@@ -39,7 +39,7 @@ class UserClient:
         self.call('address', {'userId': user_id, 'shipping': shipping}, timeout=5)
 
     def project(self, order):
-        snapshot = {k: order[k] for k in ('id', 'userId', 'status', 'synthetic', 'paymentCaptured', 'paymentMode', 'currency', 'subtotal', 'total', 'paidAt', 'createdAt', 'shipping') if k in order}
+        snapshot = {k: order[k] for k in ('id', 'userId', 'status', 'synthetic', 'paymentCaptured', 'paymentMode', 'currency', 'subtotal', 'total', 'paidAt', 'createdAt', 'shipping', 'currencyQuote') if k in order}
         snapshot['items'] = [{k: item[k] for k in ('sku', 'name', 'price', 'quantity', 'lineTotal')} for item in order['items']]
         return self.call('purchase', {'order': snapshot})['saved']
 

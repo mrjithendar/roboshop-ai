@@ -18,8 +18,8 @@ jobs:
     timeout-minutes: 30
     env:
       SERVICE: ${{ inputs.service }}
-      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
-      REPOSITORY_PREFIX: ${{ vars.ECR_REPOSITORY_PREFIX || 'robotshop' }}
+      AWS_REGION: us-east-1
+      REPOSITORY_PREFIX: robotshop
     steps:
       - uses: actions/checkout@v7
         with:

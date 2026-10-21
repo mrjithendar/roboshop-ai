@@ -402,5 +402,27 @@ class CommerceTests(unittest.TestCase):
         self.assertEqual(self.repo.initialize(id,{})['items'],{P['sku']:2})
         self.assertFalse(self.store.payment_order(order['id']).get('cartCleared',False))
 
-if __name__=='__main__':unittest.main()
 
+
+    def test_converted_quote_is_atomic_durable_and_rejects_stale_cart(self):
+        import currency_quote as fx
+        from datetime import datetime, timezone
+        id=self.cart('fx-customer')
+        with patch.dict(os.environ,PAYMENT_SERVICE_TOKEN='fx-test-only-token'), patch.object(fx,'request',return_value={'asOf':datetime.now(timezone.utc).date().isoformat(),'stale':False,'rates':{'INR':100,'USD':1.2}}):
+            quote=fx.issue(id,self.store.cart(id,[P]),self.store.cart_version(id),'USD')
+            self.store.update(id,P['sku'],2,[P])
+            self.store.set_shipping(id,SHIPPING,[P])
+            with self.assertRaises(HttpError):self.store.reserve_payment(id,'stale-currency-quote',[P],'test','rzp_test_mock',quote_token=quote['quoteToken'])
+            self.assertEqual(self.store.reserved(P['sku']),0)
+            quote=fx.issue(id,self.store.cart(id,[P]),self.store.cart_version(id),'USD')
+            order,_=self.store.reserve_payment(id,'fresh-currency-quote',[P],'test','rzp_test_mock',quote_token=quote['quoteToken'])
+            other=self.new_store()
+            persisted=other.payment_order(order['id'])
+            self.assertEqual((persisted['currency'],persisted['amount']),('USD',25))
+            self.assertEqual(persisted['sourceCart']['currency'],'INR')
+            self.assertEqual(persisted['currencyQuote'],order['currencyQuote'])
+            duplicate,created=other.reserve_payment(id,'fresh-currency-quote',[P],'test','rzp_test_mock',quote_token='ignored-on-resume')
+            self.assertFalse(created)
+            self.assertEqual(duplicate['id'],order['id'])
+
+if __name__=='__main__':unittest.main()

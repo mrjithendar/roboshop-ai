@@ -1,3 +1,4 @@
+import currency_quote
 from product_details import purchasable, require_purchasable, checkout_provenance
 
 """One-process JSON ledger. Lock order: catalogue gate, cart gate, ledger lock.
@@ -310,21 +311,21 @@ class Store:
     def begin_payment(self, id, key, products, payment_mode="test"):
         return self.reserve_payment(id, key, products, payment_mode)[0]
 
-    def reserve_payment(self, id, key, products, payment_mode="test", key_id=None, expected_version=None):
+    def reserve_payment(self, id, key, products, payment_mode="test", key_id=None, expected_version=None, quote_token=None):
         with self.cart_lock(id), self.lock:
             previous = self.existing_payment(id, key)
             if previous:
                 return copy.deepcopy(previous), False
             if expected_version is not None and self.cart_version(id) != expected_version:
                 raise HttpError(409, "Cart changed while preparing checkout. Refresh and retry.")
-            return copy.deepcopy(self._begin_payment(id, key, products, payment_mode, key_id)), True
+            return copy.deepcopy(self._begin_payment(id, key, products, payment_mode, key_id, quote_token)), True
 
     def existing_payment(self, id, key):
         if not isinstance(key, str) or not re.fullmatch("[a-zA-Z0-9-]{16,80}", key):
             raise HttpError(400, "A valid idempotency key is required.")
         return next((o for o in self.state["orders"] if o["session"] == id and o["key"] == key), None) or self.pending(id)
 
-    def _begin_payment(self, id, key, products, payment_mode="test", key_id=None):
+    def _begin_payment(self, id, key, products, payment_mode="test", key_id=None, quote_token=None):
         if not isinstance(key, str) or not re.fullmatch("[a-zA-Z0-9-]{16,80}", key):
             raise HttpError(400, "A valid idempotency key is required.")
         previous = next(
@@ -361,6 +362,8 @@ class Store:
             )
         if len(self.state["orders"]) >= 10000:
             raise HttpError(503, "Order capacity reached.")
+        if quote_token:
+            cart = currency_quote.apply(cart, quote_token, id, self.cart_version(id), payment_mode)
         order = {
             "id": str(uuid.uuid4()),
             "session": id,
@@ -446,6 +449,9 @@ class Store:
                 "productProvenance": o.get("productProvenance", []),
                 "version": 1,
                 "orderId": o["id"],
+                "currency": o["currency"],
+                "amount": o.get("amount", cents(o["total"])),
+                "currencyQuote": copy.deepcopy(o.get("currencyQuote")),
                 "shipping": o["shipping"],
                 "items": [{k: p[k] for k in ("sku", "quantity")} for p in o["items"]],
             }

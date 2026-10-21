@@ -8,6 +8,11 @@ on:
         required: true
         default: mk4
         type: string
+      kubeconfig:
+        description: Optional kubeconfig path on the runner (blank uses KUBECONFIG or ~/.kube/config)
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -29,7 +34,7 @@ jobs:
       KUBE_CONTEXT: ${{ inputs.profile }}
       AWS_REGION: us-east-1
       ECR_REGISTRY: 881026659929.dkr.ecr.us-east-1.amazonaws.com
-      RUNNER_KUBECONFIG: ${{ vars.MINIKUBE_KUBECONFIG }}
+      RUNNER_KUBECONFIG: ${{ inputs.kubeconfig }}
 
     steps:
       - name: git checkout

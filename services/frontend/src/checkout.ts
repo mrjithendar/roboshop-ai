@@ -21,7 +21,7 @@ type CartItem = (Product & { quantity: number; lineTotal: number; unavailable?: 
 interface Shipping { address: { recipient: string; line1: string; postalCode?: string }; city: { id?: number; name: string; country: string; countryCode?: string }; cost: number; distanceKm: number; quotedAt: string }
 interface Cart { currency?: string; items: CartItem[]; total: number; subtotal?: number; shipping?: Shipping | null }
 interface Order extends Cart { paymentMode?: 'test' | 'live'; demo?: boolean; id: string; status: 'creating' | 'payment_pending' | 'payment_review' | 'paid'; paymentCaptured: boolean; paymentId?: string }
-interface PaymentConfig { mode?: 'test' | 'live'; enabled: boolean; message?: string }
+interface PaymentConfig { currencies?: string[]; mode?: 'test' | 'live'; enabled: boolean; message?: string }
 interface CheckoutOptions { key: string; order_id: string; amount: number; currency: string; name: string; description: string }
 interface CheckoutResponse { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }
 interface RazorpayInstance { open(): void; on(event: 'payment.failed', handler: () => void): void }
@@ -30,9 +30,32 @@ interface Country { code: string; name: string; cityCount: number }
 interface City { id: number; name: string; region?: string }
 class ApiError extends Error { constructor(message: string, readonly status: number) { super(message); } }
 const errorMessage = (error: unknown): string => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
-const money = (value: number, currency = cart.currency || 'INR') => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
+const money = (value: number, currency = pendingOrder?.currency || checkoutQuote?.cart.currency || cart.currency || 'INR') => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
 let cart: Cart = { items: [], total: 0 }, cartBusy = false;
 let checkoutKey: string | null = null;
+let checkoutQuote: { cart: Cart; quoteToken: string; expiresAt: number } | null = null;
+let quoteGeneration = 0, checkoutCurrency = '', currencyNoticePrefix = '';
+const currencySelect = document.querySelector<HTMLSelectElement>('#display-currency');
+function invalidateQuote() { checkoutQuote = null; quoteGeneration++; }
+async function quoteCheckout() {
+  invalidateQuote();
+  if (!paymentConfig.currencies?.length || !currentUser || pendingOrder || !cart.items.length || cart.items.some(p => p.unavailable)) return;
+  const generation = quoteGeneration;
+  const result = await api<{cart: Cart; quoteToken: string; expiresAt: number; paymentMode?: 'test' | 'live'}>('/api/payments/quote', { method: 'POST', body: JSON.stringify({currency: checkoutCurrency}) });
+  if (generation !== quoteGeneration) return;
+  checkoutQuote = result;
+  if (result.paymentMode) paymentConfig.mode = result.paymentMode;
+  const notice = document.querySelector('#currency-status');
+  if (notice) notice.textContent = currencyNoticePrefix + `You will pay in ${result.cart.currency}. Total is fixed for five minutes; bank fees may apply.`;
+}
+currencySelect?.addEventListener('change', async () => {
+  if (pendingOrder || cartBusy) return;
+  checkoutCurrency = currencySelect.value; currencyNoticePrefix = ''; checkoutKey = null;
+  try { localStorage.setItem('robotshop.displayCurrency', checkoutCurrency); } catch { /* Optional storage */ }
+  cartBusy = true; invalidateQuote(); renderCart();
+  try { await quoteCheckout(); } catch (error) { $('#order-result').textContent = errorMessage(error); }
+  finally { cartBusy = false; renderCart(); }
+});
 let toastTimer: ReturnType<typeof setTimeout> | undefined, citySearchTimer: ReturnType<typeof setTimeout> | undefined;
 let shippingDirty = false, citySearchVersion = 0;
 let paymentConfig: PaymentConfig = { enabled: false };
@@ -60,11 +83,19 @@ $('#step-checkout').setAttribute('aria-current', isCartPage ? 'false' : 'step');
 async function updateCart(sku: string, quantity: number) {
   if (cartBusy) return false;
   cartBusy = true;
-  try { cart = await api<Cart>('/api/cart', { method: 'POST', body: JSON.stringify({ sku, quantity }) }); checkoutKey = null; confirmedMode = undefined; $('#order-result').textContent = ''; $('#confirmation').hidden = true; renderCart(); return true; }
+  try { invalidateQuote(); cart = await api<Cart>('/api/cart', { method: 'POST', body: JSON.stringify({ sku, quantity }) }); checkoutKey = null; confirmedMode = undefined; $('#order-result').textContent = ''; $('#confirmation').hidden = true; await quoteCheckout(); renderCart(); return true; }
   catch (error) { toast(errorMessage(error)); return false; }
   finally { cartBusy = false; renderCart(); }
 }
 function renderCart() {
+  const displayCart = pendingOrder?.items ? pendingOrder : checkoutQuote?.cart || cart;
+  if (currencySelect) currencySelect.disabled = cartBusy || Boolean(pendingOrder) || !paymentConfig.currencies?.length;
+  if (pendingOrder && currencySelect && pendingOrder.currency) {
+    if (![...currencySelect.options].some(o => o.value === pendingOrder!.currency)) currencySelect.add(new Option(pendingOrder.currency, pendingOrder.currency));
+    currencySelect.value = pendingOrder.currency;
+    const notice = document.querySelector('#currency-status');
+    if (notice) notice.textContent = `Payment in ${pendingOrder.currency} is already reserved. Its currency and total cannot change.`;
+  }
   const mode = pendingOrder?.paymentMode || confirmedMode || paymentConfig.mode;
   $('#checkout-environment').hidden = !mode;
   $('#checkout-environment').textContent = mode === 'test' ? 'Test mode' : 'Live checkout — real money will be charged';
@@ -77,14 +108,14 @@ function renderCart() {
   $('#payment-panel').hidden = isCartPage || !cart.items.length;
   $('#checkout-account').textContent = currentUser ? `Signed in as ${currentUser.email}` : 'Sign in to complete your purchase. Your cart will be kept.';
   $('#bag-count').textContent = String(cart.items.reduce((n, item) => n + item.quantity, 0));
-  if (cart.shipping && !shippingDirty) $('#shipping-status').textContent = `${cart.shipping.address.recipient} · ${cart.shipping.address.line1} · ${cart.shipping.city.name}, ${cart.shipping.city.country} · ${money(cart.shipping.cost)} shipping. Edit below to change your destination.`;
-  $('#cart-subtotal').textContent = money(cart.subtotal || 0);
-  $('#cart-shipping').textContent = cart.shipping ? money(cart.shipping.cost) : 'Not calculated';
+  if (cart.shipping && !shippingDirty) $('#shipping-status').textContent = `${cart.shipping.address.recipient} · ${cart.shipping.address.line1} · ${cart.shipping.city.name}, ${cart.shipping.city.country} · ${money(displayCart.shipping?.cost || 0)} shipping. Edit below to change your destination.`;
+  $('#cart-subtotal').textContent = money(displayCart.subtotal || 0);
+  $('#cart-shipping').textContent = displayCart.shipping ? money(displayCart.shipping.cost) : 'Not calculated';
   $('#shipping-fields').disabled = Boolean(pendingOrder) || cartBusy;
-  $('#cart-total').textContent = money(cart.total); $('#checkout').disabled = cartBusy || unavailable && !pendingOrder || !currentUser && !cart.items.length || Boolean(currentUser) && ( (!paymentConfig.enabled && !pendingOrder) || !cart.items.length || (!pendingOrder && (!cart.shipping || shippingDirty)) || ['creating', 'payment_review'].includes(pendingOrder?.status || ''));
+  $('#cart-total').textContent = money(displayCart.total); $('#checkout').disabled = cartBusy || unavailable && !pendingOrder || !currentUser && !cart.items.length || Boolean(currentUser) && ( (!paymentConfig.enabled && !pendingOrder) || !cart.items.length || (!pendingOrder && (!cart.shipping || shippingDirty)) || ['creating', 'payment_review'].includes(pendingOrder?.status || ''));
   $('#checkout').textContent = !currentUser ? 'Log in to checkout' : pendingOrder?.status === 'payment_pending' ? (mode === 'test' ? 'Resume demo payment ↗' : 'Resume secure payment ↗') : (mode === 'test' ? 'Pay in demo checkout ↗' : 'Pay securely ↗');
   $('#check-payment').hidden = !pendingOrder;
-  const rows = cart.items.map(p => {
+  const rows = displayCart.items.map(p => {
     const row = el('div', 'cart-row'), info = el('div'), qty = el('div', 'quantity-control');
     if (p.unavailable) {
       row.classList.add('cart-unavailable');
@@ -114,7 +145,7 @@ function renderCart() {
 async function paymentResult(order: Order | null) {
   if (order?.status === 'paid' && order.paymentCaptured) {
     confirmedMode = order.paymentMode;
-    pendingOrder = null; checkoutKey = null; paymentReference(null);
+    pendingOrder = null; checkoutKey = null; invalidateQuote(); paymentReference(null);
     $('#order-result').textContent = `${order.paymentMode === 'test' ? 'Demo payment confirmed — no real money charged; no delivery will be created.' : 'Payment confirmed.'} Order ${order.id.slice(0, 8)} · ${money(order.total, order.currency)}. Reference: ${order.paymentId}`;
     cart = await api<Cart>('/api/cart'); renderCart(); $('#step-checkout').setAttribute('aria-current', 'false'); $('#step-confirmation').setAttribute('aria-current', 'step'); $('#confirmation').hidden = false; $('#confirmation-details').textContent = $('#order-result').textContent; $('#checkout-empty').hidden = true; $('#confirmation').focus();
   } else if (order) {
@@ -141,7 +172,18 @@ async function checkPayment() {
   if (result.order) await paymentResult(result.order);
 }
 async function loadPaymentConfig() {
-  try { paymentConfig = await api<PaymentConfig>('/api/payments/config'); $('#payment-notice').textContent = paymentConfig.message || ''; }
+  try { paymentConfig = await api<PaymentConfig>('/api/payments/config'); $('#payment-notice').textContent = paymentConfig.message || '';
+    if (paymentConfig.currencies?.length && currencySelect) {
+      document.querySelector<HTMLElement>('#currency-control')!.hidden = false;
+      document.querySelector('label[for="display-currency"]')!.textContent = 'Payment currency';
+      let preferred = ''; try { preferred = localStorage.getItem('robotshop.displayCurrency') || ''; } catch { /* Optional storage */ }
+      checkoutCurrency = paymentConfig.currencies.includes(preferred) ? preferred : paymentConfig.currencies.includes(cart.currency || '') ? cart.currency! : paymentConfig.currencies[0];
+      currencySelect.replaceChildren(...paymentConfig.currencies.map(code => new Option(code, code))); currencySelect.value = checkoutCurrency;
+      const notice = document.querySelector('#currency-status');
+      currencyNoticePrefix = preferred && preferred !== 'original' && !paymentConfig.currencies.includes(preferred) ? `${preferred} is not available for payment. Review your total in ${checkoutCurrency} before paying. ` : '';
+      if (notice) notice.textContent = currencyNoticePrefix + 'Select your payment currency. Final totals are confirmed before payment.';
+    }
+  }
   catch { paymentConfig = { enabled: false }; $('#payment-notice').textContent = 'Payments are unavailable. Please try again later.'; }
   renderCart();
 }
@@ -165,8 +207,13 @@ $('#checkout').addEventListener('click', async () => {
   if (isCartPage || cartBusy || (!pendingOrder && cart.items.some(item => item.unavailable)) || (!paymentConfig.enabled && !pendingOrder) || !cart.items.length || (!pendingOrder && (!cart.shipping || shippingDirty))) return;
   cartBusy = true; renderCart(); checkoutKey ||= crypto.randomUUID();
   try {
+    if (!pendingOrder && paymentConfig.currencies?.length && (!checkoutQuote || checkoutQuote.expiresAt * 1000 <= Date.now())) {
+      await quoteCheckout();
+      $('#order-result').textContent = 'Your total was refreshed. Review it and click Pay again to confirm.';
+      return;
+    }
     await loadCheckout();
-    const result = await api<{ order: Order; checkout: CheckoutOptions }>('/api/payments/orders', { method: 'POST', headers: { 'idempotency-key': checkoutKey }, body: '{}' });
+    const result = await api<{ order: Order; checkout: CheckoutOptions }>('/api/payments/orders', { method: 'POST', headers: { 'idempotency-key': checkoutKey }, body: JSON.stringify(!pendingOrder && checkoutQuote ? {quoteToken: checkoutQuote.quoteToken} : {}) });
     if (result.order.status === 'paid') { await paymentResult(result.order); return; }
     pendingOrder = result.order; paymentReference(result.order.id);
     const Razorpay = window.Razorpay;
@@ -196,7 +243,7 @@ async function loadShipping() {
     option.value = country.code; option.disabled = !country.cityCount; $('#shipping-country').append(option);
   }
 }
-$('#shipping-form').addEventListener('input', () => { shippingDirty = true; renderCart(); });
+$('#shipping-form').addEventListener('input', () => { shippingDirty = true; invalidateQuote(); renderCart(); });
 $('#shipping-country').addEventListener('change', () => {
   citySearchVersion++; clearTimeout(citySearchTimer); $('#shipping-search').value = '';
   $('#shipping-city').replaceChildren(new Option('Select a search result', ''));
@@ -220,7 +267,7 @@ $('#shipping-form').addEventListener('submit', async event => {
   cartBusy = true; renderCart();
   try {
     cart = await api<Cart>('/api/shipping/quote', { method: 'POST', body: JSON.stringify({ cityId: Number($('#shipping-city').value), recipient: $('#shipping-recipient').value, line1: $('#shipping-address').value, postalCode: $('#shipping-postcode').value }) });
-    shippingDirty = false; checkoutKey = null;
+    shippingDirty = false; checkoutKey = null; await quoteCheckout();
     $('#shipping-status').textContent = cart.shipping ? `${cart.shipping.city.name}, ${cart.shipping.city.country} · ${cart.shipping.distanceKm.toLocaleString()} km · ${money(cart.shipping.cost)} shipping. Quote valid for 24 hours.` : 'Add an item to your bag to see your shipping total.';
   } catch (error) { $('#shipping-status').textContent = errorMessage(error); }
   finally { cartBusy = false; renderCart(); }
@@ -230,7 +277,7 @@ $('#shipping-form').addEventListener('submit', async event => {
 async function refreshCheckout() {
   cartBusy = true; renderCart();
   try {
-    cart = await api<Cart>('/api/cart');
+    invalidateQuote(); cart = await api<Cart>('/api/cart');
     await loadPaymentConfig();
     await checkPayment();
     if (!isCartPage) {
@@ -245,6 +292,7 @@ async function refreshCheckout() {
         if (city.id) $('#shipping-city').replaceChildren(new Option(city.name, String(city.id), true, true));
       }
     }
+    await quoteCheckout();
     $('#checkout-error').hidden = true;
   } catch (error) {
     $('#checkout-error').hidden = false;
@@ -255,7 +303,7 @@ async function refreshCheckout() {
 }
 $('#retry-checkout').addEventListener('click', refreshCheckout);
 await initAccount(async () => {
-  pendingOrder = null; checkoutKey = null; paymentReference(null);
+  pendingOrder = null; checkoutKey = null; invalidateQuote(); paymentReference(null);
   await refreshCheckout();
 });
 await refreshCheckout();

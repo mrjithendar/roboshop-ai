@@ -267,7 +267,8 @@ test('pending payments still prevent removing unavailable cart items', async t =
     return value ? { ok: true, status: 200, json: async () => value } : undefined;
   });
   await ui.boot();
-  assert.equal(ui.$('.cart-unavailable button').disabled, true);
+  assert.equal(ui.$('.remove-button').disabled, true);
+  assert.equal(ui.$('.cart-unavailable'), null); // Pending order renders its frozen snapshot.
   assert.equal(ui.$('#check-payment').hidden, false);
 });
 
@@ -310,4 +311,32 @@ test('storefront separates reference and demo collections and keeps provenance l
  assert.match(ui.$('#products').textContent,/not a product photo/);
  ui.$('#collection').value='demo';ui.$('#collection').dispatchEvent(new ui.w.Event('change'));
  assert.match(ui.$('#products').textContent,/demo price/);assert.match(ui.$('#products').textContent,/SIMULATED/);
+});
+
+test('converted checkout shows server total and sends only signed quote to provider order route', async t => {
+  let requestBody, providerOptions;
+  const converted = {...cart,currency:'GBP',subtotal:12,total:13,shipping:{...cart.shipping,cost:1},items:cart.items.map(p=>({...p,currency:'GBP',price:12,lineTotal:12}))};
+  const ui=setup(t,(path,options)=>{
+    const reply=body=>({ok:true,json:async()=>body});
+    if(path==='/api/payments/config')return reply({enabled:true,currencies:['INR','GBP']});
+    if(path==='/api/payments/quote') {assert.equal(JSON.parse(options.body).currency,'GBP');return reply({cart:converted,quoteToken:'server-signed-quote',expiresAt:Math.floor(Date.now()/1000)+300});}
+    if(path==='/api/payments/orders') {requestBody=JSON.parse(options.body);return reply({order:{...converted,id:'fx-order',status:'payment_pending'},checkout:{currency:'GBP',amount:1300}});}
+  });
+  ui.w.localStorage.setItem('robotshop.displayCurrency','GBP');
+  ui.w.Razorpay=class {constructor(options){providerOptions=options;}open(){}on(){}};
+  await ui.boot();assert.match(ui.$('#cart-total').textContent,/13\.00/);assert.equal(ui.$('#display-currency').value,'GBP');
+  ui.$('#checkout').click();await waitFor(()=>providerOptions);
+  assert.deepEqual(requestBody,{quoteToken:'server-signed-quote'});assert.equal(providerOptions.currency,'GBP');assert.equal(providerOptions.amount,1300);
+});
+
+test('expired currency quote refreshes for review without creating a provider order', async t => {
+ let quotes=0, orders=0;
+ const ui=setup(t,path=>{
+  const reply=body=>({ok:true,json:async()=>body});
+  if(path==='/api/payments/config')return reply({enabled:true,currencies:['INR']});
+  if(path==='/api/payments/quote')return reply({cart:{...cart,currency:'INR'},quoteToken:'quote-'+(++quotes),expiresAt:Math.floor(Date.now()/1000)+(quotes===1?-1:300)});
+  if(path==='/api/payments/orders'){orders++;return reply({});}
+ });
+ await ui.boot();ui.$('#checkout').click();await waitFor(()=>ui.$('#order-result').textContent.includes('Review it'));
+ assert.equal(quotes,2);assert.equal(orders,0);
 });

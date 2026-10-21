@@ -18,6 +18,7 @@ from purchase_sync import PurchaseSync
 from auth import connect_mongo, require_role
 from admin import routes as admin_routes, settings
 from store import Store, cents
+import currency_quote
 from cart_repository import CartRepository
 from events import OrderPublisher
 from llm import LLMConfiguration
@@ -162,7 +163,7 @@ class Gateway:
                 self.store.mark_paid(order["id"], result, order.get("revision", 0))
             return copy.deepcopy(self.store.payment_order(order["id"]))
 
-    def checkout(self, id, key):
+    def checkout(self, id, key, quote_token=None):
         with self.store.lock:
             order = copy.deepcopy(self.store.existing_payment(id, key))
             version = self.store.cart_version(id)
@@ -185,7 +186,7 @@ class Gateway:
                     if not config["enabled"]:
                         raise HttpError(503, config.get("message", "Payments unavailable."))
                     order, created = self.store.reserve_payment(
-                        id, key, products, config.get("mode", "unknown"), config.get("keyId"), version
+                        id, key, products, config.get("mode", "unknown"), config.get("keyId"), version, **({"quote_token": quote_token} if quote_token else {})
                     )
         if created:
             try:
@@ -413,7 +414,22 @@ class Gateway:
                 "checkoutMode": "razorpay",
             }
         if path == "/api/payments/config" and method == "GET":
-            return self.payment("config")
+            return self.payment("config") | {"currencies": currency_quote.currencies()}
+        if path == "/api/payments/quote" and method == "POST":
+            id = self.session(req)
+            data = req.body()
+            if set(data) != {"currency"}:
+                raise HttpError(400, "Only checkout currency is accepted.")
+            products = self.catalogue()
+            with self.store.lock:
+                if self.store.pending(id):
+                    raise HttpError(409, "A pending payment already has a fixed currency and amount.")
+                cart = copy.deepcopy(self.store.cart(id, products))
+                revision = self.store.cart_version(id)
+            config = self.payment("config")
+            if not config["enabled"]:
+                raise HttpError(503, "Payments are unavailable.")
+            return currency_quote.issue(id, cart, revision, data["currency"], config.get("mode"))
         if (
             path in ("/api/payments/current", "/api/payments/status")
             and method == "GET"
@@ -428,9 +444,11 @@ class Gateway:
             result = public_order(self.reconcile(order)) if order else None
             return {"order": result} if path.endswith("/current") else result
         if path == "/api/payments/orders" and method == "POST":
-            req.body()
+            data = req.body()
+            if set(data) - {"quoteToken"}:
+                raise HttpError(400, "Only a server checkout quote is accepted.")
             id = self.session(req)
-            return self.checkout(id, req.headers.get("idempotency-key"))
+            return self.checkout(id, req.headers.get("idempotency-key"), data.get("quoteToken"))
         if path == "/api/payments/verify" and method == "POST":
             data = req.body()
             id = self.session(req)

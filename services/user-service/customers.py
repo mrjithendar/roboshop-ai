@@ -131,6 +131,7 @@ class Customers:
             "paymentCaptured": order.get("paymentCaptured", False),
             "paymentMode": order.get("paymentMode", "unknown"),
             "currency": order["currency"],
+            "currencyQuote": copy.deepcopy(order.get("currencyQuote")),
             "subtotal": order["subtotal"],
             "total": order["total"],
             "totalMinor": cents(order["total"]),

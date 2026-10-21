@@ -14,3 +14,13 @@ A push that changes several service directories or CI files still triggers all
 matching workflows. GitHub evaluates the changed files across the push, not the
 commit message. The commit introducing these narrower filters itself changes all
 service workflow files and may therefore trigger one final round of builds.
+
+## Deployment configuration
+
+The ECR publisher uses region `us-east-1` and repository prefix `robotshop`,
+matching the deployment manifests. No repository variables are required.
+
+When manually running Deploy-Minikube, select the kubeconfig context with
+`profile`. The optional `kubeconfig` input is a file path on the self-hosted
+runner. Leave it blank to use the runner's `KUBECONFIG` environment variable,
+or `$HOME/.kube/config` when that variable is unset.

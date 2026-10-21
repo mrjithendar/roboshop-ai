@@ -18,7 +18,7 @@ export function formatProductPrice(p: { price: number; currency?: string; priceT
   const original = new Intl.NumberFormat(undefined, { style: 'currency', currency: p.currency || 'EUR' }).format(p.price);
   const rate = fx?.rates[p.currency || 'EUR'], target = fx?.rates[displayCurrency];
   const converted = rate && target && displayCurrency !== (p.currency || 'EUR') && validFx(fx);
-  const amount = converted ? `≈ ${new Intl.NumberFormat(undefined, { style: 'currency', currency: displayCurrency }).format(p.price / rate * target)} (${original} original; ECB ${fx!.asOf}${fx!.stale ? ', cached' : ''})` : original;
+  const amount = converted ? new Intl.NumberFormat(undefined, { style: 'currency', currency: displayCurrency }).format(p.price / rate * target) : original;
   if (p.priceType === 'reference' || p.showcase || p.collection === 'reference') return `${amount} · reference price, not a store offer`;
   if (p.priceType === 'illustrative' || p.demo || p.collection === 'demo') return `${amount} · demo price`;
   return amount;
@@ -65,7 +65,8 @@ export async function initCurrency(): Promise<void> {
     displayCurrency = saved === 'original' ? '' : saved && fx.rates[saved] ? saved : fx.suggestedCurrency && fx.rates[fx.suggestedCurrency] ? fx.suggestedCurrency : 'INR';
     select.replaceChildren(new Option('Original currency', 'original'), ...Object.keys(fx.rates).sort().map(code => new Option(code, code)));
     select.value = displayCurrency || 'original'; select.disabled = false;
-    const notice = () => { status.textContent = `Estimated display prices · ECB ${fx!.asOf}${fx!.stale ? ' (cached)' : ''}. Region is a browser hint; choose your currency. Checkout charges the original cart currency.`; };
+    try { localStorage.setItem('robotshop.displayCurrency', select.value); } catch { /* Optional storage */ }
+    const notice = () => { status.textContent = `Estimated display prices · ECB ${fx!.asOf}${fx!.stale ? ' (cached)' : ''}. Region is a browser hint; choose your currency. Final payment currency and total are confirmed at checkout.`; };
     notice(); updatePrices();
     select.addEventListener('change', () => {
       displayCurrency = select.value === 'original' ? '' : select.value;

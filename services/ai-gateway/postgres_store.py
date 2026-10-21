@@ -261,7 +261,7 @@ class PostgresStore:
                 self._save_session(c,id,rules.state['sessions'][id])
                 return result
 
-    def reserve_payment(self,id,key,products,payment_mode='test',key_id=None,expected_version=None):
+    def reserve_payment(self,id,key,products,payment_mode='test',key_id=None,expected_version=None,quote_token=None):
         if payment_mode not in ('test','live'):
             raise HttpError(409,'A known payment environment is required.')
         with self.cart_lock(id):
@@ -280,7 +280,7 @@ class PostgresStore:
                 rules=self._engine(c,id,products,lock=True)
                 if expected_version is not None and rules.cart_version(id)!=expected_version:
                     raise HttpError(409,'Cart changed while preparing checkout. Refresh and retry.')
-                order=rules._begin_payment(id,key,products,payment_mode,key_id)
+                order=rules._begin_payment(id,key,products,payment_mode,key_id,quote_token)
                 self._insert_order(c,order)
                 for item in order['items']:
                     result=c.execute('UPDATE commerce_inventory SET reserved=reserved+%s WHERE sku=%s AND mode=%s AND capacity-sold-reserved >= %s',(item['quantity'],item['sku'],payment_mode,item['quantity']))

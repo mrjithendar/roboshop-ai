@@ -16,7 +16,7 @@ async function setup(t, { saved, fail=false, language='en-IN' }={}) {
   await w.fxTest.initCurrency(); return {w,p,text:()=>w.document.querySelector('#price').textContent};
 }
 test('browser country selects INR; original reference amount stays intact',async t=>{
- const {w,p,text}=await setup(t); assert.match(text(),/9,000/);assert.match(text(),/120\.00 original/);assert.match(text(),/reference price, not a store offer/);assert.equal(p.price,120);assert.equal(p.currency,'USD');assert.equal(w.document.querySelector('#display-currency').value,'INR');
+ const {w,p,text}=await setup(t); assert.match(text(),/9,000/);assert.doesNotMatch(text(),/original|ECB|≈/);assert.match(text(),/reference price, not a store offer/);assert.equal(p.price,120);assert.equal(p.currency,'USD');assert.equal(w.document.querySelector('#display-currency').value,'INR');
 });
 test('saved override and selector persist, including original currency',async t=>{
  const {w,text}=await setup(t,{saved:'JPY'});assert.match(text(),/15,000/);const select=w.document.querySelector('select');select.value='original';select.dispatchEvent(new w.Event('change'));assert.doesNotMatch(text(),/≈/);assert.equal(w.localStorage.getItem('robotshop.displayCurrency'),'original');

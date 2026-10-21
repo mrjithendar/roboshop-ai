@@ -149,3 +149,15 @@ test('test mode never accepts authorized-only, refunded, wrong-order or replayed
     await assert.rejects(provider.verify({...expected,paymentId:'pay_UNIT',signature}),/match/);
   }
 });
+
+test('enabled local currency amounts reach Razorpay unchanged and captures retain currency checks', async () => {
+ for (const currency of ['INR','USD','GBP','SGD','AUD']) {
+  const provider = new Razorpay(config, async (url, options) => {
+   const data=JSON.parse(options.body); assert.equal(data.currency,currency); assert.equal(data.amount,12345);
+   return {ok:true,json:async()=>({id:'order_FX',status:'created',...data})};
+  });
+  const order=await provider.create({currency,amount:12345,receipt:'11111111-1111-1111-1111-111111111111'});
+  assert.equal(order.currency,currency);
+  assert.throws(()=>provider.validatePayment({...captured,order_id:order.orderId,amount:12345,currency:'JPY'},order),/match/);
+ }
+});
