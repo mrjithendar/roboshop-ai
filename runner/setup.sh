@@ -94,7 +94,18 @@ if [[ ! -f .runner ]]; then
   # Fail before fetching credentials if the runner runtime cannot start.
   ./config.sh --version
   # AWS is called as the invoking user, retaining their AWS profile/credentials.
-  python3 "$script_dir/register.py" "$repo" "${RUNNER_NAME:-$(hostname)}"
+  if python3 "$script_dir/register.py" "$repo" "${RUNNER_NAME:-$(hostname)}"; then
+    :
+  else
+    registration_status=$?
+    if [[ "$registration_status" == 75 ]]; then
+      echo 'Tools and runner files installed. GitHub registration is pending because the AWS secret could not be retrieved.'
+      echo 'No runner service was installed or started. Configure AWS access, then rerun this setup command.'
+      printf 'AWS configuration command: %q configure\n' "$runner_dir/.tools/bin/aws"
+      exit 0
+    fi
+    exit "$registration_status"
+  fi
 else
   python3 - "$repo" <<'PY'
 import json, sys

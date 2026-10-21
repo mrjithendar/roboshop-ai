@@ -11,6 +11,7 @@ class ToolTests(unittest.TestCase):
             with self.subTest(arch=arch), tempfile.TemporaryDirectory() as d:
                 root=Path(d); bin=root/'bin'; bin.mkdir(); runner=root/'runner'; runner.mkdir()
                 scripts={
+                    'sed': 'exit 0',
                     'uname': f'if [ "$1" = -s ]; then echo Linux; else echo {arch}; fi',
                     'curl': '''echo "$*" >> "$CALLS"
 while [ "$1" != -o ]; do shift; done
@@ -27,7 +28,7 @@ chmod +x "$2/aws/install"''',
                     p=tools/name; p.write_text('#!/bin/sh\necho "'+name+' $*" >> "$CALLS"\n'); p.chmod(0o755)
                 (tools/'aws-cli/v2').mkdir(parents=True)
                 calls=root/'calls'
-                env=dict(os.environ,PATH=str(bin)+':'+os.environ['PATH'],CALLS=str(calls))
+                env=dict(os.environ,HOME=str(root),PATH=str(bin)+':'+os.environ['PATH'],CALLS=str(calls))
                 r=subprocess.run(['bash',str(Path(__file__).with_name('install-tools.sh')),str(runner)],env=env,text=True,capture_output=True)
                 self.assertEqual(r.returncode,0,r.stderr)
                 log=calls.read_text()
@@ -36,6 +37,7 @@ chmod +x "$2/aws/install"''',
                 self.assertIn('--managed-python --python 3 --seed --clear',log)
                 self.assertIn('-m pip install --upgrade pip',log)
                 self.assertIn('--update',log)
-                self.assertTrue((runner/'.tools').exists())
+                self.assertTrue((runner/'.tools/env.sh').exists())
+                self.assertIn('roboshop-runner-tools', (root/'.bashrc').read_text())
 
 if __name__ == '__main__': unittest.main()

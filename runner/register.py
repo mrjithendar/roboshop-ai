@@ -66,7 +66,8 @@ if __name__ == '__main__':
         main()
     except subprocess.CalledProcessError as error:
         if error.cmd[0] == 'aws':
-            sys.exit('AWS secret retrieval failed. Check the configured secret and region as the invoking user.')
+            print('AWS secret retrieval unavailable. Check credentials, secret name/region and read permissions. Registration is pending; no secret contents were logged.', file=sys.stderr)
+            sys.exit(75)  # Setup may defer only AWS retrieval failures, not configuration errors.
         sys.exit('Runner configuration failed. See the runner output above; AWS secret retrieval succeeded.')
     except RegistrationError as error:
         sys.exit(str(error))

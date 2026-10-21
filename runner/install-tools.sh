@@ -19,6 +19,7 @@ fetch() { curl --fail --silent --show-error --location --retry 3 --connect-timeo
 # Official installer handles architecture and verifies its downloaded release archive.
 fetch https://astral.sh/uv/install.sh -o "$work/uv-install.sh"
 UV_UNMANAGED_INSTALL="$runner_tools/bin" sh "$work/uv-install.sh"
+export PATH="$runner_tools/bin:$PATH"
 export UV_PYTHON_INSTALL_DIR="$runner_tools/interpreters"
 export UV_PYTHON_BIN_DIR="$runner_tools/bin"
 "$runner_tools/bin/uv" python install 3 --reinstall
@@ -36,3 +37,17 @@ args=(--install-dir "$runner_tools/aws-cli" --bin-dir "$runner_tools/bin")
 "$runner_tools/python/bin/python" --version
 "$runner_tools/python/bin/python" -m pip --version
 "$runner_tools/bin/aws" --version
+
+# Persist tool precedence for interactive Bash and login shells, even if later
+# registration fails. A child setup process cannot alter its parent's PATH.
+printf 'export PATH=%q:%q:"$PATH"\n' "$runner_tools/python/bin" "$runner_tools/bin" > "$runner_tools/env.sh"
+login_file="$HOME/.profile"
+if [[ -f "$HOME/.bash_profile" ]]; then login_file="$HOME/.bash_profile"
+elif [[ -f "$HOME/.bash_login" ]]; then login_file="$HOME/.bash_login"; fi
+for profile in "$HOME/.bashrc" "$login_file"; do
+  # Replace only our own line; keep all unrelated user shell configuration.
+  touch "$profile"
+  sed -i '/# roboshop-runner-tools$/d' "$profile"
+  printf '\n. %q # roboshop-runner-tools\n' "$runner_tools/env.sh" >> "$profile"
+done
+printf 'For this already-open shell, run: source %q; hash -r\n' "$runner_tools/env.sh"
