@@ -18,14 +18,14 @@ try {
   const products = appPath('/products/');
   if (url.origin === location.origin && (allowed.includes(url.pathname) || (url.pathname.startsWith(products) && /^[a-z0-9][a-z0-9-]{0,99}$/.test(url.pathname.slice(products.length))))) destination = url.pathname + url.search + url.hash;
 } catch { /* Use the account page for invalid return addresses. */ }
-document.title = registering ? 'Create account · RobotShop' : 'Sign in · RobotShop';
+document.title = registering ? 'Create account · RoboShop' : 'Sign in · RoboShop';
 accountElement('auth-title').textContent = registering ? 'Create your account' : 'Welcome back';
 accountElement('auth-description').textContent = registering ? 'One account for your orders, profile and delivery addresses.' : 'Sign in to manage your orders and pick up where you left off.';
 accountElement('account-submit').textContent = registering ? 'Create account' : 'Sign in';
 accountElement('account-name-label').hidden = !registering;
 accountElement<HTMLInputElement>('account-name').required = registering;
 accountElement<HTMLInputElement>('account-password').autocomplete = registering ? 'new-password' : 'current-password';
-accountElement('auth-switch-copy').textContent = registering ? 'Already have an account?' : 'New to RobotShop?';
+accountElement('auth-switch-copy').textContent = registering ? 'Already have an account?' : 'New to RoboShop?';
 const switchLink = accountElement<HTMLAnchorElement>('auth-switch');
 switchLink.textContent = registering ? 'Sign in' : 'Create an account';
 switchLink.href = appPath(registering ? '/login' : '/register') + '?returnTo=' + encodeURIComponent(destination);

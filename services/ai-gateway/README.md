@@ -36,7 +36,7 @@ a separate catalogue gate coordinates checkout reservations with gateway admin i
 The background Pika publisher uses durable quorum queues, mandatory routing and
 publisher confirms before marking outbox entries delivered. Delivery is at least
 once; the Java shipping consumer deduplicates event IDs and accepts only explicit
-live merchant events. Test events route to `robotshop.test.orders`. Test reservations
+live merchant events. Test events route to `roboshop.test.orders`. Test reservations
 and sales are separate from live stock. Orders and purchase history retain immutable
 mode/demo provenance; test purchases never earn genuine verified-review badges.
 See [sandbox setup and audited reconciliation](../../docs/deployment/razorpay-sandbox.md).
@@ -52,7 +52,7 @@ for access rules, retention, backfill behavior and the remaining single-writer l
 
 ## Independent service build
 
-Run `docker build -t robotshop-ai-gateway:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+Run `docker build -t roboshop-ai-gateway:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
 
 ## User-service integration
 

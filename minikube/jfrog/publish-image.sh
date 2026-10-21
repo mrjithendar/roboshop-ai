@@ -19,8 +19,8 @@ unset token
 bash "$ROOT/build-images.sh" --service "$service" --local
 suffix="$service"
 [[ "$service" != shipping-service ]] || suffix=shipping
-source="${IMAGE_PREFIX:-robotshop}-$suffix:local"
-target="jfrog.jithendar.com/docker-local/robotshop-$suffix:local"
+source="${IMAGE_PREFIX:-roboshop}-$suffix:local"
+target="jfrog.jithendar.com/docker-local/roboshop-$suffix:local"
 docker tag "$source" "$target"
 docker --config "$config" push "$target"
 printf 'Published %s\n' "$target"

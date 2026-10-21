@@ -7,7 +7,7 @@ def connect_mongo():
     import os
 
     uri = os.getenv("MONGODB_URL")
-    name = os.getenv("MONGODB_DATABASE", "robotshop")
+    name = os.getenv("MONGODB_DATABASE", "roboshop")
     if not uri or not re.fullmatch("[A-Za-z0-9_-]{1,64}", name):
         raise RuntimeError("Configure MONGODB_URL and a valid MONGODB_DATABASE.")
     client = MongoClient(

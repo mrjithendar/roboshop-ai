@@ -19,7 +19,7 @@ class CertManagerTests(unittest.TestCase):
             p.write_text('#!/bin/sh\necho "'+name+' $*" >> "$TEST_LOG"\n'
                          'case "$*" in *"get namespace kube-system"*) exit "${PREFLIGHT_EXIT:-0}";; esac\n')
             p.chmod(0o755)
-        state = self.root / '.minikube/robotshop-installer'
+        state = self.root / '.minikube/roboshop-installer'
         state.mkdir(parents=True)
         (state/'mk4.profile').write_text('mk4-selected\n')
         self.env = {k:v for k,v in os.environ.items() if k not in ('KUBE_CONTEXT','PROFILE','MINIKUBE_HOME','LETSENCRYPT_EMAIL','INGRESS_CLASS','CERT_MANAGER_VERSION')}
@@ -37,7 +37,7 @@ class CertManagerTests(unittest.TestCase):
         self.assertEqual(result.returncode,0,result.stderr)
         calls=(self.root/'calls').read_text()
         self.assertIn('--kube-context=mk4-selected upgrade --install cert-manager',calls)
-        self.assertLess(calls.index('upgrade --install cert-manager'),calls.index('upgrade --install robotshop-letsencrypt'))
+        self.assertLess(calls.index('upgrade --install cert-manager'),calls.index('upgrade --install roboshop-letsencrypt'))
         self.assertIn('clusterissuer/letsencrypt-staging clusterissuer/letsencrypt-prod',calls)
 
     def test_explicit_context_and_class(self):

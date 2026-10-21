@@ -2,8 +2,8 @@ import { MongoClient } from 'mongodb';
 import { randomBytes } from 'node:crypto';
 import { context, exportSpan } from './runtime.mjs';
 
-export async function connectMongo(uri = process.env.MONGODB_URL, database = process.env.MONGODB_DATABASE || 'robotshop') {
-  if (!uri) throw new Error('MONGODB_URL is required. Configure MongoDB before starting RobotShop.');
+export async function connectMongo(uri = process.env.MONGODB_URL, database = process.env.MONGODB_DATABASE || 'roboshop') {
+  if (!uri) throw new Error('MONGODB_URL is required. Configure MongoDB before starting RoboShop.');
   if (!/^[a-zA-Z0-9_-]{1,64}$/.test(database)) throw new Error('Invalid MONGODB_DATABASE');
   const client = new MongoClient(uri, { monitorCommands: true, maxPoolSize: 10, serverSelectionTimeoutMS: 5000, connectTimeoutMS: 5000, socketTimeoutMS: 10000 });
   const pending = new Map();

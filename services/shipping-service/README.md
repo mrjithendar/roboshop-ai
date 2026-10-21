@@ -53,13 +53,13 @@ Gradle dependency locking and a verified Wrapper distribution checksum provide r
 
 ## Redis and RabbitMQ
 
-The gateway records a pending `order.paid` event in the same saved ledger update as payment confirmation. A background publisher retries until RabbitMQ confirms a persistent, mandatory publication. The durable quorum queue `robotshop.shipping.orders` routes events to Java shipping. The consumer inserts into `shipping.shipment_requests` before acknowledgement; unique order/event IDs make redelivery harmless. Processing failures retry five times, then route to `robotshop.shipping.failed` through `robotshop.orders.dlx`. Monitor and replay that queue after correcting the cause; no automatic replay loop is enabled. Shipment status `requested` means queued for fulfilment, not dispatched to a carrier.
+The gateway records a pending `order.paid` event in the same saved ledger update as payment confirmation. A background publisher retries until RabbitMQ confirms a persistent, mandatory publication. The durable quorum queue `roboshop.shipping.orders` routes events to Java shipping. The consumer inserts into `shipping.shipment_requests` before acknowledgement; unique order/event IDs make redelivery harmless. Processing failures retry five times, then route to `roboshop.shipping.failed` through `roboshop.orders.dlx`. Monitor and replay that queue after correcting the cause; no automatic replay loop is enabled. Shipment status `requested` means queued for fulfilment, not dispatched to a carrier.
 
-RabbitMQ message payloads and the shipment table contain delivery addresses: restrict broker/database access and apply your retention policy. Logs and metric labels omit payloads. Metrics include `robotshop_location_cache_total{result="hit|miss|error"}` and `robotshop_shipping_events_total{result="accepted|duplicate|invalid"}`. RabbitMQ queue depth, dead-letter depth and oldest pending gateway event also need operational monitoring.
+RabbitMQ message payloads and the shipment table contain delivery addresses: restrict broker/database access and apply your retention policy. Logs and metric labels omit payloads. Metrics include `roboshop_location_cache_total{result="hit|miss|error"}` and `roboshop_shipping_events_total{result="accepted|duplicate|invalid"}`. RabbitMQ queue depth, dead-letter depth and oldest pending gateway event also need operational monitoring.
 
 ## Independent service build
 
-Run `docker build -t robotshop-shipping:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+Run `docker build -t roboshop-shipping:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
 
 ### Gradle distribution download timeout
 
@@ -78,5 +78,5 @@ the build host; retries do not fix blocked egress or DNS problems.
 Paid-order consumption requires explicit `paymentMode=live`, `demo=false`, and
 `inventoryProvenance=merchant`; sandbox/unclassified events are rejected even when
 misrouted to the shipping queue. Test events normally use the isolated
-`robotshop.test.orders` audit queue and never create delivery requests. Audit old
+`roboshop.test.orders` audit queue and never create delivery requests. Audit old
 shipment rows separately; this upgrade does not delete historical records.

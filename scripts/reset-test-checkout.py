@@ -56,7 +56,7 @@ def main():
     parser.add_argument('--context', help='Explicit kubectl context; otherwise uses current context')
     args = parser.parse_args()
     if not args.order.startswith('order_') or not args.order[6:].isalnum(): parser.error('Invalid Razorpay order ID')
-    base = ['kubectl'] + (['--context',args.context] if args.context else []) + ['-n','robotshop-ai']
+    base = ['kubectl'] + (['--context',args.context] if args.context else []) + ['-n','roboshop-ai']
     def run(*parts, data=None, capture=False):
         return subprocess.run(base+list(parts),input=data,text=True,check=True,capture_output=capture)
     deploy = json.loads(run('get','deployment','ai-gateway','-o','json',capture=True).stdout)
@@ -68,7 +68,7 @@ def main():
     container = {k:copy.deepcopy(v) for k,v in source.items() if k in ('image','imagePullPolicy','env','envFrom','securityContext','volumeMounts','resources')}
     container.update(name='reset',command=['python','-c','import time; time.sleep(600)'])
     for key in ('RAZORPAY_KEY_ID','RAZORPAY_KEY_SECRET'):
-        container.setdefault('env',[]).append({'name':key,'valueFrom':{'secretKeyRef':{'name':'robotshop-secrets','key':key}}})
+        container.setdefault('env',[]).append({'name':key,'valueFrom':{'secretKeyRef':{'name':'roboshop-secrets','key':key}}})
     spec = {k:copy.deepcopy(v) for k,v in podspec.items() if k in ('securityContext','volumes','nodeSelector','tolerations','imagePullSecrets')}
     spec.update(containers=[container],restartPolicy='Never',automountServiceAccountToken=False,activeDeadlineSeconds=600)
     pod={'apiVersion':'v1','kind':'Pod','metadata':{'name':helper},'spec':spec}

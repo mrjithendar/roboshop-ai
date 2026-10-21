@@ -18,19 +18,19 @@ command -v minikube >/dev/null 2>&1 || fail 'minikube is required to delete clus
 MK_HOME="${MINIKUBE_HOME:-$HOME/.minikube}"
 # Purge recursively removes this directory. Reject broad or redirected paths.
 [[ "$MK_HOME" == "$HOME/.minikube" && ! -L "$MK_HOME" ]] || fail 'Reset requires the standard non-symlink ~/.minikube directory; unset custom MINIKUBE_HOME.'
-if grep -aq '^# RobotShop managed CLI wrapper$' "$(command -v minikube)"; then
+if grep -aq '^# RoboShop managed CLI wrapper$' "$(command -v minikube)"; then
   fail 'Run setup.sh --install-only first to replace the old forwarding wrapper; reset must use the current user.'
 fi
 exports=()
 shopt -s nullglob
-for entry in "$MK_HOME"/profiles/* "$MK_HOME"/robotshop-installer/*.network; do
+for entry in "$MK_HOME"/profiles/* "$MK_HOME"/roboshop-installer/*.network; do
   name="${entry##*/}"
   [[ "$entry" != *.network ]] || name="${name%.network}"
   [[ "$name" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || continue
   exports+=("$HOME/.kube/$name-direct.json")
 done
 # Saved selections can outlive profiles deleted separately.
-for entry in "$MK_HOME"/robotshop-installer/*.profile; do
+for entry in "$MK_HOME"/roboshop-installer/*.profile; do
   name=''
   IFS= read -r name < "$entry" || true
   [[ "$name" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || continue

@@ -8,7 +8,7 @@ excludes products depleted by demo orders.
 
 ## Independent service build
 
-Run `docker build -t robotshop-recommendation-service:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+Run `docker build -t roboshop-recommendation-service:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
 
 
 `/health` is local liveness. `/ready` probes only catalogue readiness, with a

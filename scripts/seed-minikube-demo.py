@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 from pymongo import MongoClient
 
 ROOT = Path(__file__).resolve().parents[1]
-DATABASE = 'robotshop_demo_merchant20'
+DATABASE = 'roboshop_demo_merchant20'
 DATASET = 'merchant20-1000-v1'
 
 
@@ -29,21 +29,21 @@ def main():
         if config.is_file(): os.environ['KUBECONFIG']=str(config)
     k=['kubectl','--request-timeout=30s']
     if os.getenv('KUBE_CONTEXT'): k += ['--context',os.environ['KUBE_CONTEXT']]
-    k += ['-n','robotshop-ai']
+    k += ['-n','roboshop-ai']
     os.environ['APP_ENV']='demo'
     spec=importlib.util.spec_from_file_location('demo',ROOT/'services/product-ingestion/scripts/seed-demo.py')
     demo=importlib.util.module_from_spec(spec);spec.loader.exec_module(demo)
     demo.guard(DATABASE)
-    secret=json.loads(run(k+['get','secret','robotshop-secrets','-o','json']))
+    secret=json.loads(run(k+['get','secret','roboshop-secrets','-o','json']))
     root_password=base64.b64decode(secret['data']['MONGO_ROOT_PASSWORD']).decode()
     previous=secret.get('data',{}).get('DEMO_MONGODB_URL')
     password=secrets.token_hex(32)
     if previous:
         parsed=urlparse(base64.b64decode(previous).decode())
-        if parsed.username!='robotshop_demo_reader' or parsed.hostname!='mongodb' or parsed.path not in ('/'+DATABASE,'/robotshop_demo_global'):
+        if parsed.username!='roboshop_demo_reader' or parsed.hostname!='mongodb' or parsed.path not in ('/'+DATABASE,'/roboshop_demo_global'):
             raise ValueError('Existing demo connection is managed elsewhere; refusing to replace it.')
         password=parsed.password
-    uri=f'mongodb://robotshop_demo_reader:{password}@mongodb:27017/{DATABASE}?authSource={DATABASE}'
+    uri=f'mongodb://roboshop_demo_reader:{password}@mongodb:27017/{DATABASE}?authSource={DATABASE}'
     with socket.socket() as probe:
         probe.bind(('127.0.0.1',0));port=probe.getsockname()[1]
     forward=subprocess.Popen(k+['port-forward','--address=127.0.0.1','deployment/mongodb',f'{port}:27017'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
@@ -61,10 +61,10 @@ def main():
                 raise ValueError('Another dataset exists in the demo database; no data removed.')
             print('Connected. Seeding isolated synthetic profiles and reviews...',flush=True)
             counts=demo.seed(target,DATASET,json.loads((ROOT/'services/product-ingestion/products.json').read_text()),customers=1000,reviews=3000)
-            if target.command('usersInfo','robotshop_demo_reader')['users']:
-                target.command('updateUser','robotshop_demo_reader',pwd=password,roles=[{'role':'read','db':DATABASE}])
+            if target.command('usersInfo','roboshop_demo_reader')['users']:
+                target.command('updateUser','roboshop_demo_reader',pwd=password,roles=[{'role':'read','db':DATABASE}])
             else:
-                target.command('createUser','robotshop_demo_reader',pwd=password,roles=[{'role':'read','db':DATABASE}])
+                target.command('createUser','roboshop_demo_reader',pwd=password,roles=[{'role':'read','db':DATABASE}])
             actual={'profiles':target.demo_profiles.count_documents({'datasetId':DATASET}),'reviews':target.reviews.count_documents({'datasetId':DATASET}),'countries':len(target.demo_profiles.distinct('country',{'datasetId':DATASET}))}
             if actual!={'profiles':1000,'reviews':3000,'countries':200}: raise RuntimeError('Import verification failed; rerun the same command to resume.')
             print(json.dumps(actual),flush=True)
@@ -73,7 +73,7 @@ def main():
         try: forward.wait(timeout=5)
         except subprocess.TimeoutExpired: forward.kill();forward.wait()
     # Merge only this key; preserve all database, payment, MFA and SES credentials.
-    run(k+['patch','secret','robotshop-secrets','--type=merge','--patch-file=/dev/stdin'],json.dumps({'stringData':{'DEMO_MONGODB_URL':uri}}))
+    run(k+['patch','secret','roboshop-secrets','--type=merge','--patch-file=/dev/stdin'],json.dumps({'stringData':{'DEMO_MONGODB_URL':uri}}))
     run(k+['set','env','deployment/ai-gateway','DEMO_REVIEWS_DATABASE='+DATABASE])
     run(k+['rollout','restart','deployment/ai-gateway'])
     run(k+['rollout','status','deployment/ai-gateway','--timeout=90s'])

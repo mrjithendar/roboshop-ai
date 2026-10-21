@@ -61,16 +61,16 @@ export async function initCurrency(): Promise<void> {
     const value: Fx = await response.json();
     if (!validFx(value)) throw new Error('Invalid FX data');
     fx = value;
-    let saved = ''; try { saved = localStorage.getItem('robotshop.displayCurrency') || ''; } catch { /* Storage optional */ }
+    let saved = ''; try { saved = localStorage.getItem('roboshop.displayCurrency') || ''; } catch { /* Storage optional */ }
     displayCurrency = saved === 'original' ? '' : saved && fx.rates[saved] ? saved : fx.suggestedCurrency && fx.rates[fx.suggestedCurrency] ? fx.suggestedCurrency : 'INR';
     select.replaceChildren(new Option('Original currency', 'original'), ...Object.keys(fx.rates).sort().map(code => new Option(code, code)));
     select.value = displayCurrency || 'original'; select.disabled = false;
-    try { localStorage.setItem('robotshop.displayCurrency', select.value); } catch { /* Optional storage */ }
+    try { localStorage.setItem('roboshop.displayCurrency', select.value); } catch { /* Optional storage */ }
     const notice = () => { status.textContent = `Estimated display prices · ECB ${fx!.asOf}${fx!.stale ? ' (cached)' : ''}. Region is a browser hint; choose your currency. Final payment currency and total are confirmed at checkout.`; };
     notice(); updatePrices();
     select.addEventListener('change', () => {
       displayCurrency = select.value === 'original' ? '' : select.value;
-      try { localStorage.setItem('robotshop.displayCurrency', select.value); } catch { /* Storage optional */ }
+      try { localStorage.setItem('roboshop.displayCurrency', select.value); } catch { /* Storage optional */ }
       updatePrices(); notice();
     });
   } catch {

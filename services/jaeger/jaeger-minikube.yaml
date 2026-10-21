@@ -3,9 +3,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: jaeger
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   selector:
     app: jaeger
@@ -21,9 +21,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: jaeger
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   replicas: 1
   selector:
@@ -33,7 +33,7 @@ spec:
     metadata:
       labels:
         app: jaeger
-        app.kubernetes.io/part-of: robotshop-ai
+        app.kubernetes.io/part-of: roboshop-ai
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false

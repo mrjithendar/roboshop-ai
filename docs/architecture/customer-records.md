@@ -1,9 +1,9 @@
-> Deployment update: orchestration now uses [Minikube](../../minikube/robotshop/README.md); older deployment descriptions below are historical. Use root `build-images.sh` and `deploy-minikube.sh`.
+> Deployment update: orchestration now uses [Minikube](../../minikube/roboshop/README.md); older deployment descriptions below are historical. Use root `build-images.sh` and `deploy-minikube.sh`.
 
 # Customer records in MongoDB
 
 The Python `user-service` owns customer records and authentication, following the
-legacy RobotShop user-service boundary. The gateway forwards public account APIs
+legacy RoboShop user-service boundary. The gateway forwards public account APIs
 and checks sessions through authenticated internal HTTP calls.
 Authenticated registration/login records the server-derived IP address, sanitized
 browser user-agent (up to 512 characters), UTC timestamp and login count. The

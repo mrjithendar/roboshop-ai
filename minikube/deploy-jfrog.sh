@@ -26,7 +26,7 @@ fi
 PROFILE="${PROFILE:-mk4}"
 [[ "$PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || exit 2
 if [[ -z "${KUBE_CONTEXT:-}" ]]; then
-  state="${MINIKUBE_HOME:-$HOME/.minikube}/robotshop-installer/$PROFILE.profile"
+  state="${MINIKUBE_HOME:-$HOME/.minikube}/roboshop-installer/$PROFILE.profile"
   if [[ -f "$state" ]]; then PROFILE="$(cat "$state")"; fi
 fi
 KUBE_CONTEXT="${KUBE_CONTEXT:-$PROFILE}"

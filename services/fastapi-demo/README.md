@@ -2,7 +2,7 @@
 
 An optional, independent Python service for showing FastAPI. It uses two clearly
 labelled sample products. It does not connect to MongoDB, modify carts, create
-orders, charge money, or call external APIs. Stopping it has no effect on RobotShop.
+orders, charge money, or call external APIs. Stopping it has no effect on RoboShop.
 The currency service remains Go.
 
 ## Run locally
@@ -36,7 +36,7 @@ presenter's browser needs Internet access.
 
 ## Container and Minikube
 
-CI `ci-fastapi-demo.yml` tests and publishes `robotshop-fastapi-demo:latest` using
+CI `ci-fastapi-demo.yml` tests and publishes `roboshop-fastapi-demo:latest` using
 our existing ECR publisher. Its repository is included in the Terraform list;
 apply the infrastructure workflow before the first publish. The regular store
 workflow does not automatically deploy this presentation-only service.
@@ -45,12 +45,12 @@ After publishing, on a machine with the existing cluster kubeconfig selected:
 
 ```sh
 kubectl apply -f services/fastapi-demo/fastapi-demo-minikube.yaml
-kubectl -n robotshop-ai rollout restart deployment/fastapi-demo
-kubectl -n robotshop-ai port-forward service/fastapi-demo 4112:4112
+kubectl -n roboshop-ai rollout restart deployment/fastapi-demo
+kubectl -n roboshop-ai port-forward service/fastapi-demo 4112:4112
 ```
 
 Open http://localhost:4112/docs. Wait for the pod to start before port-forwarding;
-image-pull or startup failures can be inspected with `kubectl -n robotshop-ai describe
+image-pull or startup failures can be inspected with `kubectl -n roboshop-ai describe
 pod -l app=fastapi-demo`. The manifest requires the existing `ecr-pull` secret.
 Port-forward is local-only; no public ingress, production API routing or additional
 credentials are configured. To remove only this demo:
@@ -59,7 +59,7 @@ credentials are configured. To remove only this demo:
 kubectl delete -f services/fastapi-demo/fastapi-demo-minikube.yaml
 ```
 
-Local image build: `docker build -t robotshop-fastapi-demo:local services/fastapi-demo`.
+Local image build: `docker build -t roboshop-fastapi-demo:local services/fastapi-demo`.
 For tests, install `requirements-test.txt` and run `python -m unittest -v` from this
 service directory. Tests use FastAPI TestClient and no external services.
 

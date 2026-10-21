@@ -20,7 +20,7 @@ resource "aws_sesv2_email_identity_mail_from_attributes" "store" {
 # Create the SMTP identity, but never store long-lived access keys in Terraform state.
 resource "aws_iam_user" "ses_smtp" {
   count = var.ses_enabled ? 1 : 0
-  name  = "robotshop-${var.environment}-ses-smtp"
+  name  = "roboshop-${var.environment}-ses-smtp"
   tags  = local.common_tags
 }
 

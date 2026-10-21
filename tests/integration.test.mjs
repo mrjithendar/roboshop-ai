@@ -22,7 +22,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
   const edgePort = process.env.NGINX_TEST === 'true' ? await freePort() : null;
   const base = `http://127.0.0.1:${edgePort || ports[4]}`;
   let edge;
-  const dir = mkdtempSync(join(tmpdir(), 'robotshop-integration-'));
+  const dir = mkdtempSync(join(tmpdir(), 'roboshop-integration-'));
   const children = [], traces = [], binaryTraces = []; let logs = '';
   const receiver = createServer(async (req, res) => { const chunks = []; for await (const part of req) chunks.push(part); const data = Buffer.concat(chunks); if (req.headers['content-type']?.includes('json')) { traces.push(JSON.parse(data)); res.writeHead(200, { 'content-type': 'application/json' }); res.end('{}'); } else { binaryTraces.push(data); res.writeHead(200, { 'content-type': 'application/x-protobuf' }); res.end(); } });
   receiver.listen(0, '127.0.0.1'); await once(receiver, 'listening');
@@ -121,18 +121,18 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
       assert.ok(published,'Paid-order event must receive a RabbitMQ publisher confirmation');
       const broker=await amqp.connect(env.RABBITMQ_URL), channel=await broker.createConfirmChannel();
       try {
-        assert.ok((await channel.checkQueue('robotshop.test.orders')).messageCount > 0, 'Test events must route to the isolated audit queue');
+        assert.ok((await channel.checkQueue('roboshop.test.orders')).messageCount > 0, 'Test events must route to the isolated audit queue');
         const metrics=await (await fetch(`http://127.0.0.1:${ports[6]}/metrics`)).text();
-        assert.ok(!/robotshop_shipping_events_total\{[^}]*result="accepted"[^}]*\} [1-9]/.test(metrics), 'Test payments must not create shipments');
+        assert.ok(!/roboshop_shipping_events_total\{[^}]*result="accepted"[^}]*\} [1-9]/.test(metrics), 'Test payments must not create shipments');
         const saved=JSON.parse(readFileSync(join(dir,'store.json'),'utf8')).orders.find(o=>o.id===order.data.order.id);
         assert.equal(saved.paymentMode,'test'); assert.equal(saved.demo,true);
         const event={...saved.shipmentEvent,type:'order.paid',version:1,orderId:saved.id,paymentMode:'test',demo:true,inventoryProvenance:saved.inventoryProvenance,shipping:saved.shipping,items:saved.items.map(({sku,quantity})=>({sku,quantity}))};
-        const publish = data => new Promise((resolve,reject)=>channel.publish('robotshop.orders','order.paid',Buffer.from(JSON.stringify(data)),{persistent:true,contentType:'application/json'},error=>error?reject(error):resolve()));
-        const before=(await channel.checkQueue('robotshop.shipping.failed')).messageCount;
+        const publish = data => new Promise((resolve,reject)=>channel.publish('roboshop.orders','order.paid',Buffer.from(JSON.stringify(data)),{persistent:true,contentType:'application/json'},error=>error?reject(error):resolve()));
+        const before=(await channel.checkQueue('roboshop.shipping.failed')).messageCount;
         await publish(event); // Even a misrouted test event is rejected by the shipping consumer.
         let deadLettered=false;
         for(let retry=0;retry<250;retry++) {
-          deadLettered=(await channel.checkQueue('robotshop.shipping.failed')).messageCount>before;
+          deadLettered=(await channel.checkQueue('roboshop.shipping.failed')).messageCount>before;
           if(deadLettered) break;
           await new Promise(r=>setTimeout(r,100));
         }
@@ -142,11 +142,11 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     if(env.CACHE_ENABLED==='true') {
       await call('/api/shipping/countries'); await call('/api/shipping/countries');
       const metrics=await (await fetch(`http://127.0.0.1:${ports[6]}/metrics`)).text();
-      assert.match(metrics,/robotshop_location_cache_total\{[^}]*result="hit"/);
+      assert.match(metrics,/roboshop_location_cache_total\{[^}]*result="hit"/);
     }
 
     assert.equal((await call('/api/products')).data.products.find(p => p.sku === 'RMC').instock, 46);
-    assert.match(await (await fetch(`http://127.0.0.1:${ports[4]}/metrics`)).text(), /robotshop_http_requests_total/);
+    assert.match(await (await fetch(`http://127.0.0.1:${ports[4]}/metrics`)).text(), /roboshop_http_requests_total/);
     await new Promise(r => setTimeout(r, 100));
     const spans = traces.flatMap(t => t.resourceSpans.flatMap(r => r.scopeSpans.flatMap(s => s.spans)));
     assert.ok(spans.some(s => s.name === 'POST /api/chat')); // no agent call when unconfigured
@@ -162,7 +162,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     for (let retry = 0; retry < 160 && !binaryTraces.some(b => b.includes(Buffer.from('shipping-service'))); retry++) await new Promise(r => setTimeout(r, 50));
     assert.ok(binaryTraces.some(b => b.includes(Buffer.from('shipping-service'))), 'Java shipping must export OTLP spans');
     if (env.RABBITMQ_URL) {
-      assert.ok(binaryTraces.some(b => b.includes(Buffer.from(paidTrace, 'hex')) && b.includes(Buffer.from('robotshop.shipping.orders'))), 'Rabbit consumer must continue the payment trace');
+      assert.ok(binaryTraces.some(b => b.includes(Buffer.from(paidTrace, 'hex')) && b.includes(Buffer.from('roboshop.shipping.orders'))), 'Rabbit consumer must continue the payment trace');
       assert.ok(traces.some(t => t.resourceSpans.some(r => r.scopeSpans.some(s => s.spans.some(span => span.kind === 4 && span.traceId === paidTrace)))), 'Rabbit producer span must continue the payment trace');
     }
     const telemetry = JSON.stringify(traces) + binaryTraces.map(b => b.toString()).join('');

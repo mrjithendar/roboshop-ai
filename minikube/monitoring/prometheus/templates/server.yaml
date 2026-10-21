@@ -18,7 +18,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   type: ClusterIP
-  selector: {app: robotshop-prometheus}
+  selector: {app: roboshop-prometheus}
   ports: [{name: http, port: 9090, targetPort: 9090}]
 ---
 apiVersion: apps/v1
@@ -30,10 +30,10 @@ spec:
   replicas: 1
   strategy: {type: Recreate}
   selector:
-    matchLabels: {app: robotshop-prometheus}
+    matchLabels: {app: roboshop-prometheus}
   template:
     metadata:
-      labels: {app: robotshop-prometheus}
+      labels: {app: roboshop-prometheus}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/config.yaml") . | sha256sum }}
     spec:

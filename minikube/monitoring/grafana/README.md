@@ -22,7 +22,7 @@ KUBE_CONTEXT=mk4 bash minikube/deploy-grafana.sh
 
 - Pinned Grafana community Helm chart **14.0.1**, release `grafana`, namespace `monitoring`.
 - One Grafana replica with a **2 GiB persistent volume** for dashboards, users and settings. This is a single-instance sandbox deployment; back up the volume before resetting Minikube.
-- A ClusterIP service and a Traefik HTTPS Ingress for `/grafana` with Prefix matching. No rewrite or StripPrefix middleware is needed. Other website paths remain available for RobotShop's own ingress.
+- A ClusterIP service and a Traefik HTTPS Ingress for `/grafana` with Prefix matching. No rewrite or StripPrefix middleware is needed. Other website paths remain available for RoboShop's own ingress.
 - The shared `jithendar-com` Certificate from `../certificate.yaml`, issued by `letsencrypt-prod`, stored in `jithendar-com-tls`. Existing matching resources are updated in place. Do not also configure ingress-shim to manage this same Secret, or create another certificate controller owner for it.
 - Secure cookies, anonymous access disabled, sign-up disabled, and the shared `monitoring-auth` administrator credentials. HTTPS terminates at Traefik; in-cluster traffic to Grafana uses HTTP.
 
@@ -74,6 +74,6 @@ kubectl get ingressclass,storageclass
 
 Configuration follows [Grafana's reverse proxy guidance](https://grafana.com/tutorials/run-grafana-behind-a-proxy/) and the [Grafana Helm installation guide](https://grafana.com/docs/grafana/latest/setup-grafana/installation/helm/).
 
-For existing installations in `robotshop-ai`, see [namespace migration notes](../README.md). The installers do not move data between namespaces.
+For existing installations in `roboshop-ai`, see [namespace migration notes](../README.md). The installers do not move data between namespaces.
 
 **TLS ownership:** Grafana and Prometheus share the single `monitoring/jithendar-com` Certificate and `monitoring/jithendar-com-tls` Secret. Both installers reapply the same manifest; they do not request per-application certificates. See [certificate ownership and verification](../README.md#certificate-ownership).

@@ -128,8 +128,8 @@ HTTP endpoint. Keep the database operator credential separate from application u
 ## Offline cutover (operator-run only)
 
 Use a dedicated commerce database and role, not the shipping database/schema. Keep
-its DSN in the existing `robotshop-secrets` Secret under `COMMERCE_DATABASE_URL`; keep
-`COMMERCE_BACKEND` in the consolidated `robotshop-config`. TLS, backups/PITR, least
+its DSN in the existing `roboshop-secrets` Secret under `COMMERCE_DATABASE_URL`; keep
+`COMMERCE_BACKEND` in the consolidated `roboshop-config`. TLS, backups/PITR, least
 privilege, capacity planning and credential provisioning remain operator tasks.
 The runtime role needs DML on commerce tables, not schema-owner privileges. Run the
 schema command with a separate migration role, then grant runtime privileges.
@@ -238,7 +238,7 @@ supplied test database and flushes Redis DB 15. Never point it at a shared envir
 Start fresh local PostgreSQL and Redis instances and create an empty UTF-8 database:
 
 ```bash
-export COMMERCE_TEST_DSN='postgresql://127.0.0.1:55439/robotshop_commerce_test'
+export COMMERCE_TEST_DSN='postgresql://127.0.0.1:55439/roboshop_commerce_test'
 export COMMERCE_TEST_REDIS='redis://127.0.0.1:56389/15'
 python -m unittest discover -s tests/commerce -v
 python -m unittest discover -s tests/python

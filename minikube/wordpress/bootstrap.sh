@@ -18,7 +18,7 @@ fi
 wp plugin activate redis-cache
 wp redis enable
 # Two separate processes verify that objects persist in Redis, not just PHP memory.
-wp cache set robotshop-cache-check connected robotshop-deploy 30
-[ "$(wp cache get robotshop-cache-check robotshop-deploy)" = connected ]
-wp cache delete robotshop-cache-check robotshop-deploy
+wp cache set roboshop-cache-check connected roboshop-deploy 30
+[ "$(wp cache get roboshop-cache-check roboshop-deploy)" = connected ]
+wp cache delete roboshop-cache-check roboshop-deploy
 wp redis status

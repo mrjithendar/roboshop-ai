@@ -1,6 +1,6 @@
 # Monitoring namespace
 
-Grafana and Prometheus install in **`monitoring`**. WordPress remains in `jithendar-com` and RobotShop remains in `robotshop-ai`.
+Grafana and Prometheus install in **`monitoring`**. WordPress remains in `jithendar-com` and RoboShop remains in `roboshop-ai`.
 
 ```bash
 bash minikube/deploy-prometheus.sh
@@ -22,7 +22,7 @@ The identical names in two namespaces refer to separate objects. Ingress TLS Sec
 
 Each monitoring installer applies the same manifest so either can run first. `kubectl apply` updates that existing namespace/name; a second invocation does not create a second certificate. cert-manager manages issuance and renewal. Neither the Prometheus chart nor Grafana values declares a Certificate or enables ingress-shim issuance; their ingresses only reference the shared Secret.
 
-The `cert-manager` namespace contains the certificate controller. The `letsencrypt-prod` ClusterIssuer is cluster-wide, not a certificate and not tied to one application. `minikube/cert-manager/certificate.example.yaml` is an optional **legacy example** targeting `robotshop-ai`; neither monitoring installer uses it. Do not apply that example for monitoring.
+The `cert-manager` namespace contains the certificate controller. The `letsencrypt-prod` ClusterIssuer is cluster-wide, not a certificate and not tied to one application. `minikube/cert-manager/certificate.example.yaml` is an optional **legacy example** targeting `roboshop-ai`; neither monitoring installer uses it. Do not apply that example for monitoring.
 
 ### Check the live cluster
 
@@ -38,7 +38,7 @@ kubectl -n monitoring get ingress grafana prometheus \
 kubectl -n monitoring describe certificate jithendar-com
 ```
 
-`CertificateRequest`, `Order`, and `Challenge` objects are issuance records, not additional application Certificates. If you see an old certificate in `robotshop-ai` or `prometheus`, it is outside the current monitoring installers. Inspect its ingress references and ownership before removing anything; these scripts do not delete old TLS resources automatically.
+`CertificateRequest`, `Order`, and `Challenge` objects are issuance records, not additional application Certificates. If you see an old certificate in `roboshop-ai` or `prometheus`, it is outside the current monitoring installers. Inspect its ingress references and ownership before removing anything; these scripts do not delete old TLS resources automatically.
 
 - Grafana: **https://jithendar.com/grafana/**
 - Prometheus: **https://jithendar.com/prometheus/**
@@ -54,13 +54,13 @@ kubectl -n monitoring get secret monitoring-auth -o jsonpath='{.data.password}' 
 kubectl -n monitoring get secret monitoring-auth -o jsonpath='{.data.password}' | base64 --decode; echo
 ```
 
-## Existing installations in robotshop-ai
+## Existing installations in roboshop-ai
 
-Changing a Helm namespace creates a separate release; it does not move dashboards, users, metrics history, Secrets or PVCs. The installers stop before mutation if the corresponding old Deployment, Ingress or PVC exists in `robotshop-ai`. This prevents an accidental empty replacement and duplicate routes on the same domain.
+Changing a Helm namespace creates a separate release; it does not move dashboards, users, metrics history, Secrets or PVCs. The installers stop before mutation if the corresponding old Deployment, Ingress or PVC exists in `roboshop-ai`. This prevents an accidental empty replacement and duplicate routes on the same domain.
 
 For a site already running, use a planned migration: back up Grafana's data and credentials and Prometheus's data and authentication Secret; restore them to new PVCs/Secrets in `monitoring`; validate the new instances privately; then cut over the ingress routes. Stop writes while taking consistent volume backups. Keep the backups and original data until the new instances are verified. The current scripts handle fresh installs and upgrades within `monitoring`, not this cross-namespace migration.
 
-Do not delete `robotshop-ai`: it may contain RobotShop and other workloads. Do not remove old PVCs just to bypass the check. If historical monitoring data is disposable, explicitly decide to reset those releases instead of migrating them; this is a separate destructive operation.
+Do not delete `roboshop-ai`: it may contain RoboShop and other workloads. Do not remove old PVCs just to bypass the check. If historical monitoring data is disposable, explicitly decide to reset those releases instead of migrating them; this is a separate destructive operation.
 
 For component configuration and troubleshooting, see [Grafana](grafana/README.md) and [Prometheus](prometheus/README.md).
 
@@ -92,10 +92,10 @@ bash minikube/reset-monitoring.sh
 KUBE_CONTEXT=YOUR_CONTEXT bash minikube/reset-monitoring.sh
 ```
 
-The script uninstalls the `grafana` and `prometheus` releases in **both `robotshop-ai` and `monitoring`**, waits for their pods to stop, deletes their known leftover resources, explicitly deletes PVCs `grafana` and `prometheus-data` (including Helm-retained claims), and deletes Secrets `monitoring-auth`, `grafana` and `prometheus-auth`. It then runs both installers on the same context to create fresh data volumes and a new shared random login password.
+The script uninstalls the `grafana` and `prometheus` releases in **both `roboshop-ai` and `monitoring`**, waits for their pods to stop, deletes their known leftover resources, explicitly deletes PVCs `grafana` and `prometheus-data` (including Helm-retained claims), and deletes Secrets `monitoring-auth`, `grafana` and `prometheus-auth`. It then runs both installers on the same context to create fresh data volumes and a new shared random login password.
 
-It preserves both namespaces, their shared TLS Certificates/Secrets, cert-manager, Traefik, WordPress and RobotShop workloads. Legacy Grafana/Prometheus installations in `robotshop-ai` are explicitly removed as part of the reset; reinstall happens only in `monitoring`. It does not remove arbitrary resources or reset Minikube itself. Cluster PV reclaim policies control physical disk cleanup; a `Retain` PV may leave old data for separate administrator cleanup, but the reinstalled apps use new claims.
+It preserves both namespaces, their shared TLS Certificates/Secrets, cert-manager, Traefik, WordPress and RoboShop workloads. Legacy Grafana/Prometheus installations in `roboshop-ai` are explicitly removed as part of the reset; reinstall happens only in `monitoring`. It does not remove arbitrary resources or reset Minikube itself. Cluster PV reclaim policies control physical disk cleanup; a `Retain` PV may leave old data for separate administrator cleanup, but the reinstalled apps use new claims.
 
 If deletion fails or a PVC stays Terminating, inspect the error and pod/volume events; the script stops rather than removing finalizers or proceeding with stale data. If reinstall fails after deletion, the old data is already gone: fix the reported issue and run the individual deploy scripts to finish, without resetting again.
 
-If an older reset script reports “Legacy monitoring resources exist in robotshop-ai”, update the local script and rerun it. The current reset handles those exact monitoring releases, PVCs and login Secrets automatically; do not delete the `robotshop-ai` namespace.
+If an older reset script reports “Legacy monitoring resources exist in roboshop-ai”, update the local script and rerun it. The current reset handles those exact monitoring releases, PVCs and login Secrets automatically; do not delete the `roboshop-ai` namespace.

@@ -1,7 +1,7 @@
 # User service
 
 Independent Python service on port **4109**, with its own Dockerfile, dependencies,
-tests and Kubernetes manifest. Like legacy RobotShop's user component, it owns
+tests and Kubernetes manifest. Like legacy RoboShop's user component, it owns
 MongoDB-backed registration, login and customer order history. It preserves the
 modern app's role checks, password hashing, session cookies and account protections.
 It does not import code from another service directory.
@@ -32,14 +32,14 @@ uses `/internal/verified-purchase`; the gateway no longer queries user collectio
 ## Configuration
 
 Required: `MONGODB_URL`, `USER_SERVICE_TOKEN` (at least 32 characters).
-Optional `MONGODB_DATABASE` defaults to `robotshop`.
+Optional `MONGODB_DATABASE` defaults to `roboshop`.
 `PUBLIC_ORIGIN` must match the store origin. `SHIPPING_URL` validates new addresses.
 The service owns `REGISTRATION_CHALLENGE_PROVIDER`, `TURNSTILE_*`,
 `AUTH_ENCRYPTION_KEY`, `SMTP_*`, and `LOGIN_ACTIVITY_RETENTION_DAYS`.
 
 Minikube sends password-reset mail directly through SES at
 `email-smtp.us-east-1.amazonaws.com:587` using STARTTLS and the public CA trust store.
-Set `SMTP_USERNAME` and `SMTP_PASSWORD` in `robotshop-secrets` to SES SMTP credentials.
+Set `SMTP_USERNAME` and `SMTP_PASSWORD` in `roboshop-secrets` to SES SMTP credentials.
 This single application Secret also holds `AUTH_ENCRYPTION_KEY` and database/service
 credentials. Keep existing values during upgrades; do not regenerate the MFA key.
 ECR pull credentials and cert-manager TLS Secrets remain separate Kubernetes types.
@@ -57,7 +57,7 @@ OpenTelemetry uses the same `OTEL_*` settings as the other Python services.
 
 No data export or destructive migration is needed: the service uses the same
 MongoDB database, collections, user IDs, password hashes and session schema.
-Existing modern RobotShop accounts and sessions remain valid. This does not import
+Existing modern RoboShop accounts and sessions remain valid. This does not import
 legacy upstream password formats into the modern account database.
 
 Run the user-service CI workflow, then **Deploy-Minikube**. The deployment uses
@@ -70,9 +70,9 @@ Existing database credentials and MFA encryption keys must remain unchanged.
 ## CI and ECR
 
 `ci-user-service.yml` runs the user tests, then invokes `publish-ecr.yml` to build
-and publish `robotshop-user-service` with the `latest` tag. Terraform includes the
+and publish `roboshop-user-service` with the `latest` tag. Terraform includes the
 repository in `ecr_repository_names`. Apply the infrastructure plan before the
-first ECR publish. Minikube uses the ECR `robotshop-user-service:latest` image.
+first ECR publish. Minikube uses the ECR `roboshop-user-service:latest` image.
 
 ## Local development and tests
 
@@ -80,7 +80,7 @@ first ECR publish. Minikube uses the ECR `robotshop-user-service:latest` image.
 cd services/user-service
 python -m pip install -r requirements.txt -r tests/requirements.txt
 python -m unittest discover -s tests -v
-docker build -t robotshop-user-service:local .
+docker build -t roboshop-user-service:local .
 ```
 
 The root `npm run dev` starts user-service and passes an ephemeral shared service

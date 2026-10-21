@@ -12,6 +12,6 @@ kubernetesMetrics:
 # Add Kubernetes-reachable scrape jobs here. Use Kubernetes service DNS names.
 extraScrapeConfigs: []
 # Example:
-# - job_name: robotshop
+# - job_name: roboshop
 #   static_configs:
-#     - targets: ["ai-gateway.robotshop-ai.svc.cluster.local:3000"]
+#     - targets: ["ai-gateway.roboshop-ai.svc.cluster.local:3000"]

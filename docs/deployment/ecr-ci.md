@@ -20,7 +20,7 @@ Set these under Settings → Secrets and variables → Actions → Variables:
 | --- | --- |
 | `AWS_REGION` | Optional; defaults to `us-east-1`, matching Terraform |
 | `AWS_ROLE_ARN` | Optional OIDC role for deployment; publishing uses runner credentials |
-| `ECR_REPOSITORY_PREFIX` | Optional repository prefix, default `robotshop`; exclude registry hostname |
+| `ECR_REPOSITORY_PREFIX` | Optional repository prefix, default `roboshop`; exclude registry hostname |
 
 Publishing uses the self-hosted runner's AWS credentials (for example, its EC2
 instance role or configured AWS credentials). The ECR login action authenticates
@@ -68,20 +68,20 @@ The workflow checks that its repository exists; it does not provision AWS resour
 
 | Service workflow | Default ECR repository |
 | --- | --- |
-| ai-gateway | robotshop-ai-gateway |
-| user-service | robotshop-user-service |
-| cart-service | robotshop-cart-service |
-| catalogue-service | robotshop-catalogue-service |
-| finder | robotshop-finder |
-| product-ingestion | robotshop-product-ingestion |
-| recommendation-service | robotshop-recommendation-service |
-| shopping-agent | robotshop-shopping-agent |
-| sre-copilot | robotshop-sre-copilot |
-| payment-service | robotshop-payment-service |
-| mcp-server | robotshop-mcp-server |
-| shipping-service | robotshop-shipping |
-| nginx | robotshop-nginx |
-| frontend | robotshop-frontend |
+| ai-gateway | roboshop-ai-gateway |
+| user-service | roboshop-user-service |
+| cart-service | roboshop-cart-service |
+| catalogue-service | roboshop-catalogue-service |
+| finder | roboshop-finder |
+| product-ingestion | roboshop-product-ingestion |
+| recommendation-service | roboshop-recommendation-service |
+| shopping-agent | roboshop-shopping-agent |
+| sre-copilot | roboshop-sre-copilot |
+| payment-service | roboshop-payment-service |
+| mcp-server | roboshop-mcp-server |
+| shipping-service | roboshop-shipping |
+| nginx | roboshop-nginx |
+| frontend | roboshop-frontend |
 
 The frontend image packages the TypeScript storefront and legacy product images.
 Nginx is a separate reverse-proxy image. Redis,
@@ -112,7 +112,7 @@ Example role permissions (replace ACCOUNT_ID, REGION and prefix):
         "ecr:CompleteLayerUpload",
         "ecr:PutImage"
       ],
-      "Resource": "arn:aws:ecr:REGION:ACCOUNT_ID:repository/robotshop-*"
+      "Resource": "arn:aws:ecr:REGION:ACCOUNT_ID:repository/roboshop-*"
     }
   ]
 }
@@ -135,8 +135,8 @@ Run **Actions → Deploy-Minikube → Run workflow** after the service CI builds
 All deployment logic is in `.github/workflows/deploy-minikube.yml`; no extra shell
 or Python deployment helper is required. Service Kubernetes YAML files remain in
 their respective folders. Application manifests directly reference
-`881026659929.dkr.ecr.us-east-1.amazonaws.com/robotshop-<service>:latest`
-(`robotshop-shipping` for shipping), with `Always` pull policy and `ecr-pull`.
+`881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-<service>:latest`
+(`roboshop-shipping` for shipping), with `Always` pull policy and `ecr-pull`.
 The workflow creates/refreshes that secret before deploying applications.
 
 The workflow uses `:latest` for all 14 application services. Checked-in manifests

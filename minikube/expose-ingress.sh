@@ -14,7 +14,7 @@ export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
 for command in docker kubectl; do command -v "$command" >/dev/null || fail "$command is required."; done
 PROFILE="${PROFILE:-mk4}"
 [[ "$PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || fail 'Invalid PROFILE.'
-state_dir="${MINIKUBE_HOME:-$HOME/.minikube}/robotshop-installer"
+state_dir="${MINIKUBE_HOME:-$HOME/.minikube}/roboshop-installer"
 if [[ -f "$state_dir/$PROFILE.profile" ]]; then PROFILE="$(cat "$state_dir/$PROFILE.profile")"; fi
 [[ "$PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || fail 'Invalid selected profile.'
 # Require a local Docker daemon: bind-mounted files and published ports belong here.
@@ -24,8 +24,8 @@ endpoint="${DOCKER_HOST:-$(docker context inspect --format '{{.Endpoints.docker.
 network="$(docker inspect --format '{{range $name, $details := .NetworkSettings.Networks}}{{println $name}}{{end}}' "$PROFILE")"
 [[ "$network" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || fail 'Expected exactly one Docker network on the Minikube node.'
 kubectl --context="$PROFILE" -n traefik rollout status deployment/traefik --timeout=120s
-name="robotshop-ingress-edge-$(id -u)"
-label='robotshop.minikube.ingress-owner'
+name="roboshop-ingress-edge-$(id -u)"
+label='roboshop.minikube.ingress-owner'
 config_dir="$state_dir/ingress-edge"
 mkdir -p "$config_dir"
 config="$config_dir/haproxy.cfg"

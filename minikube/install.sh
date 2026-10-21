@@ -64,7 +64,7 @@ tool_available() {
   local resolved
   resolved="$(command -v "$1")" || return 1
   # Replace our previous forwarding wrappers with actual binaries.
-  ! grep -aq '^# RobotShop managed CLI wrapper$' "$resolved"
+  ! grep -aq '^# RoboShop managed CLI wrapper$' "$resolved"
 }
 if [[ "$ACTION" == install || "$ACTION" == start ]]; then
   # Existing tools are preserved; version pins apply only when downloading missing tools.
@@ -83,7 +83,7 @@ if [[ "$ACTION" == install || "$ACTION" == start ]]; then
 fi
 [[ "$ACTION" != install ]] || exit 0
 [[ "$BASE_PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || fail 'Invalid PROFILE name.'
-STATE_DIR="${MINIKUBE_HOME:-$HOME/.minikube}/robotshop-installer"
+STATE_DIR="${MINIKUBE_HOME:-$HOME/.minikube}/roboshop-installer"
 STATE_FILE="$STATE_DIR/$BASE_PROFILE.profile"
 if [[ -f "$STATE_FILE" ]]; then
   IFS= read -r PROFILE < "$STATE_FILE"

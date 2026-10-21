@@ -22,7 +22,7 @@ Publish ai-gateway, payment-service, user-service and frontend, then run Deploy-
 
 ## Build and deployment
 
-The service has its own `Dockerfile`, `currency-service-minikube.yaml`, and `ci-currency-service.yml` workflow. The existing reusable publisher builds `robotshop-currency-service:latest` in ECR. The Terraform ECR list includes its repository; apply infrastructure before publishing the new image. Publish currency-service, frontend and nginx images, then run Deploy-Minikube. It applies/restarts this optional service without adding rollout waits. No new secrets or ConfigMaps are needed. Outbound HTTPS to the ECB must be available.
+The service has its own `Dockerfile`, `currency-service-minikube.yaml`, and `ci-currency-service.yml` workflow. The existing reusable publisher builds `roboshop-currency-service:latest` in ECR. The Terraform ECR list includes its repository; apply infrastructure before publishing the new image. Publish currency-service, frontend and nginx images, then run Deploy-Minikube. It applies/restarts this optional service without adding rollout waits. No new secrets or ConfigMaps are needed. Outbound HTTPS to the ECB must be available.
 
 Local tests (no live rate requests):
 

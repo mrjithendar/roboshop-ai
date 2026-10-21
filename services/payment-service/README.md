@@ -1,4 +1,4 @@
-# RobotShop payment service — Razorpay
+# RoboShop payment service — Razorpay
 
 Replaces the dummy legacy payment behavior in the active application, while preserving
 the original source under `legacy/`. The active implementation uses Node built-ins,
@@ -8,7 +8,7 @@ service remains a simulator and is not used by the new checkout.
 ## Sandbox by default
 
 The public key ID goes to Checkout; secret keys never reach the browser. No card data
-is collected by RobotShop. The amount is calculated from the server's catalogue in
+is collected by RoboShop. The amount is calculated from the server's catalogue in
 integer minor units (paise for the INR catalogue). Historical EUR and USD orders retain their currency. The existing
 fictional catalogue does not become a real fulfilment operation through this integration.
 
@@ -60,7 +60,7 @@ Reference: [Razorpay integration steps](https://razorpay.com/docs/payments/payme
 
 ## Independent service build
 
-Run `docker build -t robotshop-payment-service:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+Run `docker build -t roboshop-payment-service:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
 
 
 The gateway persists and reserves the checkout before calling this service. Mode

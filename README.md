@@ -1,6 +1,6 @@
-# RobotShop AI
+# RoboShop AI
 
-RobotShop includes a TypeScript storefront, MongoDB catalogue and accounts, Redis cart service, Java shipping, Razorpay payment integration, Python AI gateway and shopping assistant, and distributed tracing. Application and supporting services live under `services/`.
+RoboShop includes a TypeScript storefront, MongoDB catalogue and accounts, Redis cart service, Java shipping, Razorpay payment integration, Python AI gateway and shopping assistant, and distributed tracing. Application and supporting services live under `services/`.
 
 ## Build and deploy to Minikube
 
@@ -15,20 +15,20 @@ The build script removes the previous application `:local` tags and rebuilds all
 
 Open **https://jithendar.com/roboshop/**. Traefik routes this path to NGINX, which proxies static pages to the frontend and API requests to the gateway. TLS is provided by cert-manager. WordPress and monitoring have separate routes.
 
-For a fresh host, follow [cluster installation](minikube/README.md), then the [application deployment guide](minikube/robotshop/README.md) for ingress, certificates, secrets, remote registry deployment and troubleshooting. Docker Compose is no longer supported; its manifests and helper tools have been removed.
+For a fresh host, follow [cluster installation](minikube/README.md), then the [application deployment guide](minikube/roboshop/README.md) for ingress, certificates, secrets, remote registry deployment and troubleshooting. Docker Compose is no longer supported; its manifests and helper tools have been removed.
 
 ```bash
 # Inspect a deployment
-kubectl -n robotshop-ai get pods,pvc,ingress
-kubectl -n robotshop-ai logs deployment/frontend --tail=100
-kubectl -n robotshop-ai logs deployment/ai-gateway --tail=100
+kubectl -n roboshop-ai get pods,pvc,ingress
+kubectl -n roboshop-ai logs deployment/frontend --tail=100
+kubectl -n roboshop-ai logs deployment/ai-gateway --tail=100
 
 # Render and validate YAML without changing the cluster
-bash deploy-minikube.sh --render-only /tmp/robotshop-manifests
+bash deploy-minikube.sh --render-only /tmp/roboshop-manifests
 python3 tests/minikube-manifests.test.py
 ```
 
-First installation generates `robotshop-secrets`. Existing credentials are reused. Do not delete this Secret or the PVCs to resolve startup problems. The scripts do not automatically enable live payments, create an administrator or configure an LLM.
+First installation generates `roboshop-secrets`. Existing credentials are reused. Do not delete this Secret or the PVCs to resolve startup problems. The scripts do not automatically enable live payments, create an administrator or configure an LLM.
 
 ## Native development
 
@@ -62,7 +62,7 @@ Open **http://localhost:3000**. Ctrl+C stops the launcher’s child processes. `
 | `services/mongodb`, `services/postgres`, `services/redis`, `services/rabbitmq` | Data and messaging |
 | `services/otel-collector`, `services/jaeger` | Distributed traces |
 
-Each workload owns a `*-minikube.yaml`. Each application has its own Dockerfile. `minikube/monitoring/` holds Grafana and Prometheus configuration; monitoring runs in its own namespace. `legacy/original-robotshop/` retains reference application source.
+Each workload owns a `*-minikube.yaml`. Each application has its own Dockerfile. `minikube/monitoring/` holds Grafana and Prometheus configuration; monitoring runs in its own namespace. `legacy/original-roboshop/` retains reference application source.
 
 ## Accounts, products and payments
 
@@ -94,13 +94,13 @@ The gateway’s durable JSON order ledger remains single-writer: keep one gatewa
 
 ## Service ownership
 
-Services build from their own directories and own their dependency manifests, assets and service-specific tooling. For example: `docker build -t robotshop-frontend:local services/frontend`. Root scripts coordinate the platform. See [service boundaries and repository extraction](docs/architecture/service-repositories.md) for local tests, service-owned libraries and the future repository split.
+Services build from their own directories and own their dependency manifests, assets and service-specific tooling. For example: `docker build -t roboshop-frontend:local services/frontend`. Root scripts coordinate the platform. See [service boundaries and repository extraction](docs/architecture/service-repositories.md) for local tests, service-owned libraries and the future repository split.
 
 ### Optional Finder widget
 
 The standalone Python [Finder service](services/finder/README.md) supplies the
 assistant on every storefront page and supports embedding on other websites.
-It builds as `robotshop-finder:local`. Scale `deployment/finder` to zero to hide
+It builds as `roboshop-finder:local`. Scale `deployment/finder` to zero to hide
 it without disabling the storefront. See its README for embedding and configuration.
 
 ### Deploy ECR images from GitHub Actions

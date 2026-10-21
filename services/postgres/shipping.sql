@@ -1,4 +1,4 @@
--- RobotShop shipping database and worldwide location seed.
+-- RoboShop shipping database and worldwide location seed.
 -- Source: GeoNames cities15000 + countryInfo; CC BY 4.0, https://www.geonames.org/
 -- Import with psql; COPY data is embedded below. No network downloads required.
 -- Safe to rerun: migrations are checksummed and the seed is versioned.

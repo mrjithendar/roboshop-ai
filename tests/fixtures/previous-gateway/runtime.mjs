@@ -43,7 +43,7 @@ export function text(value, name, max = 1000) {
 }
 export async function clientSpan(name, work, attributes = {}) {
   const parent = context.getStore();
-  const ctx = { traceId: parent?.traceId || randomBytes(16).toString('hex'), spanId: randomBytes(8).toString('hex'), parentSpanId: parent?.spanId, flags: parent?.flags || '01', service: parent?.service || process.env.OTEL_SERVICE_NAME || 'robotshop', kind: 3, attributes: {} };
+  const ctx = { traceId: parent?.traceId || randomBytes(16).toString('hex'), spanId: randomBytes(8).toString('hex'), parentSpanId: parent?.spanId, flags: parent?.flags || '01', service: parent?.service || process.env.OTEL_SERVICE_NAME || 'roboshop', kind: 3, attributes: {} };
   const start = Date.now(); let status = 200;
   return context.run(ctx, async () => {
     try { return await work(ctx); }
@@ -78,7 +78,7 @@ export function exportSpan(service, ctx, start, name, status, attributes = {}) {
     }]);
   }
   if (!targets.length || pendingExports >= 32) return;
-  const payload = { resourceSpans: [{ resource: { attributes: [{ key: 'service.name', value: { stringValue: service } }, { key: 'service.version', value: { stringValue: process.env.OTEL_SERVICE_VERSION || '0.2.0' } }, { key: 'deployment.environment.name', value: { stringValue: process.env.DEPLOYMENT_ENVIRONMENT || 'development' } }] }, scopeSpans: [{ scope: { name: 'robotshop.manual', version: '0.1.0' }, spans: [{
+  const payload = { resourceSpans: [{ resource: { attributes: [{ key: 'service.name', value: { stringValue: service } }, { key: 'service.version', value: { stringValue: process.env.OTEL_SERVICE_VERSION || '0.2.0' } }, { key: 'deployment.environment.name', value: { stringValue: process.env.DEPLOYMENT_ENVIRONMENT || 'development' } }] }, scopeSpans: [{ scope: { name: 'roboshop.manual', version: '0.1.0' }, spans: [{
     traceId: ctx.traceId, spanId: ctx.spanId, ...(ctx.parentSpanId ? { parentSpanId: ctx.parentSpanId } : {}), name, kind: ctx.kind || 2, flags: 1,
     startTimeUnixNano: String(BigInt(start) * 1000000n), endTimeUnixNano: String(BigInt(Date.now()) * 1000000n),
     status: { code: status >= 500 ? 2 : 1 },
@@ -111,9 +111,9 @@ export function serve(service, port, handler) {
         route = url.pathname.startsWith('/api/') ? url.pathname.split('/').slice(0, 3).join('/') : ['/health', '/metrics'].includes(url.pathname) ? url.pathname : 'static';
         if (url.pathname === '/health' && req.method === 'GET') return json(res, { status: 'ok', service });
         if (url.pathname === '/metrics' && req.method === 'GET') {
-          const rows = ['# TYPE robotshop_http_requests_total counter'];
-          for (const [labels, count] of counts) rows.push(`robotshop_http_requests_total{service="${service}",${labels}} ${count}`);
-          rows.push('# TYPE robotshop_http_duration_seconds summary', `robotshop_http_duration_seconds_sum{service="${service}"} ${duration}`, `robotshop_http_duration_seconds_count{service="${service}"} ${requests}`, '');
+          const rows = ['# TYPE roboshop_http_requests_total counter'];
+          for (const [labels, count] of counts) rows.push(`roboshop_http_requests_total{service="${service}",${labels}} ${count}`);
+          rows.push('# TYPE roboshop_http_duration_seconds summary', `roboshop_http_duration_seconds_sum{service="${service}"} ${duration}`, `roboshop_http_duration_seconds_count{service="${service}"} ${requests}`, '');
           res.writeHead(200, { 'content-type': 'text/plain; version=0.0.4' });
           return res.end(rows.join('\n'));
         }

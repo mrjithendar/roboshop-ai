@@ -10,7 +10,7 @@ orders are retained. The source coverage below is an archival record.
 Checked on 20 October 2026, with per-record UTC retrieval timestamps. The 20 exact
 variants below were checked against Pololu's official product pages. Unit prices
 come from those pages' Product/Offer structured data in USD; these are reference
-observations, not RobotShop offers. Manufacturer availability is deliberately not
+observations, not RoboShop offers. Manufacturer availability is deliberately not
 imported. This collection covers six assembled robots, seven kits, five components
 and two accessories across Zumo, 3pi+ and Romi. Multiple variants are deliberate:
 motor ratio and assembled-versus-kit distinctions must not be lost.
@@ -53,7 +53,7 @@ and numeric comparisons. No conversion to INR is performed.
 
 ## Unresolved fields
 
-All 20 lack a genuine RobotShop merchant sale price, integrated warehouse stock,
+All 20 lack a genuine RoboShop merchant sale price, integrated warehouse stock,
 fulfilment integration, verified destination taxes/shipping and confirmed permission
 to reuse manufacturer photographs. Every row lists these gaps explicitly. They use
 existing repository category illustrations with visible captions and descriptive alt
@@ -133,6 +133,6 @@ that can fail with `container not found ("product-ingestion")`.
 Ingress and TLS configuration has its own apply step. No rollout waits are added;
 a successful workflow means commands were submitted, not that publication or
 certificate issuance has completed. If products remain missing, inspect
-`kubectl -n robotshop-ai logs deployment/product-ingestion --tail=100` and pod
+`kubectl -n roboshop-ai logs deployment/product-ingestion --tail=100` and pod
 status for image-pull, MongoDB or startup validation errors. Fix those errors and
 restart product-ingestion to retry the insert-only publication.

@@ -7,8 +7,8 @@ fail() { echo "ERROR: $*" >&2; exit 1; }
 if [[ "${1:-}" == --help || "${1:-}" == -h ]]; then
   echo 'Usage: bash minikube/reset-monitoring.sh'
   echo 'DELETES Grafana dashboards/users/settings, Prometheus history and monitoring login credentials.'
-  echo 'Removes only Grafana/Prometheus resources in monitoring and robotshop-ai, then reinstalls in monitoring.'
-  echo 'Preserves namespaces, TLS certificates, WordPress and RobotShop workloads.'
+  echo 'Removes only Grafana/Prometheus resources in monitoring and roboshop-ai, then reinstalls in monitoring.'
+  echo 'Preserves namespaces, TLS certificates, WordPress and RoboShop workloads.'
   echo 'Overrides: PROFILE=mk4, KUBE_CONTEXT. Uses the same context for deletion and reinstall.'
   exit 0
 fi
@@ -20,7 +20,7 @@ done
 PROFILE="${PROFILE:-mk4}"
 [[ "$PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || fail 'Invalid PROFILE.'
 if [[ -z "${KUBE_CONTEXT:-}" ]]; then
-  state="${MINIKUBE_HOME:-$HOME/.minikube}/robotshop-installer/$PROFILE.profile"
+  state="${MINIKUBE_HOME:-$HOME/.minikube}/roboshop-installer/$PROFILE.profile"
   if [[ -f "$state" ]]; then PROFILE="$(cat "$state")"; fi
   KUBE_CONTEXT="$PROFILE"
 fi
@@ -35,10 +35,10 @@ k wait --for=condition=Ready clusterissuer/letsencrypt-prod --timeout=60s || fai
 for script in deploy-prometheus.sh deploy-grafana.sh; do
   [[ -f "$SCRIPT_DIR/$script" ]] || fail "Missing reinstall script: $script"
 done
-echo "DESTRUCTIVE RESET: context=$KUBE_CONTEXT namespaces=monitoring,robotshop-ai"
+echo "DESTRUCTIVE RESET: context=$KUBE_CONTEXT namespaces=monitoring,roboshop-ai"
 echo 'Deleting Grafana/Prometheus releases, their data volumes, and shared/old login Secrets.'
-echo 'Namespaces, TLS certificates, WordPress and RobotShop workloads are preserved.'
-for reset_namespace in robotshop-ai monitoring; do
+echo 'Namespaces, TLS certificates, WordPress and RoboShop workloads are preserved.'
+for reset_namespace in roboshop-ai monitoring; do
   echo "Removing only Grafana/Prometheus resources from $reset_namespace..."
 for release in grafana prometheus; do
   found="$(h list --namespace "$reset_namespace" --all --filter "^$release$" --short)"
@@ -51,7 +51,7 @@ k -n "$reset_namespace" delete deployment/grafana deployment/prometheus \
   --ignore-not-found --cascade=foreground --wait=true --timeout=5m
 k -n "$reset_namespace" delete pod -l app.kubernetes.io/name=grafana,app.kubernetes.io/instance=grafana \
   --ignore-not-found --wait=true --timeout=5m
-k -n "$reset_namespace" delete pod -l app=robotshop-prometheus \
+k -n "$reset_namespace" delete pod -l app=roboshop-prometheus \
   --ignore-not-found --wait=true --timeout=5m
 k -n "$reset_namespace" delete ingress/grafana ingress/prometheus service/grafana service/prometheus \
   configmap/grafana configmap/grafana-datasource configmap/prometheus-config \

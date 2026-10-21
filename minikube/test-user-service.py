@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-spec = importlib.util.spec_from_file_location('deployment', Path(__file__).parent/'robotshop/deployment.py')
+spec = importlib.util.spec_from_file_location('deployment', Path(__file__).parent/'roboshop/deployment.py')
 deployment = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(deployment)
 
@@ -38,8 +38,8 @@ class UserDeployment(unittest.TestCase):
 
     def test_render_includes_user_image_and_gateway_url(self):
         with tempfile.TemporaryDirectory() as directory:
-            deployment.render(Path(directory),'robotshop','local','https://jithendar.com')
-            self.assertIn('robotshop-user-service:local', (Path(directory)/'images.txt').read_text())
+            deployment.render(Path(directory),'roboshop','local','https://jithendar.com')
+            self.assertIn('roboshop-user-service:local', (Path(directory)/'images.txt').read_text())
             self.assertIn('http://user-service:4109',(Path(directory)/'ai-gateway-minikube.yaml').read_text())
 
 if __name__ == '__main__': unittest.main()

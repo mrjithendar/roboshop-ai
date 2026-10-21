@@ -12,17 +12,17 @@ from unittest.mock import patch
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location('deployment', ROOT / 'minikube/robotshop/deployment.py')
+spec = importlib.util.spec_from_file_location('deployment', ROOT / 'minikube/roboshop/deployment.py')
 deploy = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(deploy)
 
 
 class ManifestTests(unittest.TestCase):
     def test_one_configmap_with_isolated_file_mounts(self):
-        paths = [ROOT/'minikube/robotshop/config.yaml', *ROOT.glob('services/*/*-minikube.yaml')]
+        paths = [ROOT/'minikube/roboshop/config.yaml', *ROOT.glob('services/*/*-minikube.yaml')]
         docs = [doc for path in paths for doc in yaml.safe_load_all(path.read_text()) if doc]
         configs = [doc for doc in docs if doc['kind'] == 'ConfigMap']
-        self.assertEqual([doc['metadata']['name'] for doc in configs], ['robotshop-config'])
+        self.assertEqual([doc['metadata']['name'] for doc in configs], ['roboshop-config'])
         expected = {'mongodb': ['10-app-user.js'], 'shipping-db': ['10-shipping-role.sh'],
                     'redis': ['redis.conf'], 'rabbitmq': ['rabbitmq.conf'], 'otel-collector': ['config.yaml']}
         for doc in docs:
@@ -30,24 +30,24 @@ class ManifestTests(unittest.TestCase):
             for volume in doc['spec']['template']['spec'].get('volumes', []):
                 if 'configMap' not in volume: continue
                 ref = volume['configMap']
-                self.assertEqual(ref['name'], 'robotshop-config')
+                self.assertEqual(ref['name'], 'roboshop-config')
                 self.assertEqual([item['path'] for item in ref['items']], expected[doc['metadata']['name']])
                 for item in ref['items']: self.assertIn(item['key'], configs[0]['data'])
 
     def test_rendered_nginx_uses_namespace_qualified_upstreams(self):
         with tempfile.TemporaryDirectory() as tmp:
-            deploy.render(Path(tmp),'robotshop','local','https://jithendar.com')
+            deploy.render(Path(tmp),'roboshop','local','https://jithendar.com')
             docs=list(yaml.safe_load_all((Path(tmp)/'nginx-minikube.yaml').read_text()))
             workload=next(item for item in docs if item['kind']=='Deployment')
             env={item['name']:item.get('value') for item in workload['spec']['template']['spec']['containers'][0]['env']}
-            self.assertEqual(env['GATEWAY_HOST'],'ai-gateway.robotshop-ai.svc.cluster.local')
-            self.assertEqual(env['FRONTEND_HOST'],'frontend.robotshop-ai.svc.cluster.local')
+            self.assertEqual(env['GATEWAY_HOST'],'ai-gateway.roboshop-ai.svc.cluster.local')
+            self.assertEqual(env['FRONTEND_HOST'],'frontend.roboshop-ai.svc.cluster.local')
             self.assertEqual(env['GATEWAY_PORT'],'3000')
             self.assertEqual(env['FRONTEND_PORT'],'8080')
 
 
     def test_build_and_renderer_agree_despite_stale_tag(self):
-        env={**os.environ,'IMAGE_TAG':'roboshop-path-v1','IMAGE_PREFIX':'robotshop'}
+        env={**os.environ,'IMAGE_TAG':'roboshop-path-v1','IMAGE_PREFIX':'roboshop'}
         output=subprocess.check_output(['bash',str(ROOT/'build-images.sh'),'--dry-run'],env=env,text=True)
         built={line.split()[1] for line in output.splitlines() if line.startswith('Building ')}
         builds=[line for line in output.splitlines() if line.startswith('docker build ')]
@@ -56,7 +56,7 @@ class ManifestTests(unittest.TestCase):
         self.assertTrue(all('--no-cache' in line for line in builds))
         self.assertEqual({line.split()[3] for line in removals},built)
         with tempfile.TemporaryDirectory() as tmp:
-            subprocess.run(['python3',str(ROOT/'minikube/robotshop/deployment.py'),'render','--output',tmp],env=env,check=True)
+            subprocess.run(['python3',str(ROOT/'minikube/roboshop/deployment.py'),'render','--output',tmp],env=env,check=True)
             rendered=set((Path(tmp)/'images.txt').read_text().splitlines())
         checked_in=set()
         for name in deploy.APPS:
@@ -94,14 +94,14 @@ class ManifestTests(unittest.TestCase):
         items=[]
         for name in deploy.SERVICES:
             items.extend(yaml.safe_load_all((ROOT / 'services' / name / (name+'-minikube.yaml')).read_text()))
-        items.extend(yaml.safe_load_all((ROOT / 'minikube/robotshop/config.yaml').read_text()))
+        items.extend(yaml.safe_load_all((ROOT / 'minikube/roboshop/config.yaml').read_text()))
         objects={(x['kind'], x['metadata']['name']):x for x in items}
         seen=set()
         for item in items:
             ident=(item['kind'],item['metadata']['name'])
             self.assertNotIn(ident,seen);seen.add(ident)
             if item['kind']=='Namespace': continue
-            self.assertEqual(item['metadata']['namespace'],'robotshop-ai')
+            self.assertEqual(item['metadata']['namespace'],'roboshop-ai')
             self.assertNotIn(item['kind'],('Ingress','Secret','ClusterRole','ClusterRoleBinding'))
             if item['kind'] not in ('Deployment','StatefulSet'):continue
             pod=item['spec']['template']['spec'];volumes={v['name']:v for v in pod.get('volumes',[])}
@@ -115,7 +115,7 @@ class ManifestTests(unittest.TestCase):
                 for e in c.get('env',[]):
                     if 'valueFrom' in e:
                         ref=e['valueFrom']['secretKeyRef']
-                        self.assertEqual(ref['name'],'robotshop-secrets')
+                        self.assertEqual(ref['name'],'roboshop-secrets')
                         self.assertTrue(ref.get('optional') or ref['key'] in deploy.PASSWORD_KEYS)
                     if 'value' in e:
                         import re
@@ -135,17 +135,17 @@ class ManifestTests(unittest.TestCase):
 
     def test_image_overrides_and_origin(self):
         with tempfile.TemporaryDirectory() as tmp:
-            deploy.render(Path(tmp),'registry.example.com/team/robotshop','local','https://shop.example.com')
+            deploy.render(Path(tmp),'registry.example.com/team/roboshop','local','https://shop.example.com')
             docs=list(yaml.safe_load_all((Path(tmp)/'shipping-service-minikube.yaml').read_text()))
             pod=next(x for x in docs if x['kind']=='Deployment')['spec']['template']['spec']
-            self.assertEqual(pod['containers'][0]['image'],'registry.example.com/team/robotshop-shipping:local')
+            self.assertEqual(pod['containers'][0]['image'],'registry.example.com/team/roboshop-shipping:local')
             self.assertEqual(len((Path(tmp)/'images.txt').read_text().splitlines()),len(deploy.APPS))
             self.assertEqual(list(yaml.safe_load_all((Path(tmp)/'config.yaml').read_text()))[1]['data']['PUBLIC_ORIGIN'],'https://shop.example.com')
 
     def run_wrapper(self, fail_service='', load_images=False, mode=None, args=None):
         with tempfile.TemporaryDirectory() as tmp:
             home=Path(tmp)
-            shutil.copytree(ROOT/'minikube/robotshop',home/'minikube/robotshop')
+            shutil.copytree(ROOT/'minikube/roboshop',home/'minikube/roboshop')
             for name in deploy.SERVICES:
                 target=home/'services'/name
                 target.mkdir(parents=True)
@@ -159,7 +159,7 @@ class ManifestTests(unittest.TestCase):
             tool.write_text('#!/bin/sh\n'
                 'echo "$*" >> "$TEST_LOG"\n'
                 'case "$*" in\n'
-                ' *"get secret robotshop-secrets"*) echo \''+secret+'\';;\n'
+                ' *"get secret roboshop-secrets"*) echo \''+secret+'\';;\n'
                 ' *"rollout status deployment/shipping-db"*) exit "${ROLLOUT_EXIT:-0}";;\n'
                 'esac\n')
             tool.chmod(0o755)
@@ -223,7 +223,7 @@ class ManifestTests(unittest.TestCase):
         result,calls=self.run_wrapper(args=['--service','shipping-service','--load-images'])
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertEqual(sum('image load' in line for line in calls.splitlines()),1)
-        self.assertIn('robotshop-shipping:local',calls)
+        self.assertIn('roboshop-shipping:local',calls)
         self.assertEqual(sum('rollout status' in line for line in calls.splitlines()),1)
         self.assertIn('rollout restart deployment/shipping-service',calls)
         self.assertNotIn('publish-catalogue.mjs',calls)

@@ -16,7 +16,7 @@ async function port() { const server = createServer(); server.listen(0, '127.0.0
 test('MongoDB accounts, one super admin, server-side roles, persistent sessions and editable catalogue', { timeout: 60000 }, async () => {
   const database = `auth_test_${randomUUID().replaceAll('-', '')}`;
   const { client, db } = await connectMongo(process.env.MONGODB_URL, database);
-  const directory = mkdtempSync(join(tmpdir(), 'robotshop-auth-'));
+  const directory = mkdtempSync(join(tmpdir(), 'roboshop-auth-'));
   const gatewayPort = await port(), cataloguePort = await port(), userPort = await port(), base = `http://127.0.0.1:${gatewayPort}`;
   const children = []; let logs = '';
   async function start(name, servicePort) {

@@ -1,7 +1,11 @@
-# RobotShop infrastructure: VPC and ECR
+> EKS is now available as an opt-in stack in `eks.tf`; see
+> [EKS cluster and add-ons](eks-addons/README.md) for creation, versions and Let's Encrypt.
+> The manual Create infrastructure workflow now enables EKS and installs its add-ons.
 
-This stack creates VPC networking and private ECR repositories; it does not create
-an EKS cluster or deploy applications. Use Terraform >= 1.10 and < 2.0, AWS provider 6.x, and AWS credentials
+# RoboShop infrastructure: VPC, ECR, SES and optional EKS
+
+This stack creates VPC networking, private ECR repositories, optional SES and an
+opt-in EKS cluster. It does not deploy application workloads. Use Terraform >= 1.10 and < 2.0, AWS provider 6.x, and AWS credentials
 from an IAM role or your normal AWS profile. Commit the generated provider lockfile.
 
 ## Network layout
@@ -60,20 +64,21 @@ apply pipeline against untrusted pull-request code. Mock tests do not access AWS
 The [Create infrastructure workflow](../.github/workflows/create-infrastructure.yml)
 runs manually on the self-hosted runner. It checks formatting, initializes remote
 state, validates and tests the configuration, then creates and applies a saved
-plan using `vars/dev.tfvars`. It provisions VPC/ECR resources, not EKS or application
+plan using `vars/dev.tfvars`. It provisions VPC/ECR/SES/EKS and then add-ons, not application
 containers. Every run applies changes; there is no plan-only option.
 
 The runner must already have AWS credentials (for example, an EC2 instance role)
-with permission to manage VPC/ECR resources and access the existing S3 state and
+with permission to manage VPC/ECR/SES/EKS/IAM resources and access the existing S3 states and
 lockfile. No OIDC role or AWS access keys are configured in this workflow. The S3
 backend bucket must exist before the run.
 
-Open **Actions → Create infrastructure → Run workflow** and select your intended
-branch. Runs are serialized, Terraform uses S3 state locking, and the saved plan
+Open **Actions → Create infrastructure → Run workflow** on the default branch.
+Supply admin IAM ARNs and API access CIDRs as explained in the
+[EKS pipeline guide](eks-addons/README.md#deploy-through-github-actions). Runs are serialized, Terraform uses S3 state locking, and the saved plan
 is removed even if a step fails. Do not run the Jenkins deployment concurrently
 against the same state.
 
-The workflow installs Terraform 1.10.5. The self-hosted runner needs access to
+The workflow installs Terraform 1.16.6. The self-hosted runner needs access to
 GitHub, HashiCorp downloads, AWS APIs and the state bucket.
 
 ## ECR repositories
@@ -82,17 +87,17 @@ GitHub, HashiCorp downloads, AWS APIs and the state bucket.
 `ecr_repository_names`, using `for_each = toset(var.ecr_repository_names)`.
 The default list in `_variables.tf` covers 14 active custom service images. The retired SMTP repository entry is
 commented out; applying this change removes that repository from Terraform-managed
-infrastructure and can delete its images because `force_delete` is enabled. It matches CI's default `ECR_REPOSITORY_PREFIX=robotshop`; shipping uses
-`robotshop-shipping`, not `robotshop-shipping-service`. Official third-party
+infrastructure and can delete its images because `force_delete` is enabled. It matches CI's default `ECR_REPOSITORY_PREFIX=roboshop`; shipping uses
+`roboshop-shipping`, not `roboshop-shipping-service`. Official third-party
 images such as MongoDB, Redis and RabbitMQ do not need project repositories.
 
 To override the list, add the complete desired list to your environment tfvars:
 
 ```hcl
 ecr_repository_names = [
-  "robotshop-ai-gateway",
-  "robotshop-frontend",
-  "robotshop-shipping",
+  "roboshop-ai-gateway",
+  "roboshop-frontend",
+  "roboshop-shipping",
 ]
 ```
 
@@ -129,7 +134,7 @@ Import repositories that already exist before planning creation, for example:
 
 ```bash
 terraform import -var-file=vars/dev.tfvars \
-  'aws_ecr_repository.services["robotshop-ai-gateway"]' robotshop-ai-gateway
+  'aws_ecr_repository.services["roboshop-ai-gateway"]' roboshop-ai-gateway
 ```
 
 ## Existing deployments
@@ -145,18 +150,15 @@ this code review.
 
 ## Creating EKS on this VPC
 
-Use `vpc_id` and `eks_subnet_ids` (private subnet IDs) in your EKS stack; use the
-same private IDs for managed node groups. `public_subnets` are for public load
-balancers, not worker nodes. Enable private EKS API access. If public API access
-is also enabled, restrict its CIDRs to administrator/CI egress addresses; a private-
-only endpoint requires VPC connectivity from your administration runner.
+Enable `eks_enabled` and supply explicit admin IAM principals using
+`vars/eks.tfvars.example`. Follow [the EKS guide](eks-addons/README.md) for the
+separate cluster and add-on apply steps. Worker nodes use private subnets; public
+subnets are reserved for load balancers. Private-only API access requires a runner
+with VPC connectivity; public API access accepts only your configured CIDRs.
 
-The EKS stack still needs cluster/node IAM roles, security groups, access entries,
-VPC CNI, CoreDNS, kube-proxy, storage CSI drivers and Pod Identity/IRSA for workloads.
-Install/configure AWS Load Balancer Controller unless using EKS Auto Mode load
-balancing. Enable cluster logs and configure VPC flow logs and retention as part
-of the deployment's observability policy. Those resources are outside this VPC
-stack. Size pod IP capacity against your node counts before deployment.
+The new cluster includes managed nodes, core add-ons and access entries. The
+separate add-on stack installs EBS CSI, Traefik, AWS Load Balancer Controller,
+cert-manager and KEDA. Application data migration and workload IAM remain separate.
 
 References: [EKS subnet requirements](https://docs.aws.amazon.com/eks/latest/userguide/network-reqs.html),
 [subnet design](https://docs.aws.amazon.com/eks/latest/best-practices/subnets.html),
@@ -195,7 +197,7 @@ SMTP password. Store SMTP credentials in Kubernetes Secrets, not source control.
 SES SMTP settings are `email-smtp.us-east-1.amazonaws.com:587` with STARTTLS.
 
 User-service's Minikube manifest now sends directly through SES on port 587. It
-reads `SMTP_USERNAME` and `SMTP_PASSWORD` from `robotshop-secrets`, and uses the system
+reads `SMTP_USERNAME` and `SMTP_PASSWORD` from `roboshop-secrets`, and uses the system
 CA trust store. The private SMTP certificate mount and certificate environment
 variables are removed. Keep `AUTH_ENCRYPTION_KEY` unchanged. Populate the SES SMTP
 credentials before deploying the updated manifest. The deployment workflow removes

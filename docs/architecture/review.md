@@ -1,4 +1,4 @@
-> Deployment update: orchestration now uses [Minikube](../../minikube/robotshop/README.md); older deployment descriptions below are historical. Use root `build-images.sh` and `deploy-minikube.sh`.
+> Deployment update: orchestration now uses [Minikube](../../minikube/roboshop/README.md); older deployment descriptions below are historical. Use root `build-images.sh` and `deploy-minikube.sh`.
 
 # Architecture review — 18 October 2026
 

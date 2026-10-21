@@ -70,6 +70,6 @@ management:
     tags:
       service: shipping-service
 
-robotshop:
+roboshop:
   cache-enabled: ${CACHE_ENABLED:false}
   messaging-enabled: ${MESSAGING_ENABLED:false}

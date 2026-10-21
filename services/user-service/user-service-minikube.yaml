@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: user-service
-  namespace: robotshop-ai
+  namespace: roboshop-ai
 spec:
   selector:
     app: user-service
@@ -15,7 +15,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: user-service
-  namespace: robotshop-ai
+  namespace: roboshop-ai
 spec:
   replicas: 1
   selector:
@@ -25,7 +25,7 @@ spec:
     metadata:
       labels:
         app: user-service
-        app.kubernetes.io/part-of: robotshop-ai
+        app.kubernetes.io/part-of: roboshop-ai
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
@@ -38,13 +38,13 @@ spec:
       - name: ecr-pull
       containers:
       - name: user-service
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/robotshop-user-service:latest
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-user-service:latest
         imagePullPolicy: Always
         env:
         - name: AUTH_ENCRYPTION_KEY
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: AUTH_ENCRYPTION_KEY
               optional: true
         - name: SMTP_HOST
@@ -58,44 +58,44 @@ spec:
         - name: SMTP_USERNAME
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: SMTP_USERNAME
               optional: true
         - name: SMTP_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: SMTP_PASSWORD
               optional: true
         - name: TURNSTILE_SITE_KEY
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: TURNSTILE_SITE_KEY
               optional: true
         - name: TURNSTILE_SECRET_KEY
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: TURNSTILE_SECRET_KEY
               optional: true
         - name: MONGO_APP_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: MONGO_APP_PASSWORD
         - name: MONGODB_URL
-          value: mongodb://robotshop:$(MONGO_APP_PASSWORD)@mongodb:27017/robotshop?authSource=robotshop
+          value: mongodb://roboshop:$(MONGO_APP_PASSWORD)@mongodb:27017/roboshop?authSource=roboshop
         - name: USER_SERVICE_TOKEN
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: USER_SERVICE_TOKEN
         - name: TRUST_PROXY
           value: 'false'
         envFrom:
         - configMapRef:
-            name: robotshop-config
+            name: roboshop-config
         ports:
         - containerPort: 4109
         resources:

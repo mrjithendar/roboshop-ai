@@ -27,7 +27,7 @@ The Dockerfile remains non-root and includes all provider modules via `*.py`.
 
 ## Independent service build
 
-Run `docker build -t robotshop-shopping-agent:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+Run `docker build -t roboshop-shopping-agent:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
 
 
 `/health` is process-only liveness; `/ready` probes catalogue readiness with a

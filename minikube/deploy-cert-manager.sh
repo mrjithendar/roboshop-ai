@@ -20,7 +20,7 @@ done
 PROFILE="${PROFILE:-mk4}"
 [[ "$PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || fail 'Invalid PROFILE.'
 if [[ -z "${KUBE_CONTEXT:-}" ]]; then
-  state="${MINIKUBE_HOME:-$HOME/.minikube}/robotshop-installer/$PROFILE.profile"
+  state="${MINIKUBE_HOME:-$HOME/.minikube}/roboshop-installer/$PROFILE.profile"
   if [[ -f "$state" ]]; then PROFILE="$(cat "$state")"; fi
   KUBE_CONTEXT="$PROFILE"
 fi
@@ -45,7 +45,7 @@ h upgrade --install cert-manager oci://quay.io/jetstack/charts/cert-manager \
   --version "$CERT_MANAGER_VERSION" --namespace cert-manager --create-namespace \
   -f "$SCRIPT_DIR/cert-manager/values.yaml" --wait --timeout 10m
 k wait --for=condition=Established crd/clusterissuers.cert-manager.io crd/certificates.cert-manager.io --timeout=120s
-h upgrade --install robotshop-letsencrypt "$SCRIPT_DIR/cert-manager/issuers" \
+h upgrade --install roboshop-letsencrypt "$SCRIPT_DIR/cert-manager/issuers" \
   --namespace cert-manager "${ISSUER_ARGS[@]}" --wait --timeout 5m
 if ! k wait --for=condition=Ready clusterissuer/letsencrypt-staging clusterissuer/letsencrypt-prod --timeout=180s; then
   k describe clusterissuer letsencrypt-staging letsencrypt-prod
@@ -55,4 +55,4 @@ k get clusterissuer letsencrypt-staging letsencrypt-prod
 echo 'cert-manager and Let’s Encrypt issuers are ready. No website certificate has been requested.'
 echo 'Use letsencrypt-prod for trusted certificates; letsencrypt-staging for testing.'
 echo 'Application installers manage their certificates: shared monitoring/certificate.yaml for Grafana + Prometheus; WordPress chart for WordPress.'
-echo 'See minikube/monitoring/README.md for certificate ownership. The robotshop-ai certificate.example.yaml is a legacy/manual example only.'
+echo 'See minikube/monitoring/README.md for certificate ownership. The roboshop-ai certificate.example.yaml is a legacy/manual example only.'

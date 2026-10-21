@@ -23,7 +23,7 @@ function picture(p: Product): HTMLImageElement {
   img.addEventListener('error', () => { img.src = productImage({ image: '', productType: p.productType }); }, { once: true }); return img;
 }
 function render(p: Product, related: Product[]): void {
-  document.title = `${p.name} · RobotShop`;
+  document.title = `${p.name} · RoboShop`;
   const panel = get('product-content'); panel.replaceChildren();
   const breadcrumb = element('nav'); breadcrumb.className = 'product-breadcrumb'; breadcrumb.setAttribute('aria-label', 'Breadcrumb'); breadcrumb.append(link('Collection', '/'), element('span', '/'), element('span', p.name));
   const grid = element('div'); grid.className = 'product-detail-grid';
@@ -60,7 +60,7 @@ function render(p: Product, related: Product[]): void {
   } else {
     const notice = element('div'); notice.className = 'showcase-panel'; notice.append(element('h3', 'Explore this product'), element('p', 'This is an informational listing. Reference prices and simulated stock are not a sale offer.'));
     const unavailable = element('button', 'Add to cart'); unavailable.className = 'button primary'; unavailable.disabled = true;
-    notice.append(unavailable, element('p', 'Not sold by RobotShop. No checkout is available for this listing.'));
+    notice.append(unavailable, element('p', 'Not sold by RoboShop. No checkout is available for this listing.'));
     copy.append(notice);
   }
   const buybox = element('aside'); buybox.className = 'product-buybox'; buybox.setAttribute('aria-label','Purchase options');
@@ -169,6 +169,6 @@ get('review-delete').addEventListener('click', async () => { const button = get<
 document.querySelectorAll<HTMLElement>('[data-close]').forEach(button => button.addEventListener('click', () => get<HTMLDialogElement>(button.dataset.close || '').close()));
 await initAccount(loadMine);
 try { const result = await api<{ product: Product; related: Product[] }>(endpoint); product = result.product; render(product, result.related); get('product-status').textContent = ''; get('reviews-section').hidden = false; await Promise.all([loadReviews(), loadMine(), loadDemoReviews()]); }
-catch (e) { document.title = 'Product unavailable · RobotShop'; get('product-status').textContent = error(e); const retry = element('button', 'Retry loading product'); retry.addEventListener('click', () => location.reload()); get('product-content').append(retry); }
+catch (e) { document.title = 'Product unavailable · RoboShop'; get('product-status').textContent = error(e); const retry = element('button', 'Retry loading product'); retry.addEventListener('click', () => location.reload()); get('product-content').append(retry); }
 
 void initCurrency();

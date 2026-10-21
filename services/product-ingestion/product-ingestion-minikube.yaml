@@ -3,9 +3,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: product-ingestion
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   selector:
     app: product-ingestion
@@ -18,9 +18,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: product-ingestion
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   replicas: 1
   selector:
@@ -30,7 +30,7 @@ spec:
     metadata:
       labels:
         app: product-ingestion
-        app.kubernetes.io/part-of: robotshop-ai
+        app.kubernetes.io/part-of: roboshop-ai
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
@@ -38,16 +38,16 @@ spec:
       - name: ecr-pull
       containers:
       - name: product-ingestion
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/robotshop-product-ingestion:latest
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-product-ingestion:latest
         imagePullPolicy: Always
         env:
         - name: MONGO_APP_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: MONGO_APP_PASSWORD
         - name: MONGODB_URL
-          value: mongodb://robotshop:$(MONGO_APP_PASSWORD)@mongodb:27017/robotshop?authSource=robotshop
+          value: mongodb://roboshop:$(MONGO_APP_PASSWORD)@mongodb:27017/roboshop?authSource=roboshop
         resources:
           requests:
             cpu: 50m
@@ -59,7 +59,7 @@ spec:
         - containerPort: 4101
         envFrom:
         - configMapRef:
-            name: robotshop-config
+            name: roboshop-config
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true

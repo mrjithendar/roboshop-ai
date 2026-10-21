@@ -65,7 +65,7 @@ datasources:
     apiVersion: 1
     datasources:
       - name: Prometheus
-        uid: robotshop-prometheus
+        uid: roboshop-prometheus
         type: prometheus
         access: proxy
         url: http://prometheus.monitoring.svc.cluster.local:9090/prometheus

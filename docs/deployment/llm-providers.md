@@ -42,7 +42,7 @@ infrastructure shutdown remains a separate action.
 
 ## Operator setup
 
-Minikube initializes `LLM_SERVICE_TOKEN` in `robotshop-secrets` and shares it only with the gateway and shopping agent. Keep existing credentials when upgrading. Configure the approved Ollama endpoint mapping in the shopping-agent manifest, then rebuild and deploy with `bash build-images.sh` and `bash deploy-minikube.sh`.
+Minikube initializes `LLM_SERVICE_TOKEN` in `roboshop-secrets` and shares it only with the gateway and shopping agent. Keep existing credentials when upgrading. Configure the approved Ollama endpoint mapping in the shopping-agent manifest, then rebuild and deploy with `bash build-images.sh` and `bash deploy-minikube.sh`.
 
 For native development, `python3 generate-secrets.py` creates a new private `.env`; an existing installation should add only missing keys rather than regenerate database credentials. Configure `LLM_SERVICE_TOKEN` and `OLLAMA_ENDPOINTS_JSON` before starting the services.
 
@@ -122,7 +122,7 @@ Create an existing Secret containing `LLM_SERVICE_TOKEN` in the release namespac
 
 ```yaml
 llm:
-  serviceSecretName: robotshop-llm
+  serviceSecretName: roboshop-llm
   ollamaEndpoints:
     private-ec2: http://10.0.1.25:11434
   workloadIdentityEnabled: false # true when using Bedrock EKS identity
@@ -132,7 +132,7 @@ llm:
 ```
 
 For example, with a private file containing just the token:
-`kubectl -n robotshop-ai create secret generic robotshop-llm --from-file=LLM_SERVICE_TOKEN=/secure/path/llm-token`.
+`kubectl -n roboshop-ai create secret generic roboshop-llm --from-file=LLM_SERVICE_TOKEN=/secure/path/llm-token`.
 The file must contain the token without a trailing newline. Never pass token
 values inline in shell history. The chart reads only explicitly named keys;
 it does not import an arbitrary secret wholesale into the agent. Configure

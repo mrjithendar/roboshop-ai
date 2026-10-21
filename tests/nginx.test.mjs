@@ -18,7 +18,7 @@ test('gateway uses forwarding headers only when configured behind its trusted pr
   req.headers['x-real-ip']='invalid, 203.0.113.8'; assert.equal(clientAddress(req,true),'127.0.0.1');
 });
 test('NGINX serves assets and safely proxies API requests', { skip: process.env.NGINX_TEST !== 'true' ? 'Run npm run test:nginx (requires NGINX >= 1.28 or NGINX_TEST_IMAGE).' : false, timeout:30000 },async()=>{
-  const dir=mkdtempSync(join(tmpdir(),'robotshop-nginx-'));
+  const dir=mkdtempSync(join(tmpdir(),'roboshop-nginx-'));
   let seen, edge, ready=true;
   const backend=createServer(async(req,res)=>{
     const chunks=[]; for await(const part of req) chunks.push(part);
@@ -61,7 +61,7 @@ test('NGINX serves assets and safely proxies API requests', { skip: process.env.
 });
 
 test('optional HTTPS redirects HTTP and serves the storefront with security headers', {skip:process.env.NGINX_TEST!=='true',timeout:30000},async()=>{
-  const dir=mkdtempSync(join(tmpdir(),'robotshop-nginx-tls-'));
+  const dir=mkdtempSync(join(tmpdir(),'roboshop-nginx-tls-'));
   let edge;
   const backend=createServer((req,res)=>res.end('{}'));
   const gatewayPort=await listen(backend);
@@ -87,7 +87,7 @@ test('optional HTTPS redirects HTTP and serves the storefront with security head
 });
 
 test('subpath HTML links and module assets survive ingress prefix stripping', {skip: process.env.NGINX_TEST !== 'true', timeout:30000}, async()=>{
-  const dir=mkdtempSync(join(tmpdir(),'robotshop-prefix-'));
+  const dir=mkdtempSync(join(tmpdir(),'roboshop-prefix-'));
   const backend=createServer((req,res)=>res.end('{}'));
   const gatewayPort=await listen(backend);
   const probe=createServer(); const port=await listen(probe); await new Promise(r=>probe.close(r));

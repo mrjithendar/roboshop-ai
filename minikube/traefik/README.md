@@ -19,7 +19,7 @@ Then open **https://jithendar.com/grafana/**. DNS must point to Vultr, and the V
 
 `expose-ingress.sh` must run on the **Linux Docker host**, with local Docker and kubectl access. It follows the installer's selected Minikube profile and starts a small HAProxy Docker container to forward host 80/443 to the Minikube node's 30080/30443. This supplies the missing route through Docker's private network without recreating Minikube. TLS terminates in Traefik; HAProxy holds no certificates. TCP forwarding also supports Grafana WebSockets.
 
-The proxy restarts with Docker. Rerun the host script after replacing the Minikube profile. An existing proxy on a different Docker network is left intact with instructions, rather than silently replaced. The configuration is stored under `~/.minikube/robotshop-installer/ingress-edge/`. Removing the Minikube cluster does not automatically remove this host proxy.
+The proxy restarts with Docker. Rerun the host script after replacing the Minikube profile. An existing proxy on a different Docker network is left intact with instructions, rather than silently replaced. The configuration is stored under `~/.minikube/roboshop-installer/ingress-edge/`. Removing the Minikube cluster does not automatically remove this host proxy.
 
 ## From your Mac
 
@@ -49,7 +49,7 @@ kubectl -n traefik get pods,svc
 kubectl get ingressclass traefik
 kubectl -n traefik logs deployment/traefik --tail=100
 # On Vultr:
-docker logs robotshop-ingress-edge-$(id -u) --tail=100
+docker logs roboshop-ingress-edge-$(id -u) --tail=100
 ss -ltnp '( sport = :80 or sport = :443 )'
 # From either host:
 curl -I http://jithendar.com/
@@ -62,7 +62,7 @@ If the proxy failed because a port was occupied, resolve that conflict and remov
 
 ```bash
 # Stops this site's host ingress; use only when replacing/removing this proxy.
-docker rm -f robotshop-ingress-edge-$(id -u)
+docker rm -f roboshop-ingress-edge-$(id -u)
 bash minikube/expose-ingress.sh
 ```
 

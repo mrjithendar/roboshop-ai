@@ -250,7 +250,7 @@ class RoutingTests(unittest.TestCase):
         generations = [t[1] for t in traces if t[1]["attributes"].get("langfuse.observation.type") == "generation"]
         self.assertEqual(len(generations), 2)
         self.assertEqual(generations[0]["traceId"], generations[1]["traceId"])
-        self.assertEqual(generations[1]["attributes"]["robotshop.llm.fallback_reason"], "connection")
+        self.assertEqual(generations[1]["attributes"]["roboshop.llm.fallback_reason"], "connection")
         self.assertEqual(generations[1]["attributes"]["gen_ai.usage.input_tokens"],2)
         self.assertNotIn("private-prompt",str(traces))
 

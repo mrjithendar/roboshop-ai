@@ -12,5 +12,5 @@ export async function readProducts(db) {
   // Keep historical records in MongoDB, but retire informational listings from all consumers.
   return rows.length ? normalizeProducts(rows).filter(p => !p.showcase && !['reference', 'legacy-reference'].includes(p.collection) && !p.sku.startsWith('REF-')) : [];
 }
-export const defaultSettings = { storeName: 'RobotShop', announcement: 'THE NEXT GENERATION OF GOOD COMPANY.', supportEmail: '', checkoutEnabled: true };
+export const defaultSettings = { storeName: 'RoboShop', announcement: 'THE NEXT GENERATION OF GOOD COMPANY.', supportEmail: '', checkoutEnabled: true };
 export async function readSettings(db) { const doc = await db.collection('settings').findOne({ _id: 'public' }); return { ...defaultSettings, ...(doc?.value || {}) }; }

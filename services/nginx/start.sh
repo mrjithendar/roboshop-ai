@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
-export NGINX_CONFIG_DIR="${NGINX_CONFIG_DIR:-/etc/nginx/robotshop}"
-export NGINX_RUN_DIR="${NGINX_RUN_DIR:-/tmp/robotshop-nginx}"
+export NGINX_CONFIG_DIR="${NGINX_CONFIG_DIR:-/etc/nginx/roboshop}"
+export NGINX_RUN_DIR="${NGINX_RUN_DIR:-/tmp/roboshop-nginx}"
 export FRONTEND_HOST="${FRONTEND_HOST:-frontend}"
 export FRONTEND_PORT="${FRONTEND_PORT:-8080}"
 export NGINX_MIME_TYPES="${NGINX_MIME_TYPES:-/etc/nginx/mime.types}"

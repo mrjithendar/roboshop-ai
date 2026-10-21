@@ -5,7 +5,7 @@ from catalogue import normalize
 from auth import require_role, email_address
 
 DEFAULTS = {
-    "storeName": "RobotShop",
+    "storeName": "RoboShop",
     "announcement": "THE NEXT GENERATION OF GOOD COMPANY.",
     "supportEmail": "",
     "checkoutEnabled": True,

@@ -1,5 +1,5 @@
 apiVersion: v2
-name: robotshop-letsencrypt
+name: roboshop-letsencrypt
 version: 0.1.0
 type: application
-description: Let's Encrypt ACME issuers for the RobotShop Minikube sandbox
+description: Let's Encrypt ACME issuers for the RoboShop Minikube sandbox

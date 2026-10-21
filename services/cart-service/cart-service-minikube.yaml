@@ -2,9 +2,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: cart-service
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   selector:
     app: cart-service
@@ -17,9 +17,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cart-service
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   replicas: 1
   selector:
@@ -29,7 +29,7 @@ spec:
     metadata:
       labels:
         app: cart-service
-        app.kubernetes.io/part-of: robotshop-ai
+        app.kubernetes.io/part-of: roboshop-ai
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
@@ -37,7 +37,7 @@ spec:
       - name: ecr-pull
       containers:
       - name: cart-service
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/robotshop-cart-service:latest
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-cart-service:latest
         imagePullPolicy: Always
         env:
         - name: REDIS_HOST
@@ -47,12 +47,12 @@ spec:
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: REDIS_PASSWORD
         - name: CART_SERVICE_TOKEN
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: PAYMENT_SERVICE_TOKEN
         resources:
           requests:
@@ -65,7 +65,7 @@ spec:
         - containerPort: 4107
         envFrom:
         - configMapRef:
-            name: robotshop-config
+            name: roboshop-config
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true

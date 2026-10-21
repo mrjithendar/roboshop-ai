@@ -62,7 +62,7 @@ class CartServiceTests(unittest.TestCase):
             products=[dict(sku='TEST',price=12,instock=4,name='Robot')]
             store.update(id,'TEST',2,products)
             self.assertEqual(self.call(id)['items'],{'TEST':2})
-            self.redis.delete('robotshop:cart:'+id)
+            self.redis.delete('roboshop:cart:'+id)
             store.close()
             store=Store(directory,Repository());store.sync_cart(id)
             self.assertEqual(store.cart(id,products)['subtotal'],24)

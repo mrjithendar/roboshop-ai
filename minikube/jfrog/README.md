@@ -12,7 +12,7 @@ included. Docker builds images; JFrog stores the results.
 - Persistence: 30 GiB artifact PVC plus 10 GiB PostgreSQL PVC, using the default
   storage class. Minikube local storage is development storage, not HA storage.
 - TLS: one Certificate `jfrog/jfrog-public`, Secret `jfrog-public-tls`, covering
-  both hosts. Existing WordPress/monitoring/RobotShop certificates are untouched.
+  both hosts. Existing WordPress/monitoring/RoboShop certificates are untouched.
 - The chart's NGINX is private ClusterIP HTTP behind Traefik's public HTTPS.
 
 ## Prerequisites
@@ -91,7 +91,7 @@ bash minikube/jfrog/publish-image.sh frontend
 
 The helper prompts privately for the access token, builds via the existing root
 script, tags the result and pushes, for example:
-`jfrog.jithendar.com/docker-local/robotshop-frontend:local`.
+`jfrog.jithendar.com/docker-local/roboshop-frontend:local`.
 Its temporary Docker credentials are removed on exit; existing Docker login files
 are untouched. It does not deploy or alter the existing local-image workflow.
 For repeatable releases, publish immutable version/commit tags when migrating CI.

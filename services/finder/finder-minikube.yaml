@@ -2,9 +2,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: finder
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   selector:
     app: finder
@@ -17,9 +17,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: finder
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   replicas: 1
   selector:
@@ -29,7 +29,7 @@ spec:
     metadata:
       labels:
         app: finder
-        app.kubernetes.io/part-of: robotshop-ai
+        app.kubernetes.io/part-of: roboshop-ai
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
@@ -37,7 +37,7 @@ spec:
       - name: ecr-pull
       containers:
       - name: finder
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/robotshop-finder:latest
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-finder:latest
         imagePullPolicy: Always
         env:
         - name: ALLOWED_ORIGINS
@@ -47,7 +47,7 @@ spec:
         - name: LLM_SERVICE_TOKEN
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: LLM_SERVICE_TOKEN
               optional: true
         resources:

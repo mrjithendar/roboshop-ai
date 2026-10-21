@@ -2,9 +2,9 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: shipping-postgres
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   accessModes:
   - ReadWriteOnce
@@ -16,9 +16,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: shipping-db
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   selector:
     app: shipping-db
@@ -31,9 +31,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: shipping-db
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   replicas: 1
   selector:
@@ -43,7 +43,7 @@ spec:
     metadata:
       labels:
         app: shipping-db
-        app.kubernetes.io/part-of: robotshop-ai
+        app.kubernetes.io/part-of: roboshop-ai
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
@@ -59,12 +59,12 @@ spec:
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: SHIPPING_DB_PASSWORD
         - name: SHIPPING_APP_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: SHIPPING_APP_PASSWORD
         resources:
           requests:
@@ -107,7 +107,7 @@ spec:
           claimName: shipping-postgres
       - name: init
         configMap:
-          name: robotshop-config
+          name: roboshop-config
           items:
           - key: 10-shipping-role.sh
             path: 10-shipping-role.sh

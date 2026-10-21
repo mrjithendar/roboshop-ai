@@ -17,7 +17,7 @@ done
 PROFILE="${PROFILE:-mk4}"
 [[ "$PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || fail 'Invalid PROFILE.'
 if [[ -z "${KUBE_CONTEXT:-}" ]]; then
-  state="${MINIKUBE_HOME:-$HOME/.minikube}/robotshop-installer/$PROFILE.profile"
+  state="${MINIKUBE_HOME:-$HOME/.minikube}/roboshop-installer/$PROFILE.profile"
   if [[ -f "$state" ]]; then PROFILE="$(cat "$state")"; fi
   KUBE_CONTEXT="$PROFILE"
 fi
@@ -30,8 +30,8 @@ k get ingressclass traefik >/dev/null || fail 'Run deploy-traefik.sh and expose-
 k get crd middlewares.traefik.io >/dev/null || fail 'Traefik Middleware CRDs are required. Run deploy-traefik.sh.'
 k wait --for=condition=Ready clusterissuer/letsencrypt-prod --timeout=60s || fail 'Run deploy-cert-manager.sh first.'
 # Namespace changes do not migrate Helm releases or persistent data.
-legacy="$(k -n robotshop-ai get deployment/prometheus ingress/prometheus pvc/prometheus-data --ignore-not-found -o name)"
-[[ -z "$legacy" ]] || fail 'Existing prometheus resources found in robotshop-ai. Migrate data and credentials before switching namespaces; see minikube/monitoring/README.md. No resources were moved or deleted.'
+legacy="$(k -n roboshop-ai get deployment/prometheus ingress/prometheus pvc/prometheus-data --ignore-not-found -o name)"
+[[ -z "$legacy" ]] || fail 'Existing prometheus resources found in roboshop-ai. Migrate data and credentials before switching namespaces; see minikube/monitoring/README.md. No resources were moved or deleted.'
 k create namespace monitoring --dry-run=client -o yaml | k apply -f -
 python3 "$SCRIPT_DIR/monitoring/credentials.py" ensure --context "$KUBE_CONTEXT"
 # Both installers reconcile this SAME namespace/name; this is not a per-app certificate.
@@ -40,9 +40,9 @@ k apply -f "$SCRIPT_DIR/monitoring/certificate.yaml"
 diagnose() {
   echo 'Prometheus diagnostics (pods, storage, events and recent logs):' >&2
   k --request-timeout=15s -n monitoring get deployment/prometheus pvc/prometheus-data -o wide || true
-  k --request-timeout=15s -n monitoring get pods -l app=robotshop-prometheus -o wide || true
+  k --request-timeout=15s -n monitoring get pods -l app=roboshop-prometheus -o wide || true
   k --request-timeout=15s -n monitoring describe pvc prometheus-data || true
-  k --request-timeout=15s -n monitoring describe pods -l app=robotshop-prometheus || true
+  k --request-timeout=15s -n monitoring describe pods -l app=roboshop-prometheus || true
   k --request-timeout=15s -n monitoring logs deployment/prometheus --tail=80 --pod-running-timeout=10s || true
   k --request-timeout=15s -n monitoring logs deployment/prometheus --previous --tail=40 --pod-running-timeout=10s || true
 }
@@ -54,7 +54,7 @@ if ! h upgrade --install prometheus "$SCRIPT_DIR/monitoring/prometheus" --namesp
 fi
 echo 'Waiting up to 10 minutes for Prometheus. Image pulls, PVC provisioning and scheduling can delay startup.'
 printf 'Inspect from another terminal: kubectl --context=%q -n monitoring get pods,pvc\n' "$KUBE_CONTEXT"
-k --request-timeout=15s -n monitoring get pods -l app=robotshop-prometheus -o wide || true
+k --request-timeout=15s -n monitoring get pods -l app=roboshop-prometheus -o wide || true
 k --request-timeout=15s -n monitoring get pvc prometheus-data || true
 if ! k -n monitoring rollout status deployment/prometheus --timeout=10m; then
   diagnose

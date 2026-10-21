@@ -2,7 +2,7 @@ Product imports, seed data and catalogue migrations live here. Normal applicatio
 
 # Product ingestion
 
-Port 4101 serves `GET /api/products` from MongoDB. Configure `MONGODB_URL` and optional `MONGODB_DATABASE` (default `robotshop`). `GET /api/catalogue/ready` checks MongoDB.
+Port 4101 serves `GET /api/products` from MongoDB. Configure `MONGODB_URL` and optional `MONGODB_DATABASE` (default `roboshop`). `GET /api/catalogue/ready` checks MongoDB.
 
 Startup validates and inserts the configured `products.json` seed using insert-only
 SKU upserts. Manufacturer reference seeds are no longer imported. Public reads in
@@ -22,4 +22,4 @@ Products carry source links, specifications, compatibility, package caveats and 
 
 ## Independent service build
 
-Run `docker build -t robotshop-product-ingestion:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+Run `docker build -t roboshop-product-ingestion:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).

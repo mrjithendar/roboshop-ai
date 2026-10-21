@@ -3,9 +3,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mcp-server
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   replicas: 1
   selector:
@@ -15,7 +15,7 @@ spec:
     metadata:
       labels:
         app: mcp-server
-        app.kubernetes.io/part-of: robotshop-ai
+        app.kubernetes.io/part-of: roboshop-ai
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
@@ -23,7 +23,7 @@ spec:
       - name: ecr-pull
       containers:
       - name: mcp-server
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/robotshop-mcp-server:latest
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-mcp-server:latest
         imagePullPolicy: Always
         env:
         - name: GATEWAY_URL
@@ -31,7 +31,7 @@ spec:
         - name: MCP_SESSION_TOKEN
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: MCP_SESSION_TOKEN
               optional: true
         resources:
@@ -43,7 +43,7 @@ spec:
             memory: 256Mi
         envFrom:
         - configMapRef:
-            name: robotshop-config
+            name: roboshop-config
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true

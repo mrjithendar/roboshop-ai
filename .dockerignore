@@ -8,13 +8,13 @@ infrastructure/*
 tests
 docs
 legacy/*
-!legacy/original-robotshop
-legacy/original-robotshop/*
-!legacy/original-robotshop/web
-legacy/original-robotshop/web/*
-!legacy/original-robotshop/web/static
-legacy/original-robotshop/web/static/*
-!legacy/original-robotshop/web/static/images
+!legacy/original-roboshop
+legacy/original-roboshop/*
+!legacy/original-roboshop/web
+legacy/original-roboshop/web/*
+!legacy/original-roboshop/web/static
+legacy/original-roboshop/web/static/*
+!legacy/original-roboshop/web/static/images
 
 **/.gradle
 **/build

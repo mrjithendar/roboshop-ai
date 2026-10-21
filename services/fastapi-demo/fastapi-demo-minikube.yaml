@@ -2,9 +2,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: fastapi-demo
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   selector:
     app: fastapi-demo
@@ -17,9 +17,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fastapi-demo
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   replicas: 1
   selector:
@@ -29,7 +29,7 @@ spec:
     metadata:
       labels:
         app: fastapi-demo
-        app.kubernetes.io/part-of: robotshop-ai
+        app.kubernetes.io/part-of: roboshop-ai
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
@@ -37,7 +37,7 @@ spec:
       - name: ecr-pull
       containers:
       - name: fastapi-demo
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/robotshop-fastapi-demo:latest
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-fastapi-demo:latest
         imagePullPolicy: Always
         resources:
           requests:

@@ -283,7 +283,7 @@ class MCP:
                         else "2025-11-25"
                     ),
                     "capabilities": {"tools": {}},
-                    "serverInfo": {"name": "robotshop", "version": "0.2.0"},
+                    "serverInfo": {"name": "roboshop", "version": "0.2.0"},
                 }
             )
         if method == "ping":

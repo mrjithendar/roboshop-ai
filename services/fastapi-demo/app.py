@@ -4,7 +4,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
 app = FastAPI(
-    title="RobotShop FastAPI Demo",
+    title="RoboShop FastAPI Demo",
     version="1.0.0",
     description="Sample data only. Explore products and calculate a sample estimate; no orders or payments are created.",
 )

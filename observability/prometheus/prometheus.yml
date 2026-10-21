@@ -3,7 +3,7 @@ global:
 rule_files:
   - /etc/prometheus/alerts.yml
 scrape_configs:
-  - job_name: robotshop
+  - job_name: roboshop
     static_configs:
       - targets:
           - ai-gateway:3000

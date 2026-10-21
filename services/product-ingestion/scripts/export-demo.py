@@ -16,6 +16,6 @@ os.environ['APP_ENV']='demo'
 products=json.loads((root/'products.json').read_text())
 with ExitStack() as stack:
     files={name:stack.enter_context((args.output/(name+'.jsonl')).open('w')) for name in ('demo_profiles','demo_purchases','reviews')}
-    counts=demo.seed(SimpleNamespace(name='robotshop_demo_global'),f'global-{args.customers}-v3',products,customers=args.customers,reviews=args.customers*3,writer=lambda name,row:files[name].write(json_util.dumps(row)+'\n'))
+    counts=demo.seed(SimpleNamespace(name='roboshop_demo_global'),f'global-{args.customers}-v3',products,customers=args.customers,reviews=args.customers*3,writer=lambda name,row:files[name].write(json_util.dumps(row)+'\n'))
 (args.output/'manifest.json').write_text(json.dumps({'synthetic':True,'authenticationDisabled':True,'countriesAndTerritories':200,'counts':counts,'datasetId':f'global-{args.customers}-v3'},indent=2)+'\n')
 print(json.dumps(counts))

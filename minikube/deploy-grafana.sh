@@ -20,7 +20,7 @@ done
 PROFILE="${PROFILE:-mk4}"
 [[ "$PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || fail 'Invalid PROFILE.'
 if [[ -z "${KUBE_CONTEXT:-}" ]]; then
-  state="${MINIKUBE_HOME:-$HOME/.minikube}/robotshop-installer/$PROFILE.profile"
+  state="${MINIKUBE_HOME:-$HOME/.minikube}/roboshop-installer/$PROFILE.profile"
   if [[ -f "$state" ]]; then PROFILE="$(cat "$state")"; fi
   KUBE_CONTEXT="$PROFILE"
 fi
@@ -35,8 +35,8 @@ k --request-timeout=15s get ingressclass traefik >/dev/null || fail 'Run bash mi
 k wait --for=condition=Ready clusterissuer/letsencrypt-prod --timeout=60s || fail 'Run minikube/deploy-cert-manager.sh first.'
 # Keep the site certificate in the same namespace as the Grafana Ingress.
 # Namespace changes do not migrate Helm releases or persistent data.
-legacy="$(k -n robotshop-ai get deployment/grafana ingress/grafana pvc/grafana --ignore-not-found -o name)"
-[[ -z "$legacy" ]] || fail 'Existing grafana resources found in robotshop-ai. Migrate data and credentials before switching namespaces; see minikube/monitoring/README.md. No resources were moved or deleted.'
+legacy="$(k -n roboshop-ai get deployment/grafana ingress/grafana pvc/grafana --ignore-not-found -o name)"
+[[ -z "$legacy" ]] || fail 'Existing grafana resources found in roboshop-ai. Migrate data and credentials before switching namespaces; see minikube/monitoring/README.md. No resources were moved or deleted.'
 k create namespace monitoring --dry-run=client -o yaml | k apply -f -
 python3 "$SCRIPT_DIR/monitoring/credentials.py" ensure --context "$KUBE_CONTEXT"
 # Both installers reconcile this SAME namespace/name; this is not a per-app certificate.

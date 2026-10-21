@@ -3,9 +3,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: shipping-service
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   selector:
     app: shipping-service
@@ -18,9 +18,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: shipping-service
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   replicas: 1
   selector:
@@ -30,7 +30,7 @@ spec:
     metadata:
       labels:
         app: shipping-service
-        app.kubernetes.io/part-of: robotshop-ai
+        app.kubernetes.io/part-of: roboshop-ai
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
@@ -38,28 +38,28 @@ spec:
       - name: ecr-pull
       containers:
       - name: shipping-service
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/robotshop-shipping:latest
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-shipping:latest
         imagePullPolicy: Always
         env:
         - name: SHIPPING_APP_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: SHIPPING_APP_PASSWORD
         - name: SHIPPING_DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: SHIPPING_DB_PASSWORD
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: REDIS_PASSWORD
         - name: RABBITMQ_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: RABBITMQ_PASSWORD
         - name: SHIPPING_DATABASE_URL
           value: postgresql://shipping_app:$(SHIPPING_APP_PASSWORD)@shipping-db:5432/shipping
@@ -82,7 +82,7 @@ spec:
         - name: RABBITMQ_HOST
           value: rabbitmq
         - name: RABBITMQ_USERNAME
-          value: robotshop
+          value: roboshop
         resources:
           requests:
             cpu: 50m
@@ -94,7 +94,7 @@ spec:
         - containerPort: 4106
         envFrom:
         - configMapRef:
-            name: robotshop-config
+            name: roboshop-config
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true

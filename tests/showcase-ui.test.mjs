@@ -33,7 +33,7 @@ test('shareable product page renders safe source-backed details and no showcase 
   assert.ok(!ui.calls.some(c => c.path.includes('payments')));
 });
 test('missing product shows recovery state and meaningful title', async t => {
-  const ui = await setup(t, true); assert.equal(ui.document.title, 'Product unavailable · RobotShop'); assert.match(ui.document.querySelector('#product-status').textContent, /not found/); assert.equal(ui.document.querySelector('#reviews-section').hidden, true);
+  const ui = await setup(t, true); assert.equal(ui.document.title, 'Product unavailable · RoboShop'); assert.match(ui.document.querySelector('#product-status').textContent, /not found/); assert.equal(ui.document.querySelector('#reviews-section').hidden, true);
 });
 test('synthetic reviews are separately displayed and individually labelled', async t => {
   const ui = await setup(t);

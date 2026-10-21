@@ -50,7 +50,7 @@ for tool in minikube kubectl; do
   destination="/usr/local/bin/$tool"
   if [[ "$source_binary" != "$destination" ]]; then
     [[ ! -L "$destination" ]] || fail "Refusing to overwrite symlink $destination."
-    if [[ ! -e "$destination" ]] || grep -aq '^# RobotShop managed CLI wrapper$' "$destination"; then
+    if [[ ! -e "$destination" ]] || grep -aq '^# RoboShop managed CLI wrapper$' "$destination"; then
       "${ADMIN[@]}" install -o root -g root -m 0755 "$source_binary" "$destination"
     fi
   fi

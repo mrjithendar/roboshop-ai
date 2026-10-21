@@ -6,14 +6,14 @@ import { once } from 'node:events';
 
 export async function startNginx({ port, gatewayPort, directory, tls }) {
   const image = process.env.NGINX_TEST_IMAGE;
-  const name = `robotshop-nginx-test-${port}`;
+  const name = `roboshop-nginx-test-${port}`;
   const probe = createServer(); probe.listen(0, '127.0.0.1'); await once(probe, 'listening');
   const frontendPort = probe.address().port; await new Promise(r => probe.close(r));
   const frontendName = `${name}-frontend`;
   const mime = ['/opt/homebrew/etc/nginx/mime.types', '/etc/nginx/mime.types'].find(existsSync);
   let frontend;
   if (image) {
-    frontend = spawn('docker', ['run', '--rm', '--name', frontendName, '--read-only', '--tmpfs', '/tmp', '--cap-drop', 'ALL', '-p', `127.0.0.1:${frontendPort}:8080`, process.env.FRONTEND_TEST_IMAGE || image.replace('robotshop-nginx', 'robotshop-frontend')], { stdio: ['ignore', 'pipe', 'pipe'] });
+    frontend = spawn('docker', ['run', '--rm', '--name', frontendName, '--read-only', '--tmpfs', '/tmp', '--cap-drop', 'ALL', '-p', `127.0.0.1:${frontendPort}:8080`, process.env.FRONTEND_TEST_IMAGE || image.replace('roboshop-nginx', 'roboshop-frontend')], { stdio: ['ignore', 'pipe', 'pipe'] });
   } else {
     const web = join(directory, 'web'); mkdirSync(web, { recursive: true });
     cpSync(resolve('services/frontend/dist'), web, { recursive: true });

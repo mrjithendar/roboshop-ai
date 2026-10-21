@@ -21,10 +21,10 @@ python services/product-ingestion/scripts/export-demo.py
 python scripts/seed-minikube-demo.py
 ```
 
-These scripts require `pymongo` in your Python environment and `kubectl` for the import. The importer uses `KUBECONFIG` when set; otherwise it prefers `~/.kube/vultr-minikube.json`. Set `KUBE_CONTEXT` to select another context. It uses namespace `robotshop-ai` and the isolated database `robotshop_demo_merchant20`.
+These scripts require `pymongo` in your Python environment and `kubectl` for the import. The importer uses `KUBECONFIG` when set; otherwise it prefers `~/.kube/vultr-minikube.json`. Set `KUBE_CONTEXT` to select another context. It uses namespace `roboshop-ai` and the isolated database `roboshop_demo_merchant20`.
 
 Creates 1,000 synthetic profiles, five for each of 200 countries/territories, and 3,000 generated reviews. Profiles use example.com addresses and have authentication disabled. They are not live customer accounts. Reviews appear in a separate labelled Demo reviews section and do not count toward customer ratings or verified purchases. The review-dataset selector is removed.
 
-The import refuses to mix another dataset, configures a read-only demo reader through the `DEMO_MONGODB_URL` key in Secret `robotshop-secrets`, and restarts the gateway. No real users, real reviews, orders, inventory or payments are overwritten. If MongoDB is not ready, resolve readiness before rerunning. A failed import is not evidence that all records were added; check the printed counts (1,000 profiles, 3,000 reviews, 200 countries).
+The import refuses to mix another dataset, configures a read-only demo reader through the `DEMO_MONGODB_URL` key in Secret `roboshop-secrets`, and restarts the gateway. No real users, real reviews, orders, inventory or payments are overwritten. If MongoDB is not ready, resolve readiness before rerunning. A failed import is not evidence that all records were added; check the printed counts (1,000 profiles, 3,000 reviews, 200 countries).
 
 The historical INR migration is no longer invoked by publication. It must not be used to convert manufacturer reference prices or merchant sale prices.

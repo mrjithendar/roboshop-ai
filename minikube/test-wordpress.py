@@ -16,11 +16,11 @@ spec.loader.exec_module(routes)
 
 class WordPressTests(unittest.TestCase):
     def test_root_conflict_and_grafana_coexistence(self):
-        def ingress(name, path, namespace='robotshop-ai'):
+        def ingress(name, path, namespace='roboshop-ai'):
             return {'metadata': {'name': name, 'namespace': namespace},
                     'spec': {'rules': [{'host': 'jithendar.com', 'http': {'paths': [{'path': path}]}}]}}
         self.assertEqual(list(routes.conflicts({'items': [ingress('grafana', '/grafana'), ingress('wordpress', '/', 'jithendar-com')]})), [])
-        self.assertEqual(list(routes.conflicts({'items': [ingress('robotshop', '/')]})), ['robotshop-ai/robotshop'])
+        self.assertEqual(list(routes.conflicts({'items': [ingress('roboshop', '/')]})), ['roboshop-ai/roboshop'])
 
     def test_chart_storage_tls_and_private_initial_install(self):
         def render(enabled):
@@ -51,7 +51,7 @@ class WordPressTests(unittest.TestCase):
                 tool.write_text('#!/bin/sh\n'
                     f'echo "{name} $*" >> "$TEST_LOG"\n'
                     'case "$*" in\n'
-                    ' *"-n robotshop-ai get pvc"*) if [ "$LEGACY_DATA" = yes ]; then echo persistentvolumeclaim/wordpress-mysql; fi;;\n'
+                    ' *"-n roboshop-ai get pvc"*) if [ "$LEGACY_DATA" = yes ]; then echo persistentvolumeclaim/wordpress-mysql; fi;;\n'
                     ' *"get ingress --all-namespaces"*) echo \'{"items":[]}\';;\n'
                     ' *"get secret wordpress-credentials"*) echo secret/wordpress-credentials;;\n'
                     ' *"exec -i deployment/wordpress"*) cat >/dev/null; exit "$BOOTSTRAP_EXIT";;\n'
@@ -77,9 +77,9 @@ class WordPressTests(unittest.TestCase):
         self.assertNotIn('apply ', calls)
 
     def test_old_namespace_root_route_is_not_ignored(self):
-        data = {'items': [{'metadata': {'namespace': 'robotshop-ai', 'name': 'wordpress'},
+        data = {'items': [{'metadata': {'namespace': 'roboshop-ai', 'name': 'wordpress'},
                           'spec': {'rules': [{'host': 'jithendar.com', 'http': {'paths': [{'path': '/'}]}}]}}]}
-        self.assertEqual(list(routes.conflicts(data)), ['robotshop-ai/wordpress'])
+        self.assertEqual(list(routes.conflicts(data)), ['roboshop-ai/wordpress'])
 
     def test_failed_bootstrap_never_publishes(self):
         result, calls = self.run_installer(1)

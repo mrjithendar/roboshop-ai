@@ -8,9 +8,9 @@ payment service reject live checkout for demo/synthetic/simulated inventory.
 
 ## Configure the demo
 
-Keep `PAYMENT_MODE: test` in `minikube/robotshop/config.yaml`. Use the same ConfigMap
+Keep `PAYMENT_MODE: test` in `minikube/roboshop/config.yaml`. Use the same ConfigMap
 for gateway and payment service so storefront stock availability reflects the
-selected mode. In the existing `robotshop-secrets` Secret, configure:
+selected mode. In the existing `roboshop-secrets` Secret, configure:
 
 - `RAZORPAY_TEST_KEY_ID` (starts with `rzp_test_`)
 - `RAZORPAY_TEST_KEY_SECRET`
@@ -66,7 +66,7 @@ Test reservations and `testSold` counters are isolated from live reservations an
 old shared counter, once, without releasing reservations. Unknown historical sales
 remain conservatively in the live counter. Live fulfilment events require explicit
 merchant provenance. Test/unclassified events use `order.test-paid` and the durable
-`robotshop.test.orders` audit queue, never the shipping queue. The Java shipping
+`roboshop.test.orders` audit queue, never the shipping queue. The Java shipping
 consumer independently rejects test/unclassified events even if misrouted. Monitor
 and manage retention of the test audit queue. Existing shipment-request rows from
 older deployments are not automatically deleted; audit those separately before

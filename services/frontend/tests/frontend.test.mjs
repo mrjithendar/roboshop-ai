@@ -31,7 +31,7 @@ function setup(t, handler = () => undefined, storefront = false, auth = false, r
       '/api/products': { products: [product] }, '/api/recommendations': { products: [product] },
       '/api/cart': cart, '/api/payments/config': { enabled: true, message: 'Test payments' },
       '/api/auth/me': { user: { id: 'customer', name: 'Customer', email: 'customer@example.com', role: 'customer' } },
-      '/api/settings': { storeName: 'RobotShop', announcement: 'Hello', supportEmail: '', checkoutEnabled: true },
+      '/api/settings': { storeName: 'RoboShop', announcement: 'Hello', supportEmail: '', checkoutEnabled: true },
       '/api/status': { assistantMode: 'catalogue-search' }, '/api/payments/current': { order: null },
       '/api/shipping/countries': { countries: [{ code: 'IN', name: 'India', cityCount: 10 }] },
     };
@@ -67,10 +67,10 @@ test('shipping listeners register before startup requests complete', async t => 
 
 test('expired payment reference recovers the current session without blocking the bag', async t => {
   const ui = setup(t, path => path.includes('/api/payments/status?') ? { ok: false, status: 404, json: async () => ({ error: 'Order not found.' }) } : undefined);
-  ui.w.localStorage.setItem('robotshop-payment-order', 'expired');
+  ui.w.localStorage.setItem('roboshop-payment-order', 'expired');
   await ui.boot();
   await waitFor(() => ui.calls.includes('/api/payments/current'));
-  assert.equal(ui.w.localStorage.getItem('robotshop-payment-order'), null);
+  assert.equal(ui.w.localStorage.getItem('roboshop-payment-order'), null);
   await waitFor(() => ui.$('#cart-items').children.length === 1);
   assert.match(ui.$('#order-result').textContent, /Order expired is unavailable/);
 });
@@ -90,10 +90,10 @@ test('failed checkout SDK load is retryable and never creates a payment order', 
 
 test('temporary payment status failures retain the order reference', async t => {
   const ui = setup(t, path => path.includes('/api/payments/status?') ? { ok: false, status: 503, json: async () => ({ error: 'Payment service unavailable.' }) } : undefined);
-  ui.w.localStorage.setItem('robotshop-payment-order', 'pending-order');
+  ui.w.localStorage.setItem('roboshop-payment-order', 'pending-order');
   await ui.boot();
   await waitFor(() => ui.$('#checkout-error-message').textContent.includes('Payment service unavailable'));
-  assert.equal(ui.w.localStorage.getItem('robotshop-payment-order'), 'pending-order');
+  assert.equal(ui.w.localStorage.getItem('roboshop-payment-order'), 'pending-order');
   assert.ok(!ui.calls.includes('/api/payments/current'));
 });
 
@@ -156,7 +156,7 @@ test('captured payment confirms the order on the checkout page', async t => {
   assert.equal(ui.$('#confirmation').hidden,false);
   assert.match(ui.$('#confirmation-details').textContent,/Payment confirmed/);
   assert.match(ui.$('#confirmation-details').textContent,/pay-123/);
-  assert.equal(ui.w.localStorage.getItem('robotshop-payment-order'),null);
+  assert.equal(ui.w.localStorage.getItem('roboshop-payment-order'),null);
   assert.equal(ui.$('#cart-dialog'),null);
 });
 
@@ -290,7 +290,7 @@ test('sandbox label, dismissal/resume, failure and capture preserve the original
   ui.$('#checkout').click();await waitFor(()=>options);
   assert.equal(options.key,'rzp_test_UI');
   await options.modal.ondismiss();
-  assert.equal(ui.w.localStorage.getItem('robotshop-payment-order'),'sandbox-order');
+  assert.equal(ui.w.localStorage.getItem('roboshop-payment-order'),'sandbox-order');
   assert.equal(captured,false);
   ui.$('#checkout').click();await waitFor(()=>opened===2);
   failed();assert.match(ui.$('#order-result').textContent,/not confirmed/);
@@ -298,7 +298,7 @@ test('sandbox label, dismissal/resume, failure and capture preserve the original
   assert.match(ui.$('#confirmation-details').textContent,/no real money charged; no delivery/);
   assert.match(ui.$('#checkout-environment').textContent,/^Test mode$/);
   assert.doesNotMatch(ui.$('#payment-notice').textContent,/Live/);
-  assert.equal(ui.w.localStorage.getItem('robotshop-payment-order'),null);
+  assert.equal(ui.w.localStorage.getItem('roboshop-payment-order'),null);
 });
 
 test('storefront separates reference and demo collections and keeps provenance labels',async t=>{
@@ -322,7 +322,7 @@ test('converted checkout shows server total and sends only signed quote to provi
     if(path==='/api/payments/quote') {assert.equal(JSON.parse(options.body).currency,'GBP');return reply({cart:converted,quoteToken:'server-signed-quote',expiresAt:Math.floor(Date.now()/1000)+300});}
     if(path==='/api/payments/orders') {requestBody=JSON.parse(options.body);return reply({order:{...converted,id:'fx-order',status:'payment_pending'},checkout:{currency:'GBP',amount:1300}});}
   });
-  ui.w.localStorage.setItem('robotshop.displayCurrency','GBP');
+  ui.w.localStorage.setItem('roboshop.displayCurrency','GBP');
   ui.w.Razorpay=class {constructor(options){providerOptions=options;}open(){}on(){}};
   await ui.boot();assert.match(ui.$('#cart-total').textContent,/13\.00/);assert.equal(ui.$('#display-currency').value,'GBP');
   ui.$('#checkout').click();await waitFor(()=>providerOptions);

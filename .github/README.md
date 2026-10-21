@@ -17,7 +17,7 @@ service workflow files and may therefore trigger one final round of builds.
 
 ## Deployment configuration
 
-The ECR publisher uses region `us-east-1` and repository prefix `robotshop`,
+The ECR publisher uses region `us-east-1` and repository prefix `roboshop`,
 matching the deployment manifests. No repository variables are required.
 
 When manually running Deploy-Minikube, select the kubeconfig context with

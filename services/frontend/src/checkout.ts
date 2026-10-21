@@ -51,7 +51,7 @@ async function quoteCheckout() {
 currencySelect?.addEventListener('change', async () => {
   if (pendingOrder || cartBusy) return;
   checkoutCurrency = currencySelect.value; currencyNoticePrefix = ''; checkoutKey = null;
-  try { localStorage.setItem('robotshop.displayCurrency', checkoutCurrency); } catch { /* Optional storage */ }
+  try { localStorage.setItem('roboshop.displayCurrency', checkoutCurrency); } catch { /* Optional storage */ }
   cartBusy = true; invalidateQuote(); renderCart();
   try { await quoteCheckout(); } catch (error) { $('#order-result').textContent = errorMessage(error); }
   finally { cartBusy = false; renderCart(); }
@@ -61,7 +61,7 @@ let shippingDirty = false, citySearchVersion = 0;
 let paymentConfig: PaymentConfig = { enabled: false };
 let confirmedMode: 'test' | 'live' | undefined;
 let pendingOrder: Order | null = null, checkoutScript: Promise<void> | null = null;
-function paymentReference(value?: string | null) { try { if (value === undefined) return localStorage.getItem('robotshop-payment-order'); if (value) localStorage.setItem('robotshop-payment-order', value); else localStorage.removeItem('robotshop-payment-order'); } catch {} }
+function paymentReference(value?: string | null) { try { if (value === undefined) return localStorage.getItem('roboshop-payment-order'); if (value) localStorage.setItem('roboshop-payment-order', value); else localStorage.removeItem('roboshop-payment-order'); } catch {} }
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = '', content?: string): HTMLElementTagNameMap[K] => { const node = document.createElement(tag); if (className) node.className = className; if (content !== undefined) node.textContent = content; return node; };
 async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(appPath(path), { ...options, headers: { 'content-type': 'application/json', ...options.headers }, signal: AbortSignal.timeout(25000) });
@@ -77,7 +77,7 @@ function image(p: Product, className = '') { const img = el('img', className); i
 const isCartPage = location.pathname.replace(/\/$/, '').endsWith('/cart');
 document.body.classList.toggle('cart-page', isCartPage);
 $('#checkout-title').textContent = isCartPage ? 'Your cart' : 'Checkout';
-document.title = isCartPage ? 'Your cart · RobotShop' : 'Checkout · RobotShop';
+document.title = isCartPage ? 'Your cart · RoboShop' : 'Checkout · RoboShop';
 $('#step-cart').setAttribute('aria-current', isCartPage ? 'step' : 'false');
 $('#step-checkout').setAttribute('aria-current', isCartPage ? 'false' : 'step');
 async function updateCart(sku: string, quantity: number) {
@@ -176,7 +176,7 @@ async function loadPaymentConfig() {
     if (paymentConfig.currencies?.length && currencySelect) {
       document.querySelector<HTMLElement>('#currency-control')!.hidden = false;
       document.querySelector('label[for="display-currency"]')!.textContent = 'Payment currency';
-      let preferred = ''; try { preferred = localStorage.getItem('robotshop.displayCurrency') || ''; } catch { /* Optional storage */ }
+      let preferred = ''; try { preferred = localStorage.getItem('roboshop.displayCurrency') || ''; } catch { /* Optional storage */ }
       checkoutCurrency = paymentConfig.currencies.includes(preferred) ? preferred : paymentConfig.currencies.includes(cart.currency || '') ? cart.currency! : paymentConfig.currencies[0];
       currencySelect.replaceChildren(...paymentConfig.currencies.map(code => new Option(code, code))); currencySelect.value = checkoutCurrency;
       const notice = document.querySelector('#currency-status');

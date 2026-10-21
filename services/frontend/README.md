@@ -64,7 +64,7 @@ Rebuild and deploy the frontend, gateway and NGINX changes together using the ro
 
 ## Independent service build
 
-Run `docker build -t robotshop-frontend:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+Run `docker build -t roboshop-frontend:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
 
 ## My account page
 
@@ -80,4 +80,4 @@ Edit `templates/header.html` and `templates/footer.html` to update navigation ac
 
 Sign-in and registration use `/login` and `/register` (under the configured storefront prefix). Both render `auth.html` with `auth.ts`; there is no account modal or action dropdown. Successful authentication returns to an allowlisted storefront route supplied by `returnTo`, defaulting to `/account`. Update and deploy both frontend and nginx when adding routes.
 
-Both login and registration require a Turnstile challenge when the authentication provider is `turnstile`. Actions are `login` and `register`, validated on the gateway before credential checks. The Minikube configuration enables this provider and reads the shared Turnstile keys from `robotshop-secrets`.
+Both login and registration require a Turnstile challenge when the authentication provider is `turnstile`. Actions are `login` and `register`, validated on the gateway before credential checks. The Minikube configuration enables this provider and reads the shared Turnstile keys from `roboshop-secrets`.

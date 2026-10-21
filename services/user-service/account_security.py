@@ -80,7 +80,7 @@ class AccountSecurity:
         result = self.auth.users.update_one({'_id': user['_id'], 'version': user['version'], 'mfa': {'$exists': False}}, {'$set': {'mfaPending': {'secret': encrypted, 'expiresAt': now() + timedelta(minutes=5)}}})
         if not result.modified_count:
             raise HttpError(409, 'Account changed. Sign in again.')
-        uri = 'otpauth://totp/' + quote('RobotShop:' + user['email'], safe='') + '?' + urlencode({'secret': secret, 'issuer': 'RobotShop', 'algorithm': 'SHA1', 'digits': 6, 'period': 30})
+        uri = 'otpauth://totp/' + quote('RoboShop:' + user['email'], safe='') + '?' + urlencode({'secret': secret, 'issuer': 'RoboShop', 'algorithm': 'SHA1', 'digits': 6, 'period': 30})
         return {'secret': secret, 'qr': segno.make(uri, micro=False).png_data_uri(scale=5), 'expiresIn': 300}
 
     def matched_counter(self, secret, code):
@@ -170,7 +170,7 @@ class AccountSecurity:
         host, sender = self.mail_config()
         implicit = os.getenv('SMTP_SECURITY', 'starttls') == 'tls'
         message = EmailMessage()
-        message['Subject'] = 'Your RobotShop password reset code'
+        message['Subject'] = 'Your RoboShop password reset code'
         message['From'], message['To'] = sender, recipient
         message.set_content(f'Your password reset code is: {code}\n\nIt expires in 5 minutes and can be used once. If you did not request this, ignore this email. Never share this code.\n')
         port = int(os.getenv('SMTP_PORT', '465' if implicit else '587'))

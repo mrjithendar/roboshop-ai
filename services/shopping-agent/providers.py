@@ -43,12 +43,12 @@ def invoke(config, system, prompt, revision=0, purpose="chat", *, budget=None, f
     attrs = {
         "gen_ai.system": config["provider"],
         "gen_ai.request.model": config["model"],
-        "robotshop.llm.revision": revision,
-        "robotshop.llm.purpose": purpose,
+        "roboshop.llm.revision": revision,
+        "roboshop.llm.purpose": purpose,
         "langfuse.observation.type": "generation",
     }
     if fallback_reason:
-        attrs["robotshop.llm.fallback_reason"] = fallback_reason
+        attrs["roboshop.llm.fallback_reason"] = fallback_reason
     with trace_span("llm " + purpose, attributes=attrs, service="shopping-agent"):
         start = time.monotonic()
         try:
@@ -87,10 +87,10 @@ def invoke(config, system, prompt, revision=0, purpose="chat", *, budget=None, f
             ):
                 raise ValueError("invalid response")
             attrs["gen_ai.response.model"] = config["model"]
-            attrs["robotshop.llm.outcome"] = "success"
+            attrs["roboshop.llm.outcome"] = "success"
             return result
         except ProviderError as error:
-            attrs["robotshop.llm.outcome"] = error.code
+            attrs["roboshop.llm.outcome"] = error.code
             raise
         except Exception as error:
             code = (
@@ -123,7 +123,7 @@ def invoke(config, system, prompt, revision=0, purpose="chat", *, budget=None, f
                 reason = "access-denied"
             elif isinstance(error, (ConnectionError, OSError)) and reason != "timeout":
                 reason = "connection"
-            attrs["robotshop.llm.outcome"] = reason
+            attrs["roboshop.llm.outcome"] = reason
             raise ProviderError(reason) from None
         finally:
-            attrs["robotshop.llm.latency_ms"] = round((time.monotonic() - start) * 1000)
+            attrs["roboshop.llm.latency_ms"] = round((time.monotonic() - start) * 1000)

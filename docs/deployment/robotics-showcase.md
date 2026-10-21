@@ -71,9 +71,9 @@ From the repository root, after installing the gateway Python requirements:
 # Read the isolated demo URI without putting credentials in shell history.
 read -s 'DEMO_MONGODB_URL?Demo-only MongoDB URI: '; echo
 export DEMO_MONGODB_URL
-APP_ENV=demo MONGODB_DATABASE=robotshop \
+APP_ENV=demo MONGODB_DATABASE=roboshop \
   .venv/bin/python services/product-ingestion/scripts/seed-demo.py seed \
-  --database robotshop_demo_showcase --dataset robotics-v1 \
+  --database roboshop_demo_showcase --dataset robotics-v1 \
   --random-seed 42 --reviews 30000 --purchase-fraction 0.6
 ```
 
@@ -87,14 +87,14 @@ Writes flush at 250 records per collection. Stable IDs, a configuration/catalogu
 
 Only small datasets run in automated tests. The full dataset has **not** been generated or benchmarked as part of implementation. Plan approximately **50–150 MB including indexes and storage overhead**, plus MongoDB's own journal/cache needs; measure on your target. Runtime depends on network and storage, typically a planning allowance of seconds to several minutes rather than a guarantee. The command prints measured elapsed seconds and collection counts after completion. Application memory is bounded by the 30-product catalogue and three 250-write batches.
 
-To browse synthetic reviews, run a **separate demo app** with gateway and ingestion connected to `robotshop_demo_showcase` using its own credentials. Keep live deployment credentials and its ledger volume separate. Set `MONGODB_DATABASE=robotshop_demo_showcase` in that app, not in the seeding process. Choose “Synthetic demo reviews” on a product page. The required synthetic-data notice is prominent, and every generated review is labelled. Demo profiles/purchases are for data exercises and are not exposed through real customer account histories.
+To browse synthetic reviews, run a **separate demo app** with gateway and ingestion connected to `roboshop_demo_showcase` using its own credentials. Keep live deployment credentials and its ledger volume separate. Set `MONGODB_DATABASE=roboshop_demo_showcase` in that app, not in the seeding process. Choose “Synthetic demo reviews” on a product page. The required synthetic-data notice is prominent, and every generated review is labelled. Demo profiles/purchases are for data exercises and are not exposed through real customer account histories.
 
 Cleanup removes only the selected synthetic dataset from its four collections. It never deletes genuine users, genuine reviews, live purchase history, or reference products:
 
 ```sh
-APP_ENV=demo MONGODB_DATABASE=robotshop \
+APP_ENV=demo MONGODB_DATABASE=roboshop \
   .venv/bin/python services/product-ingestion/scripts/seed-demo.py cleanup \
-  --database robotshop_demo_showcase --dataset robotics-v1
+  --database roboshop_demo_showcase --dataset robotics-v1
 unset DEMO_MONGODB_URL
 ```
 
@@ -123,11 +123,11 @@ registration:
   provider: turnstile
   siteKey: <public-widget-key>
   hostname: shop.example.com
-  secretName: robotshop-registration
+  secretName: roboshop-registration
   trustedProxyCidrs: <actual-nginx-pod-cidr>
 ```
 
-Create `robotshop-registration` using your existing secret manager, with a `TURNSTILE_SECRET_KEY` key. Helm references that key only in ai-gateway; it never renders its value. Existing NGINX CSP permits the official challenge script/frame/connect origin and preserves Razorpay rules. Test a real widget in staging with Cloudflare's [documented test keys](https://developers.cloudflare.com/turnstile/troubleshooting/testing/) before public rollout. Automated tests mock Siteverify; no external challenge verification or paid calls were made.
+Create `roboshop-registration` using your existing secret manager, with a `TURNSTILE_SECRET_KEY` key. Helm references that key only in ai-gateway; it never renders its value. Existing NGINX CSP permits the official challenge script/frame/connect origin and preserves Razorpay rules. Test a real widget in staging with Cloudflare's [documented test keys](https://developers.cloudflare.com/turnstile/troubleshooting/testing/) before public rollout. Automated tests mock Siteverify; no external challenge verification or paid calls were made.
 
 ## Verification
 

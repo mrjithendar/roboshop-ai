@@ -404,9 +404,9 @@ class ProviderTests(unittest.TestCase):
                 BEDROCK, "private instructions", "personal customer prompt", 12, "test"
             )
         attrs = captured[0][1]["attributes"]
-        self.assertEqual(attrs["robotshop.llm.revision"], 12)
-        self.assertEqual(attrs["robotshop.llm.purpose"], "test")
-        self.assertEqual(attrs["robotshop.llm.outcome"], "success")
+        self.assertEqual(attrs["roboshop.llm.revision"], 12)
+        self.assertEqual(attrs["roboshop.llm.purpose"], "test")
+        self.assertEqual(attrs["roboshop.llm.outcome"], "success")
         self.assertNotIn("personal", json.dumps(attrs))
         self.assertNotIn("private answer", json.dumps(attrs))
 

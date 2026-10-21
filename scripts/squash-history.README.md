@@ -1,6 +1,6 @@
 # Squash GitHub history without changing files
 
-`squash-history.py` documents and automates the procedure used for RobotShop.
+`squash-history.py` documents and automates the procedure used for RoboShop.
 It uses Python's standard library plus `git` and the authenticated GitHub CLI `gh`.
 The account must have permission to edit repository rulesets and push the branch.
 
@@ -19,7 +19,7 @@ python3 scripts/squash-history.py --apply
 ```
 
 Defaults are `mrjithendar/roboshop-ai`, `master`, and the baseline title
-“Establish RobotShop AI platform baseline”. Override with `--repo`, `--branch`,
+“Establish RoboShop AI platform baseline”. Override with `--repo`, `--branch`,
 and `--message`. Local and remote tips must match. The script refuses to squash
 an already single-commit branch. It does not commit uncommitted files for you.
 

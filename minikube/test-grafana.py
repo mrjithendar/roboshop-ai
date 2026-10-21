@@ -23,14 +23,14 @@ class GrafanaTests(unittest.TestCase):
                 'case "$*" in\n'
                 ' *"get secret monitoring-auth"*) echo \'{"type":"kubernetes.io/basic-auth","data":{"username":"YWRtaW4=","password":"dGVzdA=="}}\';;\n'
                 ' *"exec -i deployment/grafana"*) cat >/dev/null;;\n'
-                ' *"-n robotshop-ai get deployment/grafana"*) if [ "${LEGACY_DATA:-no}" = yes ]; then echo pvc/grafana; fi;;\n'
+                ' *"-n roboshop-ai get deployment/grafana"*) if [ "${LEGACY_DATA:-no}" = yes ]; then echo pvc/grafana; fi;;\n'
                 ' *"get ingressclass traefik"*) exit "${INGRESS_EXIT:-0}";;\n'
                 ' *"wait --for=condition=Ready certificate/jithendar-com"*) exit "${CERT_EXIT:-0}";;\n'
                 ' *"apply -f -"*) cat >/dev/null;;\n'
                 'esac\n'
             )
             tool.chmod(0o755)
-        state = self.root / '.minikube/robotshop-installer'
+        state = self.root / '.minikube/roboshop-installer'
         state.mkdir(parents=True)
         (state / 'mk4.profile').write_text('mk4-selected\n')
         self.env = {k: v for k, v in os.environ.items() if k not in (

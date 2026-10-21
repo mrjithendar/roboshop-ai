@@ -29,7 +29,7 @@ class HttpError(Exception):
 ctx = contextvars.ContextVar("request_context", default=None)
 exports = ThreadPoolExecutor(max_workers=2)
 export_slots = threading.BoundedSemaphore(32)
-SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", "robotshop")
+SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", "roboshop")
 
 
 def configure_telemetry(service):
@@ -330,7 +330,7 @@ def telemetry(service, context, start, route, status):
                     ]
                 },
                 "scopeSpans": [
-                    {"scope": {"name": "robotshop.python"}, "spans": [span]}
+                    {"scope": {"name": "roboshop.python"}, "spans": [span]}
                 ],
             }
         ]
@@ -397,14 +397,14 @@ def application(service, handler):
                 result = {"status": "ok", "service": service}
             elif req.path == "/metrics" and req.method == "GET":
                 with lock:
-                    rows = ["# TYPE robotshop_http_requests_total counter"] + [
-                        f'robotshop_http_requests_total{{service="{service}",route="{r}",status="{s}"}} {n}'
+                    rows = ["# TYPE roboshop_http_requests_total counter"] + [
+                        f'roboshop_http_requests_total{{service="{service}",route="{r}",status="{s}"}} {n}'
                         for (r, s), n in counts.items()
                     ]
                     rows += [
-                        "# TYPE robotshop_http_duration_seconds summary",
-                        f'robotshop_http_duration_seconds_sum{{service="{service}"}} {duration[0]}',
-                        f'robotshop_http_duration_seconds_count{{service="{service}"}} {sum(counts.values())}',
+                        "# TYPE roboshop_http_duration_seconds summary",
+                        f'roboshop_http_duration_seconds_sum{{service="{service}"}} {duration[0]}',
+                        f'roboshop_http_duration_seconds_count{{service="{service}"}} {sum(counts.values())}',
                     ]
                 result = ("\n".join(rows) + "\n").encode()
                 headers = [("Content-Type", "text/plain; version=0.0.4")]

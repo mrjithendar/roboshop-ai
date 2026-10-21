@@ -48,7 +48,7 @@ class CartService:
             raise HttpError(401, 'Service authentication required.')
         match = re.fullmatch(r'/internal/carts/([a-f0-9-]{36})(/clear|/clear-checked)?', req.path)
         if not match: raise HttpError(404, 'Not found.')
-        key = 'robotshop:cart:' + match[1]
+        key = 'roboshop:cart:' + match[1]
         if req.method == 'POST' and match[2]:
             data=req.body()
             order = data.get('orderId', '')
@@ -58,7 +58,7 @@ class CartService:
                 revision=data.get('expectedRevision',-1);empty=data.get('requireEmpty',False)
                 if type(revision) is not int or revision < -1 or type(empty) is not bool or (revision < 0 and not empty):
                     raise HttpError(400,'Expected checkout revision or an empty cart is required.')
-            result=self.redis.eval(CLEAR, 2, key, 'robotshop:cart-cleared:' + order, TTL, revision, '1' if empty else '0')
+            result=self.redis.eval(CLEAR, 2, key, 'roboshop:cart-cleared:' + order, TTL, revision, '1' if empty else '0')
             if result == -2: raise HttpError(409,'Cart revision differs from the paid checkout. Reconciliation required; cart preserved.')
             return {'ok': True}
         if req.method == 'POST' and not match[2]:

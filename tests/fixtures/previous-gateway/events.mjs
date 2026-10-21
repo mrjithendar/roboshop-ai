@@ -1,13 +1,13 @@
 import amqp from 'amqplib';
 
-export const queue = 'robotshop.shipping.orders';
+export const queue = 'roboshop.shipping.orders';
 export async function topology(channel) {
-  await channel.assertExchange('robotshop.orders', 'direct', { durable: true });
-  await channel.assertExchange('robotshop.orders.dlx', 'direct', { durable: true });
-  await channel.assertQueue(queue, { durable: true, arguments: { 'x-queue-type': 'quorum', 'x-dead-letter-exchange': 'robotshop.orders.dlx', 'x-dead-letter-routing-key': 'shipping.failed' } });
-  await channel.assertQueue('robotshop.shipping.failed', { durable: true, arguments: { 'x-queue-type': 'quorum' } });
-  await channel.bindQueue(queue, 'robotshop.orders', 'order.paid');
-  await channel.bindQueue('robotshop.shipping.failed', 'robotshop.orders.dlx', 'shipping.failed');
+  await channel.assertExchange('roboshop.orders', 'direct', { durable: true });
+  await channel.assertExchange('roboshop.orders.dlx', 'direct', { durable: true });
+  await channel.assertQueue(queue, { durable: true, arguments: { 'x-queue-type': 'quorum', 'x-dead-letter-exchange': 'roboshop.orders.dlx', 'x-dead-letter-routing-key': 'shipping.failed' } });
+  await channel.assertQueue('roboshop.shipping.failed', { durable: true, arguments: { 'x-queue-type': 'quorum' } });
+  await channel.bindQueue(queue, 'roboshop.orders', 'order.paid');
+  await channel.bindQueue('roboshop.shipping.failed', 'roboshop.orders.dlx', 'shipping.failed');
 }
 export class OrderPublisher {
   constructor(store, url, connect = amqp.connect) { this.store = store; this.url = url; this.connect = connect; this.busy = false; this.stopped = false; }
@@ -39,7 +39,7 @@ export class OrderPublisher {
           const closed = () => finish(new Error('Channel closed'));
           function finish(error) { clearTimeout(timer); channel.removeListener('return', returned); channel.removeListener('close', closed); error ? reject(error) : resolve(); }
           channel.once('return', returned); channel.once('close', closed);
-          try { channel.publish('robotshop.orders', 'order.paid', Buffer.from(JSON.stringify(event)), { persistent: true, mandatory: true, messageId: event.eventId, type: event.type, contentType: 'application/json' }, finish); }
+          try { channel.publish('roboshop.orders', 'order.paid', Buffer.from(JSON.stringify(event)), { persistent: true, mandatory: true, messageId: event.eventId, type: event.type, contentType: 'application/json' }, finish); }
           catch (error) { finish(error); }
         });
         this.store.eventPublished(event.eventId);

@@ -38,7 +38,7 @@ run "empty_repository_list" {
 run "reject_duplicate_repositories" {
   command = plan
   variables {
-    ecr_repository_names = ["robotshop-api", "robotshop-api"]
+    ecr_repository_names = ["roboshop-api", "roboshop-api"]
   }
   expect_failures = [var.ecr_repository_names]
 }
@@ -46,7 +46,7 @@ run "reject_duplicate_repositories" {
 run "reject_invalid_repository_name" {
   command = plan
   variables {
-    ecr_repository_names = ["RobotShop API"]
+    ecr_repository_names = ["RoboShop API"]
   }
   expect_failures = [var.ecr_repository_names]
 }

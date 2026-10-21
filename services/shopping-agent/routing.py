@@ -50,7 +50,7 @@ def route(config, system, prompt, revision=0, purpose="chat", *, deadline=None,
     primary = {k: v for k, v in config.items() if k not in ("fallback", "automaticFailover")}
     enabled = config.get("automaticFailover") is True
     key = (revision, json.dumps(config, sort_keys=True))
-    attrs = {"robotshop.llm.revision": revision, "robotshop.llm.failover_enabled": enabled}
+    attrs = {"roboshop.llm.revision": revision, "roboshop.llm.failover_enabled": enabled}
     with trace_span("llm routing", attributes=attrs, service="shopping-agent"):
         def attempt(target, reason=None):
             if deadline - time.monotonic() <= 0:
@@ -90,7 +90,7 @@ def route(config, system, prompt, revision=0, purpose="chat", *, deadline=None,
                 if enabled:
                     breaker.finish(key, False)
                 return result
-        attrs["robotshop.llm.fallback_reason"] = reason
+        attrs["roboshop.llm.fallback_reason"] = reason
         # Exactly one fallback. Errors propagate; never retry either provider.
         result = attempt(config["fallback"], reason)
         return {**result, "fallbackReason": reason}

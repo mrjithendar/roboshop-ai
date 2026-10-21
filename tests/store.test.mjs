@@ -7,7 +7,7 @@ import { Store } from './fixtures/previous-gateway/store.mjs';
 const products = [{ sku: 'TEST', name: 'Test', price: 12.34, instock: 2 }];
 
 test('cart isolation, persistence, authoritative totals and idempotent checkout', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'robotshop-store-'));
+  const dir = mkdtempSync(join(tmpdir(), 'roboshop-store-'));
   try {
     const store = new Store(dir), alice = store.session(), bob = store.session();
     assert.throws(() => store.update(alice, 'TEST', -1, products));
@@ -46,7 +46,7 @@ test('cart isolation, persistence, authoritative totals and idempotent checkout'
 
 
 test('account carts adopt a guest bag once and cannot be accessed with another account or a cart cookie alone', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'robotshop-account-store-'));
+  const dir = mkdtempSync(join(tmpdir(), 'roboshop-account-store-'));
   try {
     const store = new Store(dir), guest = store.session();
     store.update(guest, 'TEST', 1, products);

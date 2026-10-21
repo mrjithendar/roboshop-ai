@@ -3,9 +3,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: payment-service
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   selector:
     app: payment-service
@@ -18,9 +18,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: payment-service
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   replicas: 1
   selector:
@@ -30,7 +30,7 @@ spec:
     metadata:
       labels:
         app: payment-service
-        app.kubernetes.io/part-of: robotshop-ai
+        app.kubernetes.io/part-of: roboshop-ai
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
@@ -38,66 +38,66 @@ spec:
       - name: ecr-pull
       containers:
       - name: payment-service
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/robotshop-payment-service:latest
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-payment-service:latest
         imagePullPolicy: Always
         env:
         - name: PAYMENT_SERVICE_TOKEN
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: PAYMENT_SERVICE_TOKEN
         - name: RAZORPAY_KEY_ID
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: RAZORPAY_KEY_ID
               optional: true
         - name: RAZORPAY_KEY_SECRET
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: RAZORPAY_KEY_SECRET
               optional: true
         - name: RAZORPAY_WEBHOOK_SECRET
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: RAZORPAY_WEBHOOK_SECRET
               optional: true
         - name: RAZORPAY_TEST_KEY_ID
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: RAZORPAY_TEST_KEY_ID
               optional: true
         - name: RAZORPAY_TEST_KEY_SECRET
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: RAZORPAY_TEST_KEY_SECRET
               optional: true
         - name: RAZORPAY_TEST_WEBHOOK_SECRET
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: RAZORPAY_TEST_WEBHOOK_SECRET
               optional: true
         - name: RAZORPAY_LIVE_KEY_ID
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: RAZORPAY_LIVE_KEY_ID
               optional: true
         - name: RAZORPAY_LIVE_KEY_SECRET
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: RAZORPAY_LIVE_KEY_SECRET
               optional: true
         - name: RAZORPAY_LIVE_WEBHOOK_SECRET
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: RAZORPAY_LIVE_WEBHOOK_SECRET
               optional: true
         resources:
@@ -111,7 +111,7 @@ spec:
         - containerPort: 4105
         envFrom:
         - configMapRef:
-            name: robotshop-config
+            name: roboshop-config
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true

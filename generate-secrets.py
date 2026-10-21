@@ -19,7 +19,7 @@ def main():
     parser.add_argument('--output', default='.env', help='New file only; existing files are never overwritten')
     args = parser.parse_args()
     values = {key: secrets.token_hex(32) for key in PASSWORD_KEYS}
-    values['RABBITMQ_USERNAME'] = 'robotshop'
+    values['RABBITMQ_USERNAME'] = 'roboshop'
     content = (json.dumps(values, indent=2) + '\n' if args.format == 'json'
                else '# Generated credentials: keep private; do not commit.\n' +
                ''.join(f'{key}={value}\n' for key, value in values.items()))

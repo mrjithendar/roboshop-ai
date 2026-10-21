@@ -1,14 +1,14 @@
 # K3s on four Vultr instances
 
 This creates **one server and three workers**, all in the same Vultr region and
-VPC. It does not create Vultr instances, migrate Minikube data, or deploy RobotShop.
+VPC. It does not create Vultr instances, migrate Minikube data, or deploy RoboShop.
 The control plane is not highly available: if the server fails, cluster management
 is unavailable. Three servers with embedded etcd would be a separate HA topology.
 
 Use fresh Ubuntu/Debian or CentOS Stream/Rocky Linux systemd hosts. Root is supported;
 for other users use sudo. The scripts use native K3s/containerd, not Docker.
 Allow at least 2 vCPU/2 GB for the server and 1 vCPU/1 GB per worker for K3s alone;
-RobotShop databases and monitoring need additional capacity. Prefer 4 GB or more
+RoboShop databases and monitoring need additional capacity. Prefer 4 GB or more
 per worker for this application and size from actual resource requests.
 
 ## 1. Prepare VPC and firewall

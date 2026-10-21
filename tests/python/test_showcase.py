@@ -344,7 +344,7 @@ class ShowcaseTests(unittest.TestCase):
                 self.assertTrue(row['email'].endswith('@example.com'))
             if name=='reviews': self.assertIn('SYNTHETIC DEMO REVIEW',row['body'])
         with patch.dict(os.environ,{'APP_ENV':'demo','DEPLOYMENT_ENVIRONMENT':'test','NODE_ENV':'test','ENVIRONMENT':'test'}):
-            result=seed_demo.seed(SimpleNamespace(name='robotshop_demo_global'),'global-test',PRODUCTS,writer=write)
+            result=seed_demo.seed(SimpleNamespace(name='roboshop_demo_global'),'global-test',PRODUCTS,writer=write)
         self.assertEqual(result['demo_profiles'],1000)
         self.assertEqual(result['reviews'],3000)
         self.assertEqual(len(countries),200)
@@ -493,12 +493,12 @@ class ShowcaseTests(unittest.TestCase):
 class SeedTests(unittest.TestCase):
     def setUp(self):
         self.client = MongoClient(os.environ["MONGODB_URL"], tz_aware=True)
-        self.db = self.client["robotshop_demo_test_" + uuid.uuid4().hex[:16]]
+        self.db = self.client["roboshop_demo_test_" + uuid.uuid4().hex[:16]]
         self.env = patch.dict(
             os.environ,
             {
                 "APP_ENV": "demo",
-                "MONGODB_DATABASE": "robotshop",
+                "MONGODB_DATABASE": "roboshop",
                 "NODE_ENV": "test",
                 "DEPLOYMENT_ENVIRONMENT": "test",
                 "ENVIRONMENT": "test",
@@ -573,7 +573,7 @@ class SeedTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 seed_demo.cleanup(self.db, "small")
         with self.assertRaises(ValueError):
-            seed_demo.guard("robotshop")
+            seed_demo.guard("roboshop")
         with self.assertRaises(ValueError):
             seed_demo.seed(self.db, "small", PRODUCTS, customers=10)
         seed_demo.seed(
@@ -587,7 +587,7 @@ class SeedTests(unittest.TestCase):
 class DemoReviewIsolationTests(unittest.TestCase):
     def test_demo_database_is_separate_and_rating_filter_is_validated(self):
         client=mongomock.MongoClient(tz_aware=True)
-        db=client.real; demo=client.robotshop_demo_global
+        db=client.real; demo=client.roboshop_demo_global
         row=dict(_id='demo:1',productId='P',authorId='demo:user',rating=5,title='Synthetic example',body='SYNTHETIC DEMO REVIEW',synthetic=True,status='published',createdAt=now(),updatedAt=now())
         demo.reviews.insert_one(row)
         reviews=Reviews(db,demo)

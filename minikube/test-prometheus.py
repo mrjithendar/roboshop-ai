@@ -71,7 +71,7 @@ class PrometheusTests(unittest.TestCase):
                 p.write_text('#!/bin/sh\n'
                     f'echo "{name} $*" >> "$TEST_LOG"\n'
                     'case "$*" in\n'
-                    ' *"-n robotshop-ai get deployment/prometheus"*) if [ "$LEGACY_DATA" = yes ]; then echo pvc/prometheus-data; fi;;\n'
+                    ' *"-n roboshop-ai get deployment/prometheus"*) if [ "$LEGACY_DATA" = yes ]; then echo pvc/prometheus-data; fi;;\n'
                     ' *"upgrade --install prometheus"*) exit "$HELM_EXIT";;\n'
                     ' *"rollout status deployment/prometheus"*) exit "$ROLLOUT_EXIT";;\n'
                     ' *"get crd middlewares.traefik.io"*) exit "$CRD_EXIT";;\n'

@@ -1,15 +1,15 @@
 groups:
-  - name: robotshop
+  - name: roboshop
     rules:
-      - alert: RobotShopServiceDown
-        expr: up{job="robotshop"} == 0
+      - alert: RoboShopServiceDown
+        expr: up{job="roboshop"} == 0
         for: 1m
         labels:
           severity: warning
         annotations:
-          summary: 'RobotShop service {{ $labels.instance }} is not responding'
-      - alert: RobotShopHighErrorRatio
-        expr: sum by (service) (rate(robotshop_http_requests_total{status=~"5.."}[5m])) / sum by (service) (rate(robotshop_http_requests_total[5m])) > 0.1
+          summary: 'RoboShop service {{ $labels.instance }} is not responding'
+      - alert: RoboShopHighErrorRatio
+        expr: sum by (service) (rate(roboshop_http_requests_total{status=~"5.."}[5m])) / sum by (service) (rate(roboshop_http_requests_total[5m])) > 0.1
         for: 2m
         labels:
           severity: warning

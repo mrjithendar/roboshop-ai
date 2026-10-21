@@ -68,7 +68,7 @@ def main():
     parser.add_argument("--apply", action="store_true", help="Actually back up, rewrite, push and restore protection")
     parser.add_argument("--repo", default="mrjithendar/roboshop-ai", help="GitHub owner/repository")
     parser.add_argument("--branch", default="master", help="Existing branch to squash")
-    parser.add_argument("--message", default="Establish RobotShop AI platform baseline", help="New baseline commit title")
+    parser.add_argument("--message", default="Establish RoboShop AI platform baseline", help="New baseline commit title")
     args = parser.parse_args()
     require(re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", args.repo), "Invalid repository name")
     require(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]*", args.branch), "Invalid branch name")

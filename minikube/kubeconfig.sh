@@ -20,7 +20,7 @@ if ! ssh "$VULTR_HOST" bash -s -- "$BASE_PROFILE" > "$TEMP_CONFIG_DIR/source.jso
 set -euo pipefail
 export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
 profile="$1"
-state="${MINIKUBE_HOME:-$HOME/.minikube}/robotshop-installer/$profile.profile"
+state="${MINIKUBE_HOME:-$HOME/.minikube}/roboshop-installer/$profile.profile"
 if [[ -f "$state" ]]; then profile="$(cat "$state")"; fi
 [[ "$profile" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || { echo 'Invalid saved Minikube profile.' >&2; exit 1; }
 [[ -f "${MINIKUBE_HOME:-$HOME/.minikube}/profiles/$profile/config.json" ]] || {

@@ -170,7 +170,7 @@ class CommerceTests(unittest.TestCase):
 
     def test_paid_clear_retry_does_not_resurrect_expired_cart(self):
         id=self.cart('alice');o,_=self.paid(id)
-        self.repo.redis.delete('robotshop:cart:'+id)
+        self.repo.redis.delete('roboshop:cart:'+id)
         self.store.sync_cart(id)
         self.assertEqual(self.store.cart(id,[P])['items'],[])
         self.store.update(id,P['sku'],1,[P])

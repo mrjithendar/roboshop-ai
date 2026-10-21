@@ -21,17 +21,17 @@ GENERATED = datetime(2026, 10, 19, tzinfo=timezone.utc)
 
 def guard(name):
     if os.getenv("APP_ENV") != "demo" or not re.fullmatch(
-        r"robotshop_demo_[a-z0-9_]{1,40}", name
+        r"roboshop_demo_[a-z0-9_]{1,40}", name
     ):
         raise ValueError(
-            "Refusing: APP_ENV=demo and an isolated robotshop_demo_<name> database are required."
+            "Refusing: APP_ENV=demo and an isolated roboshop_demo_<name> database are required."
         )
     if any(
         os.getenv(k, "").lower() in ("prod", "production", "live")
         for k in ("NODE_ENV", "DEPLOYMENT_ENVIRONMENT", "ENVIRONMENT")
     ):
         raise ValueError("Refusing to seed or clean production.")
-    if name == os.getenv("MONGODB_DATABASE", "robotshop"):
+    if name == os.getenv("MONGODB_DATABASE", "roboshop"):
         raise ValueError(
             "Demo target must differ from the configured application database. Use a separate seeding process."
         )

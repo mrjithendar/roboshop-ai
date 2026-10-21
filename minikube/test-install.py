@@ -116,7 +116,7 @@ case "$*" in start*) exit "${TEST_START_EXIT:-0}";; esac''',
     def test_failed_export_does_not_select_new_profile(self):
         result = self.run_script(PUBLIC_HOST='jithendar.com', NO_PUBLIC_PORT='1')
         self.assertNotEqual(result.returncode, 0)
-        self.assertFalse((self.root / '.minikube/robotshop-installer/mk4.profile').exists())
+        self.assertFalse((self.root / '.minikube/roboshop-installer/mk4.profile').exists())
 
     def test_invalid_public_address(self):
         self.assertNotEqual(self.run_script(PUBLIC_IP='999.2.3.4').returncode, 0)
@@ -130,7 +130,7 @@ case "$*" in start*) exit "${TEST_START_EXIT:-0}";; esac''',
     def test_failure_keeps_exit_code_without_mapping(self):
         result = self.run_script(TEST_START_EXIT='42')
         self.assertEqual(result.returncode, 42)
-        self.assertFalse((self.root / '.minikube/robotshop-installer/mk4.profile').exists())
+        self.assertFalse((self.root / '.minikube/roboshop-installer/mk4.profile').exists())
 
 if __name__ == '__main__':
     unittest.main()

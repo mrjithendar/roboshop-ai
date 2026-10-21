@@ -3,7 +3,7 @@ kubectl -n monitoring get secret prometheus-auth \
 
 # Minikube on Linux and macOS
 
-The scripts support amd64 and arm64. Minikube runs as the current effective user: root stays root, and a regular user stays that user. No `robotshop` account or forwarding wrappers are created.
+The scripts support amd64 and arm64. Minikube runs as the current effective user: root stays root, and a regular user stays that user. No `roboshop` account or forwarding wrappers are created.
 
 ## Create your Vultr cluster — start here
 
@@ -30,7 +30,7 @@ kubectl get nodes
 kubectl get pods -A
 PROFILE=mk4 bash minikube/install.sh status
 
-SELECTED_PROFILE=$(cat "$HOME/.minikube/robotshop-installer/mk4.profile")
+SELECTED_PROFILE=$(cat "$HOME/.minikube/roboshop-installer/mk4.profile")
 docker port "$SELECTED_PROFILE" 8443/tcp
 ```
 
@@ -80,7 +80,7 @@ PUBLIC_HOST=jithendar.com PROFILE=mk4 NODES=2 CPUS=2 MEMORY=2560 \
   bash minikube/setup.sh
 ```
 
-After a reset, recheck the API port/firewall and rerun the helper on your Mac to obtain new credentials. Creating Minikube does not deploy the RobotShop website or issue a Let's Encrypt website certificate.
+After a reset, recheck the API port/firewall and rerun the helper on your Mac to obtain new credentials. Creating Minikube does not deploy the RoboShop website or issue a Let's Encrypt website certificate.
 
 ## What CentOS setup installs
 
@@ -89,8 +89,8 @@ This installs Docker Engine from its official RPM repository, enables Docker, in
 The base profile is `mk4`. The quick-start commands explicitly select two nodes and 2 CPUs per node; use explicit resource settings to keep starts consistent. Memory is sized from Docker physical RAM, reserving 1024 MiB for host overhead, rounded down to 256 MiB increments and capped at 2560 MiB per node. Swap is excluded. Hosts unable to fit at least 2048 MiB per node are rejected before cluster changes. Explicit requests exceeding the budget are also rejected. For a named development cluster:
 
 ```sh
-PROFILE=robotshop NODES=1 CPUS=2 MEMORY=2048 bash minikube/setup.sh
-PROFILE=robotshop bash minikube/install.sh stop
+PROFILE=roboshop NODES=1 CPUS=2 MEMORY=2048 bash minikube/setup.sh
+PROFILE=roboshop bash minikube/install.sh stop
 ```
 
 Use `--install-only` to install without starting. `--start` remains accepted. Docker package installation is noninteractive and uses the repository's package signature checks. Conflicting runtime packages are reported instead of removed. SELinux and firewalld settings are preserved. Docker group membership grants root-level host access.
@@ -114,9 +114,9 @@ Optional overrides: `PROFILE`, `NODES`, `CPUS`, `MEMORY` (MiB/node), and standal
 
 Linux root startup automatically supplies Minikube's `--force` flag because the Docker driver normally rejects root. This flag bypasses some Minikube checks; use this setup for development clusters. Cluster state and kubeconfig belong to the current user (`/root/.minikube` and `/root/.kube` for root), with no switching to another account.
 
-CentOS setup replaces only the old RobotShop forwarding wrappers with actual binaries. Unrelated symlinks are not overwritten. Existing `robotshop` accounts and clusters are not deleted or migrated. A cluster created by that user will not appear in root's profile list; if its Docker container name conflicts, choose a distinct `PROFILE` for root.
+CentOS setup replaces only the old RoboShop forwarding wrappers with actual binaries. Unrelated symlinks are not overwritten. Existing `roboshop` accounts and clusters are not deleted or migrated. A cluster created by that user will not appear in root's profile list; if its Docker container name conflicts, choose a distinct `PROFILE` for root.
 
-Setup does not deploy RobotShop or guarantee the full stack fits a small host. Stop preserves cluster data.
+Setup does not deploy RoboShop or guarantee the full stack fits a small host. Stop preserves cluster data.
 
 References: [Docker on CentOS](https://docs.docker.com/engine/install/centos/), [Minikube installation](https://minikube.sigs.k8s.io/docs/start/), [start flags](https://minikube.sigs.k8s.io/docs/commands/start/).
 
@@ -138,7 +138,7 @@ Run `bash minikube/setup.sh` or, once dependencies are installed, `bash minikube
 
 The installer inspects the selected profile's saved driver, node count, CPU and memory settings, including nodes that never successfully joined. If settings differ, it stops and preserves that profile, then starts a deterministic replacement such as `mk4-fit-1n-2560m-2c`. Existing workloads and data stay in the stopped cluster; they are **not migrated**. No nodes, clusters, or volumes are deleted. This operation interrupts workloads in the old profile.
 
-After successful readiness checks, the selected profile is saved under `~/.minikube/robotshop-installer/`. Later `start`, `status`, `stop`, and `diagnose` calls with the same base `PROFILE` follow that selection. Use `kubectl get nodes` after startup, or the exact context printed by the installer. A failed replacement leaves the old profile preserved and stopped, with no new selection saved.
+After successful readiness checks, the selected profile is saved under `~/.minikube/roboshop-installer/`. Later `start`, `status`, `stop`, and `diagnose` calls with the same base `PROFILE` follow that selection. Use `kubectl get nodes` after startup, or the exact context printed by the installer. A failed replacement leaves the old profile preserved and stopped, with no new selection saved.
 
 The capacity check uses total Docker RAM, not current free RAM; unrelated running workloads can still cause memory pressure. It is not a guarantee the full application fits. Tests: `python3 minikube/test-install.py` (mocked commands, no cluster required).
 
@@ -167,7 +167,7 @@ PUBLIC_HOST=jithendar.com NODES=1 bash minikube/setup.sh
 
 `bash minikube/reset.sh` is equivalent to the reset action. It immediately runs `minikube delete --all --purge`: all current-user Minikube clusters and their cluster-local data are deleted, along with cached downloads, profiles, installer selection/network metadata and matching direct-access exports. There is no interactive confirmation. It retains installed tools, unrelated Docker resources, and unrelated Kubernetes contexts. It requires the standard non-symlink `~/.minikube` directory.
 
-Reset does not remove clusters owned by another account, copies of kubeconfig on your laptop, or Vultr firewall rules. If you previously created clusters as `robotshop`, those belong to that account. After starting again, copy the newly exported kubeconfig and use the newly printed API port. Do not reuse the old laptop kubeconfig.
+Reset does not remove clusters owned by another account, copies of kubeconfig on your laptop, or Vultr firewall rules. If you previously created clusters as `roboshop`, those belong to that account. After starting again, copy the newly exported kubeconfig and use the newly printed API port. Do not reuse the old laptop kubeconfig.
 
 ### Domain endpoint: jithendar.com
 
@@ -238,7 +238,7 @@ Prometheus runs in `monitoring` at **https://jithendar.com/prometheus/** with pe
 
 Grafana and Prometheus both install in the **`monitoring`** namespace and share its TLS certificate. See [monitoring namespace notes](monitoring/README.md) before changing an existing installation.
 
-To **delete all Grafana/Prometheus data and login credentials, then reinstall**, use `bash minikube/reset-monitoring.sh`. This deletes only their resources in `monitoring` and legacy `robotshop-ai`, then reinstalls in `monitoring`; namespaces, TLS and other workloads are preserved. See [monitoring reset details](monitoring/README.md#delete-all-monitoring-data-and-reinstall).
+To **delete all Grafana/Prometheus data and login credentials, then reinstall**, use `bash minikube/reset-monitoring.sh`. This deletes only their resources in `monitoring` and legacy `roboshop-ai`, then reinstalls in `monitoring`; namespaces, TLS and other workloads are preserved. See [monitoring reset details](monitoring/README.md#delete-all-monitoring-data-and-reinstall).
 
 ## Kubernetes CPU/memory metrics
 
@@ -250,11 +250,11 @@ kubectl top pods -A
 
 Installs Metrics Server in `kube-system` for `kubectl top` and resource-based HPA metrics. See [Metrics Server setup](metrics-server/README.md).
 
-## Deploy RobotShop application services
+## Deploy RoboShop application services
 
-From the repository root, use `bash deploy-minikube.sh` to apply each service's `*-minikube.yaml` in dependency order. See [application deployment](robotshop/README.md) for building/loading images, remote deployment and configuration.
+From the repository root, use `bash deploy-minikube.sh` to apply each service's `*-minikube.yaml` in dependency order. See [application deployment](roboshop/README.md) for building/loading images, remote deployment and configuration.
 
-RobotShop is served at **https://jithendar.com/roboshop/** using the root `deploy-minikube.sh` script. See [HTTPS routing and rebuild instructions](robotshop/README.md#https-access-at-jithendarcomroboshop). WordPress continues serving the domain root.
+RoboShop is served at **https://jithendar.com/roboshop/** using the root `deploy-minikube.sh` script. See [HTTPS routing and rebuild instructions](roboshop/README.md#https-access-at-jithendarcomroboshop). WordPress continues serving the domain root.
 
 ### Use the downloaded kubeconfig without exporting it
 
@@ -262,7 +262,7 @@ From the repository root:
 
 ```bash
 bash kubectl.sh get nodes
-bash kubectl.sh -n robotshop-ai get pods
+bash kubectl.sh -n roboshop-ai get pods
 bash deploy-minikube.sh
 ```
 

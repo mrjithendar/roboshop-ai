@@ -24,7 +24,7 @@ class TraefikTests(unittest.TestCase):
         p = bindir / 'uname'
         p.write_text('#!/bin/sh\necho Darwin\n')
         p.chmod(0o755)
-        state = self.home / '.minikube/robotshop-installer'
+        state = self.home / '.minikube/roboshop-installer'
         state.mkdir(parents=True)
         (state / 'mk4.profile').write_text('mk4-selected\n')
         self.env = {k: v for k, v in os.environ.items() if k not in (

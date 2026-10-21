@@ -15,7 +15,7 @@ done
 PROFILE="${PROFILE:-mk4}"
 [[ "$PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || fail 'Invalid PROFILE.'
 if [[ -z "${KUBE_CONTEXT:-}" ]]; then
-  state="${MINIKUBE_HOME:-$HOME/.minikube}/robotshop-installer/$PROFILE.profile"
+  state="${MINIKUBE_HOME:-$HOME/.minikube}/roboshop-installer/$PROFILE.profile"
   if [[ -f "$state" ]]; then PROFILE="$(cat "$state")"; fi
   KUBE_CONTEXT="$PROFILE"
 fi
@@ -27,8 +27,8 @@ k --request-timeout=15s get namespace kube-system >/dev/null
 k get ingressclass traefik >/dev/null || fail 'Run deploy-traefik.sh and expose-ingress.sh first.'
 k wait --for=condition=Ready clusterissuer/letsencrypt-prod --timeout=60s || fail 'Run deploy-cert-manager.sh first.'
 # Namespace changes do not move PVCs or database contents. Never hide an old site.
-legacy="$(k -n robotshop-ai get pvc wordpress-mysql wordpress-wordpress --ignore-not-found -o name)"
-[[ -z "$legacy" ]] || fail 'Existing WordPress data found in robotshop-ai. Back up and migrate the database, site files and credentials to jithendar before deploying. See minikube/wordpress/README.md. No data was changed.'
+legacy="$(k -n roboshop-ai get pvc wordpress-mysql wordpress-wordpress --ignore-not-found -o name)"
+[[ -z "$legacy" ]] || fail 'Existing WordPress data found in roboshop-ai. Back up and migrate the database, site files and credentials to jithendar before deploying. See minikube/wordpress/README.md. No data was changed.'
 k get ingress --all-namespaces -o json | python3 "$SCRIPT_DIR/wordpress/check-routes.py"
 k create namespace jithendar --dry-run=client -o yaml | k apply -f -
 existing="$(k -n jithendar get secret wordpress-credentials --ignore-not-found -o name)"

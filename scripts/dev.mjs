@@ -53,4 +53,4 @@ for (const name of names) {
   child.on('exit', code => { if (!stopping) stop(code || 1); });
 }
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => stop());
-console.log(`RobotShop starting at ${process.env.PUBLIC_ORIGIN || `http://localhost:${process.env.PORT || 3000}`}. Ctrl+C stops all services.`);
+console.log(`RoboShop starting at ${process.env.PUBLIC_ORIGIN || `http://localhost:${process.env.PORT || 3000}`}. Ctrl+C stops all services.`);

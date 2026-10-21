@@ -28,37 +28,37 @@ class OrderPublisher:
                     params.heartbeat = 10
                     connection = pika.BlockingConnection(params)
                     channel = connection.channel()
-                    for exchange in ("robotshop.orders", "robotshop.orders.dlx"):
+                    for exchange in ("roboshop.orders", "roboshop.orders.dlx"):
                         channel.exchange_declare(
                             exchange=exchange, exchange_type="direct", durable=True
                         )
                     channel.queue_declare(
-                        queue="robotshop.shipping.orders",
+                        queue="roboshop.shipping.orders",
                         durable=True,
                         arguments={
                             "x-queue-type": "quorum",
-                            "x-dead-letter-exchange": "robotshop.orders.dlx",
+                            "x-dead-letter-exchange": "roboshop.orders.dlx",
                             "x-dead-letter-routing-key": "shipping.failed",
                         },
                     )
                     channel.queue_declare(
-                        queue="robotshop.shipping.failed",
+                        queue="roboshop.shipping.failed",
                         durable=True,
                         arguments={"x-queue-type": "quorum"},
                     )
                     channel.queue_bind(
-                        queue="robotshop.shipping.orders",
-                        exchange="robotshop.orders",
+                        queue="roboshop.shipping.orders",
+                        exchange="roboshop.orders",
                         routing_key="order.paid",
                     )
                     channel.queue_bind(
-                        queue="robotshop.shipping.failed",
-                        exchange="robotshop.orders.dlx",
+                        queue="roboshop.shipping.failed",
+                        exchange="roboshop.orders.dlx",
                         routing_key="shipping.failed",
                     )
-                    channel.queue_declare(queue="robotshop.test.orders", durable=True,
+                    channel.queue_declare(queue="roboshop.test.orders", durable=True,
                                           arguments={"x-queue-type": "quorum"})
-                    channel.queue_bind(queue="robotshop.test.orders", exchange="robotshop.orders",
+                    channel.queue_bind(queue="roboshop.test.orders", exchange="roboshop.orders",
                                        routing_key="order.test-paid")
                     channel.confirm_delivery()
                     for event in events:
@@ -76,18 +76,18 @@ class OrderPublisher:
                         timer.start()
                         try:
                             with trace_span(
-                                "robotshop.orders publish",
+                                "roboshop.orders publish",
                                 kind=4,
                                 parent=event.get("traceparent"),
                                 service="ai-gateway",
                                 attributes={
                                     "messaging.system": "rabbitmq",
-                                    "messaging.destination.name": "robotshop.orders",
+                                    "messaging.destination.name": "roboshop.orders",
                                     "messaging.operation.type": "send",
                                 },
                             ):
                                 channel.basic_publish(
-                                    exchange="robotshop.orders",
+                                    exchange="roboshop.orders",
                                     routing_key=event["type"],
                                     body=json.dumps(event).encode(),
                                     mandatory=True,

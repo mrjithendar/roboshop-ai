@@ -25,4 +25,4 @@ service identity or arbitrary cookie/header override is provided.
 
 ## Independent service build
 
-Run `docker build -t robotshop-mcp-server:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+Run `docker build -t roboshop-mcp-server:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).

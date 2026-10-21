@@ -34,8 +34,8 @@ Configure MongoDB first. For native development, set the following values in the
 ignored `.env` (or inject them securely into the process environment):
 
 ```dotenv
-MONGODB_URL=mongodb://YOUR-APP-USER:URL-ENCODED-PASSWORD@127.0.0.1:27017/robotshop?authSource=robotshop
-MONGODB_DATABASE=robotshop
+MONGODB_URL=mongodb://YOUR-APP-USER:URL-ENCODED-PASSWORD@127.0.0.1:27017/roboshop?authSource=roboshop
+MONGODB_DATABASE=roboshop
 SUPERADMIN_EMAIL=YOUR-EMAIL
 SUPERADMIN_NAME=Super Admin
 SUPERADMIN_PASSWORD=YOUR-LONG-UNIQUE-PASSWORD

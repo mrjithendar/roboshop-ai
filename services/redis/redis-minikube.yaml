@@ -2,9 +2,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: redis
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   selector:
     app: redis
@@ -17,9 +17,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis
-  namespace: robotshop-ai
+  namespace: roboshop-ai
   labels:
-    app.kubernetes.io/part-of: robotshop-ai
+    app.kubernetes.io/part-of: roboshop-ai
 spec:
   replicas: 1
   selector:
@@ -29,7 +29,7 @@ spec:
     metadata:
       labels:
         app: redis
-        app.kubernetes.io/part-of: robotshop-ai
+        app.kubernetes.io/part-of: roboshop-ai
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
@@ -41,7 +41,7 @@ spec:
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: robotshop-secrets
+              name: roboshop-secrets
               key: REDIS_PASSWORD
         resources:
           requests:
@@ -81,7 +81,7 @@ spec:
       volumes:
       - name: config
         configMap:
-          name: robotshop-config
+          name: roboshop-config
           items:
           - key: redis.conf
             path: redis.conf

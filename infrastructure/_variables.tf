@@ -49,27 +49,27 @@ variable "tags" {
 }
 
 variable "ecr_repository_names" {
-  description = "Private ECR repository names. Defaults match the service image names and CI's robotshop prefix. Use [] to manage no repositories."
+  description = "Private ECR repository names. Defaults match the service image names and CI's roboshop prefix. Use [] to manage no repositories."
   type        = list(string)
   nullable    = false
   default = [
-    "robotshop-ai-gateway",
-    "robotshop-cart-service",
-    "robotshop-catalogue-service",
-    "robotshop-finder",
-    "robotshop-currency-service",
-    "robotshop-fastapi-demo",
-    "robotshop-frontend",
-    "robotshop-mcp-server",
-    "robotshop-nginx",
-    "robotshop-payment-service",
-    "robotshop-product-ingestion",
-    "robotshop-recommendation-service",
-    "robotshop-shipping",
-    "robotshop-shopping-agent",
-    # "robotshop-smtp-server",
-    "robotshop-user-service",
-    "robotshop-sre-copilot",
+    "roboshop-ai-gateway",
+    "roboshop-cart-service",
+    "roboshop-catalogue-service",
+    "roboshop-finder",
+    "roboshop-currency-service",
+    "roboshop-fastapi-demo",
+    "roboshop-frontend",
+    "roboshop-mcp-server",
+    "roboshop-nginx",
+    "roboshop-payment-service",
+    "roboshop-product-ingestion",
+    "roboshop-recommendation-service",
+    "roboshop-shipping",
+    "roboshop-shopping-agent",
+    # "roboshop-smtp-server",
+    "roboshop-user-service",
+    "roboshop-sre-copilot",
   ]
 
   validation {

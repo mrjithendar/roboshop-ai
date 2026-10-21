@@ -20,7 +20,7 @@ class ResetMonitoringTests(unittest.TestCase):
                     f'echo "{name} $*" >> "$TEST_LOG"\n'
                     'case "$*" in\n'
                     ' *"get namespace kube-system"*) exit "${API_EXIT:-0}";;\n'
-                    ' *"-n robotshop-ai get"*) if [ "${LEGACY:-no}" = yes ]; then echo pvc/grafana; fi;;\n'
+                    ' *"-n roboshop-ai get"*) if [ "${LEGACY:-no}" = yes ]; then echo pvc/grafana; fi;;\n'
                     ' *"list --namespace "*) if [ "${HAS_RELEASES:-yes}" = yes ]; then echo found; fi;;\n'
                     ' *"uninstall "*) exit "${UNINSTALL_EXIT:-0}";;\n'
                     ' *"delete pvc/"*) exit "${PVC_EXIT:-0}";;\n'
@@ -43,7 +43,7 @@ class ResetMonitoringTests(unittest.TestCase):
         mutations = [line for line in calls.splitlines() if ' delete ' in line or ' uninstall ' in line]
         self.assertTrue(mutations)
         for line in mutations:
-            self.assertTrue('monitoring' in line or 'robotshop-ai' in line)
+            self.assertTrue('monitoring' in line or 'roboshop-ai' in line)
             self.assertNotIn('jithendar', line)
             self.assertNotIn('delete namespace', line)
             self.assertNotIn('certificate', line)
@@ -62,7 +62,7 @@ class ResetMonitoringTests(unittest.TestCase):
     def test_legacy_resources_are_removed_before_reinstall(self):
         result, calls = self.run_reset(LEGACY='yes')
         self.assertEqual(result.returncode, 0, result.stderr)
-        for namespace in ('robotshop-ai', 'monitoring'):
+        for namespace in ('roboshop-ai', 'monitoring'):
             self.assertIn(f'uninstall grafana --namespace {namespace}', calls)
             self.assertIn(f'uninstall prometheus --namespace {namespace}', calls)
             self.assertIn(f'-n {namespace} delete pvc/grafana pvc/prometheus-data', calls)

@@ -54,9 +54,9 @@ class Gateway:
         demo_db = None
         if os.getenv('DEMO_MONGODB_URL'):
             from pymongo import MongoClient
-            name = os.getenv('DEMO_REVIEWS_DATABASE', 'robotshop_demo_merchant20')
-            if not re.fullmatch(r'robotshop_demo_[a-z0-9_]{1,40}', name):
-                raise RuntimeError('Demo reviews require an isolated robotshop_demo_ database.')
+            name = os.getenv('DEMO_REVIEWS_DATABASE', 'roboshop_demo_merchant20')
+            if not re.fullmatch(r'roboshop_demo_[a-z0-9_]{1,40}', name):
+                raise RuntimeError('Demo reviews require an isolated roboshop_demo_ database.')
             self.demo_client = MongoClient(os.environ['DEMO_MONGODB_URL'], serverSelectionTimeoutMS=3000, socketTimeoutMS=5000)
             demo_db = self.demo_client[name]
         self.reviews = Reviews(db, demo_db, verification=self.auth.verified_purchase)
@@ -217,7 +217,7 @@ class Gateway:
         return {"order": public_order(order), "checkout": {
             "key": order.get("paymentKeyId") or config["keyId"], "order_id": order["razorpayOrderId"],
             "amount": order.get("amount", cents(order["total"])), "currency": order["currency"],
-            "name": "RobotShop", "description": ("Demo checkout — no real money charged · " if order["paymentMode"] == "test" else "Live purchase · ") + order["id"],
+            "name": "RoboShop", "description": ("Demo checkout — no real money charged · " if order["paymentMode"] == "test" else "Live purchase · ") + order["id"],
         }, "mode": order["paymentMode"]}, 201, []
 
     def handle(self, req):

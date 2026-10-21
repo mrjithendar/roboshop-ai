@@ -41,14 +41,14 @@ Add actual cluster-reachable application/exporter endpoints under `extraScrapeCo
 
 ```yaml
 extraScrapeConfigs:
-  - job_name: robotshop
+  - job_name: roboshop
     metrics_path: /metrics
     static_configs:
       - targets:
-          - ai-gateway.robotshop-ai.svc.cluster.local:3000
+          - ai-gateway.roboshop-ai.svc.cluster.local:3000
 ```
 
-After rerunning `deploy-grafana.sh`, Grafana has a provisioned default **Prometheus** data source (`robotshop-prometheus`). Use Explore and query `up`. Provisioning does not remove other manually added data sources; resolve any pre-existing conflicting default/name before provisioning. No dashboards are imported automatically.
+After rerunning `deploy-grafana.sh`, Grafana has a provisioned default **Prometheus** data source (`roboshop-prometheus`). Use Explore and query `up`. Provisioning does not remove other manually added data sources; resolve any pre-existing conflicting default/name before provisioning. No dashboards are imported automatically.
 
 ## Troubleshooting
 
@@ -67,7 +67,7 @@ An unauthenticated HTTP **401** is expected from the public endpoint. A **404** 
 
 Reference: [Prometheus URL flags](https://prometheus.io/docs/prometheus/latest/command-line/prometheus/), [Traefik BasicAuth](https://doc.traefik.io/traefik/v3.4/middlewares/http/basicauth/).
 
-For existing installations in `robotshop-ai`, see [namespace migration notes](../README.md). The installers do not move data between namespaces.
+For existing installations in `roboshop-ai`, see [namespace migration notes](../README.md). The installers do not move data between namespaces.
 
 **TLS ownership:** Grafana and Prometheus share the single `monitoring/jithendar-com` Certificate and `monitoring/jithendar-com-tls` Secret. Both installers reapply the same manifest; they do not request per-application certificates. See [certificate ownership and verification](../README.md#certificate-ownership).
 
@@ -79,7 +79,7 @@ While an existing install is waiting, inspect it from another terminal (use its 
 
 ```bash
 kubectl --context=mk4 -n monitoring get pods,pvc
-kubectl --context=mk4 -n monitoring describe pods -l app=robotshop-prometheus
+kubectl --context=mk4 -n monitoring describe pods -l app=roboshop-prometheus
 kubectl --context=mk4 -n monitoring describe pvc prometheus-data
 kubectl --context=mk4 -n monitoring logs deployment/prometheus --tail=80
 ```
@@ -102,7 +102,7 @@ If the init container itself fails:
 
 ```bash
 kubectl -n monitoring logs deployment/prometheus -c data-permissions
-kubectl -n monitoring describe pods -l app=robotshop-prometheus
+kubectl -n monitoring describe pods -l app=roboshop-prometheus
 ```
 
 Only this init container runs as root, with a read-only root filesystem and the capabilities needed to repair the data mount. The main server remains non-root. On storage that already supplies correct permissions, or a cluster policy that disallows root init containers, set `volumePermissions.enabled: false` and arrange ownership through your storage administrator/driver instead. Recursive permission repair may take time on a large existing volume.

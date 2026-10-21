@@ -8,7 +8,7 @@ root cause. This service is explicitly a read-only runbook assistant, not LLM di
 
 ## Independent service build
 
-Run `docker build -t robotshop-sre-copilot:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+Run `docker build -t roboshop-sre-copilot:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
 
 
 `/health` and `/ready` check only the diagnostic process. `/api/ops` returns HTTP
