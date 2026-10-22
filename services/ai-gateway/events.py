@@ -60,6 +60,16 @@ class OrderPublisher:
                                           arguments={"x-queue-type": "quorum"})
                     channel.queue_bind(queue="roboshop.test.orders", exchange="roboshop.orders",
                                        routing_key="order.test-paid")
+                    # Independent analytics subscription: reserve it before publishing
+                    # even when the Kafka bridge has not started yet.
+                    channel.queue_declare(queue="roboshop.kafka.failed", durable=True,
+                                          arguments={"x-queue-type": "quorum"})
+                    channel.queue_declare(queue="roboshop.kafka.orders", durable=True, arguments={
+                        "x-queue-type": "quorum", "x-delivery-limit": -1,
+                        "x-dead-letter-exchange": "",
+                        "x-dead-letter-routing-key": "roboshop.kafka.failed"})
+                    for key in ("order.paid", "order.test-paid"):
+                        channel.queue_bind(queue="roboshop.kafka.orders", exchange="roboshop.orders", routing_key=key)
                     channel.confirm_delivery()
                     for event in events:
                         lease = event.get("_leaseToken")

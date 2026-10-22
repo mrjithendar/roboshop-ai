@@ -94,3 +94,5 @@ unsupported regions default to INR. Manual choices persist across pages in this 
 Catalogue source currencies remain unchanged. Cart/checkout use the same selection;
 currencies not enabled by the payment service are disabled, and reserved orders keep
 their original currency. Conversion failures show original amounts rather than relabeling them.
+
+The header uses a directly accessible native currency dropdown beside account and cart controls, with no popup button. Narrow screens place these actions on their own row.

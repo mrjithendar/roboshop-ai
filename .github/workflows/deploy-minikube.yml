@@ -75,6 +75,11 @@ jobs:
             kubectl --context="$KUBE_CONTEXT" apply -f "services/$service/$service-minikube.yaml"
           done
 
+      - name: Deploy Kafka order-event bridge
+        run: |
+          kubectl --context="$KUBE_CONTEXT" apply -f services/kafka-bridge/kafka-bridge-minikube.yaml
+          kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart statefulset/kafka
+
       - name: Deploy product-ingestion from ECR
         run: |
           kubectl --context="$KUBE_CONTEXT" apply -f "services/product-ingestion/product-ingestion-minikube.yaml"

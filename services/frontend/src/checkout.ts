@@ -1,4 +1,4 @@
-import { appPath, productImage, loadCurrencyRates, storefrontCurrencies, setupCurrencyButton, syncCurrencyButton } from './paths.js';
+import { appPath, productImage, loadCurrencyRates, storefrontCurrencies } from './paths.js';
 import { currentUser, initAccount, showLogin } from './account.js';
 export {};
 
@@ -115,10 +115,9 @@ async function updateCart(sku: string, quantity: number) {
 function renderCart() {
   const displayCart = pendingOrder?.items ? pendingOrder : checkoutQuote?.cart || cartPreview || cart;
   if (currencySelect) currencySelect.disabled = cartBusy || Boolean(pendingOrder) || !paymentConfig.currencies?.length;
-  syncCurrencyButton();
   if (pendingOrder && currencySelect && pendingOrder.currency) {
     if (![...currencySelect.options].some(o => o.value === pendingOrder!.currency)) currencySelect.add(new Option(pendingOrder.currency, pendingOrder.currency));
-    currencySelect.value = pendingOrder.currency; syncCurrencyButton();
+    currencySelect.value = pendingOrder.currency;
     const notice = document.querySelector('#currency-status');
     if (notice) notice.textContent = `Payment in ${pendingOrder.currency} is already reserved. Its currency and total cannot change.`;
   }
@@ -202,7 +201,6 @@ async function loadPaymentConfig() {
     if (paymentConfig.currencies) paymentConfig.currencies = paymentConfig.currencies.filter(code => storefrontCurrencies.includes(code)); $('#payment-notice').textContent = paymentConfig.message || '';
     if (paymentConfig.currencies?.length && currencySelect) {
       document.querySelector<HTMLElement>('#currency-control')!.hidden = false;
-      setupCurrencyButton();
       let preferred = ''; try { preferred = localStorage.getItem('roboshop.displayCurrency') || ''; } catch { /* Optional storage */ }
       if (!storefrontCurrencies.includes(preferred)) preferred = '';
       const savedPreference = preferred;

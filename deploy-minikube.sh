@@ -11,7 +11,7 @@ account="${AWS_ACCOUNT_ID:-881026659929}"
 tag="${IMAGE_TAG:-local}"
 registry="$account.dkr.ecr.$region.amazonaws.com"
 services=(ai-gateway cart-service catalogue-service currency-service fastapi-demo
-  finder frontend mcp-server nginx payment-service product-ingestion
+  finder frontend kafka-bridge mcp-server nginx payment-service product-ingestion
   recommendation-service shipping-service shopping-agent sre-copilot user-service)
 if (( $# )); then services=("$@"); fi
 if [[ "${1:-}" == --help ]]; then
@@ -26,7 +26,7 @@ done
 [[ "$tag" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$ ]] || { echo 'Invalid IMAGE_TAG.' >&2; exit 1; }
 for service in "${services[@]}"; do
   case "$service" in
-    ai-gateway|cart-service|catalogue-service|currency-service|fastapi-demo|finder|frontend|mcp-server|nginx|payment-service|product-ingestion|recommendation-service|shipping-service|shopping-agent|sre-copilot|user-service) ;;
+    ai-gateway|cart-service|catalogue-service|currency-service|fastapi-demo|finder|frontend|kafka-bridge|mcp-server|nginx|payment-service|product-ingestion|recommendation-service|shipping-service|shopping-agent|sre-copilot|user-service) ;;
     *) echo "Unknown application service: $service" >&2; exit 1 ;;
   esac
   test -f "services/$service/$service-minikube.yaml"
@@ -59,6 +59,8 @@ images:
 YAML
   echo "Deploying $service -> $registry/roboshop-$suffix:$tag (context $context)"
   "${kube[@]}" apply -k "$tmpdir"
-  "${kube[@]}" rollout restart "deployment/$service"
+  workload="deployment/$service"
+  [[ "$service" != kafka-bridge ]] || workload=statefulset/kafka
+  "${kube[@]}" rollout restart "$workload"
 done
 echo 'Applied manifests and requested restarts. Readiness has not been checked.'

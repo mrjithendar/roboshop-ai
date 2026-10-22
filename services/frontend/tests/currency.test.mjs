@@ -5,7 +5,7 @@ import { JSDOM } from 'jsdom';
 const source = (await readFile(new URL('../dist/paths.js', import.meta.url), 'utf8')).replace(/^export /gm, '').replaceAll('import.meta.url', JSON.stringify('https://shop.example/roboshop/paths.js'));
 const asOf = new Date().toISOString().slice(0, 10);
 async function setup(t, { saved, fail=false, language='en-IN' }={}) {
-  const dom = new JSDOM('<div id="currency-control" hidden><button id="currency-button" aria-expanded="false">Currency</button><div id="currency-menu" hidden></div><select id="display-currency" disabled></select><p id="currency-status"></p></div><p id="price"></p>', {url:'https://shop.example/roboshop/', runScripts:'outside-only'});
+  const dom = new JSDOM('<div id="currency-control" hidden><label for="display-currency">Currency</label><select id="display-currency" disabled></select><p id="currency-status"></p></div><p id="price"></p>', {url:'https://shop.example/roboshop/', runScripts:'outside-only'});
   t.after(() => dom.window.close()); const w = dom.window;
   Object.defineProperty(w.navigator, 'language', {value:language});
   if(saved) w.localStorage.setItem('roboshop.displayCurrency', saved);
@@ -26,12 +26,13 @@ test('only five currencies, saved preference persists and obsolete choices use t
  assert.match(text(),/80.00/);assert.equal(w.localStorage.getItem('roboshop.displayCurrency'),'GBP');
  const saved=await setup(t,{saved:'GBP'});assert.match(saved.text(),/80.00/);
 });
-test('header button opens currency choices and closes on selection or Escape',async t=>{
- const {w}=await setup(t);const button=w.document.querySelector('#currency-button'),menu=w.document.querySelector('#currency-menu');
- assert.equal(button.textContent,'INR');button.click();assert.equal(menu.hidden,false);assert.equal(button.getAttribute('aria-expanded'),'true');
- const select=w.document.querySelector('select');select.value='USD';select.dispatchEvent(new w.Event('change'));
- assert.equal(button.textContent,'USD');assert.equal(menu.hidden,true);
- button.click();button.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert.equal(menu.hidden,true);
+test('direct header dropdown changes currency without a button or popup',async t=>{
+ const {w}=await setup(t);const select=w.document.querySelector('#display-currency');
+ assert.equal(w.document.querySelector('#currency-button'),null);
+ assert.equal(w.document.querySelector('#currency-menu'),null);
+ assert.equal(select.disabled,false);assert.equal(select.value,'INR');
+ select.value='USD';select.dispatchEvent(new w.Event('change'));
+ assert.equal(w.localStorage.getItem('roboshop.displayCurrency'),'USD');
 });
 test('service failure keeps original prices and visible notice',async t=>{
  const {w,text}=await setup(t,{fail:true});assert.match(text(),/120\.00/);assert.doesNotMatch(text(),/≈/);assert.match(w.document.querySelector('#currency-status').textContent,/unavailable/);

@@ -59,40 +59,12 @@ export async function loadCurrencyRates(): Promise<Fx> {
 
 export const storefrontCurrencies = ['INR', 'USD', 'GBP', 'SGD', 'AUD'];
 
-// Shared header UI; checkout still owns its authoritative quote and reservation.
-export function syncCurrencyButton(): void {
-  const select = document.querySelector<HTMLSelectElement>('#display-currency');
-  const button = document.querySelector<HTMLButtonElement>('#currency-button');
-  if (!select || !button) return;
-  button.textContent = select.value || 'Currency';
-  button.disabled = select.disabled;
-  button.setAttribute('aria-label', `Change currency (${select.value || 'loading'})`);
-}
-export function setupCurrencyButton(): void {
-  const control = document.querySelector<HTMLElement>('#currency-control');
-  const button = document.querySelector<HTMLButtonElement>('#currency-button');
-  const menu = document.querySelector<HTMLElement>('#currency-menu');
-  const select = document.querySelector<HTMLSelectElement>('#display-currency');
-  if (!control || !button || !menu || !select || button.dataset.bound) return;
-  button.dataset.bound = 'true';
-  const close = () => { menu.hidden = true; button.setAttribute('aria-expanded', 'false'); };
-  button.addEventListener('click', () => {
-    menu.hidden = !menu.hidden; button.setAttribute('aria-expanded', String(!menu.hidden));
-    if (!menu.hidden) select.focus();
-  });
-  select.addEventListener('change', () => { syncCurrencyButton(); close(); button.focus(); });
-  document.addEventListener('click', event => { if (!control.contains(event.target as Node)) close(); });
-  control.addEventListener('keydown', event => { if (event.key === 'Escape') { close(); button.focus(); } });
-  syncCurrencyButton();
-}
-
 export async function initCurrency(): Promise<void> {
   const control = document.querySelector<HTMLElement>('#currency-control');
   const select = document.querySelector<HTMLSelectElement>('#display-currency');
   const status = document.querySelector<HTMLElement>('#currency-status');
   if (!control || !select || !status) return;
   control.hidden = false;
-  setupCurrencyButton();
   try { fx = await loadCurrencyRates(); } catch { fx = null; }
   let saved = ''; try { saved = localStorage.getItem('roboshop.displayCurrency') || ''; } catch { /* Storage optional */ }
   displayCurrency = storefrontCurrencies.includes(saved) ? saved : storefrontCurrencies.includes(fx?.suggestedCurrency || '') ? fx!.suggestedCurrency! : 'INR';
@@ -104,7 +76,7 @@ export async function initCurrency(): Promise<void> {
     status.textContent = fx?.rates[displayCurrency]
       ? 'Selected from your browser region. You can change it here; checkout confirms the final total.'
       : 'Local currency estimates unavailable. Showing original prices; shopping remains available.';
-    updatePrices(); syncCurrencyButton();
+    updatePrices();
   };
   update(); select.addEventListener('change', update);
 }

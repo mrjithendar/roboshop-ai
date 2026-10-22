@@ -70,6 +70,7 @@ variable "ecr_repository_names" {
     # "roboshop-smtp-server",
     "roboshop-user-service",
     "roboshop-sre-copilot",
+    "roboshop-kafka-bridge",
   ]
 
   validation {

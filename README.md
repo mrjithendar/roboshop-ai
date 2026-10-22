@@ -170,3 +170,10 @@ configuration and databases are preserved; use the installation workflow for a
 fresh cluster. Requires AWS CLI credentials, kubectl and Python 3. Uses your
 existing kubeconfig and context `mk4`; override with `KUBE_CONTEXT=your-context`.
 Use `IMAGE_TAG=latest bash deploy-minikube.sh frontend` to deploy CI images instead.
+
+### Kafka analytics stream
+
+Order events now have a separate Kafka subscription alongside RabbitMQ shipping.
+See [Kafka setup](services/kafka-bridge/README.md) for deployment, event topics, replay,
+resource sizing and development-only security limits. Build/deploy `kafka-bridge`
+and `ai-gateway` to enable the integration; no checkout dependency on Kafka is added.
