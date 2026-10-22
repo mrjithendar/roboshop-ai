@@ -95,10 +95,10 @@ jobs:
           kubectl --context="$KUBE_CONTEXT" apply -f "services/recommendation-service/recommendation-service-minikube.yaml"
           kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/recommendation-service
 
-      - name: Deploy shopping-agent from ECR
+      - name: Deploy moks from ECR
         run: |
-          kubectl --context="$KUBE_CONTEXT" apply -f "services/shopping-agent/shopping-agent-minikube.yaml"
-          kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/shopping-agent
+          kubectl --context="$KUBE_CONTEXT" apply -f "services/moks/moks-minikube.yaml"
+          kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/moks
 
       - name: Deploy sre-copilot from ECR
         run: |
@@ -173,13 +173,6 @@ jobs:
           kubectl --context="$KUBE_CONTEXT" apply -f "services/mcp-server/mcp-server-minikube.yaml"
           kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/mcp-server
 
-      - name: Deploy finder from ECR
-        id: finder
-        continue-on-error: true
-        run: |
-          kubectl --context="$KUBE_CONTEXT" apply -f "services/finder/finder-minikube.yaml"
-          kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/finder
-
       # product-ingestion seeds missing listings on startup before serving requests.
       # Do not exec into a container that may still be restarting (Recreate strategy).
       - name: Apply ingress and TLS configuration
@@ -199,7 +192,3 @@ jobs:
             echo 'Manifests applied and application restarts requested; workload and TLS readiness are not checked.'
             echo 'Catalogue publication runs during product-ingestion startup; completion is not checked by this workflow.'
           } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Report optional Finder failure
-        if: steps.finder.outcome == 'failure'
-        run: echo '::warning::Finder apply or restart failed. Other service deployment commands were not blocked.'

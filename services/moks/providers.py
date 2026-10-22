@@ -49,7 +49,7 @@ def invoke(config, system, prompt, revision=0, purpose="chat", *, budget=None, f
     }
     if fallback_reason:
         attrs["roboshop.llm.fallback_reason"] = fallback_reason
-    with trace_span("llm " + purpose, attributes=attrs, service="shopping-agent"):
+    with trace_span("llm " + purpose, attributes=attrs, service="moks"):
         start = time.monotonic()
         try:
             if not slots.acquire(blocking=False):

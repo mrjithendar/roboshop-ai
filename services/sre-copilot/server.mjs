@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 export async function diagnostics(check = request, targets = urls) {
   const paths = { cart: '/ready', shipping: '/api/shipping/ready', catalogue: '/api/catalogue/ready',
-    agent: '/ready', recommendations: '/ready', users: '/api/users/ready', finder: '/ready' };
+    agent: '/ready', recommendations: '/ready', users: '/api/users/ready' };
   const services = await Promise.all(Object.entries(targets).filter(([name]) => name !== 'sre').map(async ([name, base]) => {
     const start = Date.now();
     const criticality = ['catalogue', 'cart', 'users'].includes(name) ? 'core' : 'feature';
@@ -21,7 +21,6 @@ export function handle(req, res, url) {
   if (url.pathname === '/ready') return json(res, { status: 'ready' });
   if (url.pathname === '/api/ops') return diagnostics(request, { ...urls,
     users: process.env.USER_URL || 'http://127.0.0.1:4109',
-    finder: process.env.FINDER_URL || 'http://finder:4110',
   }).then(result => json(res, result));
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) serve('sre-copilot', 4104, handle);

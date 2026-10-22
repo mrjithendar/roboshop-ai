@@ -1,22 +1,23 @@
+# Minikube sandbox deployment; apply with ./deploy-minikube.sh.
 apiVersion: v1
 kind: Service
 metadata:
-  name: finder
+  name: moks
   namespace: roboshop-ai
   labels:
     app.kubernetes.io/part-of: roboshop-ai
 spec:
   selector:
-    app: finder
+    app: moks
   ports:
-  - name: p4110
-    port: 4110
-    targetPort: 4110
+  - name: p4103
+    port: 4103
+    targetPort: 4103
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: finder
+  name: moks
   namespace: roboshop-ai
   labels:
     app.kubernetes.io/part-of: roboshop-ai
@@ -24,11 +25,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: finder
+      app: moks
   template:
     metadata:
       labels:
-        app: finder
+        app: moks
         app.kubernetes.io/part-of: roboshop-ai
     spec:
       enableServiceLinks: false
@@ -36,26 +37,60 @@ spec:
       imagePullSecrets:
       - name: ecr-pull
       containers:
-      - name: finder
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-finder:latest
+      - name: moks
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-moks:latest
         imagePullPolicy: Always
         env:
         - name: ALLOWED_ORIGINS
           value: https://jithendar.com
         - name: UPSTREAM_ORIGIN
           value: https://jithendar.com
+        # Optional credentials for Minikube; Bedrock uses the AWS SDK credential chain.
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: roboshop-secrets
+              key: AWS_ACCESS_KEY_ID
+              optional: true
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: roboshop-secrets
+              key: AWS_SECRET_ACCESS_KEY
+              optional: true
+        - name: AWS_SESSION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: roboshop-secrets
+              key: AWS_SESSION_TOKEN
+              optional: true
         - name: LLM_SERVICE_TOKEN
           valueFrom:
             secretKeyRef:
               name: roboshop-secrets
               key: LLM_SERVICE_TOKEN
-              optional: true
-        - name: LOG_FORMAT
+        - name: LANGFUSE_BASE_URL
           valueFrom:
-            configMapKeyRef:
-              name: roboshop-config
-              key: LOG_FORMAT
+            secretKeyRef:
+              name: roboshop-secrets
+              key: LANGFUSE_BASE_URL
               optional: true
+        - name: LANGFUSE_PUBLIC_KEY
+          valueFrom:
+            secretKeyRef:
+              name: roboshop-secrets
+              key: LANGFUSE_PUBLIC_KEY
+              optional: true
+        - name: LANGFUSE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: roboshop-secrets
+              key: LANGFUSE_SECRET_KEY
+              optional: true
+        - name: AI_GATEWAY_URL
+          value: http://ai-gateway:3000
+        - name: OLLAMA_ENDPOINTS_JSON
+          value: '{}'
         resources:
           requests:
             cpu: 50m
@@ -64,7 +99,10 @@ spec:
             cpu: 500m
             memory: 256Mi
         ports:
-        - containerPort: 4110
+        - containerPort: 4103
+        envFrom:
+        - configMapRef:
+            name: roboshop-config
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -77,7 +115,7 @@ spec:
         startupProbe:
           httpGet: &id001
             path: /health
-            port: 4110
+            port: 4103
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 120
@@ -89,8 +127,8 @@ spec:
         readinessProbe:
           httpGet:
             path: /ready
-            port: 4110
-          timeoutSeconds: 5
+            port: 4103
+          timeoutSeconds: 3
           periodSeconds: 10
           failureThreshold: 3
       volumes:

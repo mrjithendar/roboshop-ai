@@ -73,7 +73,7 @@ Do not add `-t` for stdio protocol clients. Set a valid `MCP_SESSION_TOKEN` in `
 | --- | --- |
 | Data and messaging | mongodb, postgres (workload `shipping-db`), redis, rabbitmq |
 | Tracing | jaeger, otel-collector |
-| APIs and AI | product-ingestion, recommendation-service, shopping-agent, sre-copilot, payment-service, shipping-service, user-service, ai-gateway |
+| APIs and AI | product-ingestion, recommendation-service, moks, sre-copilot, payment-service, shipping-service, user-service, ai-gateway |
 | Web and tools | frontend, nginx, mcp-server |
 
 - `minikube/roboshop/config.yaml`: namespace and the single `roboshop-config` ConfigMap (environment settings and service configuration files).

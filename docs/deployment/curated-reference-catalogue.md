@@ -119,7 +119,7 @@ filters, price labels and image captions. No real supplier purchase or payment i
 performed. MongoDB integration requires the configured database and is not implied
 by the in-memory import tests.
 
-Release product-ingestion, catalogue-service, recommendation-service, shopping-agent,
+Release product-ingestion, catalogue-service, recommendation-service, moks,
 ai-gateway and frontend through their normal CI workflows, then Deploy-Minikube.
 Publication is additive; it inserts the reference rows without replacing demo data.
 

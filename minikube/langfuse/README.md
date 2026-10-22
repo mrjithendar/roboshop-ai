@@ -26,7 +26,7 @@ bash minikube/connect-langfuse.sh
 ```
 
 The script copies only Langfuse settings to `roboshop-secrets` and restarts
-shopping-agent without logging keys. If the source Secret is absent, it reuses
+moks without logging keys. If the source Secret is absent, it reuses
 keys in `roboshop-secrets`. Rerun after rotating keys.
 
 Use the URL matching your Cloud project:
@@ -45,7 +45,7 @@ LANGFUSE_BASE_URL=https://cloud.langfuse.com bash minikube/connect-langfuse.sh
 ```
 
 [Official regions](https://langfuse.com/security/data-regions). Cloud receives
-shopping-agent telemetry outside your cluster; account plan limits and charges
+moks telemetry outside your cluster; account plan limits and charges
 apply. Existing asynchronous metadata export is retained. Optional tracing
 failures do not block shopping. No data migration or Cloud account provisioning
 is performed by these scripts.

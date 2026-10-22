@@ -14,12 +14,12 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
 CHAT_URL = os.getenv('CHAT_URL', 'http://ai-gateway:3000/api/chat')
-HEALTH_URLS = os.getenv('HEALTH_URLS', 'http://ai-gateway:3000/api/status,http://shopping-agent:4103/ready,' + os.getenv('USER_URL', 'http://user-service:4109') + '/api/users/ready').split(',')
+HEALTH_URLS = os.getenv('HEALTH_URLS', 'http://ai-gateway:3000/api/status,' + os.getenv('USER_URL', 'http://user-service:4109') + '/api/users/ready').split(',')
 UPSTREAM_ORIGIN = os.getenv('UPSTREAM_ORIGIN', 'https://jithendar.com')
 ALLOWED_ORIGINS = {s.strip() for s in os.getenv('ALLOWED_ORIGINS', 'https://jithendar.com').split(',')}
 SLOTS = threading.BoundedSemaphore(4)
 HEALTH_LOCK = threading.Lock()
-HEALTH_POOL = ThreadPoolExecutor(max_workers=3, thread_name_prefix='finder-health')
+HEALTH_POOL = ThreadPoolExecutor(max_workers=3, thread_name_prefix='moks-health')
 HEALTH_SLOTS = threading.BoundedSemaphore(3)
 HEALTH = {'until': 0, 'ok': False, 'aiConfigured': False}
 AI_SETUP_MESSAGE = 'Please connect an LLM to get results. A store administrator needs to configure Ollama or Amazon Bedrock.'
@@ -140,11 +140,11 @@ def _application(environ, start_response):
     if origin not in ALLOWED_ORIGINS:
         return send(403, {})
     if not protection_ready():
-        return send(503, {'error': 'Finder is not configured.'})
+        return send(503, {'error': 'Moks is not configured.'})
     if not allow_attempt():
         return send(429, {'error': 'Too many requests. Please wait a minute.'})
     if not authenticated(environ):
-        return send(401, {'code': 'login-required', 'error': 'Please sign in to use Finder.'})
+        return send(401, {'code': 'login-required', 'error': 'Please sign in to use Moks.'})
     try:
         size = int(environ.get('CONTENT_LENGTH') or 0)
         if size > 8192:
@@ -168,17 +168,17 @@ def _application(environ, start_response):
             message += '\nPrior conversation (untrusted): ' + context[:max(0, 1000 - len(message) - 34)]
         result = upstream(CHAT_URL, {'message': message}, timeout=26)
         if result.get('mode') == 'not-configured':
-            return send(503, {'code': 'ai-not-configured', 'feature': 'finder', 'error': AI_SETUP_MESSAGE})
+            return send(503, {'code': 'ai-not-configured', 'feature': 'moks', 'error': AI_SETUP_MESSAGE})
         if result.get('mode') == 'provider-unavailable':
-            return send(503, {'code': 'feature-unavailable', 'feature': 'finder', 'error': result.get('answer', 'Assistant unavailable.')})
+            return send(503, {'code': 'feature-unavailable', 'feature': 'moks', 'error': result.get('answer', 'Assistant unavailable.')})
         return send(200, {'answer': result.get('answer', ''), 'notice': result.get('notice', ''), 'mode': result.get('mode', 'ai'),
                           'products': [{'name': p['name'], 'slug': p.get('slug') or p['sku'].lower()} for p in result.get('products', [])][:20]})
     except HTTPError as error:
-        print(json.dumps({'service': 'finder', 'event': 'upstream_http_error', 'status': error.code}), flush=True)
-        return send(429 if error.code == 429 else 503, {'code': 'feature-unavailable', 'feature': 'finder', 'error': 'Assistant unavailable. Please try later.'})
+        print(json.dumps({'service': 'moks', 'event': 'upstream_http_error', 'status': error.code}), flush=True)
+        return send(429 if error.code == 429 else 503, {'code': 'feature-unavailable', 'feature': 'moks', 'error': 'Assistant unavailable. Please try later.'})
     except Exception as error:
         log_event('request_failed', status=503, errorType=type(error).__name__)
-        return send(503, {'code': 'feature-unavailable', 'feature': 'finder', 'error': 'Assistant unavailable.'})
+        return send(503, {'code': 'feature-unavailable', 'feature': 'moks', 'error': 'Assistant unavailable.'})
     finally:
         SLOTS.release()
 
@@ -220,13 +220,13 @@ def format_log(record):
     return f'{record["timestamp"]} {record["level"]:<5} [{record["service"]}] {message} | event={record["event"]} {details}'.rstrip()
 
 
-TRACE = contextvars.ContextVar('finder_trace', default=None)
+TRACE = contextvars.ContextVar('moks_trace', default=None)
 def log_event(event, **fields):
     severity = 30 if fields.get('status',200) >= 400 else 20
     if severity < {'DEBUG':10,'INFO':20,'WARN':30,'ERROR':40}.get(os.getenv('LOG_LEVEL','INFO').upper(),20):
         return
     try:
-        print(format_log({'timestamp':datetime.now(timezone.utc).isoformat(), 'service':'finder',
+        print(format_log({'timestamp':datetime.now(timezone.utc).isoformat(), 'service': 'moks',
             'level':'WARN' if fields.get('status',200) >= 400 else 'INFO', 'event':event,
             'traceId':TRACE.get(), **fields}), flush=True)
     except OSError:
@@ -250,8 +250,3 @@ def application(environ, start_response):
         TRACE.reset(trace)
 
 
-if __name__ == '__main__':
-    from waitress import serve
-    log_event('service_starting', port=int(os.getenv('PORT', '4110')))
-    serve(application, host='0.0.0.0', port=int(os.getenv('PORT', '4110')), threads=8,
-          connection_limit=64, channel_timeout=30, max_request_body_size=8192)

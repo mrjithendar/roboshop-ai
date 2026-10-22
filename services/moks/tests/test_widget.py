@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import unittest
 from unittest.mock import patch, MagicMock
-spec = importlib.util.spec_from_file_location('finder_server', Path(__file__).resolve().parents[1] / 'server.py')
+spec = importlib.util.spec_from_file_location('finder_server', Path(__file__).resolve().parents[1] / 'widget.py')
 s = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(s)
 

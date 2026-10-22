@@ -141,7 +141,7 @@ export function exportSpan(service, ctx, start, name, status, attributes = {}) {
   const lf = process.env.LANGFUSE_BASE_URL;
   const targets = [];
   if (endpoint) targets.push([endpoint, {}]);
-  if (service === 'shopping-agent' && lf && process.env.LANGFUSE_PUBLIC_KEY && process.env.LANGFUSE_SECRET_KEY) {
+  if (service === 'moks' && lf && process.env.LANGFUSE_PUBLIC_KEY && process.env.LANGFUSE_SECRET_KEY) {
     targets.push([`${lf.replace(/\/$/, '')}/api/public/otel/v1/traces`, {
       Authorization: `Basic ${Buffer.from(`${process.env.LANGFUSE_PUBLIC_KEY}:${process.env.LANGFUSE_SECRET_KEY}`).toString('base64')}`,
       'x-langfuse-ingestion-version': '4',

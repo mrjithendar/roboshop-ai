@@ -38,6 +38,6 @@ patch={'stringData':{'LANGFUSE_BASE_URL':url,'LANGFUSE_PUBLIC_KEY':public,'LANGF
 result=subprocess.run(base+['patch','secret','roboshop-secrets','--type=merge','--patch-file=/dev/stdin'],input=json.dumps(patch),text=True,capture_output=True)
 if result.returncode:
     raise SystemExit('Could not update roboshop-secrets; check Kubernetes permissions. Secret values were not logged.')
-subprocess.run(base+['rollout','restart','deployment/shopping-agent'],check=True)
-print('Keys loaded from '+source_name+' and saved to roboshop-secrets; shopping-agent restarted.')
+subprocess.run(base+['rollout','restart','deployment/moks'],check=True)
+print('Keys loaded from '+source_name+' and saved to roboshop-secrets; moks restarted.')
 PY

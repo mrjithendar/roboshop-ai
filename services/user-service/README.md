@@ -17,7 +17,7 @@ It does not import code from another service directory.
 - Paid-order projection and verified-purchase checks for reviews.
 
 The gateway keeps the public URLs `/api/auth/*`, `/api/account/*` and
-`/api/admin/users*`. The frontend, finder, cart and checkout continue using these
+`/api/admin/users*`. The frontend, Moks, cart and checkout continue using these
 URLs. User-service resolves the account from the session itself; a caller cannot
 supply a customer/admin identity in a browser request. It is ClusterIP-only and
 requires `USER_SERVICE_TOKEN` on every internal API. Only health and readiness

@@ -17,7 +17,7 @@ async function freePort() { const server = createServer(); server.listen(0, '127
 test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency failure', { timeout: 60000 }, async () => {
   const mongoDatabase = `integration_${randomUUID().replaceAll('-', '')}`;
   const mongo = await connectMongo(process.env.MONGODB_URL, mongoDatabase);
-  const names = ['product-ingestion', 'recommendation-service', 'shopping-agent', 'sre-copilot', 'ai-gateway', 'payment-service', 'shipping-service', 'user-service'];
+  const names = ['product-ingestion', 'recommendation-service', 'moks', 'sre-copilot', 'ai-gateway', 'payment-service', 'shipping-service', 'user-service'];
   const ports = await Promise.all(names.map(freePort));
   const edgePort = process.env.NGINX_TEST === 'true' ? await freePort() : null;
   const base = `http://127.0.0.1:${edgePort || ports[4]}`;
@@ -35,7 +35,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
   }
   try {
     for (let i = 0; i < names.length; i++) {
-      const child = spawn(names[i] === 'shipping-service' ? 'java' : ['ai-gateway', 'shopping-agent', 'user-service'].includes(names[i]) ? (process.env.PYTHON || 'python3') : process.execPath, names[i] === 'shipping-service' ? ['-jar', 'services/shipping-service/build/libs/shipping-service.jar'] : [names[i] === 'payment-service' ? 'tests/fixtures/payment-server.mjs' : `services/${names[i]}/server.${['ai-gateway', 'shopping-agent', 'user-service'].includes(names[i]) ? 'py' : 'mjs'}`], { env: { ...env, PORT: String(ports[i]) }, stdio: ['ignore', 'pipe', 'pipe'] });
+      const child = spawn(names[i] === 'shipping-service' ? 'java' : ['ai-gateway', 'moks', 'user-service'].includes(names[i]) ? (process.env.PYTHON || 'python3') : process.execPath, names[i] === 'shipping-service' ? ['-jar', 'services/shipping-service/build/libs/shipping-service.jar'] : [names[i] === 'payment-service' ? 'tests/fixtures/payment-server.mjs' : `services/${names[i]}/server.${['ai-gateway', 'moks', 'user-service'].includes(names[i]) ? 'py' : 'mjs'}`], { env: { ...env, PORT: String(ports[i]) }, stdio: ['ignore', 'pipe', 'pipe'] });
       children.push(child); child.stdout.on('data', d => logs += d); child.stderr.on('data', d => logs += d);
     }
     for (const port of ports) {
@@ -157,7 +157,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     await once(mcp, 'exit'); const replies = output.trim().split('\n').map(JSON.parse);
     assert.equal(replies[1].result.tools.length, 15); assert.equal(replies[2].result.isError, false); assert.equal(replies[3].error.code, -32602);
     const serviceNames = new Set(traces.flatMap(t => t.resourceSpans.map(r => r.resource.attributes.find(a => a.key === 'service.name')?.value.stringValue)));
-    for (const service of ['ai-gateway', 'shopping-agent', 'product-ingestion', 'recommendation-service', 'sre-copilot', 'payment-service', 'mcp-server']) assert.ok(serviceNames.has(service), `Missing spans for ${service}`);
+    for (const service of ['ai-gateway', 'moks', 'product-ingestion', 'recommendation-service', 'sre-copilot', 'payment-service', 'mcp-server']) assert.ok(serviceNames.has(service), `Missing spans for ${service}`);
     assert.ok(traces.some(t => t.resourceSpans.some(r => r.scopeSpans.some(s => s.spans.some(span => span.kind === 3 && span.parentSpanId)))), 'outbound client spans');
     for (let retry = 0; retry < 160 && !binaryTraces.some(b => b.includes(Buffer.from('shipping-service'))); retry++) await new Promise(r => setTimeout(r, 50));
     assert.ok(binaryTraces.some(b => b.includes(Buffer.from('shipping-service'))), 'Java shipping must export OTLP spans');

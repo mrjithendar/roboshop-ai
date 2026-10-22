@@ -12,9 +12,9 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 SERVICES = ['mongodb', 'postgres', 'redis', 'rabbitmq', 'jaeger', 'otel-collector',
-            'product-ingestion', 'catalogue-service', 'recommendation-service', 'shopping-agent',
+            'product-ingestion', 'catalogue-service', 'recommendation-service', 'moks',
             'sre-copilot', 'payment-service', 'shipping-service', 'user-service', 'ai-gateway',
-            'frontend', 'finder', 'nginx', 'mcp-server', 'cart-service']
+            'frontend', 'nginx', 'mcp-server', 'cart-service']
 APPS = {name for name in SERVICES if (ROOT / 'services' / name / 'Dockerfile').is_file()}
 PASSWORD_KEYS = ['MONGO_ROOT_PASSWORD', 'MONGO_APP_PASSWORD', 'SHIPPING_DB_PASSWORD',
                  'SHIPPING_APP_PASSWORD', 'REDIS_PASSWORD', 'RABBITMQ_PASSWORD',
@@ -46,7 +46,7 @@ def render(output, prefix, tag, public_origin):
                 image = f'{prefix}-{suffix}:{tag}'
                 item['spec']['template']['spec']['containers'][0]['image'] = image
                 images.append(image)
-                if name == 'finder':
+                if name == 'moks':
                     for env in item['spec']['template']['spec']['containers'][0]['env']:
                         if env['name'] in ('ALLOWED_ORIGINS', 'UPSTREAM_ORIGIN'):
                             env['value'] = public_origin

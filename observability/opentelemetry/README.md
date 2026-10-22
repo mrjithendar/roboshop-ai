@@ -98,7 +98,7 @@ Read an individual service:
 
 ```bash
 kubectl -n roboshop-ai logs deployment/ai-gateway --since=10m --follow
-kubectl -n roboshop-ai logs deployment/shopping-agent --since=10m --follow
+kubectl -n roboshop-ai logs deployment/moks --since=10m --follow
 kubectl -n roboshop-ai logs deployment/frontend --since=10m --follow
 # Last crashed container:
 kubectl -n roboshop-ai logs deployment/ai-gateway --previous --tail=100
@@ -110,7 +110,7 @@ Readable filtering when jq is installed:
 kubectl -n roboshop-ai logs deployment/ai-gateway --since=10m |
   jq -R 'fromjson? | select(.level == "WARN" or .level == "ERROR")'
 # Replace TRACE_ID with the traceId in a failed request; no credentials needed.
-kubectl -n roboshop-ai logs deployment/shopping-agent --since=10m |
+kubectl -n roboshop-ai logs deployment/moks --since=10m |
   jq -R 'fromjson? | select(.traceId == "TRACE_ID")'
 ```
 

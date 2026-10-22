@@ -5,7 +5,7 @@ import {JSDOM} from 'jsdom';
 const code=readFileSync(new URL('../widget.js',import.meta.url),'utf8');
 const settle=()=>new Promise(r=>setTimeout(r,10));
 async function setup(t,authenticated=false,external=false){
- const dom=new JSDOM('<body><main>Store</main><script src="https://shop.example/roboshop/finder/widget.js"></script></body>',{url:external?'https://other.example/':'https://shop.example/roboshop/products/item',runScripts:'outside-only'});t.after(()=>dom.window.close());const w=dom.window;
+ const dom=new JSDOM('<body><main>Store</main><script src="https://shop.example/roboshop/moks/widget.js"></script></body>',{url:external?'https://other.example/':'https://shop.example/roboshop/products/item',runScripts:'outside-only'});t.after(()=>dom.window.close());const w=dom.window;
  Object.defineProperty(w.document,'currentScript',{value:w.document.querySelector('script')});let shadow,poll,healthy=true,aiConfigured=true,status=200;const calls=[];
  const original=w.HTMLElement.prototype.attachShadow;w.HTMLElement.prototype.attachShadow=function(o){shadow=original.call(this,o);return shadow};w.setInterval=fn=>{poll=fn;return 1};
  w.fetch=async(url,options)=>{calls.push({url:String(url),options});return String(url).endsWith('/chat')?{ok:status===200,status,json:async()=>({answer:'<img src=x>',products:[{name:'Robot',slug:'item'}]})}:{ok:healthy,json:async()=>({available:healthy,authenticated,aiConfigured})}};
@@ -32,12 +32,12 @@ for(const status of [400,403,429,503])test(`failure ${status} keeps draft and co
  const ui=await setup(t,true);ui.shadow.querySelector('#open').click();await settle();ui.setStatus(status);await ui.submit();assert.equal(ui.shadow.querySelector('textarea').value,'Help me choose');assert.equal(ui.shadow.querySelector('section').hidden,false);assert.equal(ui.shadow.querySelector('#error').hidden,false);
 });
 test('third-party embed omits cookies and links to the store login',async t=>{const ui=await setup(t,false,true);assert.ok(ui.calls.every(c=>c.options.credentials==='omit'));assert.equal(ui.shadow.querySelector('#login-link').href,'https://shop.example/roboshop/login')});
-test('service outage hides closed widget without affecting store',async t=>{const ui=await setup(t);Object.defineProperty(ui.w.document,'hidden',{value:false});ui.setHealth(false);await ui.poll();await settle();assert.equal(ui.w.document.querySelector('#finder-widget').hidden,true);assert.equal(ui.w.document.querySelector('main').textContent,'Store')});
+test('service outage hides closed widget without affecting store',async t=>{const ui=await setup(t);Object.defineProperty(ui.w.document,'hidden',{value:false});ui.setHealth(false);await ui.poll();await settle();assert.equal(ui.w.document.querySelector('#moks-widget').hidden,true);assert.equal(ui.w.document.querySelector('main').textContent,'Store')});
 
 test('unconfigured AI stays visible, blocks chat, and recovers after configuration',async t=>{
  const ui=await setup(t,true);Object.defineProperty(ui.w.document,'hidden',{value:false});
  ui.setAI(false);await ui.poll();await settle();
- assert.equal(ui.w.document.querySelector('#finder-widget').hidden,false);
+ assert.equal(ui.w.document.querySelector('#moks-widget').hidden,false);
  assert.match(ui.shadow.querySelector('#error').textContent,/Please connect an LLM to get results/);
  assert.equal(ui.shadow.querySelector('#send').disabled,true);
  await ui.submit();assert.ok(!ui.calls.some(c=>c.url.endsWith('/chat')));

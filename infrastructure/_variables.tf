@@ -56,7 +56,6 @@ variable "ecr_repository_names" {
     "roboshop-ai-gateway",
     "roboshop-cart-service",
     "roboshop-catalogue-service",
-    "roboshop-finder",
     "roboshop-currency-service",
     "roboshop-frontend",
     "roboshop-mcp-server",
@@ -65,6 +64,9 @@ variable "ecr_repository_names" {
     "roboshop-product-ingestion",
     "roboshop-recommendation-service",
     "roboshop-shipping",
+    "roboshop-moks",
+    # Retain previous repositories for rollback; no workloads build these now.
+    "roboshop-finder",
     "roboshop-shopping-agent",
     # "roboshop-smtp-server",
     "roboshop-user-service",

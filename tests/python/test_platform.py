@@ -13,7 +13,7 @@ sys.path.append(str(ROOT / "services/user-service"))
 sys.path[:0] = [
     str(ROOT / "services/ai-gateway/lib"),
     str(ROOT / "services/ai-gateway"),
-    str(ROOT / "services/shopping-agent"),
+    str(ROOT / "services/moks"),
 ]
 from agent import answer
 from catalogue import retrieve

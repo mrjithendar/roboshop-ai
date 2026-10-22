@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
-from runtime import serve, request, text, HttpError
+from runtime import application as engine_application, configure_telemetry, log_event, request, text, HttpError
 from llm_config import authenticate_service, validate_config, unconfigured, service_headers
 from agent import answer
 from providers import ProviderError
@@ -84,5 +84,25 @@ def handle(req):
     )
 
 
+# Both interfaces share one process and listener. The widget retains session/origin
+# checks; private engine routes retain the service bearer-token check.
+def create_application():
+    from widget import application as widget_application
+    engine = engine_application("moks", handle)
+    def application(environ, start_response):
+        if environ.get("PATH_INFO") in ("/widget.js", "/available", "/chat"):
+            return widget_application(environ, start_response)
+        return engine(environ, start_response)
+    return application
+
+
 if __name__ == "__main__":
-    serve("shopping-agent", 4103, handle)
+    from waitress import serve
+    configure_telemetry("moks")
+    log_event("service_starting", port=int(os.getenv("PORT", "4103")))
+    # At most four widget requests wait on the gateway; leave capacity for its
+    # authenticated engine callbacks and health requests on this same listener.
+    serve(create_application(), host=os.getenv("HOST", "0.0.0.0"),
+          port=int(os.getenv("PORT", "4103")), threads=16,
+          max_request_body_size=65536, max_request_header_size=16384,
+          channel_timeout=30, connection_limit=100, expose_tracebacks=False)

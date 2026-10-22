@@ -16,7 +16,7 @@ class LangfuseTests(unittest.TestCase):
         context = dict(traceId='a'*32, spanId='b'*16, parentSpanId='c'*16, attributes={'gen_ai.request.model':'mock','gen_ai.usage.input_tokens':10})
         env = dict(LANGFUSE_BASE_URL='http://langfuse-web.langfuse.svc.cluster.local:3000', LANGFUSE_PUBLIC_KEY='pk-lf-test', LANGFUSE_SECRET_KEY='sk-lf-test')
         with patch.dict(os.environ, env, clear=True), patch.object(runtime, '_request') as send, patch.object(runtime.exports, 'submit', side_effect=lambda fn,*args:fn(*args)):
-            runtime.telemetry('shopping-agent', context, time.time_ns(), 'llm chat', 200)
+            runtime.telemetry('moks', context, time.time_ns(), 'llm chat', 200)
         url, payload, headers = send.call_args.args
         self.assertTrue(url.endswith('/api/public/otel/v1/traces'))
         self.assertEqual(headers['x-langfuse-ingestion-version'], '4')
@@ -28,10 +28,10 @@ class LangfuseTests(unittest.TestCase):
     def test_missing_keys_or_other_service_do_not_export(self):
         context=dict(traceId='a'*32,spanId='b'*16,attributes={})
         with patch.dict(os.environ, {}, clear=True), patch.object(runtime.exports,'submit') as send:
-            runtime.telemetry('shopping-agent',context,time.time_ns(),'request',200)
+            runtime.telemetry('moks',context,time.time_ns(),'request',200)
             send.assert_not_called()
 
     def test_export_failure_does_not_fail_request(self):
         env=dict(LANGFUSE_BASE_URL='http://langfuse',LANGFUSE_PUBLIC_KEY='pk',LANGFUSE_SECRET_KEY='sk')
         with patch.dict(os.environ,env,clear=True), patch.object(runtime,'_request',side_effect=TimeoutError), patch.object(runtime.exports,'submit',side_effect=lambda fn,*args:fn(*args)):
-            runtime.telemetry('shopping-agent',dict(traceId='a'*32,spanId='b'*16,attributes={}),time.time_ns(),'request',200)
+            runtime.telemetry('moks',dict(traceId='a'*32,spanId='b'*16,attributes={}),time.time_ns(),'request',200)

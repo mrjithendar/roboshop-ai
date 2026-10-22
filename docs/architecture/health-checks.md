@@ -10,9 +10,8 @@ whether a workload is suitable for traffic without restarting it.
 | Gateway | `/api/ready` | MongoDB, catalogue `/api/catalogue/ready`, user-service `/api/users/ready`, cart `/ready` when configured, exclusive ledger writer still owned |
 | NGINX | `/ready` | Gateway core readiness; no cookies, model checks, or aggregate SRE calls |
 | Frontend | `/health` | Local static HTTP server; no API/model dependencies |
-| Shopping agent | `/ready` | Catalogue readiness; configuration and models are selected per request |
+| Moks | `/ready` | Catalogue readiness; configuration and models are selected per request |
 | Recommendations | `/ready` | Catalogue readiness |
-| Finder | `/ready` | Internal service token, configured gateway status, shopping-agent readiness, user-service readiness |
 | SRE copilot | `/ready` | Diagnostic process only; target failures never make the diagnostic service unready |
 | Catalogue | `/api/catalogue/ready` | Its MongoDB connection |
 | Cart | `/ready` | Its Redis connection |
@@ -26,7 +25,7 @@ It bypasses authentication/session lookup, so the probe cannot depend on a visit
 cookie or an unrelated model endpoint. File commits still remain local ledger work.
 
 NGINX allows one second to connect and two seconds to read gateway readiness. Its
-HTTP `/ready` does not redirect in TLS mode. Finder probes at most three operator
+HTTP `/ready` does not redirect in TLS mode. The Moks widget probes two operator
 URLs concurrently within 1.5 seconds, with at most three outstanding probes, and
 caches the result for ten seconds. `/available` additionally reports visitor login
 state; it is not a Kubernetes probe. Shopping-agent and recommendation probes use
@@ -35,11 +34,11 @@ one-second catalogue deadlines. Kubernetes probe deadlines exceed these budgets.
 No readiness check invokes paid model inference, checks an external model's
 semantic correctness, or waits for telemetry. A model can fail after readiness
 succeeds: that request returns an explicit unavailable feature response. No provider
-is configured in a fresh installation; Finder reports unavailable until configured.
+is configured in a fresh installation; Moks offers a setup notice when no LLM is configured.
 
 ## Failure isolation
 
-Shopping-agent, Finder, recommendation and telemetry outages do not change gateway
+Moks, recommendation and telemetry outages do not change gateway
 or NGINX readiness. Catalogue/cart operations continue when their own core
 requirements are healthy. Gateway requests for unavailable recommendations or AI
 return HTTP 503 with `code: feature-unavailable`, a feature name, and no fabricated
@@ -61,8 +60,8 @@ HTTP 200 with `status: healthy|degraded`, per-target status, latency, and core/f
 classification. Failure of SRE itself returns HTTP 503 `feature-unavailable` for
 that diagnostic route only. Aggregate reports are **never** readiness gates.
 
-The graph is acyclic: NGINX → gateway → core services; Finder → gateway status,
-agent and users; agent/recommendations → catalogue. SRE observes these leaf/scoped
+The graph is acyclic: NGINX → gateway → core services; Finder → gateway status
+and users (no self-probe); agent/recommendations → catalogue. SRE observes these leaf/scoped
 checks but does not probe its own aggregate endpoint or gateway/NGINX readiness.
 Neither the gateway nor any core service probes SRE for readiness. External model,
 payment-provider and telemetry health needs its own operational monitoring; a

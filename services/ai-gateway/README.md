@@ -159,7 +159,7 @@ See the [migration, state machine, inventory and rollback guide](../../docs/depl
 `asgi_app.py` owns HTTP routing, explicit-origin CORS, security headers, request IDs,
 structured category-only logs and bounded dispatch. `api_models.py` defines validated
 AI/checkout request contracts and AI/health responses. `server.py` retains domain
-routing and authorization; `auth.py`, `user_client.py`, `llm.py` and shopping-agent
+routing and authorization; `auth.py`, `user_client.py`, `llm.py` and moks
 retain identity, downstream calls, configuration and provider responsibilities.
 `lifecycle.py` owns Mongo clients, the commerce store, event and purchase workers.
 

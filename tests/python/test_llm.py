@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [
     str(ROOT / "services/ai-gateway/lib"),
     str(ROOT / "services/ai-gateway"),
-    str(ROOT / "services/shopping-agent"),
+    str(ROOT / "services/moks"),
 ]
 from llm_config import validate_config, endpoints, unconfigured, UNCONFIGURED
 from llm import LLMConfiguration
@@ -37,7 +37,7 @@ def load(name, path):
 
 
 gateway_module = load("llm_gateway", "services/ai-gateway/server.py")
-agent_server = load("llm_agent_server", "services/shopping-agent/server.py")
+agent_server = load("llm_agent_server", "services/moks/server.py")
 BEDROCK = {
     "provider": "bedrock",
     "region": "us-east-1",

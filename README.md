@@ -37,7 +37,7 @@ Requires Node.js 24+, Python 3.11+, Java/Gradle-compatible JDK, PostgreSQL and M
 ```bash
 npm ci
 python3 -m venv .venv
-.venv/bin/python -m pip install -r services/ai-gateway/requirements.txt -r services/user-service/requirements.txt -r services/shopping-agent/requirements.txt
+.venv/bin/python -m pip install -r services/ai-gateway/requirements.txt -r services/user-service/requirements.txt -r services/moks/requirements.txt
 export PYTHON="$PWD/.venv/bin/python"
 npm run dev
 ```
@@ -57,7 +57,7 @@ Open **http://localhost:3000**. Ctrl+C stops the launcher’s child processes. `
 | `services/cart-service` | Redis-backed carts |
 | `services/shipping-service` | Java/Gradle, PostgreSQL locations, quotes and shipment requests |
 | `services/payment-service` | Razorpay orders and captured-payment verification |
-| `services/shopping-agent`, `services/recommendation-service` | Shopping assistance and recommendations |
+| `services/moks`, `services/recommendation-service` | Shopping assistance and recommendations |
 | `services/sre-copilot`, `services/mcp-server` | Diagnostics and MCP tools |
 | `services/mongodb`, `services/postgres`, `services/redis`, `services/rabbitmq` | Data and messaging |
 | `services/otel-collector`, `services/jaeger` | Distributed traces |
@@ -96,11 +96,11 @@ The gateway’s durable JSON order ledger remains single-writer: keep one gatewa
 
 Services build from their own directories and own their dependency manifests, assets and service-specific tooling. For example: `docker build -t roboshop-frontend:local services/frontend`. Root scripts coordinate the platform. See [service boundaries and repository extraction](docs/architecture/service-repositories.md) for local tests, service-owned libraries and the future repository split.
 
-### Optional Finder widget
+### Moks — An AI agent for everyone.
 
-The standalone Python [Finder service](services/finder/README.md) supplies the
+The combined Python [Moks service](services/moks/README.md) supplies the
 assistant on every storefront page and supports embedding on other websites.
-It builds as `roboshop-finder:local`. Scale `deployment/finder` to zero to hide
+It builds as `roboshop-moks:local`. Scale `deployment/moks` to zero to hide
 it without disabling the storefront. See its README for embedding and configuration.
 
 ### Deploy ECR images from GitHub Actions

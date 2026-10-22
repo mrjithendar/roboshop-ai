@@ -4,7 +4,7 @@ on:
   # pull_request:
   #   paths:
   #     - 'services/ai-gateway/**'
-  #     - 'services/shopping-agent/**'
+  #     - 'services/moks/**'
   #     - 'services/frontend/**'
   #     - 'tests/**'
   #     - '.github/workflows/llm-checks.yml'
@@ -12,7 +12,7 @@ on:
   #   # branches: [master, main]
   #   paths:
   #     - 'services/ai-gateway/**'
-  #     - 'services/shopping-agent/**'
+  #     - 'services/moks/**'
   #     - 'services/frontend/**'
   #     - 'tests/**'
   #     - '.github/workflows/llm-checks.yml'
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '26'
-      - run: python -m pip install -r services/user-service/requirements.txt -r services/ai-gateway/requirements.txt -r services/shopping-agent/requirements.txt -r tests/python/requirements.txt
+      - run: python -m pip install -r services/user-service/requirements.txt -r services/ai-gateway/requirements.txt -r services/moks/requirements.txt -r tests/python/requirements.txt
       - run: python -m unittest discover -s tests/python -v
       - run: python -m unittest discover -s services/ai-gateway/tests -v
       - run: python -m unittest discover -s services/user-service/tests -v

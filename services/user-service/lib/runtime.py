@@ -395,7 +395,7 @@ def telemetry(service, context, start, route, status):
     targets = []
     if os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"):
         targets.append((os.environ["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"], {}))
-    if service == "shopping-agent" and all(
+    if service == "moks" and all(
         os.getenv(k)
         for k in ("LANGFUSE_BASE_URL", "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY")
     ):

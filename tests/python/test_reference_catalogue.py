@@ -9,7 +9,7 @@ from unittest.mock import patch
 import mongomock
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path[:0] = [str(ROOT / 'services/ai-gateway/lib'), str(ROOT / 'services/ai-gateway'), str(ROOT / 'services/shopping-agent')]
+sys.path[:0] = [str(ROOT / 'services/ai-gateway/lib'), str(ROOT / 'services/ai-gateway'), str(ROOT / 'services/moks')]
 from runtime import HttpError, Request
 from store import Store
 from server import Gateway

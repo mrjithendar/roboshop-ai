@@ -4,9 +4,9 @@ ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 HOST=0.0.0.0
 WORKDIR /app
 COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt && useradd --uid 1000 --create-home app
-COPY --chown=app:app . ./services/shopping-agent/
+COPY --chown=app:app . ./services/moks/
 USER app
 # Exercise the actual graph with mocked providers before any image is published.
-RUN python -m unittest discover -s services/shopping-agent/tests
+RUN python -m unittest discover -s services/moks/tests
 EXPOSE 4103
-CMD ["python", "services/shopping-agent/server.py"]
+CMD ["python", "services/moks/server.py"]

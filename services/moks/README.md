@@ -1,4 +1,33 @@
-# Python shopping agent
+# Moks
+
+**An AI agent for everyone.**
+
+One Python process, one image (`roboshop-moks`) and one Kubernetes Deployment
+(`moks`) serve the widget and the LangGraph/LangChain AI engine on port 4103.
+The storefront embeds `/moks/widget.js`; `/finder/` remains a compatibility alias.
+Public widget routes are `/widget.js`, `/available`, and `/chat`. The widget
+requires a signed-in user and an allowed Origin. It calls the gateway to retain
+central configuration and stock filtering, which calls the private engine routes.
+Sixteen HTTP worker threads leave capacity for those callbacks while at most four
+widget requests are in flight. The provider limit remains two concurrent calls.
+
+Moks is optional: stopping it hides the closed widget without affecting shopping.
+Readiness checks the catalogue only; availability diagnostics check the gateway
+and user service, never Moks itself. Credentials and provider settings are unchanged.
+
+## Upgrade from Finder and shopping-agent
+
+Create the `roboshop-moks` ECR repository with the infrastructure Terraform before
+building. Build/push `moks`, `nginx`, and `frontend`; deploy Moks before switching
+the gateway configuration and proxy. Apply `minikube/roboshop/config.yaml` and
+restart `ai-gateway` and `sre-copilot` to read `AGENT_URL=http://moks:4103`.
+Once Moks and the new proxy/widget work, remove the obsolete Deployments and
+Services with `kubectl -n roboshop-ai delete deployment,service finder shopping-agent --ignore-not-found`.
+This is a deliberate operator step: deploying the new YAML does not delete old
+workloads automatically. No credentials, provider configuration or user data is migrated.
+Retain the old ECR repositories/images until rollback is no longer needed.
+
+## Engine API
 
 The agent owns all LLM calls. Private `POST /internal/chat` and
 `POST /internal/llm/test` require `LLM_SERVICE_TOKEN` from the gateway. `/health`
@@ -27,7 +56,7 @@ The Dockerfile remains non-root and includes all provider modules via `*.py`.
 
 ## Independent service build
 
-Run `docker build -t roboshop-shopping-agent:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+Run `docker build -t roboshop-moks:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
 
 
 `/health` is process-only liveness; `/ready` probes catalogue readiness with a
@@ -80,5 +109,20 @@ python -m unittest discover -s tests
 ```
 
 The Dockerfile runs these mocked-provider tests, so existing ECR CI and local image
-builds fail before publication if they fail. Rebuild and deploy `shopping-agent`
-to activate this change; Finder and gateway APIs remain unchanged.
+builds fail before publication if they fail. Rebuild and deploy `moks`
+to activate this change; the compatibility widget URL and gateway APIs remain unchanged.
+
+## Build and deploy on the ARM64 host
+
+```bash
+# First create roboshop-moks via the infrastructure Terraform (review its plan).
+bash build-push-ecr.sh moks nginx frontend
+bash deploy-minikube.sh moks nginx frontend
+```
+
+The deployment script also updates only `AGENT_URL` in the existing ConfigMap and
+restarts its gateway/SRE consumers. Secrets and all other configuration are preserved.
+CI publishes `:latest`; the simple build/deploy scripts use `:local` by default.
+Do not remove the old services until the replacement is ready and chat works.
+No provider reconfiguration is needed. Langfuse/OpenTelemetry now identify this
+workload as `moks`, so older traces remain under `shopping-agent`.

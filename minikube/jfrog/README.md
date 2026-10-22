@@ -86,7 +86,7 @@ After TLS, onboarding and `docker-local` are ready:
 
 ```bash
 bash minikube/jfrog/publish-image.sh frontend
-# or: shipping-service, ai-gateway, finder, etc.
+# or: shipping-service, ai-gateway, moks, etc.
 ```
 
 The helper prompts privately for the access token, builds via the existing root

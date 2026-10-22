@@ -51,7 +51,7 @@ def route(config, system, prompt, revision=0, purpose="chat", *, deadline=None,
     enabled = config.get("automaticFailover") is True
     key = (revision, json.dumps(config, sort_keys=True))
     attrs = {"roboshop.llm.revision": revision, "roboshop.llm.failover_enabled": enabled}
-    with trace_span("llm routing", attributes=attrs, service="shopping-agent"):
+    with trace_span("llm routing", attributes=attrs, service="moks"):
         def attempt(target, reason=None):
             if deadline - time.monotonic() <= 0:
                 raise ProviderError("timeout")

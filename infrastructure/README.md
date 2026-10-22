@@ -212,3 +212,56 @@ is billed according to AWS usage pricing.
 References: [SES identities](https://docs.aws.amazon.com/ses/latest/dg/creating-identities.html),
 [SES SMTP setup](https://docs.aws.amazon.com/ses/latest/dg/send-email-smtp.html),
 [SMTP credentials](https://docs.aws.amazon.com/ses/latest/dg/smtp-credentials.html).
+
+## Bedrock role for Hetzner moks
+
+`bedrock.tf` optionally creates `roboshop-<environment>-moks-bedrock`.
+It grants only `bedrock:InvokeModel` for the selected US Nova 2 Lite profile and
+its exact model in US destination regions. It does not create users, access keys,
+model subscriptions or paid inference requests. Empty trusted principals disables it.
+
+Add to your existing tfvars (the named principal must already exist):
+
+```hcl
+bedrock_trusted_principal_arns = ["arn:aws:iam::881026659929:user/roboshop-bedrock"]
+```
+
+```bash
+terraform -chdir=infrastructure init
+terraform -chdir=infrastructure plan -var-file=vars/terraform.tfvars -out=infra.tfplan
+# Review the entire plan: this root also manages other infrastructure.
+terraform -chdir=infrastructure apply infra.tfplan
+terraform -chdir=infrastructure output -raw shopping_agent_bedrock_role_arn
+```
+
+The source principal should have an identity policy allowing `sts:AssumeRole`
+on the output role ARN (required for cross-account access; SCPs and permission
+boundaries also apply). The role is not an EC2 instance role and cannot simply
+be attached to a Hetzner VM. `AWS_ROLE_ARN` alone is insufficient.
+
+To use it with the shopping agent's existing boto3 credential chain, mount an
+AWS config file into the pod (for example `/app/aws/config`) containing:
+
+```ini
+[profile bedrock]
+role_arn = REPLACE_WITH_TERRAFORM_ROLE_ARN
+credential_source = Environment
+role_session_name = roboshop-moks
+region = us-east-1
+```
+
+Set `AWS_PROFILE=bedrock` and `AWS_CONFIG_FILE=/app/aws/config`, and provide the
+trusted source principal's `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` using
+Kubernetes Secret references, plus `AWS_SESSION_TOKEN` for temporary credentials.
+Boto3 will obtain and refresh role sessions while the source credentials remain
+valid. Never commit these credentials or pass them through Terraform variables.
+This Terraform change does not mount the config or inject source credentials.
+For keyless external-host access, configure IAM Roles Anywhere separately; for
+EKS, use Pod Identity/IRSA with a different trust relationship.
+
+Admin settings: Bedrock, source region matching `aws_region`, and
+`us.amazon.nova-2-lite-v1:0` (unless you changed the model variables). No listing
+or account-administration permissions are granted by this runtime policy.
+
+References: [cross-region permissions](https://docs.aws.amazon.com/bedrock/latest/userguide/geographic-cross-region-inference.html)
+and [inference-profile restrictions](https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-prereq.html).

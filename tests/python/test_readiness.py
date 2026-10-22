@@ -79,9 +79,9 @@ class ReadinessTests(unittest.TestCase):
 
     def test_agent_readiness_uses_catalogue_not_model_calls(self):
         import importlib.util
-        spec = importlib.util.spec_from_file_location('readiness_agent', ROOT/'services/shopping-agent/server.py')
+        spec = importlib.util.spec_from_file_location('readiness_agent', ROOT/'services/moks/server.py')
         agent = importlib.util.module_from_spec(spec)
-        with patch.object(sys, 'path', [str(ROOT/'services/shopping-agent'), *sys.path]):
+        with patch.object(sys, 'path', [str(ROOT/'services/moks'), *sys.path]):
             spec.loader.exec_module(agent)
         with patch.object(agent, 'route', side_effect=AssertionError('No model probes')), patch.object(agent, 'request') as check:
             self.assertEqual(agent.handle(self.req('/ready')), {'status':'ready'})
@@ -94,8 +94,8 @@ class ReadinessTests(unittest.TestCase):
 
     def test_manifests_use_local_liveness_and_scoped_readiness(self):
         import yaml
-        paths = {'ai-gateway':'/health/ready', 'nginx':'/ready', 'finder':'/ready',
-                 'shopping-agent':'/ready', 'recommendation-service':'/ready', 'sre-copilot':'/ready'}
+        paths = {'ai-gateway':'/health/ready', 'nginx':'/ready',
+                 'moks':'/ready', 'recommendation-service':'/ready', 'sre-copilot':'/ready'}
         for name, path in paths.items():
             with self.subTest(service=name):
                 manifests = yaml.safe_load_all((ROOT / f'services/{name}/{name}-minikube.yaml').read_text())

@@ -54,7 +54,7 @@ def answer(products, message, config=None, revision=0, generate=invoke, *, deadl
 
     def search_catalogue(state):
         check_deadline()
-        with trace_span("agent.retrieve", attributes={"roboshop.agent.framework": "langgraph"}, service="shopping-agent"):
+        with trace_span("agent.retrieve", attributes={"roboshop.agent.framework": "langgraph"}, service="moks"):
             return {"picks": retrieve(products, state["message"])[:4]}
 
     def ground(state):
@@ -72,7 +72,7 @@ def answer(products, message, config=None, revision=0, generate=invoke, *, deadl
 
     def generate_answer(state):
         check_deadline()
-        with trace_span("agent.generate", attributes={"roboshop.agent.framework": "langchain"}, service="shopping-agent"):
+        with trace_span("agent.generate", attributes={"roboshop.agent.framework": "langchain"}, service="moks"):
             response = chain.invoke({"instructions": INSTRUCTIONS, "evidence": state["evidence"]})
         check_deadline()
         return {"response": response}

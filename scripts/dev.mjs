@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const names = ['product-ingestion', 'catalogue-service', 'recommendation-service', 'shopping-agent', 'payment-service', 'shipping-service', 'sre-copilot', 'user-service', 'ai-gateway'];
+const names = ['product-ingestion', 'catalogue-service', 'recommendation-service', 'moks', 'payment-service', 'shipping-service', 'sre-copilot', 'user-service', 'ai-gateway'];
 const llmToken = process.env.LLM_SERVICE_TOKEN || randomBytes(32).toString('hex');
 const paymentToken = process.env.PAYMENT_SERVICE_TOKEN || randomBytes(32).toString('hex');
 const userToken = process.env.USER_SERVICE_TOKEN || randomBytes(32).toString('hex');
@@ -22,9 +22,17 @@ for (const name of names) {
   if (['ai-gateway', 'user-service'].includes(name)) env.USER_SERVICE_TOKEN = userToken;
   else delete env.USER_SERVICE_TOKEN;
   if (name !== 'user-service') for (const key of Object.keys(env)) if (key.startsWith('SMTP_') || key === 'AUTH_ENCRYPTION_KEY') delete env[key];
+  if (name === 'moks') {
+    env.AI_GATEWAY_URL ??= `http://127.0.0.1:${process.env.PORT || 3000}`;
+    env.CHAT_URL ??= `${env.AI_GATEWAY_URL}/api/chat`;
+    env.AUTH_URL ??= `${env.AI_GATEWAY_URL}/api/auth/me`;
+    env.HEALTH_URLS ??= `${env.AI_GATEWAY_URL}/api/status,${env.USER_URL || 'http://127.0.0.1:4109'}/api/users/ready`;
+    env.UPSTREAM_ORIGIN ??= env.PUBLIC_ORIGIN || env.AI_GATEWAY_URL;
+    env.ALLOWED_ORIGINS ??= env.UPSTREAM_ORIGIN;
+  }
   if (name === 'ai-gateway') { env.FRONTEND_DIST = resolve(root, 'services/frontend/dist'); env.DATA_DIR ??= resolve(root, '.data'); }
   delete env.OPENAI_API_KEY; delete env.OPENAI_MODEL; delete env.ASSISTANT_AI_ENABLED;
-  if (['ai-gateway', 'shopping-agent'].includes(name)) env.LLM_SERVICE_TOKEN = llmToken;
+  if (['ai-gateway', 'moks'].includes(name)) env.LLM_SERVICE_TOKEN = llmToken;
   else { delete env.LLM_SERVICE_TOKEN; delete env.OLLAMA_ENDPOINTS_JSON; }
   delete env.MCP_SESSION_TOKEN;
   delete env.DEMO_MONGODB_URL;
@@ -44,10 +52,10 @@ for (const name of names) {
   delete env.SHIPPING_APP_PASSWORD;
   if (name !== 'shipping-service') delete env.SHIPPING_MIGRATION_DATABASE_URL;
   if (name === 'shipping-service') env.SHIPPING_TRACING_ENABLED ??= String(Boolean(env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT));
-  if (name !== 'shopping-agent') for (const key of ['OPENAI_API_KEY', 'OPENAI_MODEL', 'LANGFUSE_PUBLIC_KEY', 'LANGFUSE_SECRET_KEY']) delete env[key];
+  if (name !== 'moks') for (const key of ['OPENAI_API_KEY', 'OPENAI_MODEL', 'LANGFUSE_PUBLIC_KEY', 'LANGFUSE_SECRET_KEY']) delete env[key];
   // PORT applies only to the public gateway; internal services use their defaults.
   if (name !== 'ai-gateway') delete env.PORT;
-  const child = spawn(name === 'shipping-service' ? 'java' : ['user-service', 'ai-gateway', 'shopping-agent'].includes(name) ? (process.env.PYTHON || 'python3') : process.execPath, name === 'shipping-service' ? ['-jar', 'services/shipping-service/build/libs/shipping-service.jar'] : [`services/${name}/server.${['user-service', 'ai-gateway', 'shopping-agent'].includes(name) ? 'py' : 'mjs'}`], { cwd: root, env, stdio: 'inherit' });
+  const child = spawn(name === 'shipping-service' ? 'java' : ['user-service', 'ai-gateway', 'moks'].includes(name) ? (process.env.PYTHON || 'python3') : process.execPath, name === 'shipping-service' ? ['-jar', 'services/shipping-service/build/libs/shipping-service.jar'] : [`services/${name}/server.${['user-service', 'ai-gateway', 'moks'].includes(name) ? 'py' : 'mjs'}`], { cwd: root, env, stdio: 'inherit' });
   children.push(child);
   child.on('error', () => stop(1));
   child.on('exit', code => { if (!stopping) stop(code || 1); });
