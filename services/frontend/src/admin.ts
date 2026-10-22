@@ -1,4 +1,5 @@
-import { appPath } from './paths.js';
+import { appPath, initCurrency } from './paths.js';
+void initCurrency();
 export {};
 interface AdminProduct { currency?: string; priceType?: string; showcase?: boolean; sku: string; name: string; description: string; price: number; instock: number; categories: string[]; archived: boolean; revision: number; available: number }
 interface AdminUser { id: string; name: string; email: string; role: 'customer' | 'admin' | 'superadmin'; disabled: boolean }

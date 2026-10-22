@@ -265,6 +265,11 @@ footer.store-footer .store-footer-bottom p{font-size:11px;margin:0;max-width:non
 
 .image-caption { display: block; padding: .4rem .7rem; font-size: .75rem; color: #536171; background: #f5f7f8; }
 
-.currency-control:not([hidden]) { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; padding:.5rem 1rem; border-top:1px solid #e5e7eb; font-size:.8rem; }
-.currency-control select { padding:.35rem; max-width:12rem; }
-.currency-control small { flex:1 1 18rem; color:#52606d; }
+.currency-control { position:relative; font-size:.8rem; }
+.currency-control:not([hidden]) { display:block; }
+#currency-button { padding:.5rem .65rem; border:1px solid #d6dde3; border-radius:8px; background:white; color:inherit; cursor:pointer; font:inherit; }
+#currency-button:disabled { cursor:default; opacity:.65; }
+.currency-menu { position:absolute; top:calc(100% + .5rem); right:0; z-index:100; width:min(18rem, 80vw); padding:1rem; background:white; color:#243342; border:1px solid #d6dde3; border-radius:12px; box-shadow:0 8px 24px #14253622; }
+.currency-menu label { display:block; margin-bottom:.5rem; }
+.currency-control select { width:100%; padding:.5rem; }
+.currency-control small { display:block; margin-top:.6rem; line-height:1.5; color:#52606d; }

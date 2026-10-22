@@ -1,4 +1,5 @@
-import { appPath } from './paths.js';
+import { appPath, initCurrency } from './paths.js';
+void initCurrency();
 import { initAccount, accountRequest, currentUser } from './account.js';
 const accountElement = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 const form = accountElement<HTMLFormElement>('account-form');

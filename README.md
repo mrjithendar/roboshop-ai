@@ -151,3 +151,22 @@ then process application services in the workflow order, and finish with
 `bash deploy-minikube.sh --finalize`. Single-service mode loads/restarts only that
 application and does not republish the catalogue or change ingress. The existing
 full-stack command `bash deploy-minikube.sh --load-images` remains supported.
+
+### Quick build and deploy to existing Minikube
+
+```bash
+bash build-push-ecr.sh frontend
+bash deploy-minikube.sh frontend
+
+# All application services (omit service names in both commands):
+bash build-push-ecr.sh
+bash deploy-minikube.sh
+```
+
+Both scripts use ECR images tagged `local`. Deployment refreshes the ECR pull
+secret, applies the selected service manifests with that image tag, and requests
+restarts without waiting for rollout status. Existing application secrets,
+configuration and databases are preserved; use the installation workflow for a
+fresh cluster. Requires AWS CLI credentials, kubectl and Python 3. Uses your
+existing kubeconfig and context `mk4`; override with `KUBE_CONTEXT=your-context`.
+Use `IMAGE_TAG=latest bash deploy-minikube.sh frontend` to deploy CI images instead.

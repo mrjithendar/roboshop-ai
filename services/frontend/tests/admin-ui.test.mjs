@@ -27,7 +27,7 @@ test('customer cannot open the admin interface or trigger privileged reads', asy
   const ui = setup(t, 'customer'); await ui.boot();
   assert.equal(ui.$('#admin-content').hidden, true);
   assert.equal(ui.$('#admin-login').hidden, false);
-  assert.equal(ui.calls.length, 1);
+  assert.deepEqual(ui.calls.filter(call => !call.path.startsWith('/api/currency/rates')).map(call => call.path), ['/api/auth/me']);
 });
 test('admin sees safe product editor but no super-admin controls', async t => {
   const ui = setup(t, 'admin'); await ui.boot();

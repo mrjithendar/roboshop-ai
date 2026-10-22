@@ -1,4 +1,5 @@
-import { appPath } from './paths.js';
+import { appPath, initCurrency } from './paths.js';
+void initCurrency();
 import { initAccount, currentUser, showLogin, type User } from './account.js';
 
 interface Details { phone?: string; company?: string; jobTitle?: string; bio?: string; countryCode?: string; timezone?: string }

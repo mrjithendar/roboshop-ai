@@ -46,4 +46,4 @@ for index in "${!services[@]}"; do
   docker push "$image"
 done
 echo "Done: pushed ${#services[@]} images tagged local for $platform."
-echo 'Deployment manifests currently use :latest; these :local pushes do not update those deployments.'
+echo 'Deploy these images with: bash deploy-minikube.sh [service ...]'

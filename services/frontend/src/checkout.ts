@@ -1,4 +1,4 @@
-import { appPath, productImage } from './paths.js';
+import { appPath, productImage, loadCurrencyRates, storefrontCurrencies, setupCurrencyButton, syncCurrencyButton } from './paths.js';
 import { currentUser, initAccount, showLogin } from './account.js';
 export {};
 
@@ -30,16 +30,37 @@ interface Country { code: string; name: string; cityCount: number }
 interface City { id: number; name: string; region?: string }
 class ApiError extends Error { constructor(message: string, readonly status: number) { super(message); } }
 const errorMessage = (error: unknown): string => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
-const money = (value: number, currency = pendingOrder?.currency || checkoutQuote?.cart.currency || cart.currency || 'INR') => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
+const money = (value: number, currency = pendingOrder?.currency || checkoutQuote?.cart.currency || cartPreview?.currency || cart.currency || 'INR') => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
 let cart: Cart = { items: [], total: 0 }, cartBusy = false;
 let checkoutKey: string | null = null;
 let checkoutQuote: { cart: Cart; quoteToken: string; expiresAt: number } | null = null;
 let quoteGeneration = 0, checkoutCurrency = '', currencyNoticePrefix = '';
+let cartPreview: Cart | null = null;
+let displayRates: Awaited<ReturnType<typeof loadCurrencyRates>> | null = null;
 const currencySelect = document.querySelector<HTMLSelectElement>('#display-currency');
-function invalidateQuote() { checkoutQuote = null; quoteGeneration++; }
+function invalidateQuote() { checkoutQuote = null; cartPreview = null; quoteGeneration++; }
+function previewGuestCart() {
+  const source = cart.currency || 'EUR';
+  const notice = document.querySelector('#currency-status');
+  const from = displayRates?.rates[source], to = displayRates?.rates[checkoutCurrency];
+  if (!from || !to || !checkoutCurrency) {
+    if (notice) notice.textContent = `Currency conversion unavailable. Showing original cart prices in ${source}. Sign in to confirm your payment total.`;
+    return;
+  }
+  // This is a separate display snapshot, never a payment quote or cart mutation.
+  const convert = (amount: number) => Math.round((amount / from * to + Number.EPSILON) * 100) / 100;
+  const items = cart.items.map(item => item.unavailable ? {...item} : {...item, currency: checkoutCurrency,
+    price: convert(item.price), lineTotal: Math.round(convert(item.price) * item.quantity * 100) / 100});
+  const subtotal = Math.round(items.reduce((sum, item) => sum + (item.unavailable ? 0 : item.lineTotal), 0) * 100) / 100;
+  const shipping = cart.shipping ? {...cart.shipping, cost: convert(cart.shipping.cost)} : null;
+  cartPreview = {...cart, currency: checkoutCurrency, items, subtotal, shipping, total: Math.round((subtotal + (shipping?.cost || 0))*100)/100};
+  if (notice) notice.textContent = currencyNoticePrefix + `Estimated cart total in ${checkoutCurrency}. Sign in to confirm the final payment quote.`;
+}
 async function quoteCheckout() {
   invalidateQuote();
-  if (!paymentConfig.currencies?.length || !currentUser || pendingOrder || !cart.items.length || cart.items.some(p => p.unavailable)) return;
+  if (!paymentConfig.currencies?.length || pendingOrder || !cart.items.length) return;
+  if (!currentUser) { previewGuestCart(); return; }
+  if (cart.items.some(p => p.unavailable)) return;
   const generation = quoteGeneration;
   const result = await api<{cart: Cart; quoteToken: string; expiresAt: number; paymentMode?: 'test' | 'live'}>('/api/payments/quote', { method: 'POST', body: JSON.stringify({currency: checkoutCurrency}) });
   if (generation !== quoteGeneration) return;
@@ -92,11 +113,12 @@ async function updateCart(sku: string, quantity: number) {
   finally { cartBusy = false; renderCart(); }
 }
 function renderCart() {
-  const displayCart = pendingOrder?.items ? pendingOrder : checkoutQuote?.cart || cart;
+  const displayCart = pendingOrder?.items ? pendingOrder : checkoutQuote?.cart || cartPreview || cart;
   if (currencySelect) currencySelect.disabled = cartBusy || Boolean(pendingOrder) || !paymentConfig.currencies?.length;
+  syncCurrencyButton();
   if (pendingOrder && currencySelect && pendingOrder.currency) {
     if (![...currencySelect.options].some(o => o.value === pendingOrder!.currency)) currencySelect.add(new Option(pendingOrder.currency, pendingOrder.currency));
-    currencySelect.value = pendingOrder.currency;
+    currencySelect.value = pendingOrder.currency; syncCurrencyButton();
     const notice = document.querySelector('#currency-status');
     if (notice) notice.textContent = `Payment in ${pendingOrder.currency} is already reserved. Its currency and total cannot change.`;
   }
@@ -176,16 +198,25 @@ async function checkPayment() {
   if (result.order) await paymentResult(result.order);
 }
 async function loadPaymentConfig() {
-  try { paymentConfig = await api<PaymentConfig>('/api/payments/config'); $('#payment-notice').textContent = paymentConfig.message || '';
+  try { paymentConfig = await api<PaymentConfig>('/api/payments/config');
+    if (paymentConfig.currencies) paymentConfig.currencies = paymentConfig.currencies.filter(code => storefrontCurrencies.includes(code)); $('#payment-notice').textContent = paymentConfig.message || '';
     if (paymentConfig.currencies?.length && currencySelect) {
       document.querySelector<HTMLElement>('#currency-control')!.hidden = false;
-      document.querySelector('label[for="display-currency"]')!.textContent = 'Payment currency';
+      setupCurrencyButton();
       let preferred = ''; try { preferred = localStorage.getItem('roboshop.displayCurrency') || ''; } catch { /* Optional storage */ }
+      if (!storefrontCurrencies.includes(preferred)) preferred = '';
+      const savedPreference = preferred;
+      displayRates = null;
+      if (!preferred || !currentUser) {
+        try { displayRates = await loadCurrencyRates(); } catch { /* Original currency remains usable. */ }
+      }
+      if (!preferred && displayRates?.suggestedCurrency) preferred = displayRates.suggestedCurrency;
       checkoutCurrency = paymentConfig.currencies.includes(preferred) ? preferred : paymentConfig.currencies.includes(cart.currency || '') ? cart.currency! : paymentConfig.currencies[0];
-      currencySelect.replaceChildren(...paymentConfig.currencies.map(code => new Option(code, code))); currencySelect.value = checkoutCurrency;
+      currencySelect.replaceChildren(...storefrontCurrencies.map(code => { const option = new Option(code, code); option.disabled = !paymentConfig.currencies!.includes(code); return option; })); currencySelect.value = checkoutCurrency;
+      if (!savedPreference) { try { localStorage.setItem('roboshop.displayCurrency', checkoutCurrency); } catch { /* Optional storage */ } }
       const notice = document.querySelector('#currency-status');
       currencyNoticePrefix = preferred && preferred !== 'original' && !paymentConfig.currencies.includes(preferred) ? `${preferred} is not available for payment. Review your total in ${checkoutCurrency} before paying. ` : '';
-      if (notice) notice.textContent = currencyNoticePrefix + 'Select your payment currency. Final totals are confirmed before payment.';
+      if (notice) notice.textContent = currencyNoticePrefix + 'Change your currency in the header. Final totals are confirmed before payment.';
     }
   }
   catch { paymentConfig = { enabled: false }; $('#payment-notice').textContent = 'Payments are unavailable. Please try again later.'; }

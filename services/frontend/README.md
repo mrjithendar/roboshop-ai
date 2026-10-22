@@ -81,3 +81,16 @@ Edit `templates/header.html` and `templates/footer.html` to update navigation ac
 Sign-in and registration use `/login` and `/register` (under the configured storefront prefix). Both render `auth.html` with `auth.ts`; there is no account modal or action dropdown. Successful authentication returns to an allowlisted storefront route supplied by `returnTo`, defaulting to `/account`. Update and deploy both frontend and nginx when adding routes.
 
 Both login and registration require a Turnstile challenge when the authentication provider is `turnstile`. Actions are `login` and `register`, validated on the gateway before credential checks. The Minikube configuration enables this provider and reads the shared Turnstile keys from `roboshop-secrets`.
+
+Cart currency follows the saved storefront selection, or the currency service's browser-region
+suggestion on direct entry. The selector offers currencies enabled for checkout. Guest carts
+use a separate, explicitly estimated display snapshot; signing in obtains an authoritative
+signed payment quote. FX failure keeps source prices with an explanation. Existing reserved
+payments keep their immutable currency and amount, even if the display preference changes.
+
+The shared header has the only currency selector: INR, USD, GBP, SGD and AUD.
+The initial choice uses the browser region hint returned by the currency service;
+unsupported regions default to INR. Manual choices persist across pages in this browser.
+Catalogue source currencies remain unchanged. Cart/checkout use the same selection;
+currencies not enabled by the payment service are disabled, and reserved orders keep
+their original currency. Conversion failures show original amounts rather than relabeling them.

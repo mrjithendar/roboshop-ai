@@ -340,3 +340,66 @@ test('expired currency quote refreshes for review without creating a provider or
  await ui.boot();ui.$('#checkout').click();await waitFor(()=>ui.$('#order-result').textContent.includes('Review it'));
  assert.equal(quotes,2);assert.equal(orders,0);
 });
+
+test('guest cart converts INR to saved currency without requesting a payment quote',async t=>{
+ const original={...cart,currency:'INR',subtotal:1200,total:1500,shipping:{...cart.shipping,cost:300},items:[{...product,currency:'INR',price:1200,lineTotal:1200,quantity:1}]};
+ const ui=setup(t,path=>{
+   const reply=body=>({ok:true,json:async()=>body});
+   if(path==='/api/auth/me')return reply({user:null});
+   if(path==='/api/cart')return reply(original);
+   if(path==='/api/payments/config')return reply({enabled:true,currencies:['INR','USD','GBP']});
+   if(path.startsWith('/api/currency/rates'))return reply({displayOnly:true,asOf:new Date().toISOString().slice(0,10),suggestedCurrency:'INR',rates:{INR:100,USD:1,GBP:0.8}});
+ },false,false,'cart');
+ ui.w.localStorage.setItem('roboshop.displayCurrency','USD');
+ await ui.boot();
+ assert.equal(ui.$('#display-currency').value,'USD');
+ assert.match(ui.$('#cart-total').textContent,/\$15\.00/);
+ assert.match(ui.$('#cart-subtotal').textContent,/\$12\.00/);
+ assert.match(ui.$('#currency-status').textContent,/Estimated cart total in USD/);
+ ui.$('#display-currency').value='GBP';ui.$('#display-currency').dispatchEvent(new ui.w.Event('change'));
+ await waitFor(()=>ui.$('#cart-total').textContent.includes('£12.00'));
+ assert.equal(original.total,1500);
+ assert.ok(!ui.calls.includes('/api/payments/quote'));
+ assert.equal(ui.w.localStorage.getItem('roboshop.displayCurrency'),'GBP');
+});
+
+test('direct cart entry uses regional currency then obtains an authoritative quote',async t=>{
+ let requested;
+ const ui=setup(t,(path,options)=>{
+   const reply=body=>({ok:true,json:async()=>body});
+   if(path==='/api/cart')return reply({...cart,currency:'INR'});
+   if(path==='/api/payments/config')return reply({enabled:true,currencies:['INR','USD']});
+   if(path.startsWith('/api/currency/rates'))return reply({displayOnly:true,asOf:new Date().toISOString().slice(0,10),suggestedCurrency:'USD',rates:{INR:100,USD:1}});
+   if(path==='/api/payments/quote'){requested=JSON.parse(options.body).currency;return reply({cart:{...cart,currency:'USD',total:8},quoteToken:'signed',expiresAt:Math.floor(Date.now()/1000)+300});}
+ },false,false,'cart');
+ await ui.boot();assert.equal(requested,'USD');assert.match(ui.$('#cart-total').textContent,/\$8\.00/);
+});
+
+test('guest FX failure keeps original amount and explains why conversion is unavailable',async t=>{
+ const ui=setup(t,path=>{
+  const reply=body=>({ok:true,json:async()=>body});
+  if(path==='/api/auth/me')return reply({user:null});
+  if(path==='/api/cart')return reply({...cart,currency:'INR'});
+  if(path==='/api/payments/config')return reply({enabled:true,currencies:['INR','USD']});
+  if(path.startsWith('/api/currency/rates'))throw new Error('offline');
+ },false,false,'cart');
+ ui.w.localStorage.setItem('roboshop.displayCurrency','USD');
+ await ui.boot();assert.match(ui.$('#cart-total').textContent,/₹15\.00/);
+ assert.match(ui.$('#currency-status').textContent,/conversion unavailable.*INR/);
+});
+
+test('reserved INR checkout stays fixed despite a saved USD preference',async t=>{
+ const reserved={...cart,currency:'INR',id:'reserved-order',status:'payment_pending',paymentCaptured:false,paymentMode:'test'};
+ const ui=setup(t,path=>{
+  const reply=body=>({ok:true,json:async()=>body});
+  if(path==='/api/cart')return reply({...cart,currency:'INR'});
+  if(path==='/api/payments/config')return reply({enabled:true,currencies:['INR','USD']});
+  if(path==='/api/payments/current')return reply({order:reserved});
+ },false,false,'cart');
+ ui.w.localStorage.setItem('roboshop.displayCurrency','USD');
+ await ui.boot();assert.equal(ui.$('#display-currency').value,'INR');
+ assert.equal(ui.$('#display-currency').disabled,true);
+ assert.match(ui.$('#currency-status').textContent,/already reserved/);
+ assert.ok(!ui.calls.includes('/api/payments/quote'));
+ assert.match(ui.$('#cart-total').textContent,/₹15\.00/);
+});

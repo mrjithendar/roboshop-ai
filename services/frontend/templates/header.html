@@ -3,11 +3,14 @@
   <div class="store-header-main">
     <a class="wordmark" href="/" aria-label="RoboShop home">RoboShop<span class="store-brand-mark" aria-hidden="true">.</span></a>
     <nav class="store-navigation" aria-label="Main navigation"><a href="/#collection">Shop all</a><a href="/#picks-title">Discover</a><a href="/account#orders">Orders</a></nav>
-    <div class="store-actions">{{ACCOUNT_CONTROL}}<a class="store-cart" id="bag-button" href="/cart" aria-label="View shopping cart"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 7h12l1 14H5L6 7Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>Cart</span>{{CART_COUNT}}</a></div>
+    <div class="store-actions"><div id="currency-control" class="currency-control" hidden>
+      <button id="currency-button" type="button" aria-expanded="false" aria-controls="currency-menu" aria-label="Change currency">Currency</button>
+      <div id="currency-menu" class="currency-menu" hidden>
+        <label for="display-currency">Currency</label>
+        <select id="display-currency" disabled></select>
+        <small id="currency-status" role="status">Selecting your local currency…</small>
+      </div>
+    </div>{{ACCOUNT_CONTROL}}<a class="store-cart" id="bag-button" href="/cart" aria-label="View shopping cart"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 7h12l1 14H5L6 7Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>Cart</span>{{CART_COUNT}}</a></div>
   </div>
-  <div id="currency-control" class="currency-control" hidden>
-    <label for="display-currency">Display currency</label>
-    <select id="display-currency" disabled><option>Original currency</option></select>
-    <small id="currency-status" role="status">Loading local currency estimates…</small>
-  </div>
+
 </header>
