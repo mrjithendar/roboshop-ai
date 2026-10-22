@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'lib'))
-from runtime import trace_context, ctx, propagation_headers, telemetry, trace_span
+from runtime import trace_context, ctx, propagation_headers, telemetry, trace_span, record_http_response
 from trace_routes import http_name, route_template, quiet_route
 from urllib.parse import urlsplit
 """Optional, authenticated embeddable assistant adapter. No shared service imports."""
@@ -35,7 +35,11 @@ WIDGET = Path(__file__).with_name('widget.js').read_bytes()
 def upstream(url, data=None, timeout=2, session=""):
     with trace_span(http_name('POST' if data is not None else 'GET',url),kind=3,
                     attributes={'server.address':urlsplit(url).hostname or '', 'url.template':route_template(url), 'http.request.method':'POST' if data is not None else 'GET'}):
-        return _upstream(url,data,timeout,session)
+        try:
+            return _upstream(url,data,timeout,session)
+        except HTTPError as error:
+            record_http_response(error.code)
+            raise
 
 def _upstream(url, data=None, timeout=2, session=""):
 
@@ -49,6 +53,7 @@ def _upstream(url, data=None, timeout=2, session=""):
     req = Request(url, data=payload, headers=headers)
     # URLs are operator-configured, never accepted from visitors. Forward only the explicitly validated rs_auth session cookie.
     with urlopen(req, timeout=timeout) as response:
+        record_http_response(response.status)
         raw = response.read(1024 * 1024 + 1)
         if len(raw) > 1024 * 1024:
             raise ValueError('Oversized upstream response')

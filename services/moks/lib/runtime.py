@@ -265,6 +265,20 @@ def text(value, name="Message", maximum=1000):
     return value.strip()
 
 
+def record_http_response(status=None):
+    """Actual transport metadata, independent of the sanitized caller error.
+
+    Reset before each attempt so a later connection failure cannot retain an
+    earlier retry response. Never attach transport metadata to a server span.
+    """
+    context = ctx.get()
+    if context and context.get("kind") == 3:
+        attributes = context.setdefault("attributes", {})
+        attributes.pop("http.response.status_code", None)
+        if type(status) is int and 100 <= status <= 599:
+            attributes["http.response.status_code"] = status
+
+
 def _request(url, data=None, headers=None, timeout=12, method=None):
     headers = {"content-type": "application/json", **(headers or {})}
     context = ctx.get()
@@ -276,10 +290,13 @@ def _request(url, data=None, headers=None, timeout=12, method=None):
         headers=headers,
         method=method,
     )
+    record_http_response()
     try:
         with urllib.request.urlopen(req, timeout=timeout) as response:
+            record_http_response(getattr(response, "status", None))
             return json.load(response)
     except urllib.error.HTTPError as error:
+        record_http_response(error.code)
         log_event("dependency_response_rejected", "WARN", dependency=urlsplit(url).hostname or "unknown", status=error.code)
         raise HttpError(502, "A dependent service is unavailable.") from error
     except Exception as error:
@@ -299,10 +316,13 @@ def _upstream(url, data=None, headers=None, timeout=15, method=None):
     context = ctx.get()
     if context:
         for key, value in propagation_headers().items(): req.add_header(key, value)
+    record_http_response()
     try:
         with urllib.request.urlopen(req, timeout=timeout) as response:
+            record_http_response(getattr(response, "status", None))
             return json.load(response)
     except urllib.error.HTTPError as error:
+        record_http_response(error.code)
         try:
             message = json.load(error).get(
                 "error", "Dependent service rejected the request."
@@ -505,7 +525,7 @@ def telemetry(service, context, start, route, status):
                 ),
             }
             for k, v in {
-                "http.response.status_code": status,
+                **({"http.response.status_code": status} if context.get("kind", 2) == 2 else {}),
                 **safe_attributes(context["attributes"]),
             }.items()
         ],

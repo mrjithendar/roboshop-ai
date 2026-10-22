@@ -29,11 +29,11 @@ export class Razorpay {
   async api(path, data) {
     if (!this.settings().enabled) throw new HttpError(503, 'Payments are not configured.');
     try {
-      const response = await clientSpan('HTTP Razorpay', async () => { const result = await this.fetcher(`https://api.razorpay.com/v1${path}`, {
+      const response = await clientSpan('HTTP Razorpay', async ctx => { const result = await this.fetcher(`https://api.razorpay.com/v1${path}`, {
         method: data ? 'POST' : 'GET', signal: AbortSignal.timeout(12000),
         headers: { Authorization: `Basic ${Buffer.from(`${this.credentials().keyId}:${this.credentials().secret}`).toString('base64')}`, 'content-type': 'application/json' },
         ...(data ? { body: JSON.stringify(data) } : {}),
-      }); if (!result.ok) throw new HttpError(502, 'Payment provider unavailable.'); return result; }, { 'server.address': 'api.razorpay.com', 'http.request.method': data ? 'POST' : 'GET' });
+      }); ctx.httpResponseStatus = result.status; if (!result.ok) throw new HttpError(502, 'Payment provider unavailable.'); return result; }, { 'server.address': 'api.razorpay.com', 'http.request.method': data ? 'POST' : 'GET' });
       if (!response.ok) throw new Error('Provider rejected request');
       return await response.json();
     } catch { throw new HttpError(502, 'Payment provider unavailable. Check payment status before trying again.'); }

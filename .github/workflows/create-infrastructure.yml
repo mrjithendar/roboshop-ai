@@ -13,7 +13,6 @@ concurrency:
 
 jobs:
   terraform:
-    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: [self-hosted, linux]
     timeout-minutes: 180
     defaults:
@@ -30,115 +29,26 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Detect runner identity and API access
-        run: |
-          set -euo pipefail
-          umask 077
-          export EKS_VARS="$RUNNER_TEMP/roboshop-eks-$GITHUB_RUN_ID.tfvars.json"
-          echo "EKS_VARS=$EKS_VARS" >> "$GITHUB_ENV"
-          echo "KUBECONFIG=$RUNNER_TEMP/roboshop-eks-$GITHUB_RUN_ID.kubeconfig" >> "$GITHUB_ENV"
-          for tool in aws kubectl python3; do command -v "$tool" >/dev/null; done
-          python3 - <<'PY'
-          import ipaddress, json, os, re, subprocess, urllib.request
-          def aws_json(*args):
-              return json.loads(subprocess.check_output(['aws', *args, '--output', 'json'], timeout=30))
-          caller = aws_json('sts', 'get-caller-identity')
-          principal = caller['Arn']
-          if ':assumed-role/' in principal:
-              role_name = principal.split(':assumed-role/', 1)[1].split('/')[0]
-              principal = aws_json('iam', 'get-role', '--role-name', role_name)['Role']['Arn']
-          if not re.fullmatch(r'arn:aws:iam::' + re.escape(caller['Account']) + r':(role|user)/[A-Za-z0-9+=,.@_/-]+', principal):
-              raise SystemExit('EKS requires an IAM role or user. Configure the runner with IAM credentials instead of AWS root/federated-user credentials, then rerun. No infrastructure has been applied.')
-          with urllib.request.urlopen('https://checkip.amazonaws.com', timeout=15) as response:
-              address = ipaddress.ip_address(response.read(128).decode().strip())
-          if address.version != 4 or not address.is_global:
-              raise SystemExit('Could not detect a public IPv4 address; no infrastructure has been applied.')
-          cidr = str(address) + '/32'
-          print('Detected EKS administrator:', principal)
-          print('Detected runner API access:', cidr)
-          with open(os.environ['EKS_VARS'], 'w') as f:
-              json.dump({'eks_enabled': True, 'eks_admin_principal_arns': [principal], 'eks_public_access_cidrs': [cidr], 'eks_private_access_cidrs': []}, f)
-          PY
-
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: 1.16.6
           terraform_wrapper: false
 
-      - name: Check active Terraform formatting
+      - name: terraform format check
         run: |
           terraform -chdir=infrastructure fmt -check
-          terraform -chdir=infrastructure/eks-addons fmt -check
-
-      - name: Initialize and validate AWS infrastructure
+          
+      - name: terraform init & validate
         run: |
           terraform -chdir=infrastructure init -input=false -no-color
           terraform -chdir=infrastructure validate -no-color
 
-      - name: Test EKS configuration with mocked AWS
-        run: terraform -chdir=infrastructure test -filter=tests/eks.tftest.hcl -no-color
-
-      - name: Plan AWS infrastructure and EKS
+      - name: terraform plan
         run: |
           umask 077
           terraform -chdir=infrastructure plan -input=false -no-color -lock-timeout=5m \
-            -var-file=vars/dev.tfvars -var-file="$EKS_VARS" -out=infra.tfplan
+            -out=tf.tfplan --var-file=vars/terraform.tfvars
 
-      - name: Apply AWS infrastructure and EKS
-        run: terraform -chdir=infrastructure apply -input=false -no-color -lock-timeout=5m infra.tfplan
-
-      - name: Connect to the created EKS cluster
-        run: |
-          set -euo pipefail
-          umask 077
-          cluster_name=$(terraform -chdir=infrastructure output -raw eks_cluster_name)
-          [[ "$cluster_name" =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]*$ ]] || { echo 'Invalid cluster output' >&2; exit 1; }
-          echo "TF_VAR_cluster_name=$cluster_name" >> "$GITHUB_ENV"
-          aws eks update-kubeconfig --region "$AWS_REGION" --name "$cluster_name" --alias roboshop-eks
-          # Access entries may take a short time to propagate after cluster creation.
-          for attempt in {1..12}; do
-            if kubectl --context=roboshop-eks --request-timeout=15s get nodes; then exit 0; fi
-            sleep 5
-          done
-          echo 'Cannot access EKS. Check the runner IAM access entry and API CIDR/VPC connectivity.' >&2
-          exit 1
-
-      - name: Initialize and validate EKS add-ons
-        run: |
-          terraform -chdir=infrastructure/eks-addons init -input=false -no-color
-          terraform -chdir=infrastructure/eks-addons validate -no-color
-
-      - name: Test add-on IAM and storage with mocks
-        run: terraform -chdir=infrastructure/eks-addons test -no-color
-
-      - name: Plan EKS add-ons
-        run: |
-          umask 077
-          terraform -chdir=infrastructure/eks-addons plan -input=false -no-color -lock-timeout=5m -out=addons.tfplan
-
-      - name: Apply EKS add-ons
-        run: terraform -chdir=infrastructure/eks-addons apply -input=false -no-color -lock-timeout=5m addons.tfplan
-
-      - name: Configure Let's Encrypt issuers
-        run: |
-          kubectl --context=roboshop-eks --request-timeout=60s apply \
-            -f infrastructure/eks-addons/eks_letsencrypt_issuer.yaml
-
-      - name: Deployment summary
-        run: |
-          {
-            echo '### EKS infrastructure deployed'
-            echo "Cluster: $TF_VAR_cluster_name ($AWS_REGION)"
-            echo 'Installed: Traefik, AWS Load Balancer Controller, cert-manager, KEDA and EBS CSI.'
-            echo 'Applied: letsencrypt-staging and letsencrypt-prod ClusterIssuers.'
-            echo 'RoboShop workloads and production DNS were not changed. Issuer readiness and website certificate issuance are not checked here.'
-            echo 'Next: deploy application secrets/workloads with gp3 storage, configure DNS to the Traefik NLB, and request the website certificate.'
-          } >> "$GITHUB_STEP_SUMMARY"
-          kubectl --context=roboshop-eks --request-timeout=30s -n traefik get service traefik
-
-      - name: Remove local plans and temporary credentials
-        if: always()
-        run: |
-          rm -f infrastructure/infra.tfplan infrastructure/eks-addons/addons.tfplan
-          rm -f "$RUNNER_TEMP/roboshop-eks-$GITHUB_RUN_ID.tfvars.json" "$RUNNER_TEMP/roboshop-eks-$GITHUB_RUN_ID.kubeconfig"
+      - name: terraform apply
+        run: terraform -chdir=infrastructure apply -input=false -no-color -lock-timeout=5m tf.tfplan

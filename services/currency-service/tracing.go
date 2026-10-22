@@ -57,7 +57,14 @@ func exportTrace(t traceContext, start time.Time, name string, kind int, status 
 		return
 	}
 	attributes := []any{}
+	if kind == 2 {
+		attributes = append(attributes, map[string]any{"key": "http.response.status_code", "value": map[string]string{"intValue": strconv.Itoa(status)}})
+	}
 	for k, v := range attrs {
+		if k == "http.response.status_code" {
+			attributes = append(attributes, map[string]any{"key": k, "value": map[string]string{"intValue": v}})
+			continue
+		}
 		attributes = append(attributes, map[string]any{"key": k, "value": map[string]string{"stringValue": v}})
 	}
 	resources := []any{}

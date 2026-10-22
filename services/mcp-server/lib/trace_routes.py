@@ -5,6 +5,8 @@ STATIC = frozenset(['/api/account/activity', '/api/account/addresses', '/api/acc
 PATTERNS = [('/api/products/[^/]+/reviews/mine', '/api/products/{product_id}/reviews/mine'), ('/api/products/[^/]+/reviews', '/api/products/{product_id}/reviews'), ('/api/products/[^/]+', '/api/products/{product_id}'), ('/api/admin/reviews/[^/]+', '/api/admin/reviews/{review_id}'), ('/api/admin/test-orders/[^/]+/reconcile', '/api/admin/test-orders/{order_id}/reconcile'), ('/api/admin/users/[^/]+/(profile|purchases|activity)', '/api/admin/users/{user_id}/{section}'), ('/api/admin/users/[^/]+', '/api/admin/users/{user_id}'), ('/api/admin/products/[^/]+', '/api/admin/products/{product_id}'), ('/api/account/addresses/[^/]+', '/api/account/addresses/{address_id}'), ('/internal/carts/[^/]+/clear-checked', '/internal/carts/{cart_id}/clear-checked'), ('/internal/carts/[^/]+/clear', '/internal/carts/{cart_id}/clear'), ('/internal/carts/[^/]+', '/internal/carts/{cart_id}'), ('/api/catalogue/product/[^/]+', '/api/catalogue/product/{product_id}'), ('/api/catalogue/category/[^/]+', '/api/catalogue/category/{category}'), ('/api/catalogue/search/[^/]+', '/api/catalogue/search/{query}'), ('/product/[^/]+', '/product/{product_id}'), ('/products/[^/]+', '/products/{category}'), ('/search/[^/]+', '/search/{query}')]
 
 STATIC = STATIC | frozenset('/api/shipping/countries /api/shipping/cities /internal/llm/readiness'.split())
+STATIC |= frozenset(['/api/admin/products', '/api/admin/settings', '/api/admin/llm/status', '/api/admin/llm/test', '/api/admin/llm/disconnect', '/admin', '/account', '/account/', '/cart', '/cart/', '/checkout', '/checkout/', '/', '/index.html', '/admin.html', '/product.html', '/checkout.html', '/profile.html', '/profile.js', '/checkout.js', '/product.js', '/paths.js', '/challenge.js', '/app.js', '/account.js', '/admin.js', '/styles.css', '/mcp/'])
+PATTERNS.extend([('/product-media/[a-z0-9-]+\\.(?:jpg|png)', '/product-media/{image}'), ('/illustrations/(robot|kit|component|accessory)\\.svg', '/illustrations/{type}.svg'), ('/images/[a-zA-Z0-9_-]+\\.png', '/images/{image}.png')])
 def route_template(path):
     path = urlsplit(path).path
     prefix = ''
@@ -16,6 +18,7 @@ def route_template(path):
     return ''
 
 def quiet_route(route):
+    if route.startswith('/roboshop/'): route = route[len('/roboshop'):]
     return route in ('/health','/health/live','/health/ready','/ready','/metrics','/available','/widget.js') or route.endswith('/ready')
 
 def http_name(method, path):

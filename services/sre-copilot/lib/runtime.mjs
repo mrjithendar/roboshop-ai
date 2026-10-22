@@ -95,7 +95,7 @@ export async function clientSpan(name, work, attributes = {}, kind = 3) {
   const ctx = { traceId: parent?.traceId || randomBytes(16).toString('hex'), spanId: randomBytes(8).toString('hex'), parentSpanId: parent?.spanId, tracestate: parent?.tracestate || "", quiet: parent?.quiet || quietRoute(attributes["url.template"] || ""), flags: parent?.flags || '01', service: parent?.service || process.env.OTEL_SERVICE_NAME || logService, kind, attributes: {} };
   const start = Date.now(); let status = 200;
   return context.run(ctx, async () => {
-    try { const result = await work(ctx); if (typeof result?.ok === "boolean" && Number.isInteger(result.status)) status = result.status; return result; }
+    try { const result = await work(ctx); if (typeof result?.ok === "boolean" && Number.isInteger(result.status)) status = result.status; if (Number.isInteger(result?.status)) ctx.httpResponseStatus = result.status; return result; }
     catch (error) { status = error.status || 503; throw error; }
     finally {
       logEvent('dependency_call_completed', {operation: name, dependency: attributes['server.address'], status, durationMs: Date.now()-start}, status >= 400 ? 'WARN' : 'INFO');
@@ -109,7 +109,9 @@ async function fetchReadRetry(url, options) {
   for (let attempt = 1; attempt <= 2; attempt++) {
     let response;
     try {
+      delete context.getStore()?.httpResponseStatus;
       response = await fetch(url, {...options, signal});
+      if (context.getStore()) context.getStore().httpResponseStatus = response.status;
       if (![502,503,504].includes(response.status)) return response;
     } catch (error) {
       if (!(error instanceof TypeError) || signal.aborted || attempt === 2 || !['GET','HEAD'].includes(method) || options.body != null) throw error;
@@ -150,7 +152,7 @@ export function exportSpan(service, ctx, start, name, status, attributes = {}) {
     traceId: ctx.traceId, spanId: ctx.spanId, ...(ctx.parentSpanId ? { parentSpanId: ctx.parentSpanId } : {}), name, kind: ctx.kind || 2, flags: parseInt(ctx.flags || '01',16), traceState: ctx.tracestate || '',
     startTimeUnixNano: String(BigInt(start) * 1000000n), endTimeUnixNano: String(BigInt(Date.now()) * 1000000n),
     status: { code: status >= 400 ? 2 : 0 },
-    attributes: Object.entries({ 'http.response.status_code': status, ...attributes }).map(([key, value]) => ({ key, value: typeof value === 'number' ? { intValue: String(value) } : { stringValue: String(value) } })),
+    attributes: Object.entries({ ...((ctx.kind || 2) === 2 ? {'http.response.status_code': status} : Number.isInteger(ctx.httpResponseStatus) ? {'http.response.status_code': ctx.httpResponseStatus} : {}), ...attributes }).map(([key, value]) => ({ key, value: typeof value === 'number' ? { intValue: String(value) } : { stringValue: String(value) } })),
   }] }] }] };
   for (const [url, headers] of targets) {
     pendingExports++;

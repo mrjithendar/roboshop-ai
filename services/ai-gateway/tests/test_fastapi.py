@@ -24,6 +24,22 @@ class FastAPIContract(unittest.TestCase):
         self.gateway=Gateway(mongomock.MongoClient().db,self.store)
         self.gateway.auth.current=Mock(return_value=None)
         self.client=TestClient(create_app(self.gateway));self.client.__enter__();self.addCleanup(lambda:self.client.__exit__(None,None,None))
+    def test_admin_server_span_names(self):
+        captured=[]
+        with patch('asgi_app.telemetry',side_effect=lambda service,ctx,start,name,status:captured.append((name,ctx['attributes']['http.route'],status))),patch.object(self.gateway,'handle',return_value={}):
+            for method,path in [('GET','/api/admin/products'),('GET','/api/admin/llm/status'),('POST','/api/admin/llm/test'),('POST','/api/admin/llm/disconnect')]:
+                response=self.client.request(method,path+'?private=secret')
+                self.assertEqual(captured[-1],(method+' '+path,path,response.status_code))
+        # Future explicitly registered parameterized routes use the framework
+        # template even before they enter the manual dispatcher vocabulary.
+        app=self.client.app
+        dispatch=next(r.endpoint for r in app.routes if getattr(r,'path',None)=='/api/admin/llm/status')
+        app.add_api_route('/trace-review/{item_id}',dispatch,methods=['GET'])
+        app.routes.insert(0,app.routes.pop())
+        with patch('asgi_app.telemetry',side_effect=lambda service,ctx,start,name,status:captured.append(name)),patch.object(self.gateway,'handle',return_value={}):
+            self.client.get('/trace-review/private-id')
+        self.assertEqual(captured[-1],'GET /trace-review/{item_id}')
+
     def test_safe_login_error_is_not_masked(self):
         with patch.object(self.gateway, 'handle', side_effect=HttpError(401, 'Invalid email or password.')):
             response = self.client.post('/api/auth/login', json={'email':'user@example.com','password':'private'})

@@ -98,8 +98,11 @@ def invoke(config, system, prompt, revision=0, purpose="chat", *, budget=None, f
                 or len(result["answer"]) > 12000
             ):
                 raise ValueError("invalid response")
-            attrs["gen_ai.response.model"] = result.get("model") or config["model"]
-            attrs["langfuse.observation.model.name"] = attrs["gen_ai.response.model"]
+            # Converse returns no resolved backend model identifier for a profile.
+            # Keep the requested ID for pricing matching, never invent a response ID.
+            if config["provider"] == "ollama" and result.get("model"):
+                attrs["gen_ai.response.model"] = result["model"]
+                attrs["langfuse.observation.model.name"] = result["model"]
             attrs["roboshop.model.resolution"] = "requested_identifier" if config["provider"] == "bedrock" else "provider_response"
             attrs["roboshop.llm.outcome"] = "success"
             return result

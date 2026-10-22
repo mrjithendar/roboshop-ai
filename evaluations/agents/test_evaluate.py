@@ -19,3 +19,17 @@ class Evaluations(unittest.TestCase):
   self.assertEqual(evaluate(self.dataset,self.dataset['cases'][5],row)['supported_structured_claims'],0)
  def test_missing_execution_ids_rejected(self):
   with self.assertRaises(ValueError):list(score_payloads(self.dataset,self.case,{'products':[]}))
+ def test_required_and_optional_claims(self):
+  required={**self.case,'claimsRequired':True}
+  row=self.result([])
+  self.assertEqual(evaluate(self.dataset,required,row)['supported_structured_claims'],0)
+  self.assertNotIn('supported_structured_claims',evaluate(self.dataset,self.case,row))
+  self.assertEqual(evaluate(self.dataset,required,{**row,'claims':[]})['supported_structured_claims'],0)
+  self.assertEqual(evaluate(self.dataset,self.case,{**row,'claims':[]})['supported_structured_claims'],1)
+ def test_claim_structure_and_values(self):
+  product=self.dataset['products'][0];field,value=next(iter(product['specifications'].items()))
+  valid={'sku':product['sku'],'field':field,'value':value}
+  required={**self.case,'claimsRequired':True}
+  for claims in (None,{},'text',[None],[[]],[{}],[{**valid,'sku':[]}],[{**valid,'sku':{}}],[{**valid,'sku':'unknown'}],[{**valid,'field':[]}],[{**valid,'field':{}}],[{**valid,'field':'unknown'}],[{**valid,'value':{'malformed':[]}}],[{**valid,'value':None}],[{k:v for k,v in valid.items() if k!='value'}]):
+   with self.subTest(claims=claims):self.assertEqual(evaluate(self.dataset,required,{**self.result([]),'claims':claims})['supported_structured_claims'],0)
+  self.assertEqual(evaluate(self.dataset,required,{**self.result([]),'claims':[valid]})['supported_structured_claims'],1)

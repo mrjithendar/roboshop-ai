@@ -73,7 +73,14 @@ def create_app(gateway=None):
         context['service'] = 'ai-gateway'
         token = ctx.set(context)
         req, extra, status = None, [], 200
-        route = route_template(request.url.path)
+        matched = getattr(request.scope.get('route'), 'path', None)
+        # Explicit FastAPI routes are authoritative. The legacy catch-all needs
+        # the bounded dispatcher vocabulary, never its raw captured path.
+        if matched and matched != '/{path:path}':
+            prefix = request.scope.get('root_path', '')
+            route = (prefix if prefix == '/roboshop' else '') + matched
+        else:
+            route = route_template(request.url.path)
         context['attributes'].update({'http.route': route, 'http.request.method': request.method})
         context['quiet'] = quiet_route(route)
         try:
@@ -139,7 +146,7 @@ def create_app(gateway=None):
                 durations[0] += elapsed
                 probe = request.url.path in ('/health/ready', '/api/ready')
                 log_event('request_completed', 'WARN' if status >= 400 else 'DEBUG' if probe else 'INFO', route=route, operation=operation_name(request.url.path), method=request.method, outcome="failure" if status >= 400 else "success", status=status, durationMs=round(elapsed*1000))
-                telemetry('ai-gateway', context, start, http_name(request.method, request.url.path), status)
+                telemetry('ai-gateway', context, start, (http_name(request.method, '') + ' ' + route).rstrip(), status)
             ctx.reset(token)
         payload = result if isinstance(result, bytes) else encode(result)
         headers = {**SECURITY, 'Content-Type':'application/json; charset=utf-8', 'X-Request-ID':context['traceId']}

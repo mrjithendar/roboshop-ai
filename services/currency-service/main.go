@@ -121,12 +121,14 @@ func (c *rateCache) refresh(ctx context.Context) (resultErr error) {
 	clientStart := time.Now()
 	resp, err := c.client.Do(req)
 	clientStatus := 200
+	clientAttrs := map[string]string{"server.address": "www.ecb.europa.eu", "http.request.method": "GET"}
 	if err != nil {
 		clientStatus = 503
 	} else {
 		clientStatus = resp.StatusCode
+		clientAttrs["http.response.status_code"] = strconv.Itoa(resp.StatusCode)
 	}
-	exportTrace(clientTrace, clientStart, "GET /stats/eurofxref/eurofxref-daily.xml", 3, clientStatus, map[string]string{"server.address": "www.ecb.europa.eu", "http.request.method": "GET"})
+	exportTrace(clientTrace, clientStart, "GET /stats/eurofxref/eurofxref-daily.xml", 3, clientStatus, clientAttrs)
 	if err != nil {
 		return err
 	}

@@ -15,6 +15,20 @@ import uuid
 
 DATASET = Path(__file__).parent/'catalogue-v1/dataset.json'
 
+def supported_claim(claim, catalogue):
+    if not isinstance(claim, dict) or not {"sku", "field", "value"} <= claim.keys():
+        return False
+    sku, field = claim["sku"], claim["field"]
+    if not isinstance(sku, str) or not isinstance(field, str) or sku not in catalogue:
+        return False
+    specs = catalogue[sku].get("specifications")
+    if not isinstance(specs, dict) or field not in specs:
+        return False
+    # JSON comparison avoids Python treating True as the number 1. Nested
+    # malformed values fail without hash/index operations on untrusted values.
+    return json.dumps(claim["value"], sort_keys=True) == json.dumps(specs[field], sort_keys=True)
+
+
 def evaluate(dataset, case, result):
     catalogue={p['sku']:p for p in dataset['products']}
     selected=result.get('products')
@@ -28,14 +42,14 @@ def evaluate(dataset, case, result):
             'accurate_prices':int(known and all(p.get('price')==catalogue[p['sku']]['price'] and p.get('currency')==catalogue[p['sku']]['currency'] for p in selected))}
     if 'claims' in result:
         claims=result['claims']
-        scores['supported_structured_claims']=int(isinstance(claims,list) and all(isinstance(c,dict) and c.get('sku') in catalogue and c.get('field') in catalogue[c['sku']]['specifications'] and c.get('value')==catalogue[c['sku']]['specifications'][c['field']] for c in claims))
+        scores['supported_structured_claims']=int(isinstance(claims,list) and (bool(claims) or not case.get('claimsRequired')) and all(supported_claim(c, catalogue) for c in claims))
     elif case.get('claimsRequired'):
         scores['supported_structured_claims']=0  # Required evidence absent, not a perfect placeholder.
     return scores
 
 def score_payloads(dataset, case, result):
     trace,observation=result.get('traceId',''),result.get('observationId','')
-    if not re.fullmatch('[a-f0-9]{32}',trace) or not re.fullmatch('[a-f0-9]{16}',observation):
+    if not re.fullmatch('[a-f0-9]{32}',trace) or not re.fullmatch('[a-f0-9]{16}',observation) or int(trace,16)==0 or int(observation,16)==0:
         raise ValueError('Actual execution traceId and observationId required')
     for name,value in evaluate(dataset,case,result).items():
         yield {'id':str(uuid.uuid5(uuid.NAMESPACE_URL,':'.join([dataset['version'],case['id'],trace,observation,name]))),
