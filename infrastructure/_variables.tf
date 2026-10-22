@@ -58,7 +58,6 @@ variable "ecr_repository_names" {
     "roboshop-catalogue-service",
     "roboshop-finder",
     "roboshop-currency-service",
-    "roboshop-fastapi-demo",
     "roboshop-frontend",
     "roboshop-mcp-server",
     "roboshop-nginx",

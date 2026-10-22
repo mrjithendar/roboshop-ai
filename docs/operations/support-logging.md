@@ -45,3 +45,30 @@ POST requests: timeouts can represent a successful payment with a lost response.
 Normal level is INFO; use LOG_LEVEL=DEBUG only for additional probe details in
 services that support it. No request bodies, passwords, authorization headers,
 Turnstile tokens, SMTP/API keys or raw exception strings are added to logs.
+
+## Business events and user identity
+
+`user_logged_in` is emitted only after successful authentication (including MFA)
+and session issuance. `user_login_mfa_required` records a pending second factor,
+not a successful login. `user_login_failed` includes a bounded normalized login
+email in `username`, outcome, safe reason/errorCode and trace ID. It deliberately
+does not distinguish a nonexistent account from a wrong password or disabled account.
+`user_registered` and `user_logged_out` cover registration and session revocation.
+MFA failures may lack a username because a submitted challenge is not a trusted identity.
+
+Identity fields appear only in user-service authentication events. They are personal
+data: restrict log access to authorized support and apply the organization's log
+retention policy. Passwords, tokens, raw request payloads, addresses and card data
+are never included. Do not paste identity-bearing log exports into public tickets.
+
+Cart logs include `cart_updated`, revision conflicts and payment-driven clearing.
+Node services include named payment creation/verification/reconciliation/webhook,
+catalogue and recommendation operation events. HTTP success means that operation
+completed, not necessarily that a payment was captured; authoritative capture
+remains `checkout_payment_captured` in the gateway with the order ID. Ingestion
+logs catalogue seed completion. Other endpoints retain route, outcome, duration,
+errorCode and trace correlation; infrastructure retains its native service logs.
+
+The standalone FastAPI demo was retired. FastAPI remains the AI gateway framework.
+Its ECR repository is removed from Terraform defaults; no AWS resources or images
+are deleted by these code changes. Review the next Terraform plan before applying.

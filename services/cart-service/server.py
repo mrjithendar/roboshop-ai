@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'lib'))
-from runtime import HttpError, serve, configure_telemetry
+from runtime import HttpError, serve, configure_telemetry, log_event
 import redis
 
 TTL = 7 * 86400
@@ -60,6 +60,7 @@ class CartService:
                     raise HttpError(400,'Expected checkout revision or an empty cart is required.')
             result=self.redis.eval(CLEAR, 2, key, 'roboshop:cart-cleared:' + order, TTL, revision, '1' if empty else '0')
             if result == -2: raise HttpError(409,'Cart revision differs from the paid checkout. Reconciliation required; cart preserved.')
+            log_event('cart_cleared_after_payment', orderId=order, outcome='success', reason='already_applied' if result == 0 else 'cleared')
             return {'ok': True}
         if req.method == 'POST' and not match[2]:
             data = req.body(); items = validate_items(data.get('items'))
@@ -69,7 +70,10 @@ class CartService:
                 revision = data.get('revision')
                 if type(revision) is not int or revision < 0: raise HttpError(400, 'Revision required.')
                 result = self.redis.eval(REPLACE, 1, key, revision, json.dumps(items), TTL)
-                if result < 0: raise HttpError(409, 'Cart changed or expired. Refresh and retry.')
+                if result < 0:
+                    log_event('cart_update_rejected', 'WARN', revision=revision, reason='revision_conflict_or_expired', outcome='failure')
+                    raise HttpError(409, 'Cart changed or expired. Refresh and retry.')
+                log_event('cart_updated', revision=result, outcome='success', reason='items_persisted')
         elif req.method != 'GET' or match[2]: raise HttpError(405, 'Method not allowed.')
         raw = self.redis.get(key)
         if not raw: raise HttpError(404, 'Cart expired.')

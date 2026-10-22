@@ -5,7 +5,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 export const context = new AsyncLocalStorage();
 
 let logService = process.env.OTEL_SERVICE_NAME || 'roboshop';
-const logFields = new Set('method route status durationMs dependency operation errorType errorCode provider reason revision port state attempt maxAttempts'.split(' '));
+const logFields = new Set('method route operation status durationMs dependency operation errorType errorCode provider reason revision port state attempt maxAttempts outcome'.split(' '));
 export function logEvent(event, fields = {}, level = 'INFO') {
   const levels = { DEBUG: 10, INFO: 20, WARN: 30, ERROR: 40 };
   if ((levels[level] || 20) < (levels[(process.env.LOG_LEVEL || 'INFO').toUpperCase()] || 20)) return;
@@ -165,10 +165,19 @@ export function serve(service, port, handler) {
         if (!['/health', '/metrics'].includes(route)) {
           // Route labels deliberately omit query strings, SKUs, cookies and prompts.
           const safeRoute = ['/api/auth', '/api/admin', '/api/settings', '/api/catalogue', '/api/products', '/api/recommendations', '/api/chat', '/api/cart', '/api/orders', '/api/payment', '/api/payments', '/api/shipping', '/api/ops', '/api/status', '/api/ready'].includes(route) ? route : 'other';
+          const operations = {
+            '/api/payment/orders':'payment_order_creation', '/api/payment/verify':'payment_verification',
+            '/api/payment/recover':'payment_recovery', '/api/payment/reconcile':'payment_reconciliation',
+            '/api/payment/webhook-check':'payment_webhook_verification', '/api/payment/lookup':'payment_lookup',
+            '/api/products':'catalogue_read', '/api/recommendations':'recommendations_read',
+            '/api/ops/summary':'operations_summary'
+          };
+          const operation = operations[url.pathname] || safeRoute;
+          if (operations[url.pathname]) logEvent(operation + (res.statusCode >= 400 ? '_failed' : '_completed'), {operation,method:req.method,status:res.statusCode,outcome:res.statusCode >= 400 ? 'failure' : 'success',reason:res.statusCode >= 400 ? 'see_correlated_request_error' : 'operation_completed'}, res.statusCode >= 400 ? 'WARN' : 'INFO');
           const key = `route="${safeRoute}",status="${res.statusCode}"`;
           counts.set(key, (counts.get(key) || 0) + 1);
           requests++; duration += (Date.now() - start) / 1000;
-          logEvent('request_completed', {method: req.method, route: safeRoute, status: res.statusCode, durationMs: Date.now() - start}, res.statusCode >= 400 ? 'WARN' : probe ? 'DEBUG' : 'INFO');
+          logEvent('request_completed', {method: req.method, route: safeRoute, operation, status: res.statusCode, outcome: res.statusCode >= 400 ? 'failure' : 'success', reason: res.statusCode >= 500 ? 'service_or_dependency_failure' : res.statusCode >= 400 ? 'request_rejected' : 'operation_completed', durationMs: Date.now() - start}, res.statusCode >= 400 ? 'WARN' : probe ? 'DEBUG' : 'INFO');
           exportSpan(service, ctx, start, `${req.method} ${safeRoute}`, res.statusCode, ctx.attributes);
         }
       }

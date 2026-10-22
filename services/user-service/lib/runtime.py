@@ -62,10 +62,12 @@ SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", "roboshop")
 
 OPERATIONS = frozenset("/api/auth/login /api/auth/register /api/auth/logout /api/auth/challenge /api/auth/me /api/auth/mfa/verify /api/auth/password/request /api/auth/password/reset /api/account/profile /api/account/purchases /api/payments/config /api/payments/orders /api/payments/quote /api/payments/verify /api/payments/current /api/payments/status /api/payments/webhook /api/shipping/quote /api/admin/llm /api/admin/llm/test /api/admin/llm/disconnect /api/admin/llm/status /api/chat /api/cart /internal/session /internal/limit /internal/address /internal/purchase /internal/verified-purchase /internal/request /internal/chat /internal/llm/config /internal/llm/test".split())
 def operation_name(path):
+    if re.fullmatch(r"/internal/carts/[a-f0-9-]{36}(/clear|/clear-checked)?", path):
+        return "/internal/carts/{cartId}" + ("/clear" if path.endswith(("/clear", "/clear-checked")) else "")
     return path if path in OPERATIONS else "other"
 
 # Service-local structured logs; never serialize arbitrary request/exception data.
-LOG_FIELDS = frozenset("method route status durationMs dependency operation errorType errorCode provider model reason revision backend port state orderId traceId source attempt maxAttempts delayMs".split())
+LOG_FIELDS = frozenset("method route status durationMs dependency operation errorType errorCode provider model reason revision backend port state orderId traceId source attempt maxAttempts delayMs username userId outcome".split())
 def log_event(event, level="INFO", **fields):
     levels = {"DEBUG": 10, "INFO": 20, "WARN": 30, "ERROR": 40}
     if levels.get(level, 20) < levels.get(os.getenv("LOG_LEVEL", "INFO").upper(), 20):
@@ -550,7 +552,7 @@ def application(service, handler):
                 duration[0] += elapsed
             probe = req.path.endswith("/ready")
             log_event("request_completed", "WARN" if status >= 400 else "DEBUG" if probe else "INFO",
-                      method=req.method, route=route, operation=operation_name(req.path), status=status, durationMs=round(elapsed * 1000))
+                      method=req.method, route=route, operation=operation_name(req.path), outcome="failure" if status >= 400 else "success", status=status, durationMs=round(elapsed * 1000))
             telemetry(service, context, start, req.method + " " + route, status)
         ctx.reset(token)
         return [b"" if req.method == "HEAD" else payload]

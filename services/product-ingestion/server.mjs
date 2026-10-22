@@ -1,8 +1,9 @@
-import { serve, json } from './lib/runtime.mjs';
+import { serve, json, logEvent } from './lib/runtime.mjs';
 import { connectMongo } from './lib/mongo.mjs';
 import { seedProducts, readProducts } from './lib/products.mjs';
 const { db } = await connectMongo();
 await seedProducts(db);
+logEvent('catalogue_seed_completed', {reason:'missing_products_seeded_existing_edits_preserved',outcome:'success'});
 serve('product-ingestion', 4101, async (req, res, url) => {
   if (req.method === 'GET' && url.pathname === '/api/products') return json(res, { products: await readProducts(db), checkoutCurrency: 'INR', source: 'mongodb' });
   if (req.method === 'GET' && url.pathname === '/api/catalogue/ready') { await db.command({ ping: 1 }); return json(res, { status: 'ok' }); }

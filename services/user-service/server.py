@@ -9,12 +9,18 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'lib'))
-from runtime import HttpError, Request, serve, upstream, configure_telemetry, log_event
+from runtime import HttpError, Request, serve, upstream, configure_telemetry, log_event, error_details
 from accounts import Auth, connect_mongo, public_user, require_role
 from account_security import AccountSecurity
 from customers import Customers
 from user_profile import read_profile, update_profile, update_photo
 from registration import Registration, client_address
+
+def login_identity(data):
+    # Login is email-based. Only a bounded normalized identifier is logged, never
+    # arbitrary input, password, MFA code, challenge token or session cookie.
+    value = data.get("email", "") if isinstance(data, dict) else ""
+    return value.strip().lower() if isinstance(value, str) and re.fullmatch(r"[^\s@\x00-\x1f]{1,64}@[^\s@\x00-\x1f]{1,190}", value.strip()) else "invalid-or-missing"
 
 class UserService:
     def __init__(self, db):
@@ -122,25 +128,33 @@ class UserService:
                 raise HttpError(403, "Origin not allowed.")
             if path.endswith("/logout"):
                 self.auth.logout(token)
+                log_event("user_logged_out", userId=str((req.user or {}).get("id", "unknown")), outcome="success", reason="session_revoked")
                 req.set_cookie("rs_auth", "", 0)
                 req.set_cookie("rs_session", "", 0)
                 return {"loggedOut": True}
-            self.auth.limit(client_address(req))
             data = req.body()
-            if path.endswith("/mfa/verify"):
-                user = self.security.finish_login(data)
-            else:
-                self.registration.check(data, client_address(req), "register" if path.endswith("/register") else "login")
-                log_event("authentication_challenge_passed", operation=path)
-                user = self.auth.register(data) if path.endswith("/register") else self.auth.login(data)
-                if user.get("mfa"):
-                    return self.security.challenge(user)
-            self.customers.record_login(user["_id"], client_address(req), req.headers.get("user-agent", ""), registration=path.endswith("/register"))
-            new = self.auth.issue(user)
-            self.auth.logout(token)
-            req.set_cookie("rs_auth", new, 28800)
-            req.user = public_user(user)
-            return {"user": req.user}, 201 if path.endswith("/register") else 200, []
+            try:
+                self.auth.limit(client_address(req))
+                if path.endswith("/mfa/verify"):
+                    user = self.security.finish_login(data)
+                else:
+                    self.registration.check(data, client_address(req), "register" if path.endswith("/register") else "login")
+                    log_event("authentication_challenge_passed", operation=path)
+                    user = self.auth.register(data) if path.endswith("/register") else self.auth.login(data)
+                    if user.get("mfa"):
+                        result = self.security.challenge(user)
+                        log_event("user_login_mfa_required", username=login_identity(data), userId=str(user["_id"]), outcome="pending", reason="second_factor_required")
+                        return result
+                self.customers.record_login(user["_id"], client_address(req), req.headers.get("user-agent", ""), registration=path.endswith("/register"))
+                new = self.auth.issue(user)
+                self.auth.logout(token)
+                req.set_cookie("rs_auth", new, 28800)
+                req.user = public_user(user)
+                log_event("user_registered" if path.endswith("/register") else "user_logged_in", username=login_identity({"email": user.get("email", "")}), userId=str(user["_id"]), outcome="success", reason="session_issued")
+                return {"user": req.user}, 201 if path.endswith("/register") else 200, []
+            except Exception as error:
+                log_event("user_registration_failed" if path.endswith("/register") else "user_login_failed", "WARN", username=login_identity(data), operation=path, outcome="failure", **error_details(error))
+                raise
         if path.startswith("/api/account/"):
             require_role(req.user)
             user_id = req.user["id"]

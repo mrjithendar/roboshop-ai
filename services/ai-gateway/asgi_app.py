@@ -137,7 +137,7 @@ def create_app(gateway=None):
                 counts[(route,status)] += 1
                 durations[0] += elapsed
                 probe = request.url.path in ('/health/ready', '/api/ready')
-                log_event('request_completed', 'WARN' if status >= 400 else 'DEBUG' if probe else 'INFO', route=route, operation=operation_name(request.url.path), method=request.method, status=status, durationMs=round(elapsed*1000))
+                log_event('request_completed', 'WARN' if status >= 400 else 'DEBUG' if probe else 'INFO', route=route, operation=operation_name(request.url.path), method=request.method, outcome="failure" if status >= 400 else "success", status=status, durationMs=round(elapsed*1000))
                 telemetry('ai-gateway', context, start, request.method+' '+route, status)
             ctx.reset(token)
         payload = result if isinstance(result, bytes) else encode(result)

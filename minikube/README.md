@@ -342,3 +342,9 @@ python3 minikube/kubeconfig.py --merge "$HOME/.kube/vultr-minikube.json" "$HOME/
 ```
 
 This offline import does not fix expired certificates or blocked API ports.
+
+### Argo CD
+
+Run `bash minikube/deploy-argocd.sh` to install Argo CD at
+`https://jithendar.com/argocd/` using the existing Traefik and Let's Encrypt issuer.
+See [Argo CD setup and troubleshooting](argocd/README.md) for login and CLI commands.

@@ -10,7 +10,7 @@ region="${AWS_REGION:-us-east-1}"
 account="${AWS_ACCOUNT_ID:-881026659929}"
 tag="${IMAGE_TAG:-local}"
 registry="$account.dkr.ecr.$region.amazonaws.com"
-services=(ai-gateway cart-service catalogue-service currency-service fastapi-demo
+services=(ai-gateway cart-service catalogue-service currency-service
   finder frontend kafka-bridge mcp-server nginx payment-service product-ingestion
   recommendation-service shipping-service shopping-agent sre-copilot user-service)
 if (( $# )); then services=("$@"); fi
@@ -26,7 +26,7 @@ done
 [[ "$tag" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$ ]] || { echo 'Invalid IMAGE_TAG.' >&2; exit 1; }
 for service in "${services[@]}"; do
   case "$service" in
-    ai-gateway|cart-service|catalogue-service|currency-service|fastapi-demo|finder|frontend|kafka-bridge|mcp-server|nginx|payment-service|product-ingestion|recommendation-service|shipping-service|shopping-agent|sre-copilot|user-service) ;;
+    ai-gateway|cart-service|catalogue-service|currency-service|finder|frontend|kafka-bridge|mcp-server|nginx|payment-service|product-ingestion|recommendation-service|shipping-service|shopping-agent|sre-copilot|user-service) ;;
     *) echo "Unknown application service: $service" >&2; exit 1 ;;
   esac
   test -f "services/$service/$service-minikube.yaml"
