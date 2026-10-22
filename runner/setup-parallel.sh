@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Five runner processes provide five job slots. Keep the existing first runner.
+# Ten runner processes provide ten job slots. Keep the existing first runner.
 set +x
 set -euo pipefail
 umask 077
-count=${RUNNER_COUNT:-5}
+count=${RUNNER_COUNT:-10}
 [[ "$count" =~ ^[1-9][0-9]*$ ]] && (( count <= 20 )) || { echo 'RUNNER_COUNT must be 1–20.' >&2; exit 1; }
 repo=${1:-mrjithendar/roboshop-ai}
 [[ "$repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Repository must be OWNER/REPOSITORY.' >&2; exit 1; }

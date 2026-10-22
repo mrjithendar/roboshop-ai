@@ -8,6 +8,8 @@ docker run --rm \
 PUBLIC_HOST=jithendar.com PROFILE=mk4 NODES=4 CPUS=2 MEMORY=2048 bash minikube/setup.sh
 VULTR_HOST=root@jithendar.com API_HOST=jithendar.com PROFILE=mk4 bash minikube/kubeconfig.sh
 
+bash runner/setup-parallel.sh mrjithendar/roboshop-ai mrjithendar-github-pat us-east-1
+
 #VPC
 terraform -chdir=infrastructure fmt -check
 terraform -chdir=infrastructure init -input=false -no-color

@@ -25,7 +25,7 @@ echo "$RUNNER_NAME" >> "$CALL_LOG"
             for _ in range(2):
                 result = subprocess.run(['bash', str(root / 'setup-parallel.sh')], env=env, capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual((root / 'calls').read_text().splitlines(), ['host', 'host-2', 'host-3', 'host-4', 'host-5'])
+            self.assertEqual((root / 'calls').read_text().splitlines(), ['host'] + [f'host-{slot}' for slot in range(2, 11)])
             (root / 'runner/.runner').write_text(json.dumps({'gitHubUrl':'https://github.com/other/repo'}))
             result = subprocess.run(['bash', str(root / 'setup-parallel.sh')], env=env, capture_output=True, text=True)
             self.assertNotEqual(result.returncode, 0)

@@ -302,7 +302,7 @@ bash runner/setup.sh mrjithendar/roboshop-ai mrjithendar-github-pat us-east-1
 A PAT is exchanged for a fresh registration token on each registration attempt.
 Setup cannot refresh an expired raw registration token without an authorized PAT.
 
-## Five concurrent jobs
+## Ten concurrent jobs
 
 A runner process accepts one job at a time. On the existing Linux runner host run:
 
@@ -310,25 +310,25 @@ A runner process accepts one job at a time. On the existing Linux runner host ru
 bash runner/setup-parallel.sh
 ```
 
-This reuses `$HOME/actions-runner` as slot 1 and creates slots 2–5 under
-`$HOME/actions-runner-2` through `-5`, with separate registration, work directories,
+This reuses `$HOME/actions-runner` as slot 1 and creates slots 2–10 under
+`$HOME/actions-runner-2` through `-10`, with separate registration, work directories,
 private tools and systemd services. Active existing services are not stopped.
 Rerunning resumes incomplete setup. Authenticate with GitHub CLI or supply GH_TOKEN so each slot obtains a fresh
 registration token. The optional AWS secret can still supply a PAT; an expired
 registration token cannot register additional runners. GitHub App private-key
 authentication is not implemented by this installer.
 
-Optional overrides: `RUNNER_COUNT=5`, `RUNNER_DIR=/path/actions-runner`, and
+Optional overrides: `RUNNER_COUNT=10`, `RUNNER_DIR=/path/actions-runner`, and
 `RUNNER_NAME=build-host`. Positional arguments match `setup.sh`. All slots use the
 invoking user's Docker access, AWS configuration and kubeconfig. Existing workflow
 `self-hosted` labels can schedule jobs on these runners without YAML duplication.
-Verify all five are Online in GitHub **Settings → Actions → Runners**.
+Verify all ten are Online in GitHub **Settings → Actions → Runners**.
 
-This enables up to five self-hosted jobs, not five whole workflows regardless of
+This enables up to ten self-hosted jobs, not ten whole workflows regardless of
 job dependencies. Hosted jobs have separate capacity. Deployment and Terraform
 concurrency locks remain in place. Image publishing uses a private Docker config
 per job so one runner's ECR logout does not erase another runner's credentials.
-The runners still share CPU, RAM, disk and the Docker daemon; five simultaneous
+The runners still share CPU, RAM, disk and the Docker daemon; ten simultaneous
 multi-architecture builds can compete with Minikube on the same host. No extra
 host resources are provisioned. Lowering the count does not uninstall runners.
 
