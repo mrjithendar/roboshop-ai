@@ -28,13 +28,14 @@ spec:
     targetPort: 27017
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: mongodb
   namespace: roboshop-ai
   labels:
     app.kubernetes.io/part-of: roboshop-ai
 spec:
+  serviceName: mongodb-headless
   replicas: 1
   selector:
     matchLabels:
@@ -109,5 +110,20 @@ spec:
           - key: 10-app-user.js
             path: 10-app-user.js
           defaultMode: 365
-  strategy:
-    type: Recreate
+  updateStrategy:
+    type: RollingUpdate
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-headless
+  namespace: roboshop-ai
+spec:
+  clusterIP: None
+  selector:
+    app: mongodb
+  ports:
+  - name: mongodb
+    port: 27017
+    targetPort: 27017

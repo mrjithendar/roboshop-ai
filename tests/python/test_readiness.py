@@ -42,6 +42,7 @@ class ReadinessTests(unittest.TestCase):
             cart = self.gateway.handle(self.req('/api/cart', 'POST', b'{"sku":"ROBOT","quantity":1}'))
             self.assertEqual(cart['subtotal'], 199)
             self.assertEqual(self.gateway.handle(self.req('/api/recommendations'))[0]['feature'], 'recommendations')
+            self.gateway.auth.current.return_value = {'id':'customer','role':'customer'}
             self.gateway.llm.current = lambda: {'config': {'provider':'bedrock'}, 'revision':1}
             self.assertEqual(self.gateway.handle(self.req('/api/chat', 'POST', b'{"message":"Help"}'))[0]['code'], 'feature-unavailable')
             self.assertEqual(self.gateway.handle(self.req('/api/ops'))[1], 503)

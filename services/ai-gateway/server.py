@@ -26,6 +26,7 @@ from llm_config import service_headers, unconfigured, authenticate_service
 from catalogue import retrieve
 from client_address import client_address
 from reviews import Reviews
+from chat_history import ChatHistory
 from api_models import ChatRequest, CheckoutRequest, CurrencyQuoteRequest, validate
 from readiness import gateway_readiness
 from product_details import related, require_purchasable, checkout_provenance
@@ -49,6 +50,7 @@ def expectation(o):
 
 class Gateway:
     def __init__(self, db, store):
+        self.chat_history = ChatHistory(db)
         self.db = db
         self.store = store
         self.auth = UserClient()
@@ -559,11 +561,17 @@ class Gateway:
                     if self.store.available(p) > 0
                 ]
             return result
+        if path == "/api/chat/history" and method == "GET":
+            authenticate_service(req.headers)
+            user = require_role(req.user)
+            return {"turns": self.chat_history.read(user["id"])}
         if path == "/api/chat" and method == "POST":
             authenticate_service(req.headers)
+            user = require_role(req.user)
             self.limit(req, True)
             data = req.body()
             message = text(validate(ChatRequest, data).message)
+            previous = self.chat_history.read(user["id"])
             active = self.llm.current()
             if active["config"]["provider"] == "none":
                 log_event("ai_not_configured", reason="superadmin_configuration_required")
@@ -579,7 +587,7 @@ class Gateway:
                 result = request(
                     self.urls["agent"] + "/internal/chat",
                     {
-                        "message": message,
+                        "message": self.chat_history.with_context(message, previous),
                         "unavailableSkus": unavailable,
                         "config": active["config"],
                         "revision": active["revision"],
@@ -601,6 +609,7 @@ class Gateway:
                     for p in result["products"]
                     if self.store.available(p) > 0
                 ]
+            self.chat_history.save(user["id"], message, result)
             return result
         if path == "/api/ops" and method == "GET":
             try:

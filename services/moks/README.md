@@ -126,3 +126,14 @@ CI publishes `:latest`; the simple build/deploy scripts use `:local` by default.
 Do not remove the old services until the replacement is ready and chat works.
 No provider reconfiguration is needed. Langfuse/OpenTelemetry now identify this
 workload as `moks`, so older traces remain under `shopping-agent`.
+
+## Persistent conversations
+
+For signed-in users, `/history` proxies the authenticated gateway history endpoint.
+Only the `rs_auth` cookie is forwarded alongside service authorization; user IDs
+and browser-supplied context cannot select or overwrite another account's history.
+The gateway stores the latest 40 completed exchanges in MongoDB `chat_history`.
+The widget reloads them when opened, and clears its display after logout. Recent
+saved turns provide bounded follow-up context, including after a page refresh.
+Unsent drafts and failed provider requests are not persisted. No MongoDB credential
+is added to Moks; the gateway owns access to the collection.

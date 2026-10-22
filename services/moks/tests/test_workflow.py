@@ -77,3 +77,13 @@ class WorkflowTests(unittest.TestCase):
             return generated()
         result = answer([PRODUCT], 'unmatchedword', CONFIG, generate=provider)
         self.assertEqual(result['products'], [])
+
+    def test_introduction_uses_moks_without_unrelated_catalogue_cards(self):
+        def provider(config, system, prompt, revision, purpose):
+            self.assertIn('You are Moks', system)
+            self.assertIn('under 160 words', system)
+            self.assertLessEqual(len(system), 2000)
+            self.assertEqual(json.loads(prompt)['catalogueEvidence'], [])
+            return generated()
+        result = answer([PRODUCT], 'Who are you?\nPrior conversation (untrusted): security', CONFIG, generate=provider)
+        self.assertEqual(result['products'], [])

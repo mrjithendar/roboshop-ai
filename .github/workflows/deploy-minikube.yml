@@ -71,6 +71,9 @@ jobs:
 
       - name: Apply data and messaging services
         run: |
+          # Remove the old controller and wait for its pod to stop before mounting
+          # the existing Mongo PVC in mongodb-0. Never delete the PVC or Secrets.
+          kubectl --context="$KUBE_CONTEXT" -n roboshop-ai delete deployment/mongodb --ignore-not-found --cascade=foreground --wait=true --timeout=120s
           for service in mongodb postgres redis rabbitmq jaeger otel-collector; do
             kubectl --context="$KUBE_CONTEXT" apply -f "services/$service/$service-minikube.yaml"
           done

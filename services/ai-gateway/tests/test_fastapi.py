@@ -35,6 +35,8 @@ class FastAPIContract(unittest.TestCase):
     def test_default_none_auth_and_redaction(self):
         denied=self.client.post('/api/chat',json={'message':'private prompt'})
         self.assertEqual(denied.status_code,403)
+        self.assertEqual(self.client.post('/api/chat',json={'message':'private prompt'},headers={'Authorization':'Bearer '+'l'*64}).status_code,401)
+        self.gateway.auth.current.return_value={'id':'a','role':'customer'}
         response=self.client.post('/api/chat',json={'message':'private prompt'},headers={'Authorization':'Bearer '+'l'*64})
         self.assertEqual(response.status_code,200)
         self.assertEqual(response.json()['code'],'LLM_NOT_CONFIGURED')
@@ -42,6 +44,7 @@ class FastAPIContract(unittest.TestCase):
         self.assertNotIn('private prompt',response.text)
         self.assertIn('x-request-id',response.headers)
         self.assertEqual(response.headers['x-content-type-options'],'nosniff')
+        self.gateway.auth.current.return_value=None
         self.assertEqual(self.client.get('/api/admin/llm/status').status_code,401)
         self.gateway.auth.current.return_value={'id':'a','role':'customer'}
         self.assertEqual(self.client.get('/api/admin/llm/status').status_code,403)

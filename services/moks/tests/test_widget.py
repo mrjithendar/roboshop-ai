@@ -35,7 +35,8 @@ class FinderTests(unittest.TestCase):
             status,_,body=self.call({'message':'Which one?','context':'Compare A and B'})
             self.assertTrue(status.startswith('200'))
             self.assertEqual(body['products'][0]['slug'],'one')
-            self.assertIn('Compare A and B',backend.call_args.args[1]['message'])
+            self.assertEqual(backend.call_args.args[1]['message'], 'Which one?')
+            self.assertIn('session', backend.call_args.kwargs)
             self.assertNotIn('verificationToken',body)
 
     def test_logout_and_expiry_rechecked_on_every_message(self):
@@ -114,5 +115,18 @@ class FinderTests(unittest.TestCase):
                 self.assertTrue(self.call({'message':'help'})[0].startswith('429'))
         finally:
             for _ in range(4):s.SLOTS.release()
+
+    def test_history_forwards_only_valid_session_not_other_cookies(self):
+        environ={'PATH_INFO':'/history','REQUEST_METHOD':'GET','HTTP_COOKIE':'rs_auth='+'a'*64+'; other=private'}
+        status=[]
+        with patch.object(s,'upstream',return_value={'turns':[]}) as backend:
+            body=b''.join(s.application(environ,lambda line,headers:status.append(line)))
+            self.assertEqual(json.loads(body),{'turns':[]})
+            self.assertEqual(backend.call_args.kwargs['session'],'a'*64)
+            self.assertTrue(backend.call_args.args[0].endswith('/api/chat/history'))
+        with patch.object(s,'upstream') as backend:
+            environ['HTTP_COOKIE']='rs_auth=invalid'
+            s.application(environ,lambda line,headers:status.append(line))
+            self.assertTrue(status[-1].startswith('401'));backend.assert_not_called()
 
 if __name__ == '__main__': unittest.main()

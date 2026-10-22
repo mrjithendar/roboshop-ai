@@ -63,7 +63,7 @@ def handle(req):
 
     if config["provider"] == "none":
         return unconfigured()
-    message = text(data.get("message"))
+    message = text(data.get("message"), maximum=3000)
     products = fetch(
         os.getenv("CATALOGUE_URL", os.getenv("INGESTION_URL", "http://127.0.0.1:4108")) + "/api/products", deadline=deadline, timeout=2
     )["products"]
@@ -90,7 +90,7 @@ def create_application():
     from widget import application as widget_application
     engine = engine_application("moks", handle)
     def application(environ, start_response):
-        if environ.get("PATH_INFO") in ("/widget.js", "/available", "/chat"):
+        if environ.get("PATH_INFO") in ("/widget.js", "/available", "/chat", "/history"):
             return widget_application(environ, start_response)
         return engine(environ, start_response)
     return application
