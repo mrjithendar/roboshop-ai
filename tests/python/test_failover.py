@@ -244,7 +244,7 @@ class RoutingTests(unittest.TestCase):
     def test_attempt_trace_metadata_same_parent_no_content(self):
         traces = []
         from runtime import trace_span
-        with patch("runtime.telemetry", side_effect=lambda *args: traces.append(args)), patch("ollama_provider.generate", side_effect=ConnectionRefusedError()), patch("bedrock_provider.generate", return_value=RESULT):
+        with patch("generation_telemetry.telemetry", side_effect=lambda *args: traces.append(args)), patch("ollama_provider.generate", side_effect=ConnectionRefusedError()), patch("bedrock_provider.generate", return_value=RESULT):
             with trace_span("request"):
                 route(POLICY,"secret-system","private-prompt",breaker=Circuit())
         generations = [t[1] for t in traces if t[1]["attributes"].get("langfuse.observation.type") == "generation"]

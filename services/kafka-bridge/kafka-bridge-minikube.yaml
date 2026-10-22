@@ -124,6 +124,9 @@ spec:
             port: 9092
           periodSeconds: 10
       - name: kafka-bridge
+        envFrom:
+        - configMapRef:
+            name: roboshop-config
         image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-kafka-bridge:latest
         imagePullPolicy: Always
         env:

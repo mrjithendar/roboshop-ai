@@ -37,6 +37,9 @@ spec:
       - name: ecr-pull
       containers:
       - name: currency-service
+        envFrom:
+        - configMapRef:
+            name: roboshop-config
         image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-currency-service:latest
         imagePullPolicy: Always
         resources:

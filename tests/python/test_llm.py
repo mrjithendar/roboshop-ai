@@ -398,7 +398,7 @@ class ProviderTests(unittest.TestCase):
             "output_tokens": 2,
         }
         with patch("bedrock_provider.generate", return_value=result), patch(
-            "runtime.telemetry", side_effect=lambda *args: captured.append(args)
+            "generation_telemetry.telemetry", side_effect=lambda *args: captured.append(args)
         ):
             invoke(
                 BEDROCK, "private instructions", "personal customer prompt", 12, "test"

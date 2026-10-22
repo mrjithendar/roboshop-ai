@@ -3,6 +3,8 @@
 from trace_routes import route_template, quiet_route, http_name
 import atexit
 import queue
+import hashlib
+import hmac
 import base64
 import contextvars
 import json
@@ -152,6 +154,10 @@ def log_event(event, level="INFO", **fields):
         record["traceId"] = context["traceId"]
         record["trace_id"] = context["traceId"]
         record["span_id"] = context.get("spanId", "")
+    for identity in ('username','userId'):
+        value = fields.pop(identity, None)
+        key = os.getenv('TELEMETRY_ID_KEY')
+        if value and key: record[identity + 'Hash'] = hmac.new(key.encode(), str(value).encode(), hashlib.sha256).hexdigest()
     record.update({k: v for k, v in fields.items() if k in LOG_FIELDS and isinstance(v, (str, int, float, bool))})
     try:
         print(format_log(record), flush=True)
@@ -451,6 +457,18 @@ class Request:
         )
 
 
+def safe_attributes(attributes):
+    blocked = ('authorization','cookie','password','secret','token','prompt','completion','input.value','output.value','db.statement','db.query','url.full','url.query','http.url','http.target','client.address','enduser.')
+    result = {}
+    for key,value in attributes.items():
+        # Token usage is a numeric measure, not a bearer token.
+        usage = key.startswith('gen_ai.usage.') and type(value) is int and value >= 0
+        if not usage and any(part in key.lower() for part in blocked): continue
+        if key in ('langfuse.observation.input','langfuse.observation.output') and os.getenv('LANGFUSE_CAPTURE_CONTENT') != 'true': continue
+        if isinstance(value,(str,int,float,bool)):
+            result[key] = value[:16000] if isinstance(value,str) else value
+    return result
+
 def telemetry(service, context, start, route, status):
     if os.getenv("OTEL_SDK_DISABLED") == "true" or context.get("flags", "01") == "00":
         return
@@ -495,7 +513,7 @@ def telemetry(service, context, start, route, status):
             }
             for k, v in {
                 "http.response.status_code": status,
-                **context["attributes"],
+                **safe_attributes(context["attributes"]),
             }.items()
         ],
     }

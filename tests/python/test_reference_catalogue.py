@@ -61,7 +61,7 @@ class ReferenceTests(unittest.TestCase):
 
     def test_ai_evidence_preserves_reference_price_and_source_context(self):
         def generate(config, instructions, prompt, revision, operation):
-            self.assertIn('never merchant offers', instructions)
+            self.assertIn('not merchant offers', instructions)
             evidence = json.loads(prompt)['catalogueEvidence']
             self.assertTrue(evidence)
             for item in evidence:
