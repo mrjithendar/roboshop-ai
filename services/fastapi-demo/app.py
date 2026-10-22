@@ -31,6 +31,7 @@ async def request_logging(request, call_next):
             print(json.dumps({'timestamp':datetime.now(timezone.utc).isoformat(), 'service':'fastapi-demo',
                 'level':'WARN' if status >= 400 else 'INFO', 'event':'request_completed',
                 'method':request.method,'route':route,'status':status,'requestId':request_id,
+                'errorCode':f'HTTP_{status}' if status >= 400 else 'OK',
                 'durationMs':round((time.monotonic()-started)*1000)}),flush=True)
 
 

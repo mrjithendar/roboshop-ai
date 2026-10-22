@@ -9,7 +9,10 @@ export function showLogin(): void { location.assign(loginPath()); }
 export async function accountRequest(path: string, data?: object): Promise<{ user: User | null; mfaRequired?: boolean; challengeId?: string; resetId?: string; message?: string }> {
   const response = await fetch(appPath(path), { method: data ? 'POST' : 'GET', headers: { 'content-type': 'application/json' }, ...(data ? { body: JSON.stringify(data) } : {}), signal: AbortSignal.timeout(15000) });
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || 'Account service unavailable.');
+  if (!response.ok) {
+    const reference = typeof result.requestId === 'string' && /^[a-f0-9]{32}$/.test(result.requestId) ? ` Support reference: ${result.requestId}.` : '';
+    throw new Error((result.error || 'Account service unavailable.') + reference);
+  }
   return result;
 }
 export async function initAccount(changed: () => Promise<void>): Promise<void> {

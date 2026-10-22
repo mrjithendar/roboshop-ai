@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"math"
@@ -149,7 +150,7 @@ func (c *rateCache) run(ctx context.Context) {
 	defer ticker.Stop()
 	for {
 		if err := c.refresh(ctx); err != nil && ctx.Err() == nil {
-			slog.Warn("fx_refresh_failed", "service", "currency-service", "action", "retaining_unexpired_cache")
+			slog.Warn("fx_refresh_failed", "service", "currency-service", "action", "retaining_unexpired_cache", "errorCode", "FX_REFRESH_FAILED", "errorType", fmt.Sprintf("%T", err), "retryAfterSeconds", 3600)
 		}
 		select {
 		case <-ctx.Done():

@@ -1,5 +1,6 @@
 """Fail-closed human verification challenge boundary and persistent per-IP limits."""
 
+import contextvars
 import hashlib
 import http.client
 import ipaddress
@@ -14,7 +15,7 @@ SLOTS = threading.BoundedSemaphore(4)
 from datetime import datetime, timedelta, timezone
 from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
-from runtime import HttpError, now
+from runtime import HttpError, now, log_event
 
 
 def client_address(req):
@@ -46,7 +47,7 @@ class TurnstileChallenge:
             raise HttpError(
                 503, "Challenge verification is busy. Retry with a fresh challenge."
             )
-        future = POOL.submit(self._verify, token, ip, action)
+        future = POOL.submit(contextvars.copy_context().run, self._verify, token, ip, action)
         future.add_done_callback(lambda _: SLOTS.release())
         try:
             return future.result(timeout=5)
@@ -81,6 +82,10 @@ class TurnstileChallenge:
             if not isinstance(result, dict):
                 raise ValueError()
             codes = result.get("error-codes", [])
+            allowed = {"invalid-input-secret", "missing-input-secret", "invalid-input-response", "missing-input-response", "timeout-or-duplicate", "internal-error", "bad-request"}
+            if result.get("success") is not True:
+                safe_codes = [code for code in codes if isinstance(code, str) and code in allowed] if isinstance(codes, list) else []
+                log_event("authentication_challenge_rejected", "WARN", dependency="cloudflare-turnstile", operation=action, errorCode="CHALLENGE_REJECTED", reason=",".join(safe_codes) or "verification_unsuccessful")
             if any(code in codes for code in ("invalid-input-secret", "missing-input-secret")):
                 print(json.dumps({"service": "user-service", "event": "turnstile_configuration_error"}), flush=True)
                 raise HttpError(503, "Sign-in verification is misconfigured. Please contact the store administrator.")
@@ -113,6 +118,7 @@ class TurnstileChallenge:
         finally:
             conn.close()
         if not valid:
+            log_event("authentication_challenge_rejected", "WARN", dependency="cloudflare-turnstile", operation=action, errorCode="CHALLENGE_CONTEXT_INVALID", reason="hostname_action_or_age_mismatch")
             raise HttpError(
                 400,
                 "Challenge expired, reused or invalid. Complete a fresh challenge and retry.",

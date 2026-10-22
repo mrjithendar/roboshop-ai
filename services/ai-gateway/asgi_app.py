@@ -17,7 +17,7 @@ from fastapi.responses import Response
 from starlette.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 from server import Gateway  # establishes the service-local library path
-from runtime import Request, HttpError, encode, trace_context, ctx, telemetry, configure_telemetry, deadline, log_event, operation_name
+from runtime import Request, HttpError, encode, trace_context, ctx, telemetry, configure_telemetry, deadline, log_event, operation_name, error_details, SAFE_ERRORS
 from api_models import ChatRequest, ChatResponse, HealthResponse, ErrorResponse
 from readiness import gateway_readiness
 
@@ -118,9 +118,10 @@ def create_app(gateway=None):
                 if isinstance(result, tuple):
                     result, status, extra = result
         except HttpError as error:
-            log_event("request_rejected", "WARN", route=route, method=request.method, status=error.status, errorType=type(error).__name__, errorCode=getattr(error, "code", None))
+            log_event("request_rejected", "WARN", route=route, method=request.method, status=error.status, errorType=type(error).__name__, **error_details(error))
             status = error.status
-            result = ErrorResponse(error='The request could not be completed.', requestId=context['traceId']).model_dump()
+            result = ErrorResponse(error=str(error) if str(error) in SAFE_ERRORS else 'The request could not be completed.', requestId=context['traceId']).model_dump()
+            result['code'] = error_details(error)['errorCode']
             if getattr(error, 'code', None) == 'CHECKOUT_QUOTE_INVALID':
                 result.update(code=error.code, error='Refresh your checkout total and choose an enabled payment currency before paying.')
         except TimeoutError:

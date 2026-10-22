@@ -20,6 +20,33 @@ from http import HTTPStatus
 from urllib.parse import parse_qs
 
 
+SAFE_ERRORS = {'Invalid email or password.': 'AUTH_INVALID_CREDENTIALS',
+ 'Please log in to continue.': 'AUTH_REQUIRED',
+ 'Complete a fresh human verification challenge.': 'CHALLENGE_REQUIRED',
+ 'Challenge expired, reused or invalid. Complete a fresh challenge.': 'CHALLENGE_INVALID',
+ 'Challenge expired, reused or invalid. Complete a fresh challenge and retry.': 'CHALLENGE_INVALID',
+ 'Challenge already used. Complete a fresh challenge.': 'CHALLENGE_REUSED',
+ 'Challenge verification failed or timed out. Complete a fresh challenge and retry.': 'CHALLENGE_UNAVAILABLE',
+ 'Sign-in verification is misconfigured. Please contact the store administrator.': 'CHALLENGE_MISCONFIGURED',
+ 'Authentication protection is unavailable. Please try later.': 'CHALLENGE_MISCONFIGURED',
+ 'Verification service is temporarily unavailable. Please try again later.': 'CHALLENGE_UNAVAILABLE',
+ 'Too many authentication attempts. Wait 15 minutes before retrying.': 'AUTH_RATE_LIMITED',
+ 'A dependent service is unavailable.': 'DEPENDENCY_UNAVAILABLE',
+ 'A dependent service is unavailable. Please try again.': 'DEPENDENCY_UNAVAILABLE',
+ 'Dependent service unavailable.': 'DEPENDENCY_UNAVAILABLE',
+ 'Dependent service unavailable. Please try again.': 'DEPENDENCY_UNAVAILABLE'}
+
+def error_details(error):
+    """Only allowlisted messages; exception text may contain tokens or user data."""
+    code = SAFE_ERRORS.get(str(error), "HTTP_" + str(getattr(error, "status", 500)))
+    details = {"errorCode": code, "reason": str(error) if str(error) in SAFE_ERRORS else "See errorCode and source; sensitive exception text omitted"}
+    if error.__traceback__:
+        tb = error.__traceback__
+        while tb.tb_next:
+            tb = tb.tb_next
+        details["source"] = tb.tb_frame.f_code.co_name + ":" + str(tb.tb_lineno)
+    return details
+
 class HttpError(Exception):
     def __init__(self, status, message):
         super().__init__(message)
@@ -38,7 +65,7 @@ def operation_name(path):
     return path if path in OPERATIONS else "other"
 
 # Service-local structured logs; never serialize arbitrary request/exception data.
-LOG_FIELDS = frozenset("method route status durationMs dependency operation errorType errorCode provider model reason revision backend port state orderId traceId source".split())
+LOG_FIELDS = frozenset("method route status durationMs dependency operation errorType errorCode provider model reason revision backend port state orderId traceId source attempt maxAttempts delayMs".split())
 def log_event(event, level="INFO", **fields):
     levels = {"DEBUG": 10, "INFO": 20, "WARN": 30, "ERROR": 40}
     if levels.get(level, 20) < levels.get(os.getenv("LOG_LEVEL", "INFO").upper(), 20):
@@ -191,6 +218,24 @@ def _upstream(url, data=None, headers=None, timeout=15, method=None):
         ) from error
 
 
+def _retry_read(fn, url, data, headers, timeout, method):
+    # One retry, only read-only calls and transient transport/server failures.
+    # Both attempts and backoff share the original time budget.
+    end = time.monotonic() + timeout
+    verb = method or ("POST" if data is not None else "GET")
+    for attempt in range(2):
+        try:
+            return fn(url, data, headers, max(0.001, end-time.monotonic()), method)
+        except HttpError as error:
+            cause = error.__cause__
+            transient = (isinstance(cause, urllib.error.HTTPError) and cause.code in (502, 503, 504)) or (isinstance(cause, (urllib.error.URLError, TimeoutError)) and not isinstance(cause, urllib.error.HTTPError))
+            pause = 0.1 + secrets.randbelow(100) / 1000
+            if attempt or verb not in ("GET", "HEAD") or data is not None or not transient or end-time.monotonic() < pause + 0.1 or urlsplit(url).path.endswith(("/health", "/ready", "/metrics")):
+                raise
+            log_event("dependency_retry_scheduled", "WARN", dependency=urlsplit(url).hostname or "unknown", method=verb, attempt=2, maxAttempts=2, delayMs=round(pause*1000), reason="transient_read_failure")
+            time.sleep(pause)
+
+
 def request(url, data=None, headers=None, timeout=12, method=None):
     with trace_span(
         "HTTP " + (method or ("POST" if data is not None else "GET")),
@@ -203,7 +248,7 @@ def request(url, data=None, headers=None, timeout=12, method=None):
         started = time.monotonic()
         status, error_type = 200, None
         try:
-            return _request(url, data, headers, timeout, method)
+            return _retry_read(_request, url, data, headers, timeout, method)
         except Exception as error:
             status, error_type = getattr(error, "status", 503), type(error.__cause__ or error).__name__
             raise
@@ -460,13 +505,14 @@ def application(service, handler):
                     result, status, extra = result
                     headers = extra + headers
         except HttpError as error:
-            log_event("request_rejected", "WARN", method=req.method, route=route, status=error.status, errorType=type(error).__name__)
+            log_event("request_rejected", "WARN", method=req.method, route=route, status=error.status, errorType=type(error).__name__, operation=operation_name(req.path), **error_details(error))
             status, result = error.status, {
                 "error": str(error),
+                "code": error_details(error)["errorCode"],
                 "requestId": context["traceId"],
             }
         except Exception as error:
-            log_event("request_failed", "ERROR", method=req.method, route=route, status=500, errorType=type(error).__name__)
+            log_event("request_failed", "ERROR", method=req.method, route=route, status=500, errorType=type(error).__name__, **error_details(error))
             status, result = 500, {
                 "error": "Internal service error.",
                 "requestId": context["traceId"],

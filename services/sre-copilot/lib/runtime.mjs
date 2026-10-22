@@ -5,7 +5,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 export const context = new AsyncLocalStorage();
 
 let logService = process.env.OTEL_SERVICE_NAME || 'roboshop';
-const logFields = new Set('method route status durationMs dependency operation errorType errorCode provider reason revision port state'.split(' '));
+const logFields = new Set('method route status durationMs dependency operation errorType errorCode provider reason revision port state attempt maxAttempts'.split(' '));
 export function logEvent(event, fields = {}, level = 'INFO') {
   const levels = { DEBUG: 10, INFO: 20, WARN: 30, ERROR: 40 };
   if ((levels[level] || 20) < (levels[(process.env.LOG_LEVEL || 'INFO').toUpperCase()] || 20)) return;
@@ -66,11 +66,32 @@ export async function clientSpan(name, work, attributes = {}) {
     }
   });
 }
+async function fetchReadRetry(url, options) {
+  const method = (options.method || 'GET').toUpperCase();
+  const signal = options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(12000)]) : AbortSignal.timeout(12000);
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    let response;
+    try {
+      response = await fetch(url, {...options, signal});
+      if (![502,503,504].includes(response.status)) return response;
+    } catch (error) {
+      if (!(error instanceof TypeError) || signal.aborted || attempt === 2 || !['GET','HEAD'].includes(method) || options.body != null) throw error;
+    }
+    if (attempt === 2 || !['GET','HEAD'].includes(method) || options.body != null || /\/(health|ready|metrics)$/.test(new URL(url).pathname)) {
+      if (response) return response;
+      throw new Error('Dependency unavailable');
+    }
+    await response?.body?.cancel();
+    logEvent('dependency_retry_scheduled', {dependency:new URL(url).hostname,method,attempt:2,maxAttempts:2,reason:'transient_read_failure'}, 'WARN');
+    await new Promise(resolve => setTimeout(resolve, 100 + Math.random()*100));
+    signal.throwIfAborted();
+  }
+}
 export async function request(url, options = {}) {
   return clientSpan(`HTTP ${options.method || 'GET'}`, async ctx => {
     const headers = { 'content-type': 'application/json', ...options.headers, traceparent: `00-${ctx.traceId}-${ctx.spanId}-${ctx.flags}` };
     try {
-      const response = await fetch(url, { ...options, headers, signal: options.signal || AbortSignal.timeout(12000) });
+      const response = await fetchReadRetry(url, { ...options, headers });
       if (!response.ok) { logEvent('dependency_response_rejected', {dependency: new URL(url).hostname, status: response.status}, 'WARN'); throw new HttpError(502, 'A dependent service is unavailable.'); }
       return await response.json();
     } catch (e) {
@@ -137,8 +158,8 @@ export function serve(service, port, handler) {
         await handler(req, res, url);
         if (!res.writableEnded) json(res, { error: 'Not found.' }, 404);
       } catch (e) {
-        logEvent('request_failed', {method: req.method, status: e.status || 500, errorType: e.constructor?.name || 'Error'}, e.status && e.status < 500 ? 'WARN' : 'ERROR');
-        if (!res.headersSent) json(res, { error: e.status ? e.message : 'Internal service error.', requestId: ctx.traceId }, e.status || 500);
+        logEvent('request_failed', {method: req.method, status: e.status || 500, errorType: e.constructor?.name || 'Error', errorCode: `HTTP_${e.status || 500}`, reason: e.status === 401 ? 'authentication_required_or_invalid_credentials' : e.status === 403 ? 'permission_denied' : e.status === 429 ? 'rate_limited' : e.status >= 500 ? 'dependency_or_service_failure' : 'request_rejected'}, e.status && e.status < 500 ? 'WARN' : 'ERROR');
+        if (!res.headersSent) json(res, { error: e.status ? e.message : 'Internal service error.', code: `HTTP_${e.status || 500}`, requestId: ctx.traceId }, e.status || 500);
         else res.end();
       } finally {
         if (!['/health', '/metrics'].includes(route)) {

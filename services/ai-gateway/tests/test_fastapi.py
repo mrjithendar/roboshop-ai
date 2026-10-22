@@ -24,6 +24,14 @@ class FastAPIContract(unittest.TestCase):
         self.gateway=Gateway(mongomock.MongoClient().db,self.store)
         self.gateway.auth.current=Mock(return_value=None)
         self.client=TestClient(create_app(self.gateway));self.client.__enter__();self.addCleanup(lambda:self.client.__exit__(None,None,None))
+    def test_safe_login_error_is_not_masked(self):
+        with patch.object(self.gateway, 'handle', side_effect=HttpError(401, 'Invalid email or password.')):
+            response = self.client.post('/api/auth/login', json={'email':'user@example.com','password':'private'})
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()['error'], 'Invalid email or password.')
+        self.assertEqual(response.json()['code'], 'AUTH_INVALID_CREDENTIALS')
+        self.assertIn('requestId', response.json())
+
     def test_default_none_auth_and_redaction(self):
         denied=self.client.post('/api/chat',json={'message':'private prompt'})
         self.assertEqual(denied.status_code,403)

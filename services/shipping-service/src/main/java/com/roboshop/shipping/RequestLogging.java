@@ -29,13 +29,13 @@ class RequestLogging extends OncePerRequestFilter {
         try { chain.doFilter(request, response); }
         catch (IOException | ServletException | RuntimeException error) {
             failed = true;
-            LOG.error("request_failed service=shipping-service route={} traceId={} errorType={}", route, traceId, error.getClass().getSimpleName());
+            LOG.error("request_failed service=shipping-service errorCode=SHIPPING_REQUEST_FAILED route={} traceId={} errorType={}", route, traceId, error.getClass().getSimpleName());
             throw error;
         } finally {
             int status = failed ? 500 : response.getStatus();
             if (status >= 400 || !Set.of("/health","/metrics","/api/shipping/ready").contains(route)) {
-                if (status >= 400) LOG.warn("request_completed service=shipping-service method={} route={} status={} durationMs={} traceId={}", method, route, status, (System.nanoTime()-started)/1_000_000, traceId);
-                else LOG.info("request_completed service=shipping-service method={} route={} status={} durationMs={} traceId={}", method, route, status, (System.nanoTime()-started)/1_000_000, traceId);
+                if (status >= 400) LOG.warn("request_completed service=shipping-service method={} route={} status={} errorCode=HTTP_{} durationMs={} traceId={}", method, route, status, status, (System.nanoTime()-started)/1_000_000, traceId);
+                else LOG.info("request_completed service=shipping-service method={} route={} status={} errorCode=HTTP_{} durationMs={} traceId={}", method, route, status, status, (System.nanoTime()-started)/1_000_000, traceId);
             }
         }
     }

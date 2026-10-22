@@ -120,7 +120,7 @@ def run():
                     handle(channel, producer, method, body)
         except Exception as error:
             health['ready'] = False
-            log('delivery_retry', errorType=type(error).__name__)
+            log('delivery_retry', errorType=type(error).__name__, errorCode='KAFKA_DELIVERY_UNCONFIRMED', reason='Broker delivery not confirmed; RabbitMQ message remains unacknowledged', retryDelaySeconds=5)
         finally:
             if connection and connection.is_open:
                 try:

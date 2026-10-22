@@ -9,7 +9,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'lib'))
-from runtime import HttpError, Request, serve, upstream, configure_telemetry
+from runtime import HttpError, Request, serve, upstream, configure_telemetry, log_event
 from accounts import Auth, connect_mongo, public_user, require_role
 from account_security import AccountSecurity
 from customers import Customers
@@ -131,6 +131,7 @@ class UserService:
                 user = self.security.finish_login(data)
             else:
                 self.registration.check(data, client_address(req), "register" if path.endswith("/register") else "login")
+                log_event("authentication_challenge_passed", operation=path)
                 user = self.auth.register(data) if path.endswith("/register") else self.auth.login(data)
                 if user.get("mfa"):
                     return self.security.challenge(user)

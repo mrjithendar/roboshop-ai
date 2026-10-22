@@ -209,7 +209,7 @@ def application(environ, start_response):
         return _application(environ,respond)
     finally:
         if status >= 400 or route not in ('/health','/ready','/available') or os.getenv('LOG_LEVEL') == 'DEBUG':
-            log_event('request_completed',route=route,method=environ['REQUEST_METHOD'],status=status,durationMs=round((time.monotonic()-started)*1000))
+            log_event('request_completed',route=route,method=environ['REQUEST_METHOD'],status=status,errorCode=f'HTTP_{status}' if status >= 400 else 'OK',durationMs=round((time.monotonic()-started)*1000))
         TRACE.reset(trace)
 
 
