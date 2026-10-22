@@ -44,6 +44,10 @@ jobs:
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Enable cross-platform builds
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: amd64,arm64
       - uses: docker/setup-buildx-action@v4
       - name: Build and push service Dockerfile
         id: build
@@ -51,7 +55,7 @@ jobs:
         with:
           context: services/${{ inputs.service }}
           file: services/${{ inputs.service }}/Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.ecr.outputs.registry }}/${{ steps.image.outputs.repository }}:${{ steps.image.outputs.tag }}
           cache-from: type=gha,scope=${{ inputs.service }}
