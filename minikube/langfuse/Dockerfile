@@ -151,7 +151,8 @@ COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY --from=pruner /app/out/json/ .
 
-RUN pnpm install --frozen-lockfile
+# Reduce simultaneous dependency lifecycle scripts on the shared build host.
+RUN pnpm install --frozen-lockfile --child-concurrency=1
 
 # pnpm can verify dependencies before each `pnpm run`, so every command
 # spawned by turbo re-checks node_modules via file mtimes. Cached install
@@ -241,7 +242,12 @@ ENV NEXT_MANUAL_SIG_HANDLE true
 # set the CI flag to true to get CI specific logs
 ENV CI true
 
-RUN NODE_OPTIONS='--max-old-space-size-percentage=75' turbo run build --filter=web...
+# Build-only limits: do not apply these to the final runtime container.
+# A percentage limit per Node process can multiply across concurrent tasks.
+ARG BUILD_NODE_HEAP_MB=4096
+ARG BUILD_TASK_CONCURRENCY=1
+RUN NODE_OPTIONS="--max-old-space-size=${BUILD_NODE_HEAP_MB}" \
+    turbo run build --filter=web... --concurrency=${BUILD_TASK_CONCURRENCY}
 
 # Production image, copy all the files and run next
 FROM --platform=${TARGETPLATFORM:-linux/arm64} runtime-base AS runner

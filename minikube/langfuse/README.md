@@ -62,3 +62,29 @@ into `langfuse-source/`. It uses our Dockerfile with the **upstream source as
 its build context**. When upgrading Langfuse, review this Dockerfile against
 upstream and update the source ref, image tag and Helm values together.
 Upstream copyright and license are retained in `LICENSE.langfuse`.
+
+## Build resource limits and caching
+
+The workflow uses native ARM64, one BuildKit stage at a time, at most two CPU
+cores and an 8 GiB builder-container memory limit (no additional swap budget).
+Turbo runs one task at a time; dependency lifecycle scripts are also serialized.
+Node build processes have a 4096 MiB V8 old-space limit instead of taking 75%
+of detected memory each. This is a per-process heap limit, not a total memory
+limit; native allocations and child workers still consume memory.
+
+Intermediate Docker layers remain cached in GitHub Actions with `mode=max`.
+A successful cached build can reuse dependency installation and compilation
+when inputs are unchanged. The first build still compiles Langfuse and can be
+slow; its timeout is 180 minutes. These changes prioritize peak memory over
+cold-build speed and leave TypeScript checks enabled.
+
+If the build reports JavaScript heap exhaustion, increase `BUILD_NODE_HEAP_MB`
+in the workflow along with the builder memory budget only if the host has room.
+Exit 137 may indicate the container memory limit was reached; inspect host and
+Docker OOM diagnostics. Limits do not reserve resources: other CI jobs and
+Minikube can still exhaust host memory. The concurrency group serializes only
+Langfuse runs, not other services. A separate ARM64 build host is preferable
+when the shared server remains under pressure.
+
+References: [BuildKit parallelism](https://docs.docker.com/build/ci/github-actions/configure-builder/)
+and [Turbo task concurrency](https://turborepo.dev/docs/reference/run).

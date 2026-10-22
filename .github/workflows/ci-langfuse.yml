@@ -14,7 +14,7 @@ concurrency:
 jobs:
   publish:
     runs-on: [self-hosted, linux, ARM64]
-    timeout-minutes: 90
+    timeout-minutes: 180
     env:
       AWS_REGION: us-east-1
     steps:
@@ -52,6 +52,18 @@ jobs:
           esac
       - uses: docker/setup-buildx-action@v4
         id: buildx
+        with:
+          # Bound this build on the server shared with Minikube. Serial stages
+          # avoid compiling Go, installing RPMs and bundling Next.js together.
+          driver: docker-container
+          driver-opts: |
+            memory=8g
+            memory-swap=8g
+            cpu-period=100000
+            cpu-quota=200000
+          buildkitd-config-inline: |
+            [worker.oci]
+              max-parallelism = 1
       - name: Build web image with compiled subpath
         uses: docker/build-push-action@v7
         with:
@@ -59,7 +71,10 @@ jobs:
           file: ./roboshop/minikube/langfuse/Dockerfile
           builder: ${{ steps.buildx.outputs.name }}
           platforms: linux/arm64
-          build-args: NEXT_PUBLIC_BASE_PATH=/langfuse
+          build-args: |
+            NEXT_PUBLIC_BASE_PATH=/langfuse
+            BUILD_NODE_HEAP_MB=4096
+            BUILD_TASK_CONCURRENCY=1
           push: true
           tags: ${{ steps.ecr.outputs.registry }}/roboshop-langfuse:4.63.0-subpath
           cache-from: type=gha,scope=langfuse-subpath-${{ runner.arch }}
