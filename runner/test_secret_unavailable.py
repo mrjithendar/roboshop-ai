@@ -10,10 +10,20 @@ class SecretUnavailableTests(unittest.TestCase):
             aws=Path(tmp)/'aws'
             aws.write_text('#!/bin/sh\necho private-error-detail >&2\nexit 1\n')
             aws.chmod(0o755)
-            r=subprocess.run(['python3',str(Path(__file__).with_name('register.py')),'owner/repo','runner'],env=dict(os.environ,PATH=tmp+':'+os.environ['PATH']),capture_output=True,text=True)
+            r=subprocess.run(['python3',str(Path(__file__).with_name('register.py')),'owner/repo','runner'],env=dict(os.environ,PATH=tmp+':'+os.environ['PATH'],RUNNER_AUTH='aws'),capture_output=True,text=True)
             self.assertEqual(r.returncode,75)
             self.assertIn('Registration is pending',r.stderr)
             self.assertNotIn('private-error-detail',r.stderr+r.stdout)
+
+    def test_known_aws_errors_report_action_without_raw_details(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('runner_register_diagnostics', Path(__file__).with_name('register.py'))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        for code, expected in [('AccessDeniedException', 'Access denied'), ('ResourceNotFoundException', 'Secret not found'), ('ExpiredTokenException', 'expired'), ('UnrecognizedClientException', 'invalid')]:
+            result = module.aws_retrieval_reason(f'An error occurred ({code}) private-secret-value')
+            self.assertIn(expected, result)
+            self.assertNotIn('private-secret-value', result)
 
     def test_setup_defers_only_retrieval_status(self):
         source=Path(__file__).with_name('setup.sh').read_text()

@@ -69,7 +69,7 @@ exec 9>.setup.lock
 flock -n 9 || { echo 'Another runner installation is running.' >&2; exit 1; }
 
 repo=${1:-mrjithendar/roboshop-ai}
-export RUNNER_SECRET_NAME=${2:-roboshop-ai}
+export RUNNER_SECRET_NAME=${2:-${RUNNER_SECRET_NAME:-mrjithendar-github-pat}}
 export AWS_REGION=${3:-us-east-1}
 [[ "$repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Repository must be OWNER/REPOSITORY.' >&2; exit 1; }
 # Check tools on every setup; install only missing or broken private tools.
@@ -127,7 +127,7 @@ if [[ ! -f .runner ]]; then
     registration_status=$?
     if [[ "$registration_status" == 75 ]]; then
       echo 'Tools and runner files installed. GitHub registration is pending because the AWS secret could not be retrieved.'
-      echo 'No runner service was installed or started. Configure AWS access, then rerun this setup command.'
+      echo 'No runner service was installed or started. Use RUNNER_AUTH=github with gh auth login or GH_TOKEN, or restore AWS secret access, then rerun.'
       printf 'AWS configuration command: %q configure\n' "$runner_dir/.tools/bin/aws"
       exit 0
     fi

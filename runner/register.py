@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""Fetch installation credentials without printing or persisting the AWS secret."""
+"""Obtain fresh registration tokens using a GitHub login or optional AWS secret."""
 import json
 import os
+import re
+import shutil
 import subprocess
 import sys
 import urllib.error
@@ -10,6 +12,29 @@ import urllib.request
 
 class RegistrationError(ValueError):
     """Safe diagnostic text that never includes secret contents."""
+
+
+
+def aws_retrieval_reason(stderr):
+    """Classify CLI failures without emitting raw responses or credential values."""
+    match = re.search(r'An error occurred \(([A-Za-z0-9]+)\)', stderr or '')
+    code = match.group(1) if match else ''
+    reasons = {
+        'AccessDeniedException': 'Access denied: grant secretsmanager:GetSecretValue and, for a customer-managed key, kms:Decrypt.',
+        'ResourceNotFoundException': 'Secret not found: check the secret name, AWS account and region.',
+        'UnrecognizedClientException': 'AWS credentials are invalid; check the active profile and environment credentials.',
+        'InvalidClientTokenId': 'AWS credentials are invalid; check the active profile and environment credentials.',
+        'ExpiredTokenException': 'AWS session credentials expired; refresh the session.',
+        'ExpiredToken': 'AWS session credentials expired; refresh the session.',
+        'DecryptionFailure': 'AWS cannot decrypt the secret; check its KMS key and permissions.',
+    }
+    if code in reasons:
+        return reasons[code]
+    if 'Unable to locate credentials' in (stderr or ''):
+        return 'No AWS credentials found for the invoking user; configure a profile or workload role.'
+    if 'Could not connect to the endpoint URL' in (stderr or ''):
+        return 'Cannot reach Secrets Manager; check region, DNS, proxy and outbound HTTPS.'
+    return 'Check credentials, secret name/region and read permissions.'
 
 
 def registration_token(secret, repo):
@@ -43,22 +68,45 @@ def registration_token(secret, repo):
     return token
 
 
-def main():
-    repo, name = sys.argv[1:]
+def load_credentials():
+    mode = os.getenv('RUNNER_AUTH', 'auto')
+    if mode not in ('auto', 'github', 'aws'):
+        raise RegistrationError('RUNNER_AUTH must be auto, github or aws.')
+    if mode != 'aws':
+        token = os.getenv('GH_TOKEN') or os.getenv('GITHUB_TOKEN')
+        if token:
+            return {'github_token': token}
+        if shutil.which('gh'):
+            try:
+                result = subprocess.run(['gh', 'auth', 'token', '--hostname', 'github.com'], capture_output=True, text=True, timeout=15)
+            except subprocess.TimeoutExpired:
+                raise RegistrationError('GitHub CLI authentication lookup timed out.') from None
+            if result.returncode == 0 and result.stdout.strip():
+                return {'github_token': result.stdout.strip()}
+        if mode == 'github':
+            raise RegistrationError('GitHub authentication required: run gh auth login --hostname github.com --web, or set GH_TOKEN to a PAT with repository Administration write permission. Setup requests a fresh registration token automatically.')
     result = subprocess.run([
-        'aws', 'secretsmanager', 'get-secret-value', '--secret-id', os.environ.get('RUNNER_SECRET_NAME', 'roboshop-ai'),
+        'aws', 'secretsmanager', 'get-secret-value', '--secret-id', os.environ.get('RUNNER_SECRET_NAME', 'mrjithendar-github-pat'),
         '--region', os.environ.get('AWS_REGION', 'us-east-1'), '--output', 'json',
     ], check=True, capture_output=True, text=True)
-    secret = json.loads(json.loads(result.stdout)['SecretString'])
+    return json.loads(json.loads(result.stdout)['SecretString'])
+
+
+def main():
+    repo, name = sys.argv[1:]
+    secret = load_credentials()
     print(f'Registering runner for https://github.com/{repo}', flush=True)
     token = registration_token(secret, repo)
     env = os.environ.copy()
+    # Do not let config.sh/env.sh persist the long-lived bootstrap PAT.
+    env.pop('GH_TOKEN', None)
+    env.pop('GITHUB_TOKEN', None)
     env['ACTIONS_RUNNER_INPUT_TOKEN'] = token
     try:
         subprocess.run(['./config.sh', '--unattended', '--url', 'https://github.com/' + repo,
                         '--name', name, '--work', '_work'], env=env, check=True)
     except subprocess.CalledProcessError:
-        raise RegistrationError('GitHub rejected runner configuration. Verify the printed repository URL. If using runner_token/password, obtain a fresh repository registration token (valid one hour) from that exact repository, not organization settings. Alternatively use github_token with repository Administration write access. Installed tools and runner files are preserved; rerunning setup will reuse them. Update the configured AWS secret before retrying.') from None
+        raise RegistrationError('GitHub rejected runner configuration. Verify the printed repository URL. If using runner_token/password, obtain a fresh repository registration token (valid one hour) from that exact repository, not organization settings. Alternatively use github_token with repository Administration write access. Installed tools and runner files are preserved; rerunning setup will reuse them. Refresh your GitHub login or configured credentials before retrying.') from None
 
 
 if __name__ == '__main__':
@@ -66,7 +114,7 @@ if __name__ == '__main__':
         main()
     except subprocess.CalledProcessError as error:
         if error.cmd[0] == 'aws':
-            print('AWS secret retrieval unavailable. Check credentials, secret name/region and read permissions. Registration is pending; no secret contents were logged.', file=sys.stderr)
+            print('AWS secret retrieval unavailable. ' + aws_retrieval_reason(error.stderr) + ' Registration is pending; no secret contents were logged.', file=sys.stderr)
             sys.exit(75)  # Setup may defer only AWS retrieval failures, not configuration errors.
         sys.exit('Runner configuration failed. See the runner output above; AWS secret retrieval succeeded.')
     except RegistrationError as error:

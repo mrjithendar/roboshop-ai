@@ -1,7 +1,8 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from urllib.error import HTTPError
-from register import registration_token
+from register import registration_token, load_credentials
+import os
 
 
 class RegistrationTests(unittest.TestCase):
@@ -41,3 +42,29 @@ class RegistrationTests(unittest.TestCase):
             self.assertEqual(registration_token({'github_pat': 'github_pat_example'}, 'owner/repo'), 'fresh-registration')
             self.assertEqual(request.call_args.args[0].get_header('Authorization'), 'Bearer github_pat_example')
             self.assertEqual(request.call_args.args[0].full_url, 'https://api.github.com/repos/owner/repo/actions/runners/registration-token')
+
+
+class CredentialSourceTests(unittest.TestCase):
+    def test_environment_token_skips_aws_and_cli(self):
+        with patch.dict(os.environ, {'RUNNER_AUTH':'github', 'GH_TOKEN':'ghp_example'}, clear=True), patch('subprocess.run') as run:
+            self.assertEqual(load_credentials(), {'github_token':'ghp_example'})
+            run.assert_not_called()
+
+    def test_cli_login_skips_deleted_aws_secret(self):
+        with patch.dict(os.environ, {'RUNNER_AUTH':'github'}, clear=True), patch('shutil.which', return_value='/bin/gh'), patch('subprocess.run', return_value=MagicMock(returncode=0, stdout='gho_example\n')) as run:
+            self.assertEqual(load_credentials(), {'github_token':'gho_example'})
+            self.assertEqual(run.call_args.args[0], ['gh','auth','token','--hostname','github.com'])
+
+    def test_no_login_requires_authentication_not_anonymous_registration(self):
+        with patch.dict(os.environ, {'RUNNER_AUTH':'github'}, clear=True), patch('shutil.which', return_value=None), patch('subprocess.run') as run:
+            with self.assertRaisesRegex(ValueError, 'GitHub authentication required'):
+                load_credentials()
+            run.assert_not_called()
+
+    def test_each_exchange_requests_a_new_registration_token(self):
+        response = MagicMock()
+        response.__enter__.return_value.read.side_effect = [b'{"token":"first"}', b'{"token":"second"}']
+        with patch('urllib.request.urlopen', return_value=response) as request:
+            self.assertEqual(registration_token({'github_token':'ghp_example'}, 'owner/repo'), 'first')
+            self.assertEqual(registration_token({'github_token':'ghp_example'}, 'owner/repo'), 'second')
+            self.assertEqual(request.call_count, 2)

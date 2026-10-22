@@ -28,7 +28,7 @@ PY
       continue
     fi
   fi
-  RUNNER_DIR="$directory" RUNNER_NAME="$runner_name" bash "$script_dir/setup.sh" "$repo" "${2:-roboshop-ai}" "${3:-us-east-1}"
+  RUNNER_DIR="$directory" RUNNER_NAME="$runner_name" bash "$script_dir/setup.sh" "$repo" "${2:-${RUNNER_SECRET_NAME:-mrjithendar-github-pat}}" "${3:-us-east-1}"
   # setup.sh can succeed with registration pending when AWS is unavailable.
   [[ -f "$directory/.runner" && -f "$directory/.service" ]] && systemctl is-active --quiet "$(cat "$directory/.service")" || {
     echo "Slot $slot is not active. Resolve setup/registration and rerun; completed slots are preserved." >&2

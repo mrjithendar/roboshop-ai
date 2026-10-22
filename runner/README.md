@@ -3,7 +3,7 @@
 Run from the checkout as root or your regular Linux user (for example `ec2-user` or `ubuntu`):
 
 ```bash
-bash runner/setup.sh mrjithendar/roboshop-ai roboshop-ai us-east-1
+bash runner/setup.sh mrjithendar/roboshop-ai mrjithendar-github-pat us-east-1
 ```
 
 This installs one job slot; keep the entire `runner/` directory together. With no arguments, the same repository, secret and region are used.
@@ -11,7 +11,7 @@ This installs one job slot; keep the entire `runner/` directory together. With n
 | Argument | Purpose |
 | --- | --- |
 | `mrjithendar/roboshop-ai` | GitHub repository in OWNER/REPOSITORY format |
-| `roboshop-ai` | AWS Secrets Manager secret holding a GitHub token |
+| `mrjithendar-github-pat` | AWS Secrets Manager secret holding a GitHub token |
 | `us-east-1` | AWS region containing that secret |
 
 Setup detects apt, dnf/yum or zypper and installs bootstrap Python, download
@@ -31,7 +31,7 @@ before updating tools:
 cd "$HOME/actions-runner"
 sudo ./svc.sh stop
 cd /path/to/roboshop-ai
-bash runner/setup.sh mrjithendar/roboshop-ai roboshop-ai us-east-1
+bash runner/setup.sh mrjithendar/roboshop-ai mrjithendar-github-pat us-east-1
 ```
 
 Setup refuses to update tools while that service is active. It restarts the service
@@ -42,7 +42,7 @@ already registered runner. If tool installation or registration configuration fa
 
 Targets are modern Ubuntu/Debian, CentOS Stream/RHEL/Rocky/AlmaLinux/Fedora/Amazon Linux and openSUSE/SLES systems with matching package repositories. Requires **systemd, Python 3.9+, x86_64 or arm64**, and either root or a regular user with sudo access. Python is installed automatically, but an old release whose repositories provide only an older Python must be upgraded. Alpine/musl, OpenRC-only hosts, end-of-life releases and arbitrary Linux distributions are not guaranteed compatible. zypper package availability varies by SUSE release. Setup checks the runner runtime before fetching registration credentials.
 
-When working runner files are absent, the installer downloads runner 2.337.0 and verifies its pinned SHA-256 checksum. Initial registration fetches the specified AWS secret. The AWS identity needs `secretsmanager:GetSecretValue` (plus KMS decrypt permission for a customer-managed key). Provide an EC2 instance role or configure AWS credentials/profile for your user before running. The installer does not create GitHub access tokens or AWS credentials. Outbound HTTPS to package repositories, GitHub, AWS and PyPI, astral.sh, python-build-standalone release downloads and awscli.amazonaws.com is required.
+When working runner files are absent, the installer downloads runner 2.337.0 and verifies its pinned SHA-256 checksum. Initial registration uses GH_TOKEN/GITHUB_TOKEN, then an authenticated GitHub CLI login, then the specified AWS secret as a legacy fallback. The AWS identity needs `secretsmanager:GetSecretValue` (plus KMS decrypt permission for a customer-managed key). Provide an EC2 instance role or configure AWS credentials/profile for your user before running. The installer does not create GitHub access tokens or AWS credentials. Outbound HTTPS to package repositories, GitHub, AWS and PyPI, astral.sh, python-build-standalone release downloads and awscli.amazonaws.com is required.
 
 This installs the runner service, not workflow-specific software such as Docker. Workflows requiring Docker need a separately installed daemon and appropriate runner-user permissions.
 
@@ -144,7 +144,7 @@ aws sts get-caller-identity
 aws secretsmanager get-secret-value   --secret-id roboshop-ai --region us-east-1   --query '{Name:Name,ARN:ARN,VersionId:VersionId}' --output json
 ```
 
-Setup reads the selected secret and region only during initial registration (defaults: `roboshop-ai`, `us-east-1`). Your `password` field must contain a GitHub token. An already configured runner uses its saved GitHub credentials; restarting it does not fetch the AWS secret again.
+Setup reads the selected secret and region only during initial registration (defaults: `mrjithendar-github-pat`, `us-east-1`). Your `password` field must contain a GitHub token. An already configured runner uses its saved GitHub credentials; restarting it does not fetch the AWS secret again.
 
 Basic network, clock and disk checks:
 
@@ -296,7 +296,7 @@ installation. Update the selected AWS secret with a fresh repository registratio
 token or an authorized PAT in `github_token`, then rerun:
 
 ```bash
-bash runner/setup.sh mrjithendar/roboshop-ai roboshop-ai us-east-1
+bash runner/setup.sh mrjithendar/roboshop-ai mrjithendar-github-pat us-east-1
 ```
 
 A PAT is exchanged for a fresh registration token on each registration attempt.
@@ -313,9 +313,10 @@ bash runner/setup-parallel.sh
 This reuses `$HOME/actions-runner` as slot 1 and creates slots 2–5 under
 `$HOME/actions-runner-2` through `-5`, with separate registration, work directories,
 private tools and systemd services. Active existing services are not stopped.
-Rerunning resumes incomplete setup. The AWS secret must supply the existing GitHub
-App credentials or a GitHub token capable of issuing fresh registration tokens;
-an expired registration token cannot register additional runners.
+Rerunning resumes incomplete setup. Authenticate with GitHub CLI or supply GH_TOKEN so each slot obtains a fresh
+registration token. The optional AWS secret can still supply a PAT; an expired
+registration token cannot register additional runners. GitHub App private-key
+authentication is not implemented by this installer.
 
 Optional overrides: `RUNNER_COUNT=5`, `RUNNER_DIR=/path/actions-runner`, and
 `RUNNER_NAME=build-host`. Positional arguments match `setup.sh`. All slots use the
@@ -330,3 +331,49 @@ per job so one runner's ECR logout does not erase another runner's credentials.
 The runners still share CPU, RAM, disk and the Docker daemon; five simultaneous
 multi-architecture builds can compete with Minikube on the same host. No extra
 host resources are provisioned. Lowering the count does not uninstall runners.
+
+## Automatic registration without an AWS secret
+
+The short-lived runner registration token is generated automatically for each new
+runner. You must authenticate once as a GitHub account with administrative access
+to the repository; GitHub does not issue registration tokens anonymously.
+
+If GitHub CLI is already installed, sign in as the same Linux user running setup:
+
+```bash
+gh auth login --hostname github.com --git-protocol https --web
+RUNNER_AUTH=github bash runner/setup-parallel.sh
+```
+
+Alternatively use a fine-grained PAT restricted to this repository with
+**Administration: read and write**, entered privately rather than saved in shell
+history (Bash):
+
+```bash
+read -rsp 'GitHub PAT: ' GH_TOKEN; echo
+export GH_TOKEN
+RUNNER_AUTH=github bash runner/setup-parallel.sh
+unset GH_TOKEN
+```
+
+`RUNNER_AUTH=github` never queries Secrets Manager. Default `auto` tries environment
+credentials, then `gh auth token`, then the legacy AWS secret. `RUNNER_AUTH=aws`
+explicitly selects that legacy path. Invalid supplied credentials fail clearly;
+they are not silently replaced by another identity. A workflow's built-in
+GITHUB_TOKEN normally lacks runner administration permission; use an appropriate
+PAT or CLI login. Credentials are not logged, and the bootstrap PAT is removed
+from the environment passed to runner configuration. Existing registered runners
+continue using their own saved credentials and do not need token refresh.
+
+### Use the stored GitHub PAT
+
+The default AWS secret is `mrjithendar-github-pat` in `us-east-1`, with the JSON
+field `github_pat`. To explicitly use it rather than a local GitHub CLI login:
+
+```bash
+RUNNER_AUTH=aws bash runner/setup-parallel.sh
+```
+
+Each unregistered slot reads the PAT privately and exchanges it for a fresh
+registration token. The secret is not overwritten with the short-lived token.
+Override the secret with the second argument or `RUNNER_SECRET_NAME`.
