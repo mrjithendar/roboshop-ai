@@ -67,6 +67,27 @@ class LLMConfiguration:
 
     def routes(self, req):
         actor = require_role(req.user, ["superadmin"])
+        if req.path == "/api/admin/llm/status" and req.method == "GET":
+            current = self.current()
+            config = current["config"]
+            result = {"provider": config["provider"], "model": config.get("model"),
+                      "revision": current["revision"],
+                      "status": "not-configured" if config["provider"] == "none" else "configured",
+                      "automaticFailover": config.get("automaticFailover", False),
+                      "providers": {}}
+            if config["provider"] != "none":
+                try:
+                    cached = request(self.agent_url + "/internal/llm/readiness", headers=service_headers(), timeout=1)
+                    if cached.get("revision") == current["revision"]:
+                        for provider, health in cached.get("providers", {}).items():
+                            if provider in ("ollama", "bedrock") and isinstance(health, dict):
+                                result["providers"][provider] = {
+                                    "ready": health.get("ready") is True,
+                                    "checkedAt": health.get("checkedAt") if type(health.get("checkedAt")) in (int, float) else None,
+                                    "scope": health.get("scope") if health.get("scope") in ("model-listed", "tls-reachable") else "unknown"}
+                except (HttpError, TypeError, ValueError):
+                    pass  # Optional diagnostics cannot block configuration or disconnect.
+            return result
         if req.path == "/api/admin/llm" and req.method == "GET":
             return self.view(self.current())
         if (req.path, req.method) not in (

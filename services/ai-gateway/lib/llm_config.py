@@ -8,7 +8,7 @@ import secrets
 from urllib.parse import urlsplit
 from runtime import HttpError
 
-UNCONFIGURED = "Please connect an LLM to get AI recommendations."
+UNCONFIGURED = "Please connect an LLM to get results."
 
 
 def endpoints():
@@ -110,6 +110,8 @@ def authenticate_service(headers):
 def unconfigured():
     return {
         "answer": UNCONFIGURED,
+        "code": "LLM_NOT_CONFIGURED",
+        "error": UNCONFIGURED,
         "products": [],
         "mode": "not-configured",
         "status": "not-configured",

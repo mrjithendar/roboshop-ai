@@ -47,6 +47,7 @@ class AgentTests(unittest.TestCase):
 
 
 class StoreTests(unittest.TestCase):
+    @patch.dict(os.environ, {"CHECKOUT_CURRENCIES": "INR,USD,EUR"})
     def test_cart_ownership_and_payment(self):
         with tempfile.TemporaryDirectory() as directory:
             store = Store(directory)

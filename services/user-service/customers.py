@@ -117,6 +117,20 @@ class Customers:
                 )
 
     def project(self, order):
+        for key in ('demo', 'synthetic', 'paymentCaptured'):
+            if key in order and type(order[key]) is not bool:
+                raise HttpError(400, 'Invalid purchase provenance.')
+        if order.get('inventoryProvenance', 'unknown') not in ('merchant', 'demo', 'unknown') or not isinstance(order.get('productProvenance', []), list):
+            raise HttpError(400, 'Invalid purchase provenance.')
+        provenance = order.get('productProvenance', [])
+        if provenance:
+            if any(not isinstance(p, dict) or not isinstance(p.get('sku'), str)
+                   or any(type(p.get(k)) is not bool for k in ('demo', 'synthetic'))
+                   or p.get('fulfilment') not in ('merchant', 'simulated', 'unknown') for p in provenance):
+                raise HttpError(400, 'Invalid purchase provenance.')
+            skus = [p['sku'] for p in provenance]
+            if len(set(skus)) != len(skus) or set(skus) != {p['sku'] for p in order['items']}:
+                raise HttpError(400, 'Invalid purchase provenance.')
         user_id = order.get("userId")
         if not user_id:
             return False
@@ -124,8 +138,8 @@ class Customers:
             "_id": order["id"],
             "userId": user_id,
             "status": "paid",
-            "synthetic": order.get("synthetic", False),
-            "demo": order.get("demo", order.get("paymentMode") != "live"),
+            "synthetic": order.get("synthetic"),
+            "demo": order.get("demo"),
             "inventoryProvenance": order.get("inventoryProvenance", "unknown"),
             "productProvenance": copy.deepcopy(order.get("productProvenance", [])),
             "paymentCaptured": order.get("paymentCaptured", False),
@@ -259,6 +273,7 @@ class Customers:
             raise HttpError(400, 'Invalid purchase verification.')
         return bool(self.db.purchase_history.find_one({
             'userId': row['authorId'], 'items.sku': row['productId'], 'status': 'paid',
-            'synthetic': {'$ne': True}, 'demo': {'$ne': True}, 'inventoryProvenance': 'merchant', 'paymentCaptured': True, 'paymentMode': 'live',
+            'synthetic': False, 'demo': False, 'inventoryProvenance': 'merchant',
+            'productProvenance': {'$elemMatch': {'sku': row['productId'], 'demo': False, 'synthetic': False, 'fulfilment': 'merchant'}}, 'paymentCaptured': True, 'paymentMode': 'live',
             'paidAt': {'$lte': created_at},
         }, {'_id': 1}))

@@ -24,7 +24,7 @@ provider webhooks remain independent of browser sessions. See
 
 ## Python runtime
 
-`server.py` is the service entry point (Waitress, port 3000). Install this directory's
+`server.py` is the service entry point (FastAPI/Uvicorn, port 3000). Install this directory's
 `requirements.txt` for native execution; `npm run dev` uses the `PYTHON` environment
 variable or `python3`. The image contains Python gateway code and its local libraries only.
 
@@ -153,3 +153,132 @@ on database failure. JSON remains the deployment default until an offline review
 cutover; its one-writer requirement still applies. PostgreSQL supports concurrent
 gateway replicas with database reservations, idempotency and leased outbox workers.
 See the [migration, state machine, inventory and rollback guide](../../docs/deployment/postgres-commerce-migration.md).
+
+## FastAPI transport and operational contract
+
+`asgi_app.py` owns HTTP routing, explicit-origin CORS, security headers, request IDs,
+structured category-only logs and bounded dispatch. `api_models.py` defines validated
+AI/checkout request contracts and AI/health responses. `server.py` retains domain
+routing and authorization; `auth.py`, `user_client.py`, `llm.py` and shopping-agent
+retain identity, downstream calls, configuration and provider responsibilities.
+`lifecycle.py` owns Mongo clients, the commerce store, event and purchase workers.
+
+The API remains buffered JSON, including chat; there was no SSE protocol to migrate.
+No tokens are sent until generation completes. Cancellation drains an already-running
+worker without replaying generation, cart mutations, or payment calls. At most eight
+blocking handlers execute concurrently; saturation returns 503. Body reads have a
+10-second budget and 64-KiB transport cap (ordinary JSON remains 16 KiB); headers are
+limited to 16 KiB. Downstream HTTP socket timeouts consume a shared 23-second budget,
+with existing smaller per-service bounds retained. Python cannot forcibly interrupt
+an in-flight blocking SDK/DB call: its own timeout still applies, and cancellation
+must not be mistaken for payment failure. Ambiguous orders retain their reservations.
+The agent's existing total generation deadline, cached checks and per-replica circuit
+breaker remain authoritative; no gateway fallback or generation retry was added.
+Frontend AI timeouts and NGINX budgets remain above the agent's generation budget.
+
+- `GET /health/live` (and legacy `/health`) checks the running process.
+- `GET /health/ready` (and legacy `/api/ready`) checks Mongo, catalogue, user-service,
+  ledger writer and configured Redis cart service with bounded probes.
+- `GET /api/admin/llm/status` requires superadmin authentication and returns only
+  configured provider/model, revision, configuration status and failover opt-in.
+  When configured, it includes the agent’s cached, revision-matched health snapshot
+  with a one-second fetch bound. These checks are model-list/TLS checks, not proof that
+  generation will succeed; stale/missing data is an empty map. No endpoint URLs or
+  credentials are exposed.
+- `/api/admin/llm` and its test/disconnect routes retain revision CAS and audit.
+- No provider: chat retains HTTP 200 for existing clients, with
+  `code: LLM_NOT_CONFIGURED`, `error`, `answer` and `notice` saying
+  **Please connect an LLM to get results.** Finder shows the same message.
+- Missing/broken optional AI or telemetry never makes core readiness fail.
+
+Bedrock continues to use the workload IAM credential chain, never UI-supplied keys.
+Ollama destinations must be deployment allowlisted. Explicitly enabling fallback
+requires successful tests of both configurations. The agent makes at most one primary
+and one eligible fallback attempt; refusals, invalid input and authorization failures
+never trigger fallback. Disconnect invalidates further attempts. Bedrock usage is
+chargeable and sends inference data to AWS; the existing opt-in setting explains this.
+
+JSON storage still requires **one process and one replica** with its exclusive writer
+lock. PostgreSQL supports multiple gateway instances with Redis cart revision handling.
+No Compose or Helm gateway configuration exists in this repository; none was invented.
+The service Dockerfile remains non-root and runs one Uvicorn worker. Minikube probes
+now use the explicit live/ready endpoints; legacy URLs remain compatible.
+
+### Local startup and verification
+
+From the repository root, using an isolated local MongoDB and existing local dependent
+services (not production credentials):
+
+```bash
+python3 -m venv /tmp/roboshop-gateway-venv
+/tmp/roboshop-gateway-venv/bin/pip install -r services/ai-gateway/requirements.txt
+# Load your local environment using the variable names in .env.example.
+set -a
+. services/ai-gateway/.env.local
+set +a
+/tmp/roboshop-gateway-venv/bin/python services/ai-gateway/server.py
+```
+
+In another terminal:
+
+```bash
+curl -i http://127.0.0.1:3000/health/live
+curl -i http://127.0.0.1:3000/health/ready
+curl -i http://127.0.0.1:3000/api/status
+curl -s http://127.0.0.1:3000/openapi.json
+```
+
+Readiness correctly returns 503 until essential local services are available.
+The checked-in `.env.example` is secret-free; create `.env.local` with local-only
+credentials and do not commit it. No LLM or AWS credential is required for liveness
+or to demonstrate the not-configured response.
+
+## Reviewed commerce invariants
+
+All accepted checkout keys are session-scoped durable aliases, including keys accepted
+while another order is pending. They survive payment, cart refill and restart, and the
+JSON importer preserves them when moving to PostgreSQL. They never change order money.
+New unquoted checkouts are permitted only in an enabled source currency; conversion
+requires a current, signed, session/revision/mode-bound quote. Existing orders keep their
+original currency even after `CHECKOUT_CURRENCIES` changes. The frontend invalidates a
+rejected quote and asks the customer to refresh/select an enabled currency.
+
+Archiving changes catalogue visibility, not capacity. Pending reservations block archive.
+Unarchiving preserves sold/reserved balances. PostgreSQL capacity edits require the
+existing audited adjustment API. Gateway catalogue reads/reservations and admin archive
+writes share a PostgreSQL advisory gate across replicas (no database transaction spans
+catalogue HTTP). All catalogue visibility writers must use this gate; direct Mongo writes
+or external bulk import bypass it and must be coordinated offline. Provider creation runs
+after the gate is released. JSON uses its existing in-process catalogue lock.
+
+### Explicit purchase-provenance repair
+
+Purchase projection remains insert-only. Verified reviews require captured live merchant
+purchases with explicit non-demo/non-synthetic order and matching item provenance.
+Missing provenance is never inferred from a product's current catalogue state.
+
+Back up the user database and obtain a read-only authoritative ledger snapshot first.
+With `USER_MONGODB_URL` pointing at the intended user database, dry-run:
+
+```bash
+python services/ai-gateway/provenance_backfill.py \
+  --ledger /path/to/reviewed/store.json --database roboshop_users \
+  > provenance-review.jsonl
+```
+
+Review candidates/conflicts before explicitly applying:
+
+```bash
+python services/ai-gateway/provenance_backfill.py \
+  --ledger /path/to/reviewed/store.json --database roboshop_users \
+  --apply --actor operator@example.com > provenance-applied.jsonl
+```
+
+For PostgreSQL source snapshots replace `--ledger /path/to/reviewed/store.json` with
+`--postgres` and set `COMMERCE_DATABASE_URL` to that authoritative ledger. Source access
+uses a read-only transaction. The tool matches order/customer/mode/currency/amount,
+requires matching explicit capture/synthetic flags, repairs missing fields (including
+legacy unknown/empty provenance), refuses conflicting
+values and CAS-checks the old document. Each repair appends `provenanceAudit` atomically.
+Repeat runs are safe; financial fields are never changed. Conflicts need manual review.
+The tool is never invoked at startup or deployment, and was tested only with isolated data.

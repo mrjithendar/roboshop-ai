@@ -96,6 +96,59 @@ class CommerceTests(unittest.TestCase):
         payment={'verified':True,'orderId':o['razorpayOrderId'],'paymentId':'payment-'+o['id'],'amount':o['amount'],'currency':o['currency'],'mode':'test','keyId':'rzp_test_mock'}
         return self.store.mark_paid(o['id'],payment,o['revision']),payment
 
+    def admin_product(self, db, store, archived, revision, stock=2):
+        from admin import routes
+        data={k:P[k] for k in ('sku','name','description','price','categories')}
+        data.update(instock=stock,archived=archived,revision=revision)
+        return routes(SimpleNamespace(path='/api/admin/products/LIMITED',method='PUT',
+            user={'id':'owner','role':'admin'},body=lambda:data),db,None,store)
+
+    def test_archive_preserves_capacity_sold_and_removable_cart(self):
+        db=mongomock.MongoClient().db
+        db.products.insert_one({**P,'_id':P['sku'],'revision':1,'archived':False})
+        paid_id=self.cart('paid'); self.paid(paid_id)
+        remaining=self.cart('remaining')
+        with self.store.connect() as c:
+            before=c.execute('SELECT * FROM commerce_inventory').fetchall()
+        self.admin_product(db,self.store,True,1)
+        self.assertEqual(db.products.count_documents({'archived':{'$ne':True}}),0)
+        self.assertEqual(self.store.cart(remaining,[])['items'][0]['unavailable'],True)
+        self.assertEqual(self.store.update(remaining,'LIMITED',0,[])['items'],[])
+        self.admin_product(db,self.store,False,2)
+        with self.store.connect() as c:
+            self.assertEqual(c.execute('SELECT * FROM commerce_inventory').fetchall(),before)
+        with self.assertRaises(HttpError):self.admin_product(db,self.store,True,3,stock=0)
+        with self.assertRaises(HttpError):self.admin_product(db,self.store,True,1)
+
+    def test_cross_replica_archive_waits_for_reservation_and_rejects(self):
+        db=mongomock.MongoClient().db
+        db.products.insert_one({**P,'_id':P['sku'],'revision':1,'archived':False})
+        other=self.new_store();session=self.cart('buyer')
+        entered=threading.Event();complete=threading.Event();errors=[]
+        def archive():
+            entered.set()
+            try:self.admin_product(db,other,True,1)
+            except HttpError as error:errors.append(error.status)
+            finally:complete.set()
+        with self.store.catalogue_lock:
+            worker=threading.Thread(target=archive);worker.start()
+            self.assertTrue(entered.wait(1));self.assertFalse(complete.wait(.1))
+            self.reserve(session)
+        worker.join(3)
+        self.assertTrue(complete.is_set());self.assertEqual(errors,[409])
+        self.assertFalse(db.products.find_one()['archived'])
+
+    def test_disabled_currency_rolls_back_inventory_initialization(self):
+        session=self.cart('buyer')
+        with patch.dict(os.environ,CHECKOUT_CURRENCIES='USD'):
+            with self.assertRaises(HttpError):self.reserve(session)
+        with self.store.connect() as c:
+            self.assertEqual(c.execute('SELECT count(*) n FROM commerce_reservations').fetchone()['n'],0)
+            self.assertEqual(c.execute('SELECT count(*) n FROM commerce_orders').fetchone()['n'],0)
+        order=self.reserve(session)
+        with patch.dict(os.environ,CHECKOUT_CURRENCIES='USD'):
+            self.assertEqual(self.reserve(session)['currency'],'INR')
+
     def test_multiple_processes_cannot_oversell_limited_stock(self):
         ids=[self.cart('u'+str(i)) for i in range(4)]
         ctx=multiprocessing.get_context('spawn');barrier=ctx.Barrier(4);queue=ctx.Queue()
@@ -215,6 +268,7 @@ class CommerceTests(unittest.TestCase):
         directory=Path(self.temp.name)/'legacy';legacy=Store(directory)
         id=legacy.session(None,'original-user');legacy.update(id,P['sku'],1,[P]);legacy.set_shipping(id,SHIPPING,[P])
         o=legacy.begin_payment(id,'original-key-12345',[P],'test')
+        legacy.existing_payment(id,'alternate-legacy-key')
         o=legacy.attach_payment(o['id'],{'orderId':'legacy-provider','amount':o['amount'],'currency':'INR'})
         legacy.mark_paid(o['id'],{'verified':True,'orderId':'legacy-provider','paymentId':'legacy-payment','amount':o['amount'],'currency':'INR'})
         raw=legacy.file.read_bytes();legacy.close()
@@ -231,6 +285,7 @@ class CommerceTests(unittest.TestCase):
         self.assertTrue(migrate(source,baseline,backup,DSN,True)['alreadyImported'])
         self.assertTrue(rollback_check(DSN,report['checksum'])['rollbackSafe'])
         restored=self.new_store();old=json.loads(raw)['orders'][0];self.assertEqual(restored.payment_order(old['id']),old)
+        self.assertEqual(restored.existing_payment(old['session'],'alternate-legacy-key')['id'],old['id'])
         self.assertEqual(restored.reserved(P['sku']),0);self.assertEqual(restored.sold(P['sku'],'test'),1)
         restored.pending_events();restored.close()
         with self.assertRaises(RuntimeError):rollback_check(DSN,report['checksum'])

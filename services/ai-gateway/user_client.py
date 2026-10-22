@@ -39,7 +39,23 @@ class UserClient:
         self.call('address', {'userId': user_id, 'shipping': shipping}, timeout=5)
 
     def project(self, order):
-        snapshot = {k: order[k] for k in ('id', 'userId', 'status', 'synthetic', 'paymentCaptured', 'paymentMode', 'currency', 'subtotal', 'total', 'paidAt', 'createdAt', 'shipping', 'currencyQuote') if k in order}
+        for key in ('demo', 'synthetic', 'paymentCaptured'):
+            if key in order and type(order[key]) is not bool:
+                raise ValueError('Invalid authoritative order provenance.')
+        if order.get('inventoryProvenance', 'unknown') not in ('merchant', 'demo', 'unknown'):
+            raise ValueError('Invalid authoritative inventory provenance.')
+        if not isinstance(order.get('productProvenance', []), list):
+            raise ValueError('Invalid authoritative product provenance.')
+        provenance = order.get('productProvenance', [])
+        if provenance:
+            if any(not isinstance(p, dict) or not isinstance(p.get('sku'), str)
+                   or any(type(p.get(k)) is not bool for k in ('demo', 'synthetic'))
+                   or p.get('fulfilment') not in ('merchant', 'simulated', 'unknown') for p in provenance):
+                raise ValueError('Invalid authoritative product provenance.')
+            skus = [p['sku'] for p in provenance]
+            if len(set(skus)) != len(skus) or set(skus) != {p['sku'] for p in order['items']}:
+                raise ValueError('Invalid authoritative product provenance.')
+        snapshot = {k: order[k] for k in ('id', 'userId', 'status', 'demo', 'inventoryProvenance', 'productProvenance', 'synthetic', 'paymentCaptured', 'paymentMode', 'currency', 'subtotal', 'total', 'paidAt', 'createdAt', 'shipping', 'currencyQuote') if k in order}
         snapshot['items'] = [{k: item[k] for k in ('sku', 'name', 'price', 'quantity', 'lineTotal')} for item in order['items']]
         return self.call('purchase', {'order': snapshot})['saved']
 

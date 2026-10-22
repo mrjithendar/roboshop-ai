@@ -67,6 +67,10 @@ async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(appPath(path), { ...options, headers: { 'content-type': 'application/json', ...options.headers }, signal: AbortSignal.timeout(25000) });
   let result;
   try { result = await response.json(); } catch { throw new Error('The service is unavailable. Please try again.'); }
+  if (!response.ok && result.code === 'CHECKOUT_QUOTE_INVALID') {
+    invalidateQuote();
+    throw new ApiError('Refresh your checkout total and choose an enabled payment currency before paying.', response.status);
+  }
   if (!response.ok) throw new ApiError(result.error || 'The request could not be completed.', response.status);
   return result;
 }

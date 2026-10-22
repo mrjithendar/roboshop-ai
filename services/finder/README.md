@@ -85,7 +85,7 @@ Tests: `python3 -m unittest discover -s services/finder/tests` and
 ### AI setup state
 
 Finder remains ready and visible when its backends are reachable but no Ollama
-or Bedrock provider is configured. The widget shows “Please enable AI” and asks
+or Bedrock provider is configured. The widget shows “Please connect an LLM to get results” and asks
 a store administrator to configure a provider. The chat form is disabled until
 AI is configured; guest users still see the sign-in requirement.
 

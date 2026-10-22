@@ -38,7 +38,7 @@ test('unconfigured AI stays visible, blocks chat, and recovers after configurati
  const ui=await setup(t,true);Object.defineProperty(ui.w.document,'hidden',{value:false});
  ui.setAI(false);await ui.poll();await settle();
  assert.equal(ui.w.document.querySelector('#finder-widget').hidden,false);
- assert.match(ui.shadow.querySelector('#error').textContent,/Please enable AI/);
+ assert.match(ui.shadow.querySelector('#error').textContent,/Please connect an LLM to get results/);
  assert.equal(ui.shadow.querySelector('#send').disabled,true);
  await ui.submit();assert.ok(!ui.calls.some(c=>c.url.endsWith('/chat')));
  ui.setAI(true);await ui.poll();await settle();

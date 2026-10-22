@@ -115,6 +115,8 @@ class UserServiceContract(unittest.TestCase):
         user, cookie = self.register()
         order = {'id': 'order-one', 'userId': user['id'], 'status': 'paid',
                  'paymentCaptured': True, 'paymentMode': 'live', 'currency': 'INR',
+                 'demo': False, 'synthetic': False, 'inventoryProvenance': 'merchant',
+                 'productProvenance': [{'sku': 'robot-1', 'demo': False, 'synthetic': False, 'fulfilment': 'merchant'}],
                  'subtotal': 199, 'total': 199, 'shipping': None,
                  'paidAt': '2026-01-01T00:00:00Z', 'createdAt': '2026-01-01T00:00:00Z',
                  'items': [{'sku': 'robot-1', 'name': 'Robot', 'price': 199,
@@ -129,6 +131,34 @@ class UserServiceContract(unittest.TestCase):
         self.assertFalse(self.gateway.auth.verified_purchase({**review, 'authorId': 'another-user'}))
         self.assertFalse(self.gateway.auth.verified_purchase({**review, 'synthetic': True}))
         self.assertFalse(self.gateway.auth.verified_purchase({**review, 'createdAt': '2025-01-01T00:00:00Z'}))
+        # Retries cannot rewrite money or immutable provenance.
+        self.gateway.auth.project({**order, 'total': 999, 'demo': True})
+        stored=self.db.purchase_history.find_one({'_id':order['id']})
+        self.assertEqual(stored['total'],199)
+        self.assertFalse(stored['demo'])
+        for field in ('demo','synthetic','inventoryProvenance','productProvenance','paymentCaptured'):
+            self.db.purchase_history.delete_many({})
+            incomplete={k:v for k,v in order.items() if k != field}
+            self.gateway.auth.project(incomplete)
+            self.assertFalse(self.gateway.auth.verified_purchase(review),field)
+        for changes in ({'paymentMode':'test'}, {'demo':True}, {'synthetic':True},
+                        {'inventoryProvenance':'unknown'}, {'paymentCaptured':False},
+                        {'productProvenance':[]}):
+            self.db.purchase_history.delete_many({})
+            self.gateway.auth.project({**order, **changes})
+            self.assertFalse(self.gateway.auth.verified_purchase(review),changes)
+
+
+    def test_fastapi_login_cookies_and_profile_http_contract(self):
+        from asgi_app import create_app
+        from fastapi.testclient import TestClient
+        with TestClient(create_app(self.gateway),base_url='https://shop.example') as client:
+            response=client.post('/api/auth/register',json={'name':'Alice','email':'alice@example.com','password':'correct password 123'},headers={'origin':'https://shop.example'})
+            self.assertEqual(response.status_code,201)
+            self.assertIn('rs_auth',client.cookies)
+            self.assertIn('rs_session',client.cookies)
+            self.assertEqual(client.get('/api/account/profile').status_code,200)
+            self.assertEqual(client.post('/api/auth/logout',json={},headers={'origin':'https://evil.example'}).status_code,403)
 
     def test_user_service_failure_is_not_anonymous_authentication_fallback(self):
         _,cookie=self.register()

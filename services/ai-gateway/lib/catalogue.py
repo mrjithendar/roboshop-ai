@@ -122,7 +122,7 @@ def normalize(p):
         return {k: p[k] for k in ("sku", "description", "categories")} | {
             "name": p["name"].strip(),
             "price": math.floor(p["price"] * 100 + 0.5) / 100,
-            "instock": 0 if p.get("archived") else p["instock"],
+            "instock": p["instock"],
             "archived": p.get("archived") is True,
             "image": f"/images/{p['sku']}.png",
         }

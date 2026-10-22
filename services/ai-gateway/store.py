@@ -323,17 +323,26 @@ class Store:
     def existing_payment(self, id, key):
         if not isinstance(key, str) or not re.fullmatch("[a-zA-Z0-9-]{16,80}", key):
             raise HttpError(400, "A valid idempotency key is required.")
-        return next((o for o in self.state["orders"] if o["session"] == id and o["key"] == key), None) or self.pending(id)
+        with self.lock:
+            aliases = self.state.get("checkoutKeys", {}).get(id, {})
+            order_id = aliases.get(key)
+            original = next((o for o in self.state["orders"] if o["session"] == id and o["key"] == key), None)
+            previous = next((o for o in self.state["orders"] if o["session"] == id and o["id"] == order_id), None) if order_id is not None else original
+            if order_id is not None and (previous is None or (original and original['id'] != order_id)):
+                raise HttpError(409, "Checkout alias is inconsistent; operator reconciliation required.")
+            previous = previous or self.pending(id)
+            if previous and key not in aliases:
+                state = copy.deepcopy(self.state)
+                state.setdefault("checkoutKeys", {}).setdefault(id, {})[key] = previous["id"]
+                self.save(state)
+            return previous
 
     def _begin_payment(self, id, key, products, payment_mode="test", key_id=None, quote_token=None):
         if not isinstance(key, str) or not re.fullmatch("[a-zA-Z0-9-]{16,80}", key):
             raise HttpError(400, "A valid idempotency key is required.")
-        previous = next(
-            (o for o in self.state["orders"] if o["session"] == id and o["key"] == key),
-            None,
-        )
-        if previous or self.pending(id):
-            return previous or self.pending(id)
+        previous = self.existing_payment(id, key)
+        if previous:
+            return previous
         cart = self.cart(id, products, payment_mode)
         provenance = checkout_provenance(cart["items"], payment_mode)
         for item in cart["items"]:
@@ -362,8 +371,10 @@ class Store:
             )
         if len(self.state["orders"]) >= 10000:
             raise HttpError(503, "Order capacity reached.")
-        if quote_token:
+        if quote_token is not None:
             cart = currency_quote.apply(cart, quote_token, id, self.cart_version(id), payment_mode)
+        elif cart["currency"] not in currency_quote.currencies():
+            raise currency_quote.QuoteError(400, "This currency is not enabled for checkout. Refresh your total and choose an enabled currency.")
         order = {
             "id": str(uuid.uuid4()),
             "session": id,
@@ -383,6 +394,7 @@ class Store:
         }
         state = copy.deepcopy(self.state)
         state["orders"].append(order)
+        state.setdefault("checkoutKeys", {}).setdefault(id, {})[key] = order["id"]
         self.save(state)
         return order
 

@@ -10,6 +10,9 @@ from datetime import date, datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from runtime import HttpError, request
 
+class QuoteError(HttpError):
+    code = 'CHECKOUT_QUOTE_INVALID'
+
 # This checkout ledger uses hundredths. Zero/three-decimal currencies need a
 # separate minor-unit migration and cannot be enabled through configuration.
 SUPPORTED = frozenset('INR USD EUR GBP SGD AUD CAD NZD CHF CNY HKD CZK DKK HUF PLN RON NOK SEK TRY BRL MXN ZAR MYR PHP THB IDR ILS'.split())
@@ -52,9 +55,20 @@ def decode(token):
         raw, signature = token.split('.')
         if not hmac.compare_digest(signature, hmac.new(secret(), raw.encode(), hashlib.sha256).hexdigest()):
             raise ValueError()
-        return json.loads(base64.urlsafe_b64decode(raw))
-    except (ValueError, TypeError, KeyError):
-        raise HttpError(400, 'Invalid checkout quote. Refresh your total.')
+        payload = json.loads(base64.urlsafe_b64decode(raw))
+        required = {'paymentMode', 'session', 'revision', 'fingerprint', 'sourceCurrency', 'currency', 'expiresAt', 'rate'}
+        if not isinstance(payload, dict) or not required <= payload.keys():
+            raise ValueError()
+        if type(payload['revision']) is not int or type(payload['expiresAt']) is not int:
+            raise ValueError()
+        if any(not isinstance(payload[k], str) for k in ('paymentMode','session','fingerprint','sourceCurrency','currency','rate')):
+            raise ValueError()
+        rate = Decimal(payload['rate'])
+        if not rate.is_finite() or rate <= 0:
+            raise ValueError()
+        return payload
+    except (ValueError, TypeError, KeyError, ArithmeticError):
+        raise QuoteError(400, 'Invalid checkout quote. Refresh your total.')
 
 
 def convert(cart, payload):
@@ -84,7 +98,7 @@ def issue(session, cart, revision, currency, payment_mode="test"):
     if payment_mode not in ("test", "live"):
         raise HttpError(503, "Payment mode unavailable.")
     if currency not in currencies():
-        raise HttpError(400, 'This currency is not enabled for checkout. Choose an available payment currency.')
+        raise QuoteError(400, 'This currency is not enabled for checkout. Choose an available payment currency.')
     if not cart['items'] or any(item.get('unavailable') for item in cart['items']):
         raise HttpError(409, 'Remove unavailable items and add a purchasable product before requesting a quote.')
     origin = cart['currency']
@@ -116,7 +130,7 @@ def apply(cart, token, session, revision, payment_mode):
     if (payload['paymentMode'] != payment_mode or payload['session'] != session or payload['revision'] != revision or
         payload['fingerprint'] != fingerprint(cart) or payload['sourceCurrency'] != cart['currency'] or
         payload['currency'] not in currencies() or payload['expiresAt'] <= time.time()):
-        raise HttpError(409, 'Checkout quote expired or your cart changed. Refresh your total before paying.')
+        raise QuoteError(409, 'Checkout quote expired or your cart changed. Refresh your total before paying.')
     converted = convert(cart, payload)
     converted['currencyQuote'] = {k: v for k, v in payload.items() if k not in ('session', 'fingerprint')}
     converted['sourceCart'] = copy.deepcopy(cart)

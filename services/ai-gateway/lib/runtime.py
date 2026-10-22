@@ -26,6 +26,15 @@ class HttpError(Exception):
         self.status = status
 
 
+deadline = contextvars.ContextVar("request_deadline", default=None)
+
+def remaining_timeout(timeout):
+    end = deadline.get()
+    remaining = end - time.monotonic() if end is not None else timeout
+    if remaining <= 0:
+        raise HttpError(504, "Request deadline exceeded.")
+    return min(timeout, remaining)
+
 ctx = contextvars.ContextVar("request_context", default=None)
 exports = ThreadPoolExecutor(max_workers=2)
 export_slots = threading.BoundedSemaphore(32)
@@ -126,7 +135,7 @@ def _request(url, data=None, headers=None, timeout=12, method=None):
         method=method,
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
+        with urllib.request.urlopen(req, timeout=remaining_timeout(timeout)) as response:
             return json.load(response)
     except urllib.error.HTTPError as error:
         raise HttpError(502, "A dependent service is unavailable.") from error
@@ -148,7 +157,7 @@ def _upstream(url, data=None, headers=None, timeout=15, method=None):
     if context:
         req.add_header("traceparent", trace_header(context))
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
+        with urllib.request.urlopen(req, timeout=remaining_timeout(timeout)) as response:
             return json.load(response)
     except urllib.error.HTTPError as error:
         try:

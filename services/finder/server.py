@@ -18,7 +18,7 @@ HEALTH_LOCK = threading.Lock()
 HEALTH_POOL = ThreadPoolExecutor(max_workers=3, thread_name_prefix='finder-health')
 HEALTH_SLOTS = threading.BoundedSemaphore(3)
 HEALTH = {'until': 0, 'ok': False, 'aiConfigured': False}
-AI_SETUP_MESSAGE = 'Please enable AI. A store administrator needs to configure Ollama or Amazon Bedrock.'
+AI_SETUP_MESSAGE = 'Please connect an LLM to get results. A store administrator needs to configure Ollama or Amazon Bedrock.'
 WIDGET = Path(__file__).with_name('widget.js').read_bytes()
 
 

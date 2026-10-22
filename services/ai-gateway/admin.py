@@ -7,7 +7,7 @@ from auth import require_role, email_address
 DEFAULTS = {
     "storeName": "RoboShop",
     "announcement": "THE NEXT GENERATION OF GOOD COMPANY.",
-    "supportEmail": "",
+    "supportEmail": "team@jithendar.com",
     "checkoutEnabled": True,
 }
 
@@ -51,7 +51,7 @@ def routes(req, db, auth, store):
         with store.catalogue_lock:
             if match:
                 existing = db.products.find_one({"_id": product["sku"]}) or {}
-                if getattr(store, "backend", "json") == "postgres" and product["instock"] != existing.get("instock"):
+                if getattr(store, "backend", "json") == "postgres" and data.get("instock") != existing.get("instock"):
                     raise HttpError(409, "Use an audited PostgreSQL inventory adjustment; catalogue stock is no longer authoritative.")
                 if existing.get("collection") == "reference" and product["instock"] != 0:
                     raise HttpError(400, "Reference inventory must remain zero and simulated.")
@@ -67,6 +67,7 @@ def routes(req, db, auth, store):
                     reserved = store.reserved(product["sku"])
                     if (product["archived"] and reserved > 0) or (
                         not product["archived"]
+                        and getattr(store, "backend", "json") != "postgres"
                         and product["instock"]
                         < max(store.reserved(product["sku"], "live") + store.sold(product["sku"], "live"),
                               store.reserved(product["sku"], "test") + store.sold(product["sku"], "test"))

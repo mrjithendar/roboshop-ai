@@ -8,4 +8,5 @@ COPY --chown=app:app . ./services/ai-gateway/
 RUN mkdir -p /app/.data && chown app:app /app/.data
 USER app
 EXPOSE 3000
+# FastAPI/Uvicorn entrypoint preserves HOST/PORT and enforces one process for JSON storage.
 CMD ["python", "services/ai-gateway/server.py"]

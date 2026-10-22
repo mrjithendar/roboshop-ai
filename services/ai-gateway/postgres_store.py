@@ -35,6 +35,22 @@ class MemoryRules(Store):
         return max(0, row['capacity'] - row['sold'] - row['reserved']) if row else p['instock']
 
 
+class CatalogueGate:
+    """Cross-process catalogue visibility gate; never a SQL transaction."""
+    def __init__(self, store):
+        self.store = store
+        self.local = threading.local()
+    def __enter__(self):
+        scope = self.store.cart_lock("catalogue-visibility")
+        scope.__enter__()
+        stack = getattr(self.local, "stack", [])
+        stack.append(scope)
+        self.local.stack = stack
+        return self
+    def __exit__(self, *exc):
+        return self.local.stack.pop().__exit__(*exc)
+
+
 class PostgresStore:
     backend = 'postgres'
 
@@ -44,7 +60,7 @@ class PostgresStore:
         self.dsn, self.cart_repository = dsn, cart_repository
         # Compatibility scopes only; each operation owns its SQL transaction.
         self.lock = nullcontext()
-        self.catalogue_lock = nullcontext()
+        self.catalogue_lock = CatalogueGate(self)
         self.local = threading.local()
         self.closed = False
         self.check_writer()

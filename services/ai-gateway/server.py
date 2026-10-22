@@ -12,7 +12,7 @@ from urllib.parse import urlencode
 SERVICE_ROOT = Path(__file__).resolve().parent
 STATIC_ROOT = Path(os.environ["FRONTEND_DIST"]).resolve() if os.getenv("FRONTEND_DIST") else None
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
-from runtime import HttpError, serve, request, upstream, text, configure_telemetry
+from runtime import HttpError, request, upstream, text, configure_telemetry
 from user_client import UserClient
 from purchase_sync import PurchaseSync
 from auth import connect_mongo, require_role
@@ -26,6 +26,7 @@ from llm_config import service_headers, unconfigured, authenticate_service
 from catalogue import retrieve
 from client_address import client_address
 from reviews import Reviews
+from api_models import ChatRequest, CheckoutRequest, CurrencyQuoteRequest, validate
 from readiness import gateway_readiness
 from product_details import related, require_purchasable, checkout_provenance
 
@@ -186,7 +187,7 @@ class Gateway:
                     if not config["enabled"]:
                         raise HttpError(503, config.get("message", "Payments unavailable."))
                     order, created = self.store.reserve_payment(
-                        id, key, products, config.get("mode", "unknown"), config.get("keyId"), version, **({"quote_token": quote_token} if quote_token else {})
+                        id, key, products, config.get("mode", "unknown"), config.get("keyId"), version, quote_token=quote_token
                     )
         if created:
             try:
@@ -418,8 +419,7 @@ class Gateway:
         if path == "/api/payments/quote" and method == "POST":
             id = self.session(req)
             data = req.body()
-            if set(data) != {"currency"}:
-                raise HttpError(400, "Only checkout currency is accepted.")
+            validate(CurrencyQuoteRequest, data)
             products = self.catalogue()
             with self.store.lock:
                 if self.store.pending(id):
@@ -445,8 +445,7 @@ class Gateway:
             return {"order": result} if path.endswith("/current") else result
         if path == "/api/payments/orders" and method == "POST":
             data = req.body()
-            if set(data) - {"quoteToken"}:
-                raise HttpError(400, "Only a server checkout quote is accepted.")
+            validate(CheckoutRequest, data)
             id = self.session(req)
             return self.checkout(id, req.headers.get("idempotency-key"), data.get("quoteToken"))
         if path == "/api/payments/verify" and method == "POST":
@@ -553,9 +552,7 @@ class Gateway:
             authenticate_service(req.headers)
             self.limit(req, True)
             data = req.body()
-            if set(data) != {"message"}:
-                raise HttpError(400, "Only message is accepted for chat.")
-            message = text(data.get("message"))
+            message = text(validate(ChatRequest, data).message)
             active = self.llm.current()
             if active["config"]["provider"] == "none":
                 return unconfigured()
@@ -675,26 +672,7 @@ class Gateway:
 
 
 if __name__ == "__main__":
-    client, db = connect_mongo()
-    cart_repository = CartRepository(os.environ['CART_URL'], os.environ['CART_SERVICE_TOKEN']) if os.getenv('CART_URL') else None
-    backend = os.getenv("COMMERCE_BACKEND", "json")
-    if backend == "postgres":
-        from postgres_store import PostgresStore
-        store = PostgresStore(os.environ["COMMERCE_DATABASE_URL"], cart_repository)
-    elif backend == "json":
-        store = Store(os.getenv("DATA_DIR", str(SERVICE_ROOT / ".data")), cart_repository)
-    else:
-        raise RuntimeError("COMMERCE_BACKEND must be json or postgres; no automatic fallback is allowed.")
-    gateway = Gateway(db, store)
-    publisher = OrderPublisher(store, os.getenv("RABBITMQ_URL"))
-    publisher.start()
-    gateway.customers.start()
-    try:
-        serve("ai-gateway", 3000, gateway.handle)
-    finally:
-        publisher.stop()
-        gateway.customers.stop()
-        store.close()
-        if hasattr(gateway, "demo_client"):
-            gateway.demo_client.close()
-        client.close()
+    import uvicorn
+    uvicorn.run("asgi_app:create_app", factory=True, host=os.getenv("HOST", "0.0.0.0"),
+                port=int(os.getenv("PORT", "3000")), workers=1, proxy_headers=False,
+                limit_concurrency=100, timeout_keep_alive=5, access_log=False)

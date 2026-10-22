@@ -177,6 +177,7 @@ class ReviewTests(unittest.TestCase):
             "paidAt": now() - timedelta(days=1),
             "paymentCaptured": True,
             "paymentMode": "live", "demo": False, "inventoryProvenance": "merchant",
+            "productProvenance": [{"sku":"P", "demo":False, "synthetic":False, "fulfilment":"merchant"}],
             "synthetic": False,
         }
         self.db.purchase_history.insert_one({**order, "userId": "bob"})

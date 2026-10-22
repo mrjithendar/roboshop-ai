@@ -13,6 +13,7 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 import math
 import uuid
 from pathlib import Path
@@ -128,6 +129,13 @@ def validate(state,inventory):
             if sold.get(key,0)<n: raise ValueError('Missing sold counter for paid order')
         for key in set(held)|set(sold):
             if key not in capacities or capacities[key]<held[key]+sold.get(key,0): raise ValueError('Inventory baseline absent or overcommitted: '+str(key))
+        for session, aliases in data.get('checkoutKeys', {}).items():
+            for key, order_id in aliases.items():
+                match = next((o for o in data['orders'] if o['id'] == order_id and o['session'] == session), None)
+                if not match or not re.fullmatch(r'[a-zA-Z0-9-]{16,80}', key):
+                    raise ValueError('Invalid checkout alias')
+                if any(o['session'] == session and o['key'] == key and o['id'] != order_id for o in data['orders']):
+                    raise ValueError('Conflicting checkout alias')
         report.update(orders=len(data['orders']),sessions=len(data['sessions']),totalsByModeCurrency=dict(totals),heldUnits=sum(held.values()),soldUnits=sum(sold.values()),unattributedSoldUnits=sum(sold.values())-sum(paid.values()),statusCounts=dict(Counter(o['status'] for o in data['orders'])))
         return data,capacities,sold,held,report
     except (KeyError,TypeError,ValueError,ArithmeticError) as error:
@@ -191,6 +199,9 @@ def migrate(source,baseline,backup_dir,dsn,apply=False):
                 for p in o['items']:
                     c.execute('INSERT INTO commerce_reservations VALUES(%s,%s,%s,%s,%s)',(o['id'],p['sku'],o['paymentMode'],p['quantity'],'consumed' if o['status']=='paid' else 'held'))
                 if o['status']=='paid': PostgresStore._insert_outbox(c,o)
+            for session, aliases in state.get('checkoutKeys', {}).items():
+                for key, order_id in aliases.items():
+                    c.execute('INSERT INTO commerce_checkout_keys(session_id,key,order_id) VALUES(%s,%s,%s) ON CONFLICT DO NOTHING', (session,key,order_id))
             report.update(applied=True,fingerprint=fingerprint(c))
             c.execute('INSERT INTO commerce_imports(checksum,source_name,report) VALUES(%s,%s,%s)',(checksum,source.name,Jsonb(report)))
         return report

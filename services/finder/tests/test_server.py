@@ -88,7 +88,7 @@ class FinderTests(unittest.TestCase):
             status, _, body = self.call(path='/available')
             self.assertTrue(body['available'])
             self.assertFalse(body['aiConfigured'])
-            self.assertIn('Please enable AI', body['message'])
+            self.assertIn('Please connect an LLM to get results', body['message'])
 
     def test_model_failure_is_explicit_feature_unavailable(self):
         with patch.object(s, 'authenticated', return_value=True), patch.object(s, 'upstream', return_value={'mode':'provider-unavailable','answer':'Model unavailable'}):
@@ -101,7 +101,7 @@ class FinderTests(unittest.TestCase):
             status, _, body = self.call({'message':'help'})
             self.assertTrue(status.startswith('503'))
             self.assertEqual(body['code'], 'ai-not-configured')
-            self.assertIn('Please enable AI', body['error'])
+            self.assertIn('Please connect an LLM to get results', body['error'])
 
     def test_failures_and_limits(self):
         with patch.object(s,'authenticated',return_value=True),patch.object(s,'upstream',side_effect=TimeoutError):
