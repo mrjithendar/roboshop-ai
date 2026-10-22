@@ -106,10 +106,21 @@ def authenticated(environ):
         token = cookies['rs_auth'].value if 'rs_auth' in cookies else ''
         if len(token) != 64 or any(c not in '0123456789abcdef' for c in token):
             return False
-        req = Request(os.getenv('AUTH_URL', 'http://ai-gateway:3000/api/auth/me'),
-                      headers={'Cookie': 'rs_auth=' + token})
-        with urlopen(req, timeout=2) as response:
-            result = json.loads(response.read(16384))
+        url = os.getenv('AUTH_URL', 'http://ai-gateway:3000/api/auth/me')
+        # A single no-retry client span. Do not use the chat wrapper, which adds
+        # a service bearer token and has a different response-size limit.
+        with trace_span(http_name('GET', url), kind=3,
+                        attributes={'server.address': urlsplit(url).hostname or '',
+                                    'url.template': route_template(url),
+                                    'http.request.method': 'GET'}):
+            req = Request(url, headers={'Cookie': 'rs_auth=' + token, **propagation_headers()})
+            try:
+                with urlopen(req, timeout=2) as response:
+                    record_http_response(getattr(response, 'status', None))
+                    result = json.loads(response.read(16384))
+            except HTTPError as error:
+                record_http_response(error.code)
+                raise
         return bool(result.get('user'))
     except Exception as error:
         log_event("authentication_dependency_failed", status=503, errorType=type(error).__name__)

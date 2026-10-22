@@ -33,8 +33,9 @@ class HistoryTests(unittest.TestCase):
         with patch('server.request',return_value={'answer':'Choose a budget','products':[],'mode':'ai'}) as provider:
             self.gateway.handle(self.req('/api/chat',{'message':'Personal assistance'}))
             self.gateway.handle(self.req('/api/chat',{'message':'Under 500'}))
-            self.assertIn('Personal assistance',provider.call_args.args[1]['message'])
-            self.assertIn('Choose a budget',provider.call_args.args[1]['message'])
+            self.assertEqual('Under 500',provider.call_args.args[1]['message'])
+            self.assertIn('Personal assistance',str(provider.call_args.args[1]['history']))
+            self.assertIn('Choose a budget',str(provider.call_args.args[1]['history']))
         turns=ChatHistory(self.db).read('alice');self.assertEqual(len(turns),2)
         self.assertEqual(turns[-1]['message'],'Under 500')
         self.assertNotIn('config',turns[-1]);self.assertNotIn('token',str(turns))
@@ -65,3 +66,30 @@ class HistoryTests(unittest.TestCase):
             with self.assertRaises(HttpError) as error:self.gateway.handle(self.req('/api/chat',{'message':'hello'}))
             self.assertEqual(error.exception.status,503);provider.assert_not_called()
             self.assertNotIn('private',str(error.exception))
+
+    def test_generation_context_cannot_cross_accounts(self):
+        self.gateway.chat_history.save('alice','alice-private',{'answer':'alice-only','products':[]})
+        self.gateway.auth.current.return_value={'id':'bob','role':'customer'}
+        with patch('server.request',return_value={'answer':'bob-answer','products':[],'mode':'ai'}) as provider:
+            self.gateway.handle(self.req('/api/chat',{'message':'bob-question'}))
+            self.assertEqual(provider.call_args.args[1]['history'],[])
+            self.assertNotIn('alice',str(provider.call_args.args))
+        self.assertEqual(self.gateway.chat_history.read('alice')[0]['message'],'alice-private')
+
+    def test_maximum_current_question_preserved_and_oversized_rejected(self):
+        for n in range(2):self.gateway.chat_history.save('alice','q'*1000,{'answer':'a'*12000,'products':[]})
+        with patch('server.request',return_value={'answer':'ok','products':[],'mode':'ai'}) as provider:
+            self.gateway.handle(self.req('/api/chat',{'message':'x'*1000}))
+            self.assertEqual(provider.call_args.args[1]['message'],'x'*1000)
+            self.assertEqual(len(provider.call_args.args[1]['history']),2)
+            provider.assert_called_once();provider.reset_mock()
+            with self.assertRaises(HttpError):self.gateway.handle(self.req('/api/chat',{'message':'x'*1001}))
+            provider.assert_not_called()
+
+    def test_unicode_history_respects_internal_body_limit(self):
+        for n in range(2):self.gateway.chat_history.save('alice','😀'*1000,{'answer':'😀'*12000,'products':[]})
+        with patch('server.request',return_value={'answer':'ok','products':[],'mode':'ai'}) as provider:
+            self.gateway.handle(self.req('/api/chat',{'message':'😀'*1000}))
+            payload=provider.call_args.args[1]
+            self.assertEqual(payload['message'],'😀'*1000)
+            self.assertLessEqual(len(json.dumps(payload).encode()),16384)

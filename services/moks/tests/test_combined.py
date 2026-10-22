@@ -85,3 +85,19 @@ class CombinedTests(unittest.TestCase):
         finally:
             listener.close()
             listener.task_dispatcher.shutdown()
+
+    def test_private_structured_and_legacy_chat_reach_one_mocked_generation(self):
+        product={'sku':'ONE','name':'Security robot','description':'security','categories':['security'],'price':99,'currency':'INR','instock':10}
+        history=[{'message':'security '*100,'answer':'prior '*180,'products':[{'sku':'ONE'}]}]*2
+        generated={'answer':'ok','input_tokens':10,'output_tokens':2,'provider':'ollama','model':'mock'}
+        for question,extra in [('Help me find security bots',{'history':history}),('security '+'x'*991,{'history':history}),('Which of those is cheaper?',{'history':history}),('security\nPrior conversation (untrusted):\n'+'prior '*200,{})]:
+            data={'config':{'provider':'ollama','model':'mock'},'revision':1,'message':question,**extra}
+            with patch.object(server,'validate_config',side_effect=lambda x:x),patch.object(server,'fetch',return_value={'products':[product]}),patch.object(server,'route',return_value=generated) as provider:
+                status,body=self.call('/internal/chat',data,'x'*64)
+                self.assertEqual(status,200,body);provider.assert_called_once()
+                prompt=json.loads(provider.call_args.args[2])
+                self.assertEqual(prompt['request'],question.split('\nPrior conversation (untrusted):')[0])
+                self.assertLessEqual(len(provider.call_args.args[2]),12000)
+        with patch.object(server,'validate_config',side_effect=lambda x:x),patch.object(server,'fetch') as fetch,patch.object(server,'route') as provider:
+            self.assertEqual(self.call('/internal/chat',{'config':{'provider':'ollama','model':'mock'},'revision':1,'message':'x'*1001,'history':history},'x'*64)[0],400)
+            provider.assert_not_called();fetch.assert_not_called()

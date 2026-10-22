@@ -8,6 +8,7 @@ from runtime import ctx
 from runtime import application as engine_application, configure_telemetry, log_event, request, text, HttpError
 from llm_config import authenticate_service, validate_config, unconfigured, service_headers
 from agent import answer
+from conversation import conversation
 from providers import ProviderError
 from routing import route
 from deadlines import fetch
@@ -34,7 +35,7 @@ def handle(req):
     authenticate_service(req.headers)
     data = req.body()
     allowed = {"config", "revision"} | (
-        {"message", "unavailableSkus"} if req.path == "/internal/chat" else set()
+        {"message", "history", "unavailableSkus"} if req.path == "/internal/chat" else set()
     )
     if (
         set(data) - allowed
@@ -66,7 +67,7 @@ def handle(req):
 
     if config["provider"] == "none":
         return unconfigured()
-    message = text(data.get("message"), maximum=3000)
+    message, history = conversation(data.get("message"), data.get("history"))
     products = fetch(
         os.getenv("CATALOGUE_URL", os.getenv("INGESTION_URL", "http://127.0.0.1:4108")) + "/api/products", deadline=deadline, timeout=2
     )["products"]
@@ -84,6 +85,7 @@ def handle(req):
         data["revision"],
         generate=lambda *args: route(*args, deadline=deadline, guard=guard),
         deadline=deadline,
+        history=history,
     )
 
 

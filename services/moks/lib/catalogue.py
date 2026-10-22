@@ -18,7 +18,7 @@ SYNONYMS = {
 }
 
 
-def retrieve(products, query):
+def retrieve(products, query, *, reference_skus=()):
     if not isinstance(query, str) or len(query) > 1000:
         raise HttpError(400, "Invalid search query.")
     match = re.search(
@@ -42,7 +42,8 @@ def retrieve(products, query):
     picks = []
     for p in products:
         if (
-            p.get("archived")
+            (bool(reference_skus) and p["sku"] not in reference_skus)
+            or p.get("archived")
             or (p["instock"] <= 0 and p.get("collection") != "reference")
             or (
                 budget is not None
@@ -60,6 +61,7 @@ def retrieve(products, query):
             terms
             and not all(w in ("cheap", "affordable", "budget") for w in words)
             and not matches
+            and p["sku"] not in reference_skus
         ):
             continue
         reason = (

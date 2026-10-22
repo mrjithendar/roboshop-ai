@@ -38,6 +38,10 @@ def load(name, path):
 
 gateway_module = load("llm_gateway", "services/ai-gateway/server.py")
 agent_server = load("llm_agent_server", "services/moks/server.py")
+# These integration tests load two services in one interpreter. Bind the agent
+# to its own catalogue implementation, as its isolated container does.
+import agent
+agent.retrieve = load("moks_catalogue", "services/moks/lib/catalogue.py").retrieve
 BEDROCK = {
     "provider": "bedrock",
     "region": "us-east-1",

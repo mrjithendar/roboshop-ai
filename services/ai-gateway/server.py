@@ -12,7 +12,7 @@ from urllib.parse import urlencode
 SERVICE_ROOT = Path(__file__).resolve().parent
 STATIC_ROOT = Path(os.environ["FRONTEND_DIST"]).resolve() if os.getenv("FRONTEND_DIST") else None
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
-from runtime import business_operation, HttpError, request, upstream, text, configure_telemetry, log_event
+from runtime import encode, business_operation, HttpError, request, upstream, text, configure_telemetry, log_event
 from user_client import UserClient
 from purchase_sync import PurchaseSync
 from auth import connect_mongo, require_role
@@ -584,14 +584,20 @@ class Gateway:
             if not self.chat_slots.acquire(blocking=False):
                 return self.feature_unavailable("finder")
             try:
+                payload = {
+                    "message": message,
+                    "history": self.chat_history.context(previous),
+                    "unavailableSkus": unavailable,
+                    "config": active["config"],
+                    "revision": active["revision"],
+                }
+                # JSON escaping (especially non-ASCII text) also counts toward
+                # the existing internal body limit. Never trim the new question.
+                while len(encode(payload)) > 16384 and payload["history"]:
+                    payload["history"].pop(0)
                 result = request(
                     self.urls["agent"] + "/internal/chat",
-                    {
-                        "message": self.chat_history.with_context(message, previous),
-                        "unavailableSkus": unavailable,
-                        "config": active["config"],
-                        "revision": active["revision"],
-                    },
+                    payload,
                     service_headers(),
                     timeout=18,
                 )

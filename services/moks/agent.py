@@ -8,6 +8,7 @@ from langchain_core.runnables import RunnableLambda
 from langgraph.graph import StateGraph, START, END
 from langsmith import tracing_context
 from catalogue import retrieve
+from conversation import conversation, reference_skus, prompt_budget, encoded
 from llm_config import unconfigured
 from providers import invoke, ProviderError
 from runtime import ctx, trace_span
@@ -18,6 +19,7 @@ INSTRUCTIONS = "You are Moks, an AI agent for everyone, helping customers of Rob
 
 class ShoppingState(TypedDict, total=False):
     message: str
+    history: list
     picks: list
     evidence: str
     response: dict
@@ -28,7 +30,7 @@ PROMPT = ChatPromptTemplate.from_messages([
 ])
 
 
-def catalogue_evidence(picks, message):
+def catalogue_evidence(picks, message, history=()):
     evidence = [
         {k: p[k] for k in ("sku", "name", "description", "price", "instock")}
         | {k: p.get(k) for k in ("currency", "priceType", "showcase", "sources", "productType", "categories", "collection", "demo", "synthetic", "fulfilment", "inventoryStatus", "manufacturer", "model", "priceSourceUrl", "priceCheckedAt", "checkedAt", "priceBasis", "compatibility", "unresolvedFields")}
@@ -41,13 +43,25 @@ def catalogue_evidence(picks, message):
         specs = product.get("specifications", {})
         if isinstance(specs, dict):
             item["specifications"] = {str(k)[:100]: str(v)[:250] for k, v in list(specs.items())[:12]}
-    return json.dumps({"request": message, "catalogueEvidence": evidence})
+    turns = list(history)
+    def payload():
+        return encoded({"request": message, "history": turns, "catalogueEvidence": evidence})
+    # Explicit combined system + human character budget. Remove whole evidence
+    # records instead of cutting prices, currency, provenance, or JSON mid-field.
+    def over_budget():
+        return len(payload()) > 12000 or len(INSTRUCTIONS) + len(payload()) > prompt_budget()
+    while over_budget() and turns:
+        turns.pop(0)
+    while over_budget() and evidence:
+        evidence.pop()
+    return payload()
 
 
-def answer(products, message, config=None, revision=0, generate=invoke, *, deadline=None):
+def answer(products, message, config=None, revision=0, generate=invoke, *, deadline=None, history=None):
     config = config or {"provider": "none"}
     if config["provider"] == "none":
         return unconfigured()
+    message, history = conversation(message, history)
 
     def check_deadline():
         if deadline is not None and time.monotonic() >= deadline:
@@ -56,14 +70,16 @@ def answer(products, message, config=None, revision=0, generate=invoke, *, deadl
     def search_catalogue(state):
         check_deadline()
         with trace_span("rag.retrieve", attributes={"roboshop.agent.framework": "langgraph", "langfuse.observation.type":"retriever"}, service="moks"):
-            current = state["message"].split("\nPrior conversation (untrusted):", 1)[0].strip()
+            current = state["message"]
             if re.fullmatch(r"(?:who are you|what is moks|what can you do|introduce yourself)[?!.]*", current, re.IGNORECASE):
                 return {"picks": []}
-            return {"picks": retrieve(products, state["message"])[:4]}
+            return {"picks": retrieve(products, current, reference_skus=reference_skus(products, current, state["history"]))[:4]}
 
     def ground(state):
         check_deadline()
-        return {"evidence": catalogue_evidence(state["picks"], state["message"])}
+        evidence = catalogue_evidence(state["picks"], state["message"], state["history"])
+        used = {p['sku'] for p in json.loads(evidence)['catalogueEvidence']}
+        return {"evidence": evidence, "picks": [p for p in state["picks"] if p['sku'] in used]}
 
     def call_provider(prompt):
         check_deadline()
@@ -96,7 +112,7 @@ def answer(products, message, config=None, revision=0, generate=invoke, *, deadl
         # Disable implicit LangSmith payload export, even if the host has tracing
         # environment variables set. Existing OTel spans export metadata only.
         with tracing_context(enabled=False):
-            result = workflow.invoke({"message": message}, config={"recursion_limit": 8})
+            result = workflow.invoke({"message": message, "history": history}, config={"recursion_limit": 8})
         response, picks = result["response"], result["picks"]
         return {
             **response,

@@ -137,3 +137,38 @@ The widget reloads them when opened, and clears its display after logout. Recent
 saved turns provide bounded follow-up context, including after a page refresh.
 Unsent drafts and failed provider requests are not persisted. No MongoDB credential
 is added to Moks; the gateway owns access to the collection.
+
+## Conversation and authentication tracing
+
+Public chat still accepts the same `message` (1–1,000 characters). The gateway
+loads history for the authenticated account and sends separate `message` and
+`history` fields to `/internal/chat`. Only the latest two turns and up to four
+product SKU/slug references per turn are forwarded. Old internal messages using
+`\nPrior conversation (untrusted):` remain readable during a rolling upgrade;
+new structured requests never split the current question at that delimiter.
+Upgrade Moks before the gateway so the receiver accepts the new history field.
+
+Retrieval searches the current question only. For explicit follow-ups such as
+“Which of those is cheaper?”, it restricts candidates to the latest saved product
+references, resolved against the current catalogue. Legacy saved slugs also work.
+Stock, archive, budget, currency and provenance rules still apply; historical
+prices/descriptions are not catalogue evidence. No query-rewriting model call is
+made. Follow-ups without resolvable references may need clarification.
+
+Generation receives JSON containing the question, bounded untrusted history and
+current evidence. `MOKS_HISTORY_MAX_CHARS` defaults to 4,000 (clamped to 0–8,000).
+`MOKS_PROMPT_MAX_CHARS` defaults to 14,000 (clamped to 8,000–14,000) for system plus
+human text; the existing provider limits of 2,000 system and 12,000 human characters
+remain unchanged. These are character budgets, not tokenizer-exact token counts.
+Old history is reduced first; oversized catalogue records are dropped whole so
+price/currency/provenance fields cannot be partially cut. Product cards reflect
+only evidence actually sent. The current question is never truncated. The gateway
+also drops old history if JSON escaping would exceed the internal 16 KiB body cap.
+History, user messages and catalogue content remain untrusted, not instructions.
+
+Widget session authentication creates one `GET /api/auth/me` client span and
+propagates W3C trace context, including unsampled decisions. Only `rs_auth` and
+trace headers are forwarded: no arbitrary browser headers or other cookies.
+Authentication retains its origin check, two-second timeout, 16 KiB response read
+and no retries. Spans contain normalized routes and actual response statuses only;
+no response means no HTTP status. Export failure cannot fail authentication.
