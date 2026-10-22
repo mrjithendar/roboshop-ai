@@ -39,11 +39,17 @@ def routes(req, db, auth, store):
             "categories",
             "archived",
             "revision",
+            "image",
         }:
             raise HttpError(400, "Unknown product field.")
         if "archived" in data and type(data["archived"]) is not bool:
             raise HttpError(400, "Archived must be true or false.")
+        image = data.get('image')
+        if image is not None and (not isinstance(image, str) or (image and not re.fullmatch(r"/(?:product-media|images)/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)", image))):
+            raise HttpError(400, "Use an existing storefront image path under /product-media/ or /images/.")
         product = normalize(data)
+        if image:
+            product['image'] = image
         if match and (
             match[1] != product["sku"] or type(data.get("revision")) is not int
         ):
@@ -55,13 +61,17 @@ def routes(req, db, auth, store):
                     raise HttpError(409, "Use an audited PostgreSQL inventory adjustment; catalogue stock is no longer authoritative.")
                 if existing.get("collection") == "reference" and product["instock"] != 0:
                     raise HttpError(400, "Reference inventory must remain zero and simulated.")
+                if image is None:
+                    product['image'] = existing.get('image', product['image'])
                 if existing.get("showcase"):
                     if product["price"] != existing["price"]:
                         raise HttpError(
                             400,
                             "Source reference prices must be updated with reviewed provenance, not the live price editor.",
                         )
-                    product["image"] = "/images/placeholder.png"
+                    if image and image != existing.get('image'):
+                        raise HttpError(400, "Reference images require a reviewed provenance update.")
+                    product["image"] = existing.get('image', '/images/placeholder.png')
 
                 with store.lock:
                     reserved = store.reserved(product["sku"])

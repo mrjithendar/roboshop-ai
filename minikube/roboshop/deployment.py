@@ -66,17 +66,23 @@ def ensure_credentials(context):
         data = json.loads(current).get('data', {})
         if any(not data.get(key) for key in PASSWORD_KEYS if key != 'USER_SERVICE_TOKEN'):
             raise RuntimeError('Existing roboshop-secrets is incomplete; restore missing credentials rather than rotating database passwords.')
+        email = base64.b64decode(data.get('SUPERADMIN_EMAIL', '')).decode()
+        if email and email != 'team@jithendar.com':
+            raise RuntimeError('Existing SUPERADMIN_EMAIL differs from team@jithendar.com; resolve explicitly.')
+        additions = {}
         if not data.get('USER_SERVICE_TOKEN'):
-            patch = [
-                {'op': 'test', 'path': '/metadata/resourceVersion', 'value': json.loads(current)['metadata']['resourceVersion']},
-                {'op': 'add', 'path': '/data/USER_SERVICE_TOKEN', 'value': base64.b64encode(secrets.token_hex(32).encode()).decode()},
-            ]
-            result = subprocess.run(base + ['patch', 'secret', 'roboshop-secrets', '--type=json', '--patch-file=/dev/stdin'], input=json.dumps(patch), text=True, capture_output=True)
+            additions['USER_SERVICE_TOKEN'] = secrets.token_hex(32)
+        if not email:
+            additions['SUPERADMIN_EMAIL'] = 'team@jithendar.com'
+        if not data.get('SUPERADMIN_PASSWORD'):
+            additions['SUPERADMIN_PASSWORD'] = secrets.token_urlsafe(36)
+        if additions:
+            patch = [{'op':'test', 'path':'/metadata/resourceVersion', 'value':json.loads(current)['metadata']['resourceVersion']}]
+            patch += [{'op':'add', 'path':'/data/'+key, 'value':base64.b64encode(value.encode()).decode()} for key,value in additions.items()]
+            result = subprocess.run(base + ['patch','secret','roboshop-secrets','--type=json','--patch-file=/dev/stdin'], input=json.dumps(patch), text=True, capture_output=True)
             if result.returncode:
-                raise RuntimeError('Could not add user service credential. Rerun after checking for concurrent changes.')
-            print('Added USER_SERVICE_TOKEN; existing credentials preserved.')
-        else:
-            print('Reusing roboshop-secrets; no credentials changed.')
+                raise RuntimeError('Credential initialization conflicted or failed; retry. Values not printed.')
+        print('Application and superadmin credentials ready; existing passwords preserved.')
         return
     claims = read(['get', 'pvc', 'mongodb-data', 'shipping-postgres', 'rabbitmq-data', 'gateway-data',
                    '--ignore-not-found', '-o', 'name'])
@@ -84,6 +90,7 @@ def ensure_credentials(context):
         raise RuntimeError('Existing data PVCs found without roboshop-secrets. Restore the original Secret before deploying.')
     payload = {'apiVersion': 'v1', 'kind': 'Secret', 'metadata': {'name': 'roboshop-secrets', 'namespace': 'roboshop-ai'},
                'type': 'Opaque', 'stringData': {key: secrets.token_hex(32) for key in PASSWORD_KEYS}}
+    payload['stringData'].update(SUPERADMIN_EMAIL='team@jithendar.com', SUPERADMIN_PASSWORD=secrets.token_urlsafe(36))
     result = subprocess.run(base + ['create', '-f', '-'], input=json.dumps(payload), capture_output=True, text=True)
     if result.returncode:
         raise RuntimeError('Could not create roboshop-secrets. Check permissions or concurrent installation; credentials were not printed.')

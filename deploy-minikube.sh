@@ -32,6 +32,8 @@ for service in "${services[@]}"; do
   test -f "services/$service/$service-minikube.yaml"
 done
 kube=(kubectl --context="$context" --request-timeout=60s -n roboshop-ai)
+# Initialize missing admin keys; preserve all existing passwords.
+python3 minikube/roboshop/deployment.py credentials --context="$context"
 # Preserve application credentials and database configuration.
 "${kube[@]}" get secret roboshop-secrets -o name
 "${kube[@]}" get configmap roboshop-config -o name

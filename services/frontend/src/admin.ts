@@ -1,7 +1,7 @@
 import { appPath, initCurrency } from './paths.js';
 void initCurrency();
 export {};
-interface AdminProduct { currency?: string; priceType?: string; showcase?: boolean; sku: string; name: string; description: string; price: number; instock: number; categories: string[]; archived: boolean; revision: number; available: number }
+interface AdminProduct { image?: string; currency?: string; priceType?: string; showcase?: boolean; sku: string; name: string; description: string; price: number; instock: number; categories: string[]; archived: boolean; revision: number; available: number }
 interface AdminUser { id: string; name: string; email: string; role: 'customer' | 'admin' | 'superadmin'; disabled: boolean }
 interface Settings { storeName: string; announcement: string; supportEmail: string; checkoutEnabled: boolean }
 const control = <T extends HTMLElement>(id: string): T => { const node = document.getElementById(id); if (!node) throw new Error(`Missing control ${id}`); return node as T; };
@@ -18,7 +18,46 @@ async function adminRequest<T>(path: string, method = 'GET', data?: object): Pro
   return result;
 }
 let editing: AdminProduct | null = null, nextUsers: string | null = null;
+const tabNames = ['products', 'editor', 'reviews', 'users', 'settings', 'llm'];
+function selectTab(name: string): void {
+  if (control(`tab-${name}`).hidden) return;
+  for (const key of tabNames) {
+    const active = name === key;
+    control(`tab-${key}`).setAttribute('aria-selected', String(active));
+    control(`tab-${key}`).tabIndex = active ? 0 : -1;
+    control(`panel-${key}`).hidden = !active;
+  }
+}
+for (const key of tabNames) {
+  const tab = control(`tab-${key}`);
+  tab.addEventListener('click', () => { if (key === 'editor' && !editing) edit(null); else selectTab(key); });
+  tab.addEventListener('keydown', event => {
+    const visible = tabNames.filter(name => !control(`tab-${name}`).hidden);
+    let index = visible.indexOf(key);
+    if (event.key === 'ArrowRight') index = (index + 1) % visible.length;
+    else if (event.key === 'ArrowLeft') index = (index + visible.length - 1) % visible.length;
+    else if (event.key === 'Home') index = 0;
+    else if (event.key === 'End') index = visible.length - 1;
+    else return;
+    event.preventDefault(); control(`tab-${visible[index]}`).focus(); control(`tab-${visible[index]}`).click();
+  });
+}
+function previewImage(): void {
+  const path = input('product-image').value.trim();
+  const preview = control<HTMLImageElement>('product-image-preview');
+  const valid = /^\/(?:product-media|images)\/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)$/.test(path);
+  preview.hidden = !valid;
+  control('product-image-status').textContent = path && !valid ? 'Enter a storefront image path ending in .jpg, .jpeg, .png or .webp.' : '';
+  if (valid) preview.src = appPath(path);
+  else preview.removeAttribute('src');
+}
+input('product-image').addEventListener('input', previewImage);
+control('product-image-preview').addEventListener('error', () => { control('product-image-status').textContent = 'Image could not be loaded. Check that this asset is deployed.'; });
+control('cancel-product').addEventListener('click', () => selectTab('products'));
+
 function edit(product: AdminProduct | null): void {
+  selectTab('editor'); control('tab-editor').textContent = product ? 'Edit product' : 'Add product';
+  input('product-image').value = product?.image || ''; previewImage();
   editing = product; control('product-form').hidden = false; control('product-form-title').textContent = product ? `Edit ${product.sku}` : 'New product';
   input('product-sku').value = product?.sku || ''; input('product-sku').readOnly = Boolean(product);
   input('product-name').value = product?.name || ''; control<HTMLTextAreaElement>('product-description').value = product?.description || '';
@@ -31,7 +70,7 @@ async function loadAdminProducts(): Promise<void> {
   control('admin-products').replaceChildren(...products.map(product => {
     const row = node('tr');
     for (const value of [product.sku, product.name, product.priceType === 'on-request' ? 'Price on request' : `${product.currency || 'EUR'} ${product.price.toFixed(2)}${product.showcase ? ' reference' : ''}`, `${product.available} / ${product.instock}`, product.archived ? 'Archived' : 'Active']) row.append(node('td', value));
-    const action = node('td'), button = node('button', 'Edit'); button.className = 'button secondary'; button.addEventListener('click', () => edit(product)); action.append(button); row.append(action); return row;
+    const action = node('td'), button = node('button', 'Edit details / image'); button.className = 'button secondary'; button.addEventListener('click', () => edit(product)); action.append(button); row.append(action); return row;
   }));
 }
 async function loadUsers(append = false): Promise<void> {
@@ -78,9 +117,9 @@ control('more-users').addEventListener('click', () => { void loadUsers(true).cat
 control('product-form').addEventListener('submit', async event => {
   event.preventDefault(); const save = control<HTMLButtonElement>('save-product'); save.disabled = true;
   try {
-    const product = { sku: input('product-sku').value, name: input('product-name').value, description: control<HTMLTextAreaElement>('product-description').value, price: Number(input('product-price').value), instock: Number(input('product-stock').value), categories: input('product-categories').value.split(',').map(value => value.trim()).filter(Boolean), archived: input('product-archived').checked, ...(editing ? { revision: editing.revision } : {}) };
+    const product = { image: input('product-image').value.trim(), sku: input('product-sku').value, name: input('product-name').value, description: control<HTMLTextAreaElement>('product-description').value, price: Number(input('product-price').value), instock: Number(input('product-stock').value), categories: input('product-categories').value.split(',').map(value => value.trim()).filter(Boolean), archived: input('product-archived').checked, ...(editing ? { revision: editing.revision } : {}) };
     await adminRequest(editing ? `/api/admin/products/${encodeURIComponent(editing.sku)}` : '/api/admin/products', editing ? 'PUT' : 'POST', product);
-    await loadAdminProducts(); control('product-form').hidden = true; editing = null; control('admin-status').textContent = 'Product saved. The catalogue now uses this version.';
+    await loadAdminProducts(); control('product-form').hidden = true; editing = null; control('tab-editor').textContent = 'Add product'; selectTab('products'); control('admin-status').textContent = 'Product saved. The catalogue now uses this version.';
   } catch (error) { control('product-status').textContent = message(error); }
   finally { save.disabled = false; }
 });
@@ -153,11 +192,11 @@ try {
   const { user } = await adminRequest<{ user: AdminUser | null }>('/api/auth/me');
   if (!user || user.role === 'customer') throw new Error('An admin or super admin account is required.');
   control('admin-content').hidden = false; control('admin-status').textContent = `Signed in as ${user.name} · ${user.role}`;
+  selectTab('products');
   await loadAdminProducts();
   if (user.role === 'superadmin') {
-    control('llm-section').hidden = false;
-    await loadLLM();
-    control('users-section').hidden = false; control('settings-section').hidden = false;
+    for (const key of ['llm', 'users', 'settings']) control(`tab-${key}`).hidden = false;
+    void loadLLM().catch(error => { control('llm-status').textContent = message(error); });
     const [settings] = await Promise.all([adminRequest<Settings>('/api/admin/settings'), loadUsers()]);
     input('setting-name').value = settings.storeName; input('setting-announcement').value = settings.announcement; input('setting-email').value = settings.supportEmail; input('setting-checkout').checked = settings.checkoutEnabled;
   }

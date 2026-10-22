@@ -231,6 +231,36 @@ class Auth:
         self.sessions.delete_many({"userId": id})
         return public_user(user)
 
+    def ensure_superadmin(self, email, password):
+        """Deployment-managed admin: preserve identity, reconcile only on change."""
+        email = email_address(email)
+        if not isinstance(password, str) or not 12 <= len(password) <= 128:
+            raise HttpError(400, "Invalid superadmin password configuration.")
+        other = self.users.find_one({"role": "superadmin", "email": {"$ne": email}})
+        if other:
+            raise HttpError(409, "Another superadmin exists; resolve explicitly before deploying.")
+        user = self.users.find_one({"email": email})
+        if not user:
+            try:
+                return self.bootstrap(email, password, "Team Admin")
+            except HttpError as error:
+                # Another startup may have created the same account. Re-read;
+                # the unique partial index still prevents a second superadmin.
+                user = self.users.find_one({"email": email})
+                if not user:
+                    raise error
+        if user.get("role") == "superadmin" and not user.get("disabled") and verify(password, user.get("passwordHash", "")):
+            return public_user(user)
+        updated = self.users.find_one_and_update(
+            {"_id": user["_id"], "version": user.get("version")},
+            {"$set": {"role": "superadmin", "disabled": False, "passwordHash": hash_password(password)}, "$inc": {"version": 1}},
+            return_document=ReturnDocument.AFTER,
+        )
+        if not updated:
+            raise HttpError(409, "Superadmin changed concurrently; retry startup.")
+        self.sessions.delete_many({"userId": user["_id"]})
+        return public_user(updated)
+
     def bootstrap(self, email, password, name="Super Admin"):
         if self.users.find_one({"role": "superadmin"}):
             raise HttpError(

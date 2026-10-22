@@ -27,6 +27,9 @@ class UserService:
         self.db = db
         self.auth = Auth(db)
         self.auth.initialize()
+        if os.getenv('SUPERADMIN_EMAIL') or os.getenv('SUPERADMIN_PASSWORD'):
+            self.auth.ensure_superadmin(os.getenv('SUPERADMIN_EMAIL'), os.getenv('SUPERADMIN_PASSWORD'))
+            log_event('superadmin_configured', email=os.getenv('SUPERADMIN_EMAIL'))
         self.security = AccountSecurity(self.auth)
         self.customers = Customers(db)
         self.registration = Registration(db)

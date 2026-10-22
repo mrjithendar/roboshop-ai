@@ -13,7 +13,7 @@ export function normalizeProducts(rows) {
     seen.add(p.sku);
     const details = productDetails(p);
     details.collection ||= details.demo ? 'demo' : details.showcase ? 'legacy-reference' : 'merchant';
-    return { ...details, archived: p.archived === true, sku: p.sku, name: p.name.trim(), description: p.description, price: Math.round(p.price * 100) / 100, instock: p.archived === true ? 0 : p.instock, categories: p.categories, image: /^\/product-media\/[a-z0-9-]+\.(?:jpg|png)$/.test(p.image || "") ? p.image : p.showcase ? "/images/placeholder.png" : `/images/${p.sku}.png` };
+    return { ...details, archived: p.archived === true, sku: p.sku, name: p.name.trim(), description: p.description, price: Math.round(p.price * 100) / 100, instock: p.archived === true ? 0 : p.instock, categories: p.categories, image: /^\/(?:product-media|images)\/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)$/.test(p.image || "") ? p.image : p.showcase ? "/images/placeholder.png" : `/images/${p.sku}.png` };
   });
 }
 const stopwords = new Set('a an the for to me i want need find show robot robots droid please something under below less than euros euro with and of my is can you recommend'.split(' '));

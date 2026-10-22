@@ -124,3 +124,24 @@ super-admin setup, password/session storage, cookie attributes, CSRF origin chec
 role denial, session revocation/expiry, catalogue edits, configuration allowlists,
 account separation and restart persistence. DOM tests cover role-specific controls
 and guest checkout login. The full shopping integration authenticates before payment.
+
+## Deployment-managed team superadmin
+
+Minikube deployment credentials now initialize `SUPERADMIN_EMAIL=team@jithendar.com`
+and a random `SUPERADMIN_PASSWORD` in the existing `roboshop-secrets`. Existing
+passwords are reused, never regenerated during normal deployment. Both the CI
+initialization step and root `deploy-minikube.sh` use the same credential helper.
+The user-service manifest injects these two keys; startup ensures that account is
+an enabled superadmin. A different existing superadmin blocks startup instead of
+silently replacing it. Existing team accounts retain their ID and profile.
+
+The stored Secret is authoritative: startup reconciles a changed password and
+invalidates existing sessions when account credentials/role change. An unchanged
+account is left untouched. If this managed account resets its password through
+the website, the next startup restores the password from the Secret. To rotate
+permanently, update `SUPERADMIN_PASSWORD` in `roboshop-secrets` and restart
+user-service. MFA configuration is preserved. Limit Secret access to operators.
+
+Rebuild/publish user-service before deploying this behavior. A fresh cluster
+gets a new random password; to keep the same password across cluster recreation,
+restore the original Secret from backup. No password is committed to Git.

@@ -32,9 +32,9 @@ test('customer cannot open the admin interface or trigger privileged reads', asy
 test('admin sees safe product editor but no super-admin controls', async t => {
   const ui = setup(t, 'admin'); await ui.boot();
   assert.equal(ui.$('#admin-content').hidden, false);
-  assert.equal(ui.$('#users-section').hidden, true);
-  assert.equal(ui.$('#settings-section').hidden, true);
-  assert.equal(ui.$('#llm-section').hidden, true);
+  assert.equal(ui.$('#tab-users').hidden, true);
+  assert.equal(ui.$('#tab-settings').hidden, true);
+  assert.equal(ui.$('#tab-llm').hidden, true);
   assert.ok(!ui.calls.some(call => call.path.startsWith('/api/admin/llm')));
   assert.equal(ui.$('#admin-products img'), null);
   ui.$('#admin-products button').click();
@@ -51,9 +51,9 @@ test('admin sees safe product editor but no super-admin controls', async t => {
 });
 test('super admin sees user access controls and bounded store configuration', async t => {
   const ui = setup(t, 'superadmin'); await ui.boot();
-  assert.equal(ui.$('#users-section').hidden, false);
-  assert.equal(ui.$('#settings-section').hidden, false);
-  assert.equal(ui.$('#llm-section').hidden, false);
+  assert.equal(ui.$('#tab-users').hidden, false);
+  assert.equal(ui.$('#tab-settings').hidden, false);
+  assert.equal(ui.$('#tab-llm').hidden, false);
   assert.match(ui.$('#llm-current').textContent, /not-configured/);
   assert.equal(ui.$('#setting-name').value, 'Test shop');
   assert.match(ui.$('#admin-users').firstElementChild.textContent, /protected/);
@@ -147,4 +147,25 @@ test('failover requires explicit opt-in and submits both configurations with rev
   await new Promise(resolve => setTimeout(resolve, 10));
   const check = ui.calls.find(c => c.path === '/api/admin/llm/test');
   assert.equal(JSON.parse(check.options.body).config.automaticFailover, undefined);
+});
+
+test('tabs switch panels and keyboard navigation skips restricted tabs', async t => {
+  const ui = setup(t, 'admin'); await ui.boot();
+  assert.equal(ui.$('#panel-products').hidden, false);
+  ui.$('#tab-products').dispatchEvent(new ui.w.KeyboardEvent('keydown', {key:'End',bubbles:true}));
+  assert.equal(ui.$('#tab-reviews').getAttribute('aria-selected'), 'true');
+  assert.equal(ui.$('#panel-products').hidden, true);
+  ui.$('#new-product').click();
+  assert.equal(ui.$('#panel-editor').hidden, false);
+});
+test('product image path previews and is included in revision-protected update', async t => {
+  const ui = setup(t, 'admin'); await ui.boot(); ui.$('#admin-products button').click();
+  ui.$('#product-image').value='/product-media/updated.webp';
+  ui.$('#product-image').dispatchEvent(new ui.w.Event('input'));
+  assert.equal(ui.$('#product-image-preview').hidden,false);
+  ui.$('#product-form').dispatchEvent(new ui.w.Event('submit',{cancelable:true}));
+  await new Promise(r=>setTimeout(r,10));
+  const body=JSON.parse(ui.calls.find(c=>c.options.method==='PUT').options.body);
+  assert.equal(body.image,'/product-media/updated.webp'); assert.equal(body.revision,1);
+  assert.equal(ui.$('#panel-products').hidden,false);
 });
