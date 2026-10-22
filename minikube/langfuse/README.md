@@ -6,7 +6,7 @@ Langfuse collects AI traces: request timing, model/provider attempts, errors and
 
 The stock image cannot serve this subpath. The [official subpath guide](https://langfuse.com/self-hosting/deployment/infrastructure/subpath) requires `NEXT_PUBLIC_BASE_PATH` at image build time. This configuration builds upstream v4.63.0 with `/langfuse`; stripping the ingress prefix is not a substitute.
 
-1. Publish `.github/workflows/ci-langfuse.yml` to your repository, then run **Langfuse subpath image** in GitHub Actions. It builds amd64 and arm64 web images and pushes `881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-langfuse:4.63.0-subpath`. The self-hosted runner needs Docker/Buildx and AWS ECR create/describe/push access. Worker uses the upstream image.
+1. Publish `.github/workflows/ci-langfuse.yml` to your repository, then run **Langfuse subpath image** in GitHub Actions. It builds a web image for the Linux runner’s native CPU architecture and pushes `881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-langfuse:4.63.0-subpath`. The self-hosted runner needs Docker/Buildx and AWS ECR create/describe/push access. Worker uses the upstream image.
 2. With Helm >=4.3.1, kubectl, Python 3 with PyYAML, and AWS CLI configured, run from the repository root:
 
    ```bash
@@ -48,3 +48,19 @@ python3 minikube/langfuse/tests/test_render.py /tmp/langfuse-rendered.yaml
 ```
 
 A rendered-manifest check cannot prove a built Next.js image works. After publishing and deploying, verify the dashboard, sign-in, static assets and an ingested trace in the browser.
+
+## Dockerfile ownership
+
+`minikube/langfuse/Dockerfile` is the checked-in upstream v4.63.0 web Dockerfile,
+with the migration-tool stage explicitly using `TARGETPLATFORM`. This avoids
+Go's `GOBIN` cross-compilation error and supports native ARM64 or AMD64 builds. CI publishes only the runner’s
+architecture; it does not use QEMU because UBI RPM installroot scriptlets fail
+under emulation on the current ARM64 runner. Use a runner matching your cluster
+nodes. A mixed-architecture cluster requires separately built native images
+and a combined manifest before deployment. The workflow no longer rewrites upstream files.
+
+CI checks out this repository into `roboshop/` and the pinned Langfuse source
+into `langfuse-source/`. It uses our Dockerfile with the **upstream source as
+its build context**. When upgrading Langfuse, review this Dockerfile against
+upstream and update the source ref, image tag and Helm values together.
+Upstream copyright and license are retained in `LICENSE.langfuse`.

@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - '.github/workflows/ci-langfuse.yml'
+      - 'minikube/langfuse/Dockerfile'
+      - 'minikube/langfuse/LICENSE.langfuse'
 permissions:
   contents: read
 concurrency:
@@ -16,29 +18,18 @@ jobs:
     env:
       AWS_REGION: us-east-1
     steps:
+      - name: Checkout RoboShop Dockerfile
+        uses: actions/checkout@v7
+        with:
+          path: roboshop
+          persist-credentials: false
       - name: Checkout pinned upstream release
         uses: actions/checkout@v7
         with:
           repository: langfuse/langfuse
           ref: v4.63.0
+          path: langfuse-source
           persist-credentials: false
-      - name: Fix upstream migration-tool multi-architecture build
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PYTHON'
-          from pathlib import Path
-          dockerfile = Path("web/Dockerfile")
-          original = "FROM --platform=${BUILDPLATFORM} golang:1.26 AS migrate-builder"
-          target = "FROM --platform=${TARGETPLATFORM} golang:1.26 AS migrate-builder"
-          source = dockerfile.read_text()
-          if source.count(original) != 1:
-              raise SystemExit("Pinned Langfuse Dockerfile changed; review the migrate-builder workaround.")
-          # go install with GOBIN=/out rejects cross-compilation. Execute this
-          # stage on the target platform (QEMU when needed) so Go's host and
-          # target match. Preserve upstream FIPS settings and /out/migrate.
-          dockerfile.write_text(source.replace(original, target))
-          PYTHON
       - name: Isolate Docker credentials and ensure repository
         shell: bash
         run: |
@@ -50,23 +41,35 @@ jobs:
           fi
       - uses: aws-actions/amazon-ecr-login@v2
         id: ecr
-      - uses: docker/setup-qemu-action@v3
-        with:
-          platforms: amd64,arm64
+      # UBI RPM installroot scriptlets must execute natively. Emulated
+      # chroot execution fails on this runner while installing glibc/CA certs.
+      - name: Select native Linux image platform
+        id: platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(uname -s)" == Linux ]] || { echo 'A Linux build runner is required.' >&2; exit 1; }
+          case "$(uname -m)" in
+            aarch64|arm64) platform=linux/arm64 ;;
+            x86_64|amd64) platform=linux/amd64 ;;
+            *) echo 'Unsupported runner CPU architecture.' >&2; exit 1 ;;
+          esac
+          echo "platform=$platform" >> "$GITHUB_OUTPUT"
+          echo "Building native image: $platform (single architecture)"
       - uses: docker/setup-buildx-action@v4
         id: buildx
       - name: Build web image with compiled subpath
         uses: docker/build-push-action@v7
         with:
-          context: .
-          file: web/Dockerfile
+          context: ./langfuse-source
+          file: ./roboshop/minikube/langfuse/Dockerfile
           builder: ${{ steps.buildx.outputs.name }}
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ steps.platform.outputs.platform }}
           build-args: NEXT_PUBLIC_BASE_PATH=/langfuse
           push: true
           tags: ${{ steps.ecr.outputs.registry }}/roboshop-langfuse:4.63.0-subpath
-          cache-from: type=gha,scope=langfuse-subpath
-          cache-to: type=gha,scope=langfuse-subpath,mode=max
+          cache-from: type=gha,scope=langfuse-subpath-${{ runner.arch }}
+          cache-to: type=gha,scope=langfuse-subpath-${{ runner.arch }},mode=max
       - name: Remove temporary Docker credentials
         if: always()
         shell: bash
