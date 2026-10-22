@@ -10,6 +10,6 @@ dist
 **/*.pyc
 .gradle
 build
-tests
+# tests/ is required by the Dockerfile build-time unittest check.
 *.log
 artifacts
