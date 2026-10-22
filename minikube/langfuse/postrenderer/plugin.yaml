@@ -1,0 +1,8 @@
+apiVersion: v1
+name: roboshop-langfuse-permissions
+version: 1.0.0
+type: postrenderer/v1
+runtime: subprocess
+runtimeConfig:
+  platformCommand:
+    - command: ${HELM_PLUGIN_DIR}/post-render.py

@@ -9,7 +9,7 @@ The scripts support amd64 and arm64. Minikube runs as the current effective user
 
 These commands target **CentOS Stream 9/10**, running as **root**, on your **4-vCPU, 8192-MB RAM** Vultr server. They create two nodes: one control plane and one worker. Each node gets 2 CPUs and 2560 MiB RAM (5 GiB configured RAM total).
 
-### 1. Run on Vultr
+### 1. Run on VM
 
 Use the updated repository on the server:
 
@@ -351,9 +351,9 @@ See [Argo CD setup and troubleshooting](argocd/README.md) for login and CLI comm
 
 ## Langfuse AI tracing
 
-Install the optional private Langfuse dashboard with `bash minikube/deploy-langfuse.sh`.
+Install the optional Langfuse dashboard at `https://jithendar.com/langfuse/` with `bash minikube/deploy-langfuse.sh`.
 Requires Helm 4.3.1+; setup and connection commands are in
-[Langfuse deployment and trace guide](../observability/langfuse/README.md).
+[Langfuse deployment and trace guide](langfuse/README.md).
 
 ## Shared jithendar.com certificate
 

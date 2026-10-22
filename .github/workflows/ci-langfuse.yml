@@ -1,0 +1,59 @@
+name: Langfuse subpath image
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/ci-langfuse.yml'
+permissions:
+  contents: read
+concurrency:
+  group: langfuse-image
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: self-hosted
+    timeout-minutes: 90
+    env:
+      AWS_REGION: us-east-1
+    steps:
+      - name: Checkout pinned upstream release
+        uses: actions/checkout@v7
+        with:
+          repository: langfuse/langfuse
+          ref: v4.63.0
+          persist-credentials: false
+      - name: Isolate Docker credentials and ensure repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "DOCKER_CONFIG=$(mktemp -d "$RUNNER_TEMP/langfuse-docker.XXXXXX")" >> "$GITHUB_ENV"
+          repos=$(aws ecr describe-repositories --query 'repositories[].repositoryName' --output text)
+          if ! tr '\t' '\n' <<< "$repos" | grep -qx roboshop-langfuse; then
+            aws ecr create-repository --repository-name roboshop-langfuse --image-scanning-configuration scanOnPush=true >/dev/null
+          fi
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: amd64,arm64
+      - uses: docker/setup-buildx-action@v4
+        id: buildx
+      - name: Build web image with compiled subpath
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: web/Dockerfile
+          builder: ${{ steps.buildx.outputs.name }}
+          platforms: linux/amd64,linux/arm64
+          build-args: NEXT_PUBLIC_BASE_PATH=/langfuse
+          push: true
+          tags: ${{ steps.ecr.outputs.registry }}/roboshop-langfuse:4.63.0-subpath
+          cache-from: type=gha,scope=langfuse-subpath
+          cache-to: type=gha,scope=langfuse-subpath,mode=max
+      - name: Remove temporary Docker credentials
+        if: always()
+        shell: bash
+        run: |
+          if [[ -n "${DOCKER_CONFIG:-}" && "$DOCKER_CONFIG" == "$RUNNER_TEMP"/langfuse-docker.* ]]; then
+            rm -rf -- "$DOCKER_CONFIG"
+          fi

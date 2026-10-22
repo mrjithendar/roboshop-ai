@@ -1,11 +1,20 @@
 # Langfuse chart 2.1.6 / application 4.63.0. Development, not HA.
 langfuse:
   nextauth:
-    url: http://localhost:3000
+    url: https://jithendar.com/langfuse/api/auth
   features:
     telemetryEnabled: false
   replicas: 1
   web:
+    image:
+      repository: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-langfuse
+      tag: 4.63.0-subpath
+      pullSecrets:
+        - name: ecr-pull
+    livenessProbe:
+      path: /langfuse/api/public/health
+    readinessProbe:
+      path: /langfuse/api/public/ready
     resources:
       requests: {cpu: 100m, memory: 512Mi}
       limits: {cpu: '1', memory: 1Gi}

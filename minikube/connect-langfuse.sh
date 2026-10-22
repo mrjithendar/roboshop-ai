@@ -11,7 +11,7 @@ public=getpass.getpass('Langfuse project public key (pk-lf-…): ')
 secret=getpass.getpass('Langfuse project secret key (sk-lf-…): ')
 if not public.startswith('pk-lf-') or not secret.startswith('sk-lf-') or any(c.isspace() for c in public+secret):
     raise SystemExit('Invalid project key format; no changes made.')
-patch={'stringData':{'LANGFUSE_BASE_URL':'http://langfuse-web.langfuse.svc.cluster.local:3000','LANGFUSE_PUBLIC_KEY':public,'LANGFUSE_SECRET_KEY':secret}}
+patch={'stringData':{'LANGFUSE_BASE_URL':'http://langfuse-web.langfuse.svc.cluster.local:3000/langfuse','LANGFUSE_PUBLIC_KEY':public,'LANGFUSE_SECRET_KEY':secret}}
 subprocess.run(base+['patch','secret','roboshop-secrets','--type=merge','--patch-file=/dev/stdin'],input=json.dumps(patch),text=True,check=True)
 subprocess.run(base+['rollout','restart','deployment/shopping-agent'],check=True)
 print('Keys saved; shopping-agent restarted. Its deployed manifest must include the optional Langfuse Secret references.')
