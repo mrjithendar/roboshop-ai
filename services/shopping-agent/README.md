@@ -41,3 +41,44 @@ attempts; already-authorized remote work may finish. Background non-generating
 provider diagnostics are cached at authenticated `/internal/llm/readiness`.
 They do not gate pod readiness or trigger fallback by themselves. Enabled policies
 must successfully test both providers before the gateway commits them.
+
+## LangChain and LangGraph
+
+Every configured chat now runs a LangGraph `StateGraph`:
+
+```text
+START → search_catalogue → ground_evidence → generate_answer → END
+```
+
+LangChain's `langchain-core` package provides `ChatPromptTemplate` and the runnable
+pipeline used by the generation node. The provider runnable calls our existing
+router; it does not introduce a second SDK path. This preserves workload IAM,
+Ollama endpoint restrictions, configuration revision checks, disconnect, circuit
+breaking, and the one-attempt fallback policy. No extra service, API key, hosted
+LangGraph deployment, or LangSmith account is needed.
+
+Catalogue retrieval stays deterministic: current stock, budget, archive status and
+provenance filter the evidence. At most four matches are sent to the model.
+Comparison and clarification remain grounded model responses, not autonomous
+order-placement tools. The graph has no loops or retry policy. There is one
+logical generation call; only the existing router may attempt the configured
+fallback. The same request deadline is checked between graph stages and passed
+through the existing network path.
+
+Graph state is request-local and has no persistent checkpointer. It does not add
+cross-request memory or resume conversations after restart. No database migration
+is required. LangSmith automatic tracing is explicitly disabled around execution
+to avoid exporting prompts, catalogue text or provider configuration through
+ambient environment settings. Existing metadata-only OpenTelemetry/Langfuse
+provider spans remain, with `agent.retrieve` and `agent.generate` parent spans.
+
+Run offline regression tests from this service directory:
+
+```bash
+python -m pip install -r requirements.txt
+python -m unittest discover -s tests
+```
+
+The Dockerfile runs these mocked-provider tests, so existing ECR CI and local image
+builds fail before publication if they fail. Rebuild and deploy `shopping-agent`
+to activate this change; Finder and gateway APIs remain unchanged.

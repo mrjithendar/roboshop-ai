@@ -6,5 +6,7 @@ COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt && useradd --uid 1000 --create-home app
 COPY --chown=app:app . ./services/shopping-agent/
 USER app
+# Exercise the actual graph with mocked providers before any image is published.
+RUN python -m unittest discover -s services/shopping-agent/tests
 EXPOSE 4103
 CMD ["python", "services/shopping-agent/server.py"]

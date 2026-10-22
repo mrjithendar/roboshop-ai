@@ -84,3 +84,30 @@ test('reference product labels price, provenance, unknowns and illustration with
  assert.match(ui.$('.product-sources').textContent,/Image permission/);
  assert.equal(ui.$('.purchase-actions'),null);assert.deepEqual(ui.writes,[]);
 });
+
+test('demo inventory line is omitted without relabeling simulated stock as real', async t => {
+ const ui=await setup(t,{...product,demo:true});
+ assert.equal(ui.$('.availability'),null);
+ assert.doesNotMatch(ui.$('#product-content').textContent,/Demo inventory|simulated units|In stock/);
+ assert.equal(ui.$('.purchase-actions button').textContent,'Add to cart');
+ ui.$('.purchase-actions input').value='2'; await submit(ui);
+ assert.deepEqual(ui.writes,[{sku:'TEST',quantity:2}]);
+});
+test('demo stock exhaustion still disables purchase', async t => {
+ const ui=await setup(t,{...product,demo:true,instock:0});
+ assert.match(ui.$('.availability').textContent,/out of stock/);
+ assert.equal(ui.$('.purchase-actions button').disabled,true);
+});
+test('product details render catalogue content and reviews link stays on this page', async t => {
+ const ui=await setup(t,{...product,manufacturer:'Example manufacturer',model:'Exact model',useCases:['Classroom programming'],includedItems:['Controller'],requiredAccessories:['USB power supply'],compatibility:['Example OS'],specifications:{Interface:'USB'},unresolvedFields:['Battery capacity']});
+ const content=ui.$('#product-content').textContent;
+ for(const value of ['Product overview','Example manufacturer','Exact model','Applications','Classroom programming','Controller','USB power supply','Example OS','Battery capacity']) assert.ok(content.includes(value));
+ assert.equal(ui.$('.product-review-anchor').getAttribute('href'),'#reviews-section');
+ assert.match(ui.$('.product-sources').textContent,/Not verified: Battery capacity/);
+});
+test('missing supplier details stay explicit rather than inventing specifications', async t => {
+ const ui=await setup(t,product);
+ assert.match(ui.$('.product-information').textContent,/Package contents have not been confirmed/);
+ assert.match(ui.$('.product-information').textContent,/Supported software.*have not been confirmed/);
+ assert.match(ui.$('.product-information').textContent,/Detailed specifications are not yet available/);
+});

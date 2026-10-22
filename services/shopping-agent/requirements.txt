@@ -1,2 +1,6 @@
 waitress==3.0.2
 boto3==1.43.114
+langchain-core==1.6.3
+langgraph==1.2.16
+# Used only to disable ambient prompt/payload tracing.
+langsmith==0.14.12

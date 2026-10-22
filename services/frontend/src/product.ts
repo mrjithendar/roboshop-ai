@@ -1,6 +1,6 @@
 import { appPath, basePath, productImage, canPurchase, formatProductPrice, bindProductPrice, initCurrency } from './paths.js';
 import { currentUser, initAccount, showLogin } from './account.js';
-interface Product { collection?: string; demo?: boolean; priceBasis?: string; checkedAt?: string; unresolvedFields?: string[];  sku: string; slug: string; name: string; description: string; image: string; manufacturer?: string; model?: string; productType?: string; categories: string[]; price: number; currency: string; priceType: string; showcase: boolean; synthetic?: boolean; instock: number; specifications?: Record<string, string>; includedItems?: string[]; requiredAccessories?: string[]; compatibility?: string[]; packageNote?: string; priceCheckedAt?: string; sources?: { label: string; url: string }[]; imageAttribution?: { credit: string; sourceUrl?: string; licenseUrl?: string; license?: string } }
+interface Product { collection?: string; demo?: boolean; priceBasis?: string; checkedAt?: string; unresolvedFields?: string[];  sku: string; slug: string; name: string; description: string; image: string; manufacturer?: string; model?: string; productType?: string; categories: string[]; price: number; currency: string; priceType: string; showcase: boolean; synthetic?: boolean; instock: number; specifications?: Record<string, string>; includedItems?: string[]; requiredAccessories?: string[]; useCases?: string[]; compatibility?: string[]; packageNote?: string; priceCheckedAt?: string; sources?: { label: string; url: string }[]; imageAttribution?: { credit: string; sourceUrl?: string; licenseUrl?: string; license?: string } }
 interface Review { id: string; title: string; body: string; rating: number; author: string; createdAt: string; synthetic: boolean; verifiedPurchase: boolean; status: string }
 interface Page { reviews: Review[]; next: string | null; summary: { count: number; average: number | null }; kind: string; distribution?: Record<string, number> }
 const get = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -34,8 +34,9 @@ function render(p: Product, related: Product[]): void {
   const description = element('p', p.description); description.className = 'product-summary';
   const priceText = bindProductPrice(element('p'), p); priceText.className = 'detail-price';
   const available = canPurchase(p), stock = Math.max(0, Math.floor(p.instock || 0));
-  const status = element('p', available ? stock > 0 ? p.demo ? `Demo inventory · ${stock} simulated units` : `In stock · ${stock} available` : 'Currently out of stock' : 'Reference listing · inventory and fulfilment simulated · not sold here'); status.className = 'availability ' + (available && stock > 0 ? 'in-stock' : '');
-  copy.append(eyebrow, element('h1', p.name), element('p', `SKU ${p.sku}${p.model ? ` · Model ${p.model}` : ''}`), description, priceText, status);
+  const status = element('p', available ? stock > 0 ? p.demo ? '' : `In stock · ${stock} available` : 'Currently out of stock' : 'Reference listing · inventory and fulfilment simulated · not sold here'); status.className = 'availability ' + (available && stock > 0 ? 'in-stock' : '');
+  copy.append(eyebrow, element('h1', p.name), element('p', `SKU ${p.sku}${p.model ? ` · Model ${p.model}` : ''}`), description, priceText);
+  if (status.textContent) copy.append(status);
   if (available) {
     const form = element('form'); form.className = 'purchase-actions';
     const label = element('label', 'Quantity'); const qty = element('input'); qty.type = 'number'; qty.min = '1'; qty.max = String(Math.min(20, stock)); qty.value = '1'; qty.required = true; qty.disabled = stock < 1; label.append(qty);
@@ -65,7 +66,7 @@ function render(p: Product, related: Product[]): void {
   }
   const buybox = element('aside'); buybox.className = 'product-buybox'; buybox.setAttribute('aria-label','Purchase options');
   for (const child of [...copy.children]) if (child.matches('.detail-price,.availability,.purchase-actions,.purchase-note,.showcase-panel')) buybox.append(child);
-  const reviewsLink = link('Read customer reviews ↓','#reviews-section'); reviewsLink.className = 'product-review-anchor'; copy.append(reviewsLink);
+  const reviewsLink = element('a', 'Read customer reviews ↓'); reviewsLink.href = '#reviews-section'; reviewsLink.className = 'product-review-anchor'; copy.append(reviewsLink);
   const highlights = element('ul'); highlights.className = 'product-highlights';
   for (const [key,value] of Object.entries(p.specifications || {}).slice(0,5)) highlights.append(element('li', `${key}: ${value}`)); copy.append(highlights);
   if (p.imageAttribution?.licenseUrl && p.imageAttribution?.sourceUrl) {
@@ -75,13 +76,27 @@ function render(p: Product, related: Product[]): void {
   }
   grid.append(figure, copy, buybox); panel.append(breadcrumb, grid);
   const details = element('div'); details.className = 'product-information';
+  const overview = element('section'); overview.className = 'information-card product-overview'; overview.append(element('h2', 'Product overview'), element('p', p.description));
+  const identity = element('dl');
+  for (const [label, value] of [['Model', p.model || p.name], ['SKU', p.sku], ['Manufacturer', p.manufacturer || 'Not provided'], ['Product type', p.productType || 'Not specified'], ['Categories', p.categories.join(' / ')]]) identity.append(element('dt', label), element('dd', value));
+  overview.append(identity);
+  if (p.useCases?.length) {
+    overview.append(element('h3', 'Applications')); const uses = element('ul'); p.useCases.forEach(value => uses.append(element('li', value))); overview.append(uses);
+  }
+  details.append(overview);
   const specifications = element('section'); specifications.className = 'information-card'; specifications.append(element('h2', 'Technical specifications'));
   const spec = element('dl'); for (const [key, value] of Object.entries(p.specifications || {})) spec.append(element('dt', key), element('dd', value));
   if (!spec.children.length) specifications.append(element('p', 'Detailed specifications are not yet available.')); else specifications.append(spec);
   details.append(specifications);
   const included = element('section'); included.className = 'information-card';
-  for (const [title, values] of [['What’s included', p.includedItems], ['Required accessories', p.requiredAccessories], ['Compatibility', p.compatibility]] as const) {
-    if (!values?.length) continue; included.append(element('h2', title)); const list = element('ul'); values.forEach(value => list.append(element('li', value))); included.append(list);
+  for (const [title, values, missing] of [
+    ['What’s included', p.includedItems, 'Package contents have not been confirmed. Check which robot, controller, cables and accessories are supplied before ordering.'],
+    ['Required accessories', p.requiredAccessories, 'Power supply, battery and accessory requirements have not been confirmed.'],
+    ['Compatibility', p.compatibility, 'Supported software, operating systems and hardware interfaces have not been confirmed.']
+  ] as const) {
+    included.append(element('h2', title));
+    if (!values?.length) { included.append(element('p', missing)); continue; }
+    const list = element('ul'); values.forEach(value => list.append(element('li', value))); included.append(list);
   }
   if (p.packageNote) included.append(element('p', p.packageNote)); if (included.children.length) details.append(included);
   const sources = element('section'); sources.className = 'product-sources'; sources.append(element('h2', 'Product documentation'));
@@ -89,7 +104,7 @@ function render(p: Product, related: Product[]): void {
   if (p.priceBasis) sources.append(element('p', p.priceBasis));
   if (p.unresolvedFields?.length) sources.append(element('p', `Not verified: ${p.unresolvedFields.join('; ')}.`));
   if (p.priceCheckedAt) sources.append(element('p', `Reference information checked ${new Date(p.priceCheckedAt).toLocaleDateString()}. Confirm current pricing and specifications with the manufacturer.`));
-  panel.append(details); if ((p.sources || []).length) panel.append(sources);
+  panel.append(details); if (sources.children.length > 1) panel.append(sources);
   const recommendations = get('related-products'); recommendations.replaceChildren(); recommendations.hidden = !related.length;
   if (related.length) {
     recommendations.append(element('h2', 'Explore related products')); const cards = element('div'); cards.className = 'related-grid';

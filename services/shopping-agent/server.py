@@ -80,6 +80,7 @@ def handle(req):
         config,
         data["revision"],
         generate=lambda *args: route(*args, deadline=deadline, guard=guard),
+        deadline=deadline,
     )
 
 
