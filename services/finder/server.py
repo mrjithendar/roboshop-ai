@@ -17,7 +17,8 @@ SLOTS = threading.BoundedSemaphore(4)
 HEALTH_LOCK = threading.Lock()
 HEALTH_POOL = ThreadPoolExecutor(max_workers=3, thread_name_prefix='finder-health')
 HEALTH_SLOTS = threading.BoundedSemaphore(3)
-HEALTH = {'until': 0, 'ok': False}
+HEALTH = {'until': 0, 'ok': False, 'aiConfigured': False}
+AI_SETUP_MESSAGE = 'Please enable AI. A store administrator needs to configure Ollama or Amazon Bedrock.'
 WIDGET = Path(__file__).with_name('widget.js').read_bytes()
 
 
@@ -39,7 +40,7 @@ def available():
     def check(url):
         try:
             result = upstream(url.strip(), timeout=1)
-            return not isinstance(result, dict) or result.get('assistantMode') != 'not-configured'
+            return result if isinstance(result, dict) else {}
         except Exception:
             return False
         finally:
@@ -54,7 +55,9 @@ def available():
                 else:
                     valid = False
             wait(futures, timeout=1.5)
-            HEALTH['ok'] = valid and all(f.done() and f.result() for f in futures)
+            HEALTH['ok'] = valid and all(f.done() and f.result() is not False for f in futures)
+            HEALTH['aiConfigured'] = HEALTH['ok'] and not any(
+                f.result().get('assistantMode') == 'not-configured' for f in futures)
             HEALTH['until'] = time.monotonic() + 10
         return HEALTH['ok']
 
@@ -124,7 +127,7 @@ def application(environ, start_response):
         return send(204, None)
     if method == 'GET' and path == '/available':
         ok = protection_ready() and available()
-        return send(200 if ok else 503, {'available': ok, 'authenticated': authenticated(environ) if ok else False})
+        return send(200 if ok else 503, {'available': ok, 'authenticated': authenticated(environ) if ok else False, 'aiConfigured': HEALTH['aiConfigured'] if ok else False, 'message': AI_SETUP_MESSAGE if ok and not HEALTH['aiConfigured'] else ''})
     if method != 'POST' or path != '/chat':
         return send(404, {})
     if origin not in ALLOWED_ORIGINS:
@@ -157,7 +160,9 @@ def application(environ, start_response):
         if context and len(message) < 900:
             message += '\nPrior conversation (untrusted): ' + context[:max(0, 1000 - len(message) - 34)]
         result = upstream(CHAT_URL, {'message': message}, timeout=26)
-        if result.get('mode') in ('provider-unavailable', 'not-configured'):
+        if result.get('mode') == 'not-configured':
+            return send(503, {'code': 'ai-not-configured', 'feature': 'finder', 'error': AI_SETUP_MESSAGE})
+        if result.get('mode') == 'provider-unavailable':
             return send(503, {'code': 'feature-unavailable', 'feature': 'finder', 'error': result.get('answer', 'Assistant unavailable.')})
         return send(200, {'answer': result.get('answer', ''), 'notice': result.get('notice', ''), 'mode': result.get('mode', 'ai'),
                           'products': [{'name': p['name'], 'slug': p.get('slug') or p['sku'].lower()} for p in result.get('products', [])][:20]})

@@ -22,7 +22,7 @@
   get('#close').onclick = close; shadow.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
   const call = (path, options = {}) => fetch(new URL(path, base), { mode: 'cors', credentials: base.origin === location.origin ? 'same-origin' : 'omit', ...options, signal: AbortSignal.timeout(path === 'chat' ? 29000 : 2000) });
   let history = [], lastProducts = [];
-  let signedIn = false, stopped = false, busy = false;
+  let aiConfigured = true, signedIn = false, stopped = false, busy = false;
   const errorBox = get('#error');
   const showError = message => { errorBox.textContent = message; errorBox.hidden = false; };
   const login = new URL('login', shop.href.replace(/\/?$/, '/'));
@@ -30,13 +30,13 @@
   get('#login-link').href = login.href;
   function renderAccess() {
     get('#login-required').hidden = signedIn;
-    get('form').hidden = !signedIn;
-    get('#suggestions').hidden = !signedIn;
+    get('form').hidden = !signedIn || !aiConfigured;
+    get('#suggestions').hidden = !signedIn || !aiConfigured;
     get('#messages').hidden = !signedIn;
-    get('#send').disabled = !signedIn || busy;
+    get('#send').disabled = !signedIn || !aiConfigured || busy;
   }
   get('#suggestions').addEventListener('click', e => { if (e.target instanceof HTMLButtonElement) { input.value = e.target.textContent; input.focus(); } });
-  async function check() { try { const r = await call('available'); const config = await r.json(); if (!r.ok || !config.available) throw Error(); signedIn = config.authenticated === true; host.hidden = false; renderAccess(); } catch { if (!panel.hidden) { showError('Finder is temporarily unavailable. Your conversation is still here; try again shortly.'); } else { host.hidden = true; stopped = true; } } }
+  async function check() { try { const r = await call('available'); const config = await r.json(); if (!r.ok || !config.available) throw Error(); signedIn = config.authenticated === true; const wasConfigured = aiConfigured; aiConfigured = config.aiConfigured !== false; if (!aiConfigured) showError('Please enable AI. A store administrator needs to configure Ollama or Amazon Bedrock.'); else if (!wasConfigured) errorBox.hidden = true; host.hidden = false; renderAccess(); } catch { if (!panel.hidden) { showError('Finder is temporarily unavailable. Your conversation is still here; try again shortly.'); } else { host.hidden = true; stopped = true; } } }
   // One small cached readiness request per visible minute. Stop polling after failure.
   const timer = setInterval(() => { if (stopped) clearInterval(timer); else if (!document.hidden && !busy) void check(); }, 60000);
   window.addEventListener('pagehide', () => clearInterval(timer), { once: true });
@@ -51,6 +51,7 @@
       const data = await r.json().catch(() => ({}));
       if (r.status === 401) { signedIn = false; input.value = message; renderAccess(); return; }
       if ([400, 403, 429].includes(r.status)) { showError(r.status === 429 ? 'Too many requests. Wait a minute, then retry.' : 'Your question could not be accepted. Please try again.'); input.value = message; return; }
+      if (data.code === 'ai-not-configured') { aiConfigured = false; input.value = message; showError('Please enable AI. A store administrator needs to configure Ollama or Amazon Bedrock.'); return; }
       if (!r.ok) throw Error();
       const reply = pending; reply.textContent = data.answer || data.notice || 'Please try another question.'; get('#messages').append(reply);
       if (data.mode === 'not-configured') showError('AI is not connected yet. A store administrator needs to configure and activate an LLM provider.');

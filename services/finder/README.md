@@ -81,3 +81,16 @@ bash deploy-minikube.sh --service finder --load-images
 The Nginx Finder route must forward cookies for same-origin session validation.
 Tests: `python3 -m unittest discover -s services/finder/tests` and
 `node --test services/finder/tests/widget.test.mjs`.
+
+### AI setup state
+
+Finder remains ready and visible when its backends are reachable but no Ollama
+or Bedrock provider is configured. The widget shows “Please enable AI” and asks
+a store administrator to configure a provider. The chat form is disabled until
+AI is configured; guest users still see the sign-in requirement.
+
+The cached availability response separates `available` (Finder's dependencies)
+from `aiConfigured` (provider configuration). Existing minute polling detects
+configuration changes without a page reload. Provider failures and dependency
+outages remain distinct from the unconfigured state. Disconnecting a provider
+during a conversation returns `ai-not-configured` and preserves the draft.

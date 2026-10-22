@@ -68,11 +68,12 @@ class FinderTests(unittest.TestCase):
         with patch.dict(os.environ,{'TURNSTILE_SITE_KEY':'','TURNSTILE_SECRET_KEY':''}),patch.object(s,'available',return_value=True),patch.object(s,'authenticated',return_value=False):
             status,headers,body=self.call(path='/available')
             self.assertTrue(status.startswith('200'))
-            self.assertEqual(body,{'available':True,'authenticated':False})
+            self.assertTrue(body['available'])
+            self.assertFalse(body['authenticated'])
             self.assertEqual(headers['Cache-Control'],'no-store')
 
     def test_liveness_is_local_readiness_tracks_required_backends_and_recovery(self):
-        with patch.object(s, 'authenticated') as auth, patch.object(s, 'upstream', side_effect=TimeoutError) as backend:
+        with patch.object(s, 'authenticated', return_value=False) as auth, patch.object(s, 'upstream', side_effect=TimeoutError) as backend:
             s.HEALTH.update(until=0, ok=False)
             self.assertTrue(self.call(path='/health')[0].startswith('200'))
             backend.assert_not_called()
@@ -83,13 +84,24 @@ class FinderTests(unittest.TestCase):
             self.assertTrue(self.call(path='/ready')[0].startswith('200'))
             backend.return_value = {'assistantMode': 'not-configured'}
             s.HEALTH['until'] = 0
-            self.assertTrue(self.call(path='/ready')[0].startswith('503'))
+            self.assertTrue(self.call(path='/ready')[0].startswith('200'))
+            status, _, body = self.call(path='/available')
+            self.assertTrue(body['available'])
+            self.assertFalse(body['aiConfigured'])
+            self.assertIn('Please enable AI', body['message'])
 
     def test_model_failure_is_explicit_feature_unavailable(self):
         with patch.object(s, 'authenticated', return_value=True), patch.object(s, 'upstream', return_value={'mode':'provider-unavailable','answer':'Model unavailable'}):
             status, _, body = self.call({'message':'help'})
             self.assertTrue(status.startswith('503'))
             self.assertEqual(body['code'], 'feature-unavailable')
+
+    def test_missing_provider_returns_setup_notice(self):
+        with patch.object(s, 'authenticated', return_value=True), patch.object(s, 'upstream', return_value={'mode':'not-configured'}):
+            status, _, body = self.call({'message':'help'})
+            self.assertTrue(status.startswith('503'))
+            self.assertEqual(body['code'], 'ai-not-configured')
+            self.assertIn('Please enable AI', body['error'])
 
     def test_failures_and_limits(self):
         with patch.object(s,'authenticated',return_value=True),patch.object(s,'upstream',side_effect=TimeoutError):
