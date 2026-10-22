@@ -1,12 +1,12 @@
 # Twenty-model INR demo catalogue
 
-The merchant supplied the twenty model names and authorized repricing to ₹99–999 in INR and randomly assigned initial stock of 20–50 units per model. Those values are fixed in `services/product-ingestion/products.json`; rebuilds never randomize or replenish stock. They are demo inventory, not a warehouse verification, and now carry explicit demo provenance. Razorpay Test Mode is required; live checkout rejects these concept listings. No manufacturer specifications have been invented.
+The merchant supplied the twenty model names and authorized repricing to ₹99–999 in INR and randomly assigned initial stock of 20–50 units per model. Those values are fixed in `services/catalogue-service/products.json`; rebuilds never randomize or replenish stock. They are demo inventory, not a warehouse verification, and now carry explicit demo provenance. Razorpay Test Mode is required; live checkout rejects these concept listings. No manufacturer specifications have been invented.
 
 Each product has its own AI-generated concept render. Captions identify these as concept renders, not manufacturer photographs. Replace them with matching supplier photographs when available.
 
 ## Release
 
-Build the product-ingestion image through its service CI, then run the
+Build the catalogue-service image through its service CI, then run the
 **Deploy-Minikube** workflow. Startup and `publish-catalogue.mjs` insert missing
 SKUs from the demo and reference files. Neither path archives, reprices or
 replenishes existing listings. Existing payment records retain their amounts,
@@ -17,7 +17,7 @@ The demo catalogue uses INR. The separate manufacturer reference collection reta
 ## Synthetic profiles and reviews
 
 ```bash
-python services/product-ingestion/scripts/export-demo.py
+python services/catalogue-service/scripts/export-demo.py
 python scripts/seed-minikube-demo.py
 ```
 

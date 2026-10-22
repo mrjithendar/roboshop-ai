@@ -26,7 +26,7 @@ Each service owns its `lib/` directory. Edit and test those files in that servic
 - Frontend: TypeScript, HTML/CSS, product/legacy images, build tool, dependencies and UI unit tests. Original legacy-image source is retained as an archive; active builds use `frontend/images/`.
 - Catalogue and payment: their unit tests are under each service's `tests/` directory.
 - Shipping: GeoNames preparation tool is under `shipping-service/scripts/` alongside its data and Java build.
-- Product ingestion: synthetic fixture seed/export tools are under `product-ingestion/scripts/`. Their country/territory fixture is `data/countries.json`, extracted from the existing GeoNames dataset (CC BY 4.0, https://www.geonames.org/). They preserve isolation and synthetic labels; they do not create authentic customers.
+- Catalogue ingestion: synthetic fixture seed/export tools are under `catalogue-service/scripts/`. Their country/territory fixture is `data/countries.json`, extracted from the existing GeoNames dataset (CC BY 4.0, https://www.geonames.org/). They preserve isolation and synthetic labels; they do not create authentic customers.
 - Root `tests/`: cross-service integration, contracts, deployment and service-contract tests. These belong to the platform integration repository, not an individual service.
 - Root `scripts/`: multi-service launcher, evaluator, Minikube seed orchestrator. Build/deploy shell scripts and cluster infrastructure stay at the platform level.
 

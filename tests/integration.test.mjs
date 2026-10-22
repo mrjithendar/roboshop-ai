@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { once } from 'node:events';
 import { randomUUID } from 'node:crypto';
-import { connectMongo } from '../services/product-ingestion/lib/mongo.mjs';
+import { connectMongo } from '../services/catalogue-service/lib/mongo.mjs';
 import { createHmac } from 'node:crypto';
 import amqp from 'amqplib';
 import { startNginx } from './helpers/nginx.mjs';
@@ -17,16 +17,16 @@ async function freePort() { const server = createServer(); server.listen(0, '127
 test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency failure', { timeout: 60000 }, async () => {
   const mongoDatabase = `integration_${randomUUID().replaceAll('-', '')}`;
   const mongo = await connectMongo(process.env.MONGODB_URL, mongoDatabase);
-  const names = ['product-ingestion', 'recommendation-service', 'moks', 'sre-copilot', 'ai-gateway', 'payment-service', 'shipping-service', 'user-service'];
+  const names = ['catalogue-service', 'moks', 'sre-copilot', 'ai-gateway', 'payment-service', 'shipping-service', 'user-service'];
   const ports = await Promise.all(names.map(freePort));
   const edgePort = process.env.NGINX_TEST === 'true' ? await freePort() : null;
-  const base = `http://127.0.0.1:${edgePort || ports[4]}`;
+  const base = `http://127.0.0.1:${edgePort || ports[3]}`;
   let edge;
   const dir = mkdtempSync(join(tmpdir(), 'roboshop-integration-'));
   const children = [], traces = [], binaryTraces = []; let logs = '';
   const receiver = createServer(async (req, res) => { const chunks = []; for await (const part of req) chunks.push(part); const data = Buffer.concat(chunks); if (req.headers['content-type']?.includes('json')) { traces.push(JSON.parse(data)); res.writeHead(200, { 'content-type': 'application/json' }); res.end('{}'); } else { binaryTraces.push(data); res.writeHead(200, { 'content-type': 'application/x-protobuf' }); res.end(); } });
   receiver.listen(0, '127.0.0.1'); await once(receiver, 'listening');
-  const env = { ...process.env, FRONTEND_DIST: fileURLToPath(new URL('../services/frontend/dist', import.meta.url)), APP_ENV: 'development', REGISTRATION_CHALLENGE_PROVIDER: 'disabled', TRUSTED_PROXY_CIDRS: '127.0.0.1/32', CATALOGUE_FILE: fileURLToPath(new URL('./fixtures/catalogue/fictional-products.json', import.meta.url)), SHIPPING_TRACING_ENABLED: 'true', OTEL_BSP_SCHEDULE_DELAY: '500', MONGODB_DATABASE: mongoDatabase, HOST: '127.0.0.1', TRUST_PROXY: edgePort ? 'true' : 'false', INGESTION_URL: `http://127.0.0.1:${ports[0]}`, RECOMMENDATION_URL: `http://127.0.0.1:${ports[1]}`, AGENT_URL: `http://127.0.0.1:${ports[2]}`, SRE_URL: `http://127.0.0.1:${ports[3]}`, DATA_DIR: dir, PUBLIC_ORIGIN: base, GATEWAY_URL: base, PAYMENT_URL: `http://127.0.0.1:${ports[5]}`, SHIPPING_URL: `http://127.0.0.1:${ports[6]}`, USER_URL: `http://127.0.0.1:${ports[7]}`, USER_SERVICE_TOKEN: 'integration-user-token-0123456789abcdef', LLM_SERVICE_TOKEN: 'integration-only-token-0123456789abcdef', PAYMENT_SERVICE_TOKEN: 'integration-internal-token', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', RAZORPAY_WEBHOOK_SECRET: '', OPENAI_API_KEY: '', OPENAI_MODEL: '', LANGFUSE_BASE_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `http://127.0.0.1:${receiver.address().port}/v1/traces` };
+  const env = { ...process.env, FRONTEND_DIST: fileURLToPath(new URL('../services/frontend/dist', import.meta.url)), APP_ENV: 'development', REGISTRATION_CHALLENGE_PROVIDER: 'disabled', TRUSTED_PROXY_CIDRS: '127.0.0.1/32', CATALOGUE_FILE: fileURLToPath(new URL('./fixtures/catalogue/fictional-products.json', import.meta.url)), SHIPPING_TRACING_ENABLED: 'true', OTEL_BSP_SCHEDULE_DELAY: '500', MONGODB_DATABASE: mongoDatabase, HOST: '127.0.0.1', TRUST_PROXY: edgePort ? 'true' : 'false', CATALOGUE_URL: `http://127.0.0.1:${ports[0]}`, RECOMMENDATION_URL: `http://127.0.0.1:${ports[0]}`, AGENT_URL: `http://127.0.0.1:${ports[1]}`, SRE_URL: `http://127.0.0.1:${ports[2]}`, DATA_DIR: dir, PUBLIC_ORIGIN: base, GATEWAY_URL: base, PAYMENT_URL: `http://127.0.0.1:${ports[4]}`, SHIPPING_URL: `http://127.0.0.1:${ports[5]}`, USER_URL: `http://127.0.0.1:${ports[6]}`, USER_SERVICE_TOKEN: 'integration-user-token-0123456789abcdef', LLM_SERVICE_TOKEN: 'integration-only-token-0123456789abcdef', PAYMENT_SERVICE_TOKEN: 'integration-internal-token', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '', RAZORPAY_WEBHOOK_SECRET: '', OPENAI_API_KEY: '', OPENAI_MODEL: '', LANGFUSE_BASE_URL: '', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `http://127.0.0.1:${receiver.address().port}/v1/traces` };
   let cookie; const cookieJar = new Map();
   async function call(path, options = {}, useCookie = true) {
     const response = await fetch(`${base}${path}`, { ...options, headers: { 'content-type': 'application/json', origin: base, ...(useCookie && cookie ? { cookie } : {}), ...options.headers } });
@@ -43,7 +43,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
       for (let retry = 0; retry < 600; retry++) { try { if ((await fetch(`http://127.0.0.1:${port}/health`)).ok) { ready = true; break; } } catch {} await new Promise(r => setTimeout(r, 30)); }
       assert.ok(ready, logs);
     }
-    if (edgePort) edge = await startNginx({ port: edgePort, gatewayPort: ports[4], directory: dir });
+    if (edgePort) edge = await startNginx({ port: edgePort, gatewayPort: ports[3], directory: dir });
     assert.match(await (await fetch(base)).text(), /Find your kind of robot/);
     assert.equal((await fetch(`${base}/.env`)).status, 404);
     assert.equal((await fetch(`${base}/images/STAN-1.png`)).status, 200);
@@ -51,7 +51,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     assert.equal((await call('/api/ready')).data.status, 'healthy');
     assert.equal((await call('/api/recommendations?q=security&budget=1000')).data.products[0].sku, 'RED');
     const chat = await call('/api/chat', { method: 'POST', body: JSON.stringify({ message: 'security under 1000' }) });
-    const privateResponse = await fetch(`http://127.0.0.1:${ports[2]}/internal/chat`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${env.LLM_SERVICE_TOKEN}` }, body: JSON.stringify({ config: { provider: 'none' }, revision: 0 }) });
+    const privateResponse = await fetch(`http://127.0.0.1:${ports[1]}/internal/chat`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${env.LLM_SERVICE_TOKEN}` }, body: JSON.stringify({ config: { provider: 'none' }, revision: 0 }) });
     assert.equal(privateResponse.status, 200); assert.equal((await privateResponse.json()).mode, 'not-configured');
     assert.deepEqual(chat.data.products, []); assert.equal(chat.data.mode, 'not-configured'); assert.equal(chat.data.answer, 'Please connect an LLM to get AI recommendations.');
     assert.equal((await call('/api/chat', { method: 'POST', body: JSON.stringify({ message: 123 }) })).response.status, 400);
@@ -122,7 +122,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
       const broker=await amqp.connect(env.RABBITMQ_URL), channel=await broker.createConfirmChannel();
       try {
         assert.ok((await channel.checkQueue('roboshop.test.orders')).messageCount > 0, 'Test events must route to the isolated audit queue');
-        const metrics=await (await fetch(`http://127.0.0.1:${ports[6]}/metrics`)).text();
+        const metrics=await (await fetch(`http://127.0.0.1:${ports[5]}/metrics`)).text();
         assert.ok(!/roboshop_shipping_events_total\{[^}]*result="accepted"[^}]*\} [1-9]/.test(metrics), 'Test payments must not create shipments');
         const saved=JSON.parse(readFileSync(join(dir,'store.json'),'utf8')).orders.find(o=>o.id===order.data.order.id);
         assert.equal(saved.paymentMode,'test'); assert.equal(saved.demo,true);
@@ -141,12 +141,12 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     }
     if(env.CACHE_ENABLED==='true') {
       await call('/api/shipping/countries'); await call('/api/shipping/countries');
-      const metrics=await (await fetch(`http://127.0.0.1:${ports[6]}/metrics`)).text();
+      const metrics=await (await fetch(`http://127.0.0.1:${ports[5]}/metrics`)).text();
       assert.match(metrics,/roboshop_location_cache_total\{[^}]*result="hit"/);
     }
 
     assert.equal((await call('/api/products')).data.products.find(p => p.sku === 'RMC').instock, 46);
-    assert.match(await (await fetch(`http://127.0.0.1:${ports[4]}/metrics`)).text(), /roboshop_http_requests_total/);
+    assert.match(await (await fetch(`http://127.0.0.1:${ports[3]}/metrics`)).text(), /roboshop_http_requests_total/);
     await new Promise(r => setTimeout(r, 100));
     const spans = traces.flatMap(t => t.resourceSpans.flatMap(r => r.scopeSpans.flatMap(s => s.spans)));
     assert.ok(spans.some(s => s.name === 'POST /api/chat')); // no agent call when unconfigured
@@ -157,7 +157,7 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     await once(mcp, 'exit'); const replies = output.trim().split('\n').map(JSON.parse);
     assert.equal(replies[1].result.tools.length, 15); assert.equal(replies[2].result.isError, false); assert.equal(replies[3].error.code, -32602);
     const serviceNames = new Set(traces.flatMap(t => t.resourceSpans.map(r => r.resource.attributes.find(a => a.key === 'service.name')?.value.stringValue)));
-    for (const service of ['ai-gateway', 'moks', 'product-ingestion', 'recommendation-service', 'sre-copilot', 'payment-service', 'mcp-server']) assert.ok(serviceNames.has(service), `Missing spans for ${service}`);
+    for (const service of ['ai-gateway', 'moks', 'catalogue-service', 'sre-copilot', 'payment-service', 'mcp-server']) assert.ok(serviceNames.has(service), `Missing spans for ${service}`);
     assert.ok(traces.some(t => t.resourceSpans.some(r => r.scopeSpans.some(s => s.spans.some(span => span.kind === 3 && span.parentSpanId)))), 'outbound client spans');
     for (let retry = 0; retry < 160 && !binaryTraces.some(b => b.includes(Buffer.from('shipping-service'))); retry++) await new Promise(r => setTimeout(r, 50));
     assert.ok(binaryTraces.some(b => b.includes(Buffer.from('shipping-service'))), 'Java shipping must export OTLP spans');

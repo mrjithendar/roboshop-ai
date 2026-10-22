@@ -1,4 +1,5 @@
 import { HttpError, json } from './lib/runtime.mjs';
+import { rank } from './lib/catalogue.mjs';
 import { readProducts } from './lib/products.mjs';
 
 function segment(value) {
@@ -11,20 +12,31 @@ function segment(value) {
 export function catalogueRoutes(db) {
   return async (req, res, url) => {
     if (req.method !== 'GET') return;
-    if (url.pathname === '/api/catalogue/ready') {
+    if (['/api/catalogue/ready', '/ready'].includes(url.pathname)) {
       try { await db.command({ ping: 1 }); } catch { throw new HttpError(503, 'Catalogue database unavailable.'); }
-      return json(res, { status: 'ok', service: 'catalogue-service' });
+      return json(res, { status: url.pathname === '/ready' ? 'ready' : 'ok', service: 'catalogue-service' });
     }
     const path = url.pathname;
+    const recommendations = path === '/api/recommendations';
     const listing = path === '/api/products' || path === '/products';
     const categories = path === '/categories' || path === '/api/catalogue/categories';
     const product = path.match(/^\/(?:product|api\/catalogue\/product)\/([^/]+)$/);
     const category = path.match(/^\/(?:products|api\/catalogue\/category)\/([^/]+)$/);
     const search = path.match(/^\/(?:search|api\/catalogue\/search)\/([^/]+)$/);
-    if (!listing && !categories && !product && !category && !search) return;
+    if (!recommendations && !listing && !categories && !product && !category && !search) return;
     let products;
     try { products = (await readProducts(db)).filter(row => !row.archived); }
     catch { throw new HttpError(503, 'Catalogue database unavailable.'); }
+    if (recommendations) {
+      const budget = url.searchParams.has('budget') ? Number(url.searchParams.get('budget')) : undefined;
+      const picks = rank(products, {
+        query: url.searchParams.get('q') || '', budget,
+        category: url.searchParams.get('category'),
+        exclude: (url.searchParams.get('exclude') || '').split(','),
+        limit: Number(url.searchParams.get('limit') || 4),
+      });
+      return json(res, { products: picks, strategy: 'catalogue-keyword-ranking', personalized: false });
+    }
     if (listing) {
       const currencies = [...new Set(products.map(row => row.currency))];
       return json(res, path === '/products' ? products : { products, checkoutCurrency: currencies.length === 1 ? currencies[0] : null, source: 'mongodb' });

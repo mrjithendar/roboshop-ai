@@ -10,6 +10,5 @@ dist
 **/*.pyc
 .gradle
 build
-tests
 *.log
 artifacts

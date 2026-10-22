@@ -80,20 +80,10 @@ jobs:
           kubectl --context="$KUBE_CONTEXT" apply -f services/kafka-bridge/kafka-bridge-minikube.yaml
           kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart statefulset/kafka
 
-      - name: Deploy product-ingestion from ECR
-        run: |
-          kubectl --context="$KUBE_CONTEXT" apply -f "services/product-ingestion/product-ingestion-minikube.yaml"
-          kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/product-ingestion
-
       - name: Deploy catalogue-service from ECR
         run: |
           kubectl --context="$KUBE_CONTEXT" apply -f "services/catalogue-service/catalogue-service-minikube.yaml"
           kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/catalogue-service
-
-      - name: Deploy recommendation-service from ECR
-        run: |
-          kubectl --context="$KUBE_CONTEXT" apply -f "services/recommendation-service/recommendation-service-minikube.yaml"
-          kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/recommendation-service
 
       - name: Deploy moks from ECR
         run: |
@@ -173,7 +163,7 @@ jobs:
           kubectl --context="$KUBE_CONTEXT" apply -f "services/mcp-server/mcp-server-minikube.yaml"
           kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/mcp-server
 
-      # product-ingestion seeds missing listings on startup before serving requests.
+      # catalogue-service seeds missing listings on startup before serving requests.
       # Do not exec into a container that may still be restarting (Recreate strategy).
       - name: Apply ingress and TLS configuration
         run: |
@@ -190,5 +180,5 @@ jobs:
             echo 'Images: :latest from each service ECR repository'
             echo 'Application: https://jithendar.com/roboshop/'
             echo 'Manifests applied and application restarts requested; workload and TLS readiness are not checked.'
-            echo 'Catalogue publication runs during product-ingestion startup; completion is not checked by this workflow.'
+            echo 'Catalogue publication runs during catalogue-service startup; completion is not checked by this workflow.'
           } >> "$GITHUB_STEP_SUMMARY"

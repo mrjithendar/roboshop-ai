@@ -63,14 +63,14 @@ and fulfilment are marked simulated. Prices are dated observations and can chang
 
 ## Import and review contract
 
-`services/product-ingestion/reference-products.json` owns this collection. The
+`services/catalogue-service/reference-products.json` owns this collection. The
 intentional concept/demo collection remains in `products.json`; the earlier
 `showcase-reference.json` fixture is retained and is **not** imported or recertified
 by this update. Existing older showcase rows are labeled `legacy-reference` on read;
 no historical rows are silently archived. Some earlier rows may describe the same
 manufacturer products; deciding which to retire needs an explicit reviewed change.
 
-On product-ingestion startup, `seedProducts()` validates the complete batch before
+On catalogue-service startup, `seedProducts()` validates the complete batch before
 writing and performs `$setOnInsert` upserts keyed by SKU. Publishing calls the same
 function. Repeating either operation does not overwrite administrator edits, price,
 stock, revision or archive decisions. There is no automatic supplier sync. A unique
@@ -119,20 +119,20 @@ filters, price labels and image captions. No real supplier purchase or payment i
 performed. MongoDB integration requires the configured database and is not implied
 by the in-memory import tests.
 
-Release product-ingestion, catalogue-service, recommendation-service, moks,
+Release catalogue-service, moks,
 ai-gateway and frontend through their normal CI workflows, then Deploy-Minikube.
 Publication is additive; it inserts the reference rows without replacing demo data.
 
 ## Deployment publication
 
-Deploy-Minikube applies and restarts product-ingestion. Its startup calls
+Deploy-Minikube applies and restarts catalogue-service. Its startup calls
 `seedProducts(db)` before opening the HTTP listener, inserting missing listings
 without changing existing products. The workflow does not also execute
 `publish-catalogue.mjs` inside the restarting container: with the Recreate strategy
-that can fail with `container not found ("product-ingestion")`.
+that can fail with `container not found ("catalogue-service")`.
 Ingress and TLS configuration has its own apply step. No rollout waits are added;
 a successful workflow means commands were submitted, not that publication or
 certificate issuance has completed. If products remain missing, inspect
-`kubectl -n roboshop-ai logs deployment/product-ingestion --tail=100` and pod
+`kubectl -n roboshop-ai logs deployment/catalogue-service --tail=100` and pod
 status for image-pull, MongoDB or startup validation errors. Fix those errors and
-restart product-ingestion to retry the insert-only publication.
+restart catalogue-service to retry the insert-only publication.

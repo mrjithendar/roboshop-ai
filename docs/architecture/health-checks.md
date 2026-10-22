@@ -11,7 +11,6 @@ whether a workload is suitable for traffic without restarting it.
 | NGINX | `/ready` | Gateway core readiness; no cookies, model checks, or aggregate SRE calls |
 | Frontend | `/health` | Local static HTTP server; no API/model dependencies |
 | Moks | `/ready` | Catalogue readiness; configuration and models are selected per request |
-| Recommendations | `/ready` | Catalogue readiness |
 | SRE copilot | `/ready` | Diagnostic process only; target failures never make the diagnostic service unready |
 | Catalogue | `/api/catalogue/ready` | Its MongoDB connection |
 | Cart | `/ready` | Its Redis connection |
@@ -28,8 +27,7 @@ NGINX allows one second to connect and two seconds to read gateway readiness. It
 HTTP `/ready` does not redirect in TLS mode. The Moks widget probes two operator
 URLs concurrently within 1.5 seconds, with at most three outstanding probes, and
 caches the result for ten seconds. `/available` additionally reports visitor login
-state; it is not a Kubernetes probe. Shopping-agent and recommendation probes use
-one-second catalogue deadlines. Kubernetes probe deadlines exceed these budgets.
+state; it is not a Kubernetes probe. Moks uses a one-second catalogue probe; catalogue-service probes MongoDB directly. Kubernetes probe deadlines exceed these budgets.
 
 No readiness check invokes paid model inference, checks an external model's
 semantic correctness, or waits for telemetry. A model can fail after readiness
@@ -38,8 +36,9 @@ is configured in a fresh installation; Moks offers a setup notice when no LLM is
 
 ## Failure isolation
 
-Moks, recommendation and telemetry outages do not change gateway
-or NGINX readiness. Catalogue/cart operations continue when their own core
+Moks and telemetry outages do not change gateway or NGINX readiness.
+Recommendation input/ranking errors remain request-scoped. A catalogue-service or
+MongoDB outage now affects both catalogue reads and recommendations and fails core readiness. Catalogue/cart operations continue when their own core
 requirements are healthy. Gateway requests for unavailable recommendations or AI
 return HTTP 503 with `code: feature-unavailable`, a feature name, and no fabricated
 results. Finder preserves the conversation and returns the same explicit failure
@@ -61,7 +60,7 @@ classification. Failure of SRE itself returns HTTP 503 `feature-unavailable` for
 that diagnostic route only. Aggregate reports are **never** readiness gates.
 
 The graph is acyclic: NGINX → gateway → core services; Finder → gateway status
-and users (no self-probe); agent/recommendations → catalogue. SRE observes these leaf/scoped
+and users (no self-probe); Moks → catalogue → MongoDB. SRE observes these leaf/scoped
 checks but does not probe its own aggregate endpoint or gateway/NGINX readiness.
 Neither the gateway nor any core service probes SRE for readiness. External model,
 payment-provider and telemetry health needs its own operational monitoring; a
@@ -88,4 +87,7 @@ provider diagnostics never gate pod readiness. See [routing policy](../deploymen
 - Finder tests exercise backend failure/recovery and explicit model failures.
 - Native NGINX tests check core-readiness failure/recovery alongside healthy local
   liveness and static routes, including the optional TLS listener.
-- Node tests check recommendation readiness and bounded SRE diagnostics.
+- Node tests check catalogue/recommendation recovery and bounded SRE diagnostics.
+
+Recommendations now run inside catalogue-service and use its MongoDB readiness.
+`/ready` is a compatibility alias; no recommendation-to-catalogue HTTP probe remains.

@@ -8,9 +8,7 @@ scrape_configs:
       - targets:
           - ai-gateway:3000
           - user-service:4109
-          - product-ingestion:4101
           - catalogue-service:4108
-          - recommendation-service:4102
           - moks:4103
           - sre-copilot:4104
           - payment-service:4105

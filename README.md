@@ -53,11 +53,11 @@ Open **http://localhost:3000**. Ctrl+C stops the launcher’s child processes. `
 | `services/ai-gateway` | Public API routing, authorization and order ledger |
 | `services/user-service` | MongoDB accounts, sessions, profiles, MFA, email recovery and purchase history |
 | `services/catalogue-service` | MongoDB catalogue reads and legacy-compatible product APIs |
-| `services/product-ingestion` | Validated catalogue imports and publication |
+| `services/catalogue-service` | Validated catalogue imports and publication |
 | `services/cart-service` | Redis-backed carts |
 | `services/shipping-service` | Java/Gradle, PostgreSQL locations, quotes and shipment requests |
 | `services/payment-service` | Razorpay orders and captured-payment verification |
-| `services/moks`, `services/recommendation-service` | Shopping assistance and recommendations |
+| `services/moks`, `services/catalogue-service` | Shopping assistance and recommendations |
 | `services/sre-copilot`, `services/mcp-server` | Diagnostics and MCP tools |
 | `services/mongodb`, `services/postgres`, `services/redis`, `services/rabbitmq` | Data and messaging |
 | `services/otel-collector`, `services/jaeger` | Distributed traces |

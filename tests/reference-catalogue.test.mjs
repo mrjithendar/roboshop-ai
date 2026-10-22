@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { seedProducts } from '../services/product-ingestion/lib/products.mjs';
-const source = JSON.parse(readFileSync(new URL('../services/product-ingestion/reference-products.json', import.meta.url)));
-for (const service of ['product-ingestion','catalogue-service','recommendation-service']) {
+import { seedProducts } from '../services/catalogue-service/lib/products.mjs';
+const source = JSON.parse(readFileSync(new URL('../services/catalogue-service/reference-products.json', import.meta.url)));
+for (const service of ['catalogue-service']) {
  const {normalizeProducts,rank} = await import(`../services/${service}/lib/catalogue.mjs`);
  test(`${service}: sourced collection survives normalization without sale or availability claims`,()=>{
   const rows=normalizeProducts(source);
@@ -31,13 +31,13 @@ test('repeat publication preserves admin edits, archived rows and unrelated merc
  assert.equal(rows.has(source[0].sku),false);
  const row=[...rows.values()].find(p=>p._id!=='SHOP');Object.assign(row,{name:'Admin title',archived:true,revision:9});
  await seedProducts(db);assert.equal(rows.size,21);assert.equal(row.name,'Admin title');assert.equal(row.archived,true);assert.equal(row.revision,9);assert.deepEqual(rows.get('SHOP'),merchant);
- const publisher=readFileSync(new URL('../services/product-ingestion/publish-catalogue.mjs',import.meta.url),'utf8');assert.doesNotMatch(publisher,/repriceCatalogue|updateMany/);
+ const publisher=readFileSync(new URL('../services/catalogue-service/publish-catalogue.mjs',import.meta.url),'utf8');assert.doesNotMatch(publisher,/repriceCatalogue|updateMany/);
 });
 
-for (const service of ['product-ingestion','catalogue-service']) {
+for (const service of ['catalogue-service']) {
  test(`${service}: removes reference listings from public reads without deleting stored data`, async () => {
   const {readProducts}=await import(`../services/${service}/lib/products.mjs`);
-  const demo=JSON.parse(readFileSync(new URL('../services/product-ingestion/products.json',import.meta.url),'utf8'));
+  const demo=JSON.parse(readFileSync(new URL('../services/catalogue-service/products.json',import.meta.url),'utf8'));
   const rows=[...demo,...source];
   const db={collection(){return {find(){return {sort(){return {limit(){return {toArray:async()=>rows};}};}};}};}};
   const products=await readProducts(db);

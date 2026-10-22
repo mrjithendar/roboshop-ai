@@ -8,8 +8,8 @@ region="${AWS_REGION:-us-east-1}"
 account="${AWS_ACCOUNT_ID:-881026659929}"
 registry="$account.dkr.ecr.$region.amazonaws.com"
 services=(ai-gateway cart-service catalogue-service currency-service
-  frontend kafka-bridge mcp-server nginx payment-service product-ingestion
-  recommendation-service shipping-service moks sre-copilot user-service)
+  frontend kafka-bridge mcp-server nginx payment-service
+  shipping-service moks sre-copilot user-service)
 if (( $# )); then services=("$@"); fi
 
 for tool in aws docker; do
@@ -23,7 +23,7 @@ esac
 repositories=()
 for service in "${services[@]}"; do
   case "$service" in
-    ai-gateway|cart-service|catalogue-service|currency-service|frontend|kafka-bridge|mcp-server|nginx|payment-service|product-ingestion|recommendation-service|shipping-service|moks|sre-copilot|user-service) ;;
+    ai-gateway|cart-service|catalogue-service|currency-service|frontend|kafka-bridge|mcp-server|nginx|payment-service|shipping-service|moks|sre-copilot|user-service) ;;
     *) echo "Unknown service: $service" >&2; exit 1 ;;
   esac
   test -f "services/$service/Dockerfile"

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const names = ['product-ingestion', 'catalogue-service', 'recommendation-service', 'moks', 'payment-service', 'shipping-service', 'sre-copilot', 'user-service', 'ai-gateway'];
+const names = ['catalogue-service', 'moks', 'payment-service', 'shipping-service', 'sre-copilot', 'user-service', 'ai-gateway'];
 const llmToken = process.env.LLM_SERVICE_TOKEN || randomBytes(32).toString('hex');
 const paymentToken = process.env.PAYMENT_SERVICE_TOKEN || randomBytes(32).toString('hex');
 const userToken = process.env.USER_SERVICE_TOKEN || randomBytes(32).toString('hex');
@@ -45,7 +45,7 @@ for (const name of names) {
   if (name !== 'shipping-service') { delete env.SHIPPING_DATABASE_URL; delete env.SHIPPING_DB_CA_FILE; }
   if (name !== 'ai-gateway') delete env.RABBITMQ_URL;
   if (name !== 'shipping-service') for (const key of Object.keys(env)) if (/^(REDIS_|RABBITMQ_(HOST|PORT|USERNAME|PASSWORD|VHOST|TLS)|CACHE_ENABLED|MESSAGING_ENABLED)/.test(key)) delete env[key];
-  if (!['user-service', 'ai-gateway', 'product-ingestion', 'catalogue-service'].includes(name)) { delete env.MONGODB_URL; delete env.MONGODB_DATABASE; }
+  if (!['user-service', 'ai-gateway', 'catalogue-service'].includes(name)) { delete env.MONGODB_URL; delete env.MONGODB_DATABASE; }
   for (const key of ['SUPERADMIN_EMAIL', 'SUPERADMIN_PASSWORD', 'SUPERADMIN_NAME', 'MONGO_ROOT_PASSWORD', 'MONGO_APP_PASSWORD']) delete env[key];
   // Database bootstrap passwords are never needed by application processes.
   delete env.SHIPPING_DB_PASSWORD;

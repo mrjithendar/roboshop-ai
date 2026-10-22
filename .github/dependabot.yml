@@ -7,8 +7,6 @@ updates:
       - /
       - /services/frontend
       - /services/catalogue-service
-      - /services/product-ingestion
-      - /services/recommendation-service
       - /services/payment-service
       - /services/sre-copilot
     exclude-paths:
@@ -30,9 +28,7 @@ updates:
     directories:
       - /services/ai-gateway
       - /services/user-service
-      - /services/product-ingestion
       - /services/catalogue-service
-      - /services/recommendation-service
       - /services/moks
       - /services/cart-service
       - /services/sre-copilot

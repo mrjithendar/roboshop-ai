@@ -4,7 +4,7 @@ import {once} from 'node:events';
 
 // Exercise actual HTTP completion, including finally: syntax checks cannot detect
 // block-scoped references used by a different block.
-for (const format of ['json','text']) for (const service of ['catalogue-service','product-ingestion','payment-service','recommendation-service','sre-copilot']) {
+for (const format of ['json','text']) for (const service of ['catalogue-service','payment-service','catalogue-service','sre-copilot']) {
  test(`${service} ${format}: success, rejection, missing route and probes leave server alive`, async t => {
   const {serve,json,HttpError}=await import(`../services/${service}/lib/runtime.mjs`);
   const originalFormat=process.env.LOG_FORMAT; process.env.LOG_FORMAT=format;

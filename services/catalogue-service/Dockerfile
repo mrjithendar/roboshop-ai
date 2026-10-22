@@ -7,5 +7,6 @@ RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund && npm cache clean -
 COPY --chown=node:node . ./
 WORKDIR /app
 USER node
+RUN node --test services/catalogue-service/tests/*.test.mjs
 EXPOSE 4108
 CMD ["node", "services/catalogue-service/server.mjs"]

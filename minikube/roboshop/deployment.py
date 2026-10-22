@@ -12,7 +12,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 SERVICES = ['mongodb', 'postgres', 'redis', 'rabbitmq', 'jaeger', 'otel-collector',
-            'product-ingestion', 'catalogue-service', 'recommendation-service', 'moks',
+            'catalogue-service', 'moks',
             'sre-copilot', 'payment-service', 'shipping-service', 'user-service', 'ai-gateway',
             'frontend', 'nginx', 'mcp-server', 'cart-service']
 APPS = {name for name in SERVICES if (ROOT / 'services' / name / 'Dockerfile').is_file()}

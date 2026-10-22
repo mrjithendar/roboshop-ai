@@ -74,7 +74,7 @@ class Gateway:
             k: os.getenv(env, default)
             for k, env, default in [
                 ("catalogue", "CATALOGUE_URL", os.getenv("INGESTION_URL", "http://127.0.0.1:4108")),
-                ("recommendations", "RECOMMENDATION_URL", "http://127.0.0.1:4102"),
+                ("recommendations", "RECOMMENDATION_URL", os.getenv("CATALOGUE_URL", "http://127.0.0.1:4108")),
                 ("agent", "AGENT_URL", "http://127.0.0.1:4103"),
                 ("sre", "SRE_URL", "http://127.0.0.1:4104"),
                 ("payment", "PAYMENT_URL", "http://127.0.0.1:4105"),

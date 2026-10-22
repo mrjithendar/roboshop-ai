@@ -52,7 +52,7 @@ export function logEvent(event, fields = {}, level = 'INFO') {
 export const urls = {
   ...(process.env.CART_URL ? { cart: process.env.CART_URL } : {}),
   catalogue: process.env.CATALOGUE_URL || process.env.INGESTION_URL || 'http://127.0.0.1:4108',
-  recommendations: process.env.RECOMMENDATION_URL || 'http://127.0.0.1:4102',
+  recommendations: process.env.RECOMMENDATION_URL || process.env.CATALOGUE_URL || 'http://127.0.0.1:4108',
   agent: process.env.AGENT_URL || 'http://127.0.0.1:4103',
   sre: process.env.SRE_URL || 'http://127.0.0.1:4104',
   shipping: process.env.SHIPPING_URL || 'http://127.0.0.1:4106',

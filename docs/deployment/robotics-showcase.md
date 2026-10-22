@@ -4,7 +4,7 @@ The default seed now contains 30 real robotics products. All are **display-only 
 
 ## Catalogue and currency policy
 
-`services/product-ingestion/products.json` records stable SKUs/slugs, manufacturer/model, product type, original summaries, specifications, core included items, accessory/compatibility notes, official source URLs, checking date, price type and currency, and image permission status. A placeholder is used for every product because permission to reproduce manufacturer photographs was not established. Package lists deliberately identify unverified bundle details; do not interpret them as complete packing lists.
+`services/catalogue-service/products.json` records stable SKUs/slugs, manufacturer/model, product type, original summaries, specifications, core included items, accessory/compatibility notes, official source URLs, checking date, price type and currency, and image permission status. A placeholder is used for every product because permission to reproduce manufacturer photographs was not established. Package lists deliberately identify unverified bundle details; do not interpret them as complete packing lists.
 
 Source review date: **19 October 2026**. The three Pololu prices (Balboa, DRV8833, DRV8835) are USD reference prices from the manufacturer's quantity-one listings, not store offers, delivered prices, or inventory guarantees. Other products show **Price on request**. Their numeric `price: 0` is a legacy schema sentinel, not a free-product price. Never display it as a sale price. Documentation-only entries retain a declared reference currency but have no quoted amount. No exchange rates or conversions are performed.
 
@@ -25,7 +25,7 @@ Every product page links to its individual sources. The seed contains original s
 
 Startup inserts missing SKUs only. It never rewrites administrator edits. Fresh databases receive the curated catalogue directly. To retire the original fictional seed in an existing installation, explicitly run:
 
-This archives only original, unchanged revision-1 rows and inserts absent curated products. Edited legacy rows remain for an admin to review/archive. Orders are not changed or deleted. Rebuild the product-ingestion image first. Source/provenance refreshes require a reviewed migration; restarting does not overwrite existing rows. `CATALOGUE_FILE` is an operator/test fixture override, not a public API.
+This archives only original, unchanged revision-1 rows and inserts absent curated products. Edited legacy rows remain for an admin to review/archive. Orders are not changed or deleted. Rebuild the catalogue-service image first. Source/provenance refreshes require a reviewed migration; restarting does not overwrite existing rows. `CATALOGUE_FILE` is an operator/test fixture override, not a public API.
 
 ## Product pages and reviews
 
@@ -72,7 +72,7 @@ From the repository root, after installing the gateway Python requirements:
 read -s 'DEMO_MONGODB_URL?Demo-only MongoDB URI: '; echo
 export DEMO_MONGODB_URL
 APP_ENV=demo MONGODB_DATABASE=roboshop \
-  .venv/bin/python services/product-ingestion/scripts/seed-demo.py seed \
+  .venv/bin/python services/catalogue-service/scripts/seed-demo.py seed \
   --database roboshop_demo_showcase --dataset robotics-v1 \
   --random-seed 42 --reviews 30000 --purchase-fraction 0.6
 ```
@@ -93,12 +93,12 @@ Cleanup removes only the selected synthetic dataset from its four collections. I
 
 ```sh
 APP_ENV=demo MONGODB_DATABASE=roboshop \
-  .venv/bin/python services/product-ingestion/scripts/seed-demo.py cleanup \
+  .venv/bin/python services/catalogue-service/scripts/seed-demo.py cleanup \
   --database roboshop_demo_showcase --dataset robotics-v1
 unset DEMO_MONGODB_URL
 ```
 
-The gateway image also contains `/app/services/product-ingestion/scripts/seed-demo.py` and the reference catalogue for an explicit one-off job; no new microservice is introduced.
+The gateway image also contains `/app/services/catalogue-service/scripts/seed-demo.py` and the reference catalogue for an explicit one-off job; no new microservice is introduced.
 
 ## Registration bot protection
 

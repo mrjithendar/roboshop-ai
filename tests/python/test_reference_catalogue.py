@@ -17,7 +17,7 @@ from product_details import related, require_purchasable
 from catalogue import retrieve
 from agent import answer
 
-ROWS = json.loads((ROOT / 'services/product-ingestion/reference-products.json').read_text())
+ROWS = json.loads((ROOT / 'services/catalogue-service/reference-products.json').read_text())
 
 class ReferenceTests(unittest.TestCase):
     def test_reference_retrieval_without_fake_stock_and_budget_currency(self):

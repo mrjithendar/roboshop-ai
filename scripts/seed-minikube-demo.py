@@ -31,7 +31,7 @@ def main():
     if os.getenv('KUBE_CONTEXT'): k += ['--context',os.environ['KUBE_CONTEXT']]
     k += ['-n','roboshop-ai']
     os.environ['APP_ENV']='demo'
-    spec=importlib.util.spec_from_file_location('demo',ROOT/'services/product-ingestion/scripts/seed-demo.py')
+    spec=importlib.util.spec_from_file_location('demo',ROOT/'services/catalogue-service/scripts/seed-demo.py')
     demo=importlib.util.module_from_spec(spec);spec.loader.exec_module(demo)
     demo.guard(DATABASE)
     secret=json.loads(run(k+['get','secret','roboshop-secrets','-o','json']))
@@ -60,7 +60,7 @@ def main():
             if target.demo_profiles.count_documents({'datasetId':{'$ne':DATASET}}):
                 raise ValueError('Another dataset exists in the demo database; no data removed.')
             print('Connected. Seeding isolated synthetic profiles and reviews...',flush=True)
-            counts=demo.seed(target,DATASET,json.loads((ROOT/'services/product-ingestion/products.json').read_text()),customers=1000,reviews=3000)
+            counts=demo.seed(target,DATASET,json.loads((ROOT/'services/catalogue-service/products.json').read_text()),customers=1000,reviews=3000)
             if target.command('usersInfo','roboshop_demo_reader')['users']:
                 target.command('updateUser','roboshop_demo_reader',pwd=password,roles=[{'role':'read','db':DATABASE}])
             else:

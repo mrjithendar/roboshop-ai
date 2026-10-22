@@ -24,7 +24,7 @@ data:
   USER_URL: http://user-service:4109
   CART_URL: http://cart-service:4107
   CATALOGUE_URL: http://catalogue-service:4108
-  RECOMMENDATION_URL: http://recommendation-service:4102
+  RECOMMENDATION_URL: http://catalogue-service:4108
   AGENT_URL: http://moks:4103
   SRE_URL: http://sre-copilot:4104
   PAYMENT_URL: http://payment-service:4105

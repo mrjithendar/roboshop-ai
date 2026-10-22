@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {repriceCatalogue} from './lib/price-migration.mjs';
+import {repriceCatalogue} from '../lib/price-migration.mjs';
 test('INR migration preserves inventory and admin edits on subsequent publication',async()=>{
  const row={_id:'A',sku:'A',price:499,currency:'USD',instock:23,revision:4};
  const collection={find:()=>({toArray:async()=>row.priceVersion?[]:[{...row}]}),updateOne:async(filter,update)=>{assert.equal(filter.revision,row.revision);assert.equal(update.$set.instock,undefined);Object.assign(row,update.$set);row.revision++;return{matchedCount:1,modifiedCount:1}}};

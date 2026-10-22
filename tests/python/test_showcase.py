@@ -27,11 +27,11 @@ from catalogue import retrieve
 from server import Gateway
 
 spec = importlib.util.spec_from_file_location(
-    "seed_demo", ROOT / "services/product-ingestion/scripts/seed-demo.py"
+    "seed_demo", ROOT / "services/catalogue-service/scripts/seed-demo.py"
 )
 seed_demo = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(seed_demo)
-PRODUCTS = json.loads((ROOT / "services/product-ingestion/showcase-reference.json").read_text())
+PRODUCTS = json.loads((ROOT / "services/catalogue-service/showcase-reference.json").read_text())
 CUSTOMER = {"id": "alice", "role": "customer"}
 ADMIN = {"id": "admin", "role": "admin"}
 CONTENT = {

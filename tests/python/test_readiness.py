@@ -95,7 +95,7 @@ class ReadinessTests(unittest.TestCase):
     def test_manifests_use_local_liveness_and_scoped_readiness(self):
         import yaml
         paths = {'ai-gateway':'/health/ready', 'nginx':'/ready',
-                 'moks':'/ready', 'recommendation-service':'/ready', 'sre-copilot':'/ready'}
+                 'moks':'/ready', 'catalogue-service':'/api/catalogue/ready', 'sre-copilot':'/ready'}
         for name, path in paths.items():
             with self.subTest(service=name):
                 manifests = yaml.safe_load_all((ROOT / f'services/{name}/{name}-minikube.yaml').read_text())

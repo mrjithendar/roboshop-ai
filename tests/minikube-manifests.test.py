@@ -256,7 +256,7 @@ class ManifestTests(unittest.TestCase):
             self.assertEqual(release,f'bash deploy-minikube.sh --service {name} --load-images')
             names.append(name)
         self.assertEqual(set(names),deploy.APPS)
-        self.assertLess(names.index('product-ingestion'),names.index('ai-gateway'))
+        self.assertLess(names.index('catalogue-service'),names.index('ai-gateway'))
         self.assertLess(names.index('shipping-service'),names.index('ai-gateway'))
         self.assertLess(names.index('frontend'),names.index('nginx'))
 
