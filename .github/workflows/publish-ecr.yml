@@ -49,6 +49,14 @@ jobs:
               node --test tests/http-logging.test.mjs
           fi
 
+      # Concurrent runners share HOME; isolate login/logout and buildx settings.
+      - name: Isolate Docker configuration for this job
+        shell: bash
+        run: |
+          set -euo pipefail
+          config_dir=$(mktemp -d "$RUNNER_TEMP/docker-config.XXXXXX")
+          echo "DOCKER_CONFIG=$config_dir" >> "$GITHUB_ENV"
+
       - name: Log in to Amazon ECR
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
