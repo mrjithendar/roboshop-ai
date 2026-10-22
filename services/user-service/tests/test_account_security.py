@@ -183,7 +183,7 @@ class SecurityTests(unittest.TestCase):
             context.assert_called_once_with(cafile='/ca.crt')
             context.return_value.load_cert_chain.assert_called_once_with('/tls.crt', '/tls.key')
             client.starttls.assert_called_once_with(context=context.return_value)
-            smtp.assert_called_once_with('smtp.example.com', 587, timeout=8)
+            smtp.assert_called_once_with('smtp.example.com', 587, timeout=3)
             message = client.send_message.call_args.args[0]
             self.assertEqual(message['To'], 'alice@example.com')
             self.assertIn('123456', message.get_content())

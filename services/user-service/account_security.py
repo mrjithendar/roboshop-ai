@@ -181,7 +181,7 @@ class AccountSecurity:
         context = ssl.create_default_context(cafile=os.getenv('SMTP_CA_FILE') or None)
         if os.getenv('SMTP_CLIENT_CERT'):
             context.load_cert_chain(os.environ['SMTP_CLIENT_CERT'], os.environ['SMTP_CLIENT_KEY'])
-        client = smtplib.SMTP_SSL(host, port, timeout=8, context=context) if implicit else smtplib.SMTP(host, port, timeout=8)
+        client = smtplib.SMTP_SSL(host, port, timeout=3, context=context) if implicit else smtplib.SMTP(host, port, timeout=3)
         with client:
             if not implicit:
                 client.starttls(context=context)
@@ -197,7 +197,7 @@ class AccountSecurity:
         limit = self.db.auth_limits.find_one_and_update({'_id': digest(f'reset:{email}:{window}')}, {'$inc': {'count': 1}, '$setOnInsert': {'expiresAt': now() + timedelta(hours=1)}}, upsert=True, return_document=ReturnDocument.AFTER)
         token, code = secrets.token_hex(32), f'{secrets.randbelow(1000000):06d}'
         user = self.auth.users.find_one({'email': email, 'disabled': {'$ne': True}})
-        response = {'resetId': token, 'message': 'If the account is eligible, a code has been sent. It expires in five minutes.'}
+        response = {'resetId': token, 'message': 'If the account is eligible and email delivery is available, you will receive a code valid for five minutes. If no email arrives, contact support.'}
         if not user or limit['count'] > 5:
             return response
         # New requests replace previous codes, even before Mongo TTL cleanup.
@@ -206,11 +206,13 @@ class AccountSecurity:
         self.auth.users.update_one({'_id': user['_id'], 'version': user['version']}, {'$set': {'passwordResetId': digest(token)}})
         try:
             self.send(email, code)
-        except (OSError, smtplib.SMTPException, ValueError):
+        except (OSError, smtplib.SMTPException, ValueError) as error:
             self.challenges.delete_one({'_id': digest(token)})
             # Do not expose the address, code, credentials or SMTP response.
             import logging
             logging.getLogger(__name__).error('Password reset email delivery failed; check SMTP configuration.')
+            reason = 'SMTP connection or response timed out; check outbound network access' if isinstance(error, TimeoutError) else 'SMTP authentication rejected; check SES SMTP credentials' if isinstance(error, smtplib.SMTPAuthenticationError) else 'SMTP rejected email or connection failed; check SES identity, sandbox status and network'
+            log_event('password_reset_email_failed', 'ERROR', dependency='ses-smtp', errorCode='RESET_EMAIL_DELIVERY_FAILED', errorType=type(error).__name__, reason=reason)
         return response
 
     def reset_password(self, data):

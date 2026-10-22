@@ -7,7 +7,17 @@ export function loginPath(): string {
 }
 export function showLogin(): void { location.assign(loginPath()); }
 export async function accountRequest(path: string, data?: object): Promise<{ user: User | null; mfaRequired?: boolean; challengeId?: string; resetId?: string; message?: string }> {
-  const response = await fetch(appPath(path), { method: data ? 'POST' : 'GET', headers: { 'content-type': 'application/json' }, ...(data ? { body: JSON.stringify(data) } : {}), signal: AbortSignal.timeout(15000) });
+  let response: Response;
+  try {
+    response = await fetch(appPath(path), { method: data ? 'POST' : 'GET', headers: { 'content-type': 'application/json' }, ...(data ? { body: JSON.stringify(data) } : {}), signal: AbortSignal.timeout(path === '/api/auth/password/request' ? 35000 : 15000) });
+  } catch (error) {
+    if (error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name)) {
+      throw new Error(path === '/api/auth/password/request'
+        ? 'Password reset is taking longer than expected. Check your inbox before requesting another code. If no email arrives, contact support.'
+        : 'The account service took too long to respond. Please try again.');
+    }
+    throw new Error('Cannot reach the account service. Check your connection and try again.');
+  }
   const result = await response.json();
   if (!response.ok) {
     const reference = typeof result.requestId === 'string' && /^[a-f0-9]{32}$/.test(result.requestId) ? ` Support reference: ${result.requestId}.` : '';
