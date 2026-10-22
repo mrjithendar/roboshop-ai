@@ -22,6 +22,23 @@ jobs:
           repository: langfuse/langfuse
           ref: v4.63.0
           persist-credentials: false
+      - name: Fix upstream migration-tool multi-architecture build
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          dockerfile = Path("web/Dockerfile")
+          original = "FROM --platform=${BUILDPLATFORM} golang:1.26 AS migrate-builder"
+          target = "FROM --platform=${TARGETPLATFORM} golang:1.26 AS migrate-builder"
+          source = dockerfile.read_text()
+          if source.count(original) != 1:
+              raise SystemExit("Pinned Langfuse Dockerfile changed; review the migrate-builder workaround.")
+          # go install with GOBIN=/out rejects cross-compilation. Execute this
+          # stage on the target platform (QEMU when needed) so Go's host and
+          # target match. Preserve upstream FIPS settings and /out/migrate.
+          dockerfile.write_text(source.replace(original, target))
+          PYTHON
       - name: Isolate Docker credentials and ensure repository
         shell: bash
         run: |
