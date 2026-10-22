@@ -17,7 +17,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from pymongo import ReturnDocument
 import segno
 from accounts import digest, email_address, hash_password, verify
-from runtime import HttpError, now
+from runtime import HttpError, now, log_event
 
 
 def totp(secret, counter):
@@ -38,6 +38,7 @@ class AccountSecurity:
 
     def configured(self):
         if not self.cipher:
+            log_event('password_recovery_configuration_missing', 'ERROR', errorCode='ACCOUNT_SECURITY_NOT_CONFIGURED', reason='AUTH_ENCRYPTION_KEY is missing from the user-service environment')
             raise HttpError(503, 'Account security is not configured. Contact the store.')
 
     def encrypt(self, value):
@@ -164,6 +165,9 @@ class AccountSecurity:
         host, sender = os.getenv('SMTP_HOST', ''), os.getenv('SMTP_FROM', '')
         if not host or not sender or os.getenv('SMTP_SECURITY', 'starttls') not in ('starttls', 'tls'):
             raise HttpError(503, 'Password recovery email is not configured. Contact the store.')
+        if (host.startswith('email-smtp.') and host.endswith('.amazonaws.com')) and (not os.getenv('SMTP_USERNAME') or not os.getenv('SMTP_PASSWORD')):
+            log_event('password_recovery_configuration_missing', 'ERROR', errorCode='RESET_EMAIL_CREDENTIALS_MISSING', reason='SES requires both SMTP_USERNAME and SMTP_PASSWORD in the user-service environment')
+            raise HttpError(503, 'Password recovery email credentials are not configured. Contact the store.')
         return host, email_address(sender)
 
     def send(self, recipient, code):

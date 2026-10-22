@@ -20,7 +20,10 @@ from http import HTTPStatus
 from urllib.parse import parse_qs
 
 
-SAFE_ERRORS = {'Invalid email or password.': 'AUTH_INVALID_CREDENTIALS',
+SAFE_ERRORS = {'Account security is not configured. Contact the store.': 'ACCOUNT_SECURITY_NOT_CONFIGURED',
+ 'Password recovery email is not configured. Contact the store.': 'RESET_EMAIL_NOT_CONFIGURED',
+ 'Password recovery email credentials are not configured. Contact the store.': 'RESET_EMAIL_CREDENTIALS_MISSING',
+ 'Invalid email or password.': 'AUTH_INVALID_CREDENTIALS',
  'Please log in to continue.': 'AUTH_REQUIRED',
  'Complete a fresh human verification challenge.': 'CHALLENGE_REQUIRED',
  'Challenge expired, reused or invalid. Complete a fresh challenge.': 'CHALLENGE_INVALID',

@@ -26,6 +26,18 @@ class SecurityTests(unittest.TestCase):
         self.user = self.auth.register({'name': 'Alice', 'email': 'alice@example.com', 'password': 'correct password 123'})
         self.actor = public_user(self.user)
 
+    def test_reset_configuration_errors_are_specific_before_sending(self):
+        from runtime import error_details
+        with patch.dict(os.environ, AUTH_ENCRYPTION_KEY=''):
+            security = AccountSecurity(self.auth)
+            with self.assertRaises(HttpError) as caught:
+                security.mail_config()
+            self.assertEqual(error_details(caught.exception)['errorCode'], 'ACCOUNT_SECURITY_NOT_CONFIGURED')
+        with patch.dict(os.environ, SMTP_HOST='email-smtp.us-east-1.amazonaws.com', SMTP_USERNAME='', SMTP_PASSWORD=''):
+            with self.assertRaises(HttpError) as caught:
+                self.security.mail_config()
+            self.assertEqual(error_details(caught.exception)['errorCode'], 'RESET_EMAIL_CREDENTIALS_MISSING')
+
     def tearDown(self):
         self.env.stop()
 
