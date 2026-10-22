@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
 VULTR_HOST="${VULTR_HOST:-root@jithendar.com}"
 API_HOST="${API_HOST:-jithendar.com}"
 BASE_PROFILE="${PROFILE:-mk4}"
-CONFIG="${CONFIG:-$HOME/.kube/vultr-minikube.json}"
+CONFIG="${CONFIG:-$HOME/.kube/config}"
 fail() { echo "ERROR: $*" >&2; exit 1; }
 case "$BASE_PROFILE" in ''|*[!a-zA-Z0-9_.-]*) fail 'Invalid PROFILE.' ;; esac
 case "$VULTR_HOST" in -*|'') fail 'Invalid VULTR_HOST.' ;; esac
@@ -47,7 +47,12 @@ chmod 600 "$TEMP_CONFIG_DIR/config.json"
 if ! kubectl --kubeconfig="$TEMP_CONFIG_DIR/config.json" --request-timeout=15s get nodes; then
   fail 'Direct API check failed. Check DNS and allow its published TCP port from your local public IP in Vultr Firewall. Existing local config was preserved.'
 fi
-mv "$TEMP_CONFIG_DIR/config.json" "$CONFIG"
-printf 'Saved direct kubeconfig: %s\n' "$CONFIG"
-printf 'For this terminal, run: export KUBECONFIG="%s"\n' "$CONFIG"
-echo 'Then run: kubectl get pods -A'
+python3 "$SCRIPT_DIR/kubeconfig.py" --merge "$TEMP_CONFIG_DIR/config.json" "$CONFIG"
+echo 'Minikube is now selected in the saved kubeconfig.'
+if [ "$CONFIG" = "$HOME/.kube/config" ]; then
+  echo 'Run: kubectl get nodes'
+  echo 'Run: k9s'
+  echo 'If KUBECONFIG is already exported in your terminal, run: unset KUBECONFIG'
+else
+  printf 'Custom destination: use --kubeconfig="%s" with kubectl or k9s.\n' "$CONFIG"
+fi

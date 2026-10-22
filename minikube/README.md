@@ -316,3 +316,29 @@ If a selector matches no pods, inspect `kubectl -n kube-system get pods --show-l
 and select the affected pod by name. If the error persists with sufficient inotify
 limits, inspect process file-descriptor limits and current pod logs; this message
 can also indicate descriptor exhaustion. Do not copy another node's CNI configuration.
+
+### Import Minikube into the default local kubeconfig
+
+Run on your Mac:
+
+```bash
+sh minikube/kubeconfig.sh
+unset KUBECONFIG
+kubectl get nodes
+k9s
+```
+
+The importer fetches fresh embedded certificates over SSH, verifies direct API
+access, then merges Minikube into `~/.kube/config` and selects its context.
+Existing unrelated clusters/users/contexts are preserved. Matching Minikube names
+are refreshed, and the previous file is backed up alongside it with private
+permissions. SSH or connection-check failures leave the original file unchanged.
+`CONFIG=/path/to/file` overrides the merge destination.
+
+To import an already downloaded JSON kubeconfig without SSH or an API check:
+
+```bash
+python3 minikube/kubeconfig.py --merge "$HOME/.kube/vultr-minikube.json" "$HOME/.kube/config"
+```
+
+This offline import does not fix expired certificates or blocked API ports.

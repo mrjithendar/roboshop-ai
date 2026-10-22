@@ -8,6 +8,10 @@ final file replacement. This helper only validates and transforms JSON.
 import argparse
 import json
 import re
+import os
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -43,14 +47,65 @@ def prepare_config(export: dict, host: str) -> dict:
     return config
 
 
+def merge_config(source: Path, destination: Path) -> None:
+    """Refresh named Minikube entries, retaining unrelated contexts and credentials."""
+    incoming = json.loads(source.read_text())
+    selected = incoming.get("current-context")
+    if not selected or not any(c.get("name") == selected for c in incoming.get("contexts", [])):
+        raise ValueError("Imported kubeconfig has no valid selected context.")
+    destination = destination.expanduser().resolve()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    existing = {}
+    if destination.exists():
+        # Flatten resolves relative certificate paths before rewriting the file.
+        result = subprocess.run(
+            ["kubectl", "--kubeconfig=" + str(destination), "config", "view",
+             "--raw", "--flatten", "-o", "json"],
+            capture_output=True, text=True, check=False)
+        if result.returncode:
+            raise ValueError("Cannot read existing kubeconfig; it was not changed.")
+        existing = json.loads(result.stdout)
+    merged = dict(existing)
+    merged.update({"apiVersion": "v1", "kind": "Config", "current-context": selected})
+    for key in ("clusters", "users", "contexts"):
+        entries = {entry["name"]: entry for entry in existing.get(key, []) or []}
+        for entry in incoming.get(key, []):
+            entries[entry["name"]] = entry
+        merged[key] = list(entries.values())
+    backup = None
+    if destination.exists():
+        fd, name = tempfile.mkstemp(prefix=destination.name + ".backup-", dir=destination.parent)
+        os.close(fd)
+        backup = Path(name)
+        shutil.copyfile(destination, backup)
+    fd, name = tempfile.mkstemp(prefix=".kubeconfig-", dir=destination.parent)
+    try:
+        with os.fdopen(fd, "w") as output:
+            json.dump(merged, output, indent=2)
+            output.write("\n")
+        os.replace(name, destination)
+    finally:
+        if os.path.exists(name):
+            os.unlink(name)
+    if backup:
+        print(f"Previous kubeconfig backed up: {backup}")
+    print(f"Imported context {selected} into {destination}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--merge", action="store_true", help="Merge prepared JSON into the default config")
     parser.add_argument("source", type=Path, help="Remote JSON containing port and config")
     parser.add_argument("destination", type=Path, help="Temporary kubeconfig output path")
-    parser.add_argument("host", help="Public hostname or IPv4 address")
+    parser.add_argument("host", nargs="?", help="Public hostname or IPv4 address")
     args = parser.parse_args()
 
     try:
+        if args.merge:
+            merge_config(args.source, args.destination)
+            return
+        if not args.host:
+            raise ValueError("Public hostname is required.")
         with args.source.open() as source:
             config = prepare_config(json.load(source), args.host)
         # This file contains client credentials, so keep it private even when

@@ -18,11 +18,13 @@ class KubeconfigTests(unittest.TestCase):
         self.bin = self.root / 'bin'
         self.bin.mkdir()
         remote = {'port': '32769', 'config': {'current-context': 'mk4',
+            'contexts': [{'name': 'mk4', 'context': {'cluster': 'mk4', 'user': 'mk4'}}],
+            'users': [{'name': 'mk4', 'user': {'token': 'test-only'}}],
             'clusters': [{'name': 'mk4', 'cluster': {'server': 'https://192.168.49.2:8443',
             'certificate-authority-data': 'ca', 'proxy-url': 'http://old-proxy'}}]}}
         (self.root / 'export.json').write_text(json.dumps(remote))
         mocks = {'ssh': 'cat >/dev/null; [ "${SSH_FAIL:-0}" = 0 ] || exit 1; cat "$TEST_SOURCE"',
-                 'kubectl': 'echo called >> "$TEST_CALLS"; exit "${API_FAIL:-0}"'}
+                 'kubectl': 'echo called >> "$TEST_CALLS"; case "$*" in *"config view"*) echo \'{"clusters":[{"name":"eks","cluster":{"server":"https://example.test"}}],"contexts":[{"name":"eks","context":{"cluster":"eks"}}]}\'; exit 0;; esac; exit "${API_FAIL:-0}"'}
         for name, body in mocks.items():
             p = self.bin / name
             p.write_text('#!/bin/sh\n'+body+'\n')
@@ -38,7 +40,11 @@ class KubeconfigTests(unittest.TestCase):
     def test_direct_export(self):
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stderr)
-        cluster = json.loads(self.config.read_text())['clusters'][0]['cluster']
+        merged = json.loads(self.config.read_text())
+        self.assertEqual(merged['current-context'], 'mk4')
+        self.assertIn('eks', [entry['name'] for entry in merged['contexts']])
+        self.assertEqual(len(list(self.root.glob('config.json.backup-*'))), 1)
+        cluster = next(entry['cluster'] for entry in merged['clusters'] if entry['name'] == 'mk4')
         self.assertEqual(cluster['server'], 'https://jithendar.com:32769')
         self.assertEqual(cluster['tls-server-name'], '192.168.49.2')
         self.assertFalse(cluster['insecure-skip-tls-verify'])
