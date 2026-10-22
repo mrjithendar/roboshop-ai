@@ -100,14 +100,22 @@ type rateCache struct {
 	client  *http.Client
 }
 
-func (c *rateCache) refresh(ctx context.Context) error {
+func (c *rateCache) refresh(ctx context.Context) (resultErr error) {
+    started:=time.Now()
+    ctx,tr:=startTrace(ctx,"","")
+    defer func(){status:=200;if resultErr!=nil{status=503};exportTrace(tr,started,"currency.refresh_rates",1,status,map[string]string{})}()
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, sourceURL, nil)
 	if err != nil {
 		return err
 	}
-	resp, err := c.client.Do(req)
+	_,clientTrace:=startTrace(ctx,"","")
+    req.Header.Set("traceparent",clientTrace.header())
+    clientStart:=time.Now()
+    resp, err := c.client.Do(req)
+    clientStatus:=200;if err!=nil{clientStatus=503}else{clientStatus=resp.StatusCode}
+    exportTrace(clientTrace,clientStart,"GET /stats/eurofxref/eurofxref-daily.xml",3,clientStatus,map[string]string{"server.address":"www.ecb.europa.eu","http.request.method":"GET"})
 	if err != nil {
 		return err
 	}
@@ -161,6 +169,9 @@ func (c *rateCache) run(ctx context.Context) {
 }
 func (c *rateCache) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
+    requestContext,tr:=startTrace(r.Context(),r.Header.Get("traceparent"),r.Header.Get("tracestate"))
+    r=r.WithContext(requestContext)
+    w.Header().Set("X-Request-ID",tr.ID)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	status := http.StatusOK
@@ -185,22 +196,25 @@ func (c *rateCache) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			body = map[string]string{"error": "Not found"}
 		}
 	}
-	route := "other"
+	route := ""
 	switch r.URL.Path {
 	case "/health", "/ready", "/rates":
 		route = r.URL.Path
 	}
-	if status >= 400 || route == "/rates" || route == "other" {
+	if status >= 400 || route == "/rates" || route == "" {
 		level := slog.LevelInfo
 		if status >= 400 {
 			level = slog.LevelWarn
 		}
-		slog.Log(r.Context(), level, "HTTP request completed", "service", "currency-service", "method", r.Method, "route", route, "status", status, "durationMs", time.Since(started).Milliseconds())
+		slog.Log(r.Context(), level, "HTTP request completed", "service", "currency-service", "method", r.Method, "route", route, "trace_id",tr.ID,"span_id",tr.Span,"status", status, "durationMs", time.Since(started).Milliseconds())
 	}
+    name:=r.Method;if route!=""{name+=" "+route};if r.Method!="GET" && r.Method!="POST" && r.Method!="HEAD" && r.Method!="PUT" && r.Method!="DELETE" && r.Method!="OPTIONS"{name="HTTP"}
+    exportTrace(tr,started,name,2,status,map[string]string{"http.route":route,"http.request.method":r.Method})
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(body)
 }
 func main() {
+    defer drainTraces()
 	level := slog.LevelInfo
 	switch os.Getenv("LOG_LEVEL") {
 	case "DEBUG":

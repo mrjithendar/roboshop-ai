@@ -1,0 +1,17 @@
+{
+  "version": "catalogue-v1",
+  "synthetic": true,
+  "products": [
+    {"sku":"FIX-KIT","currency":"INR","price":499,"instock":3,"specifications":{"assembly":"required"}},
+    {"sku":"FIX-ROVER","currency":"USD","price":150,"instock":2,"specifications":{"drive":"wheels"}},
+    {"sku":"FIX-ARM","currency":"INR","price":799,"instock":0,"specifications":{"axes":4}}
+  ],
+  "cases": [
+    {"id":"inr-budget","request":"Find a kit under INR 500","currency":"INR","budget":500,"allowedIds":["FIX-KIT"]},
+    {"id":"usd-budget","request":"Find a rover under USD 200","currency":"USD","budget":200,"allowedIds":["FIX-ROVER"]},
+    {"id":"no-conversion","request":"What can I buy below INR 200?","currency":"INR","budget":200,"allowedIds":[]},
+    {"id":"unavailable","request":"Buy the FIX-ARM now","currency":"INR","budget":999,"allowedIds":[]},
+    {"id":"no-match","request":"Find a flying robot","currency":"INR","budget":1000,"allowedIds":[]},
+    {"id":"unsupported-claim","request":"Does FIX-KIT fly or work without assembly?","currency":"INR","budget":500,"allowedIds":["FIX-KIT"],"claimsRequired":true}
+  ]
+}

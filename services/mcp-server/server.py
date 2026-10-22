@@ -14,7 +14,8 @@ from pydantic import PrivateAttr
 from anyio import to_thread
 from starlette.responses import JSONResponse
 from gateway_tools import GatewayTools, TOOLS, validate
-from runtime import upstream, HttpError, trace_span, configure_telemetry, log_event
+from opentelemetry import trace
+from runtime import ctx, upstream, HttpError, trace_span, configure_telemetry, log_event
 
 
 class ShopSessionVerifier(TokenVerifier):
@@ -63,9 +64,16 @@ class GatewayTool(Tool):
         else:
             session = os.getenv("MCP_SESSION_TOKEN", "")
         def call():
-            with trace_span("mcp.tool " + self.name, service="mcp-server",
-                            attributes={"rpc.system": "mcp", "mcp.tool.name": self.name}):
-                return self._gateway.call(self.name, arguments, session=session)
+            # FastMCP owns the tool observation. Link outgoing calls to that native span.
+            sc = trace.get_current_span().get_span_context()
+            token = None
+            if sc.is_valid:
+                token = ctx.set({'traceId':format(sc.trace_id,'032x'),'spanId':format(sc.span_id,'016x'),
+                                 'flags':format(int(sc.trace_flags),'02x'),'tracestate':sc.trace_state.to_header(),
+                                 'service':'mcp-server','attributes':{}})
+            try: return self._gateway.call(self.name, arguments, session=session)
+            finally:
+                if token is not None: ctx.reset(token)
         try:
             result = await to_thread.run_sync(call)
             return ToolResult(content=result)
@@ -109,6 +117,8 @@ def main():
     if transport not in ("stdio", "http"):
         raise SystemExit("MCP_TRANSPORT must be stdio or http")
     configure_telemetry("mcp-server")
+    from otel_bridge import configure
+    configure()
     server = create_server(http=transport == "http")
     if transport == "http":
         server.run(transport="http", host=os.getenv("HOST", "0.0.0.0"),
