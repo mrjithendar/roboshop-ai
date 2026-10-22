@@ -3,6 +3,18 @@ import { randomBytes } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 export const context = new AsyncLocalStorage();
+
+let logService = process.env.OTEL_SERVICE_NAME || 'roboshop';
+const logFields = new Set('method route status durationMs dependency operation errorType errorCode provider reason revision port state'.split(' '));
+export function logEvent(event, fields = {}, level = 'INFO') {
+  const levels = { DEBUG: 10, INFO: 20, WARN: 30, ERROR: 40 };
+  if ((levels[level] || 20) < (levels[(process.env.LOG_LEVEL || 'INFO').toUpperCase()] || 20)) return;
+  const ctx = context.getStore();
+  const safe = Object.fromEntries(Object.entries(fields).filter(([k, v]) => logFields.has(k) && ['string','number','boolean'].includes(typeof v)));
+  try { console.log(JSON.stringify({ timestamp: new Date().toISOString(), level, service: ctx?.service || logService, event, ...(ctx?.traceId ? {traceId: ctx.traceId} : {}), ...safe })); }
+  catch { /* Logging must not change the request outcome. */ }
+}
+
 export const urls = {
   ...(process.env.CART_URL ? { cart: process.env.CART_URL } : {}),
   catalogue: process.env.CATALOGUE_URL || process.env.INGESTION_URL || 'http://127.0.0.1:4108',
@@ -46,9 +58,12 @@ export async function clientSpan(name, work, attributes = {}) {
   const ctx = { traceId: parent?.traceId || randomBytes(16).toString('hex'), spanId: randomBytes(8).toString('hex'), parentSpanId: parent?.spanId, flags: parent?.flags || '01', service: parent?.service || process.env.OTEL_SERVICE_NAME || 'roboshop', kind: 3, attributes: {} };
   const start = Date.now(); let status = 200;
   return context.run(ctx, async () => {
-    try { return await work(ctx); }
+    try { const result = await work(ctx); if (typeof result?.ok === "boolean" && Number.isInteger(result.status)) status = result.status; return result; }
     catch (error) { status = error.status || 503; throw error; }
-    finally { exportSpan(ctx.service, ctx, start, name, status, attributes); }
+    finally {
+      logEvent('dependency_call_completed', {operation: name, dependency: attributes['server.address'], status, durationMs: Date.now()-start}, status >= 400 ? 'WARN' : 'INFO');
+      exportSpan(ctx.service, ctx, start, name, status, attributes);
+    }
   });
 }
 export async function request(url, options = {}) {
@@ -56,7 +71,7 @@ export async function request(url, options = {}) {
     const headers = { 'content-type': 'application/json', ...options.headers, traceparent: `00-${ctx.traceId}-${ctx.spanId}-${ctx.flags}` };
     try {
       const response = await fetch(url, { ...options, headers, signal: options.signal || AbortSignal.timeout(12000) });
-      if (!response.ok) throw new HttpError(502, 'A dependent service is unavailable.');
+      if (!response.ok) { logEvent('dependency_response_rejected', {dependency: new URL(url).hostname, status: response.status}, 'WARN'); throw new HttpError(502, 'A dependent service is unavailable.'); }
       return await response.json();
     } catch (e) {
       if (e instanceof HttpError) throw e;
@@ -93,6 +108,7 @@ export function exportSpan(service, ctx, start, name, status, attributes = {}) {
   }
 }
 export function serve(service, port, handler) {
+  logService = service;
   const counts = new Map();
   let duration = 0, requests = 0;
   const server = http.createServer(async (req, res) => {
@@ -105,9 +121,10 @@ export function serve(service, port, handler) {
     res.setHeader('referrer-policy', 'same-origin');
     res.setHeader('content-security-policy', "default-src 'self'; img-src 'self' https://*.razorpay.com data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://checkout.razorpay.com; connect-src 'self' https://*.razorpay.com; frame-src https://*.razorpay.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     await context.run(ctx, async () => {
-      let route = 'unknown';
+      let route = 'unknown', probe = false;
       try {
         const url = new URL(req.url, 'http://localhost');
+        probe = url.pathname.endsWith('/ready');
         route = url.pathname.startsWith('/api/') ? url.pathname.split('/').slice(0, 3).join('/') : ['/health', '/metrics'].includes(url.pathname) ? url.pathname : 'static';
         if (url.pathname === '/health' && req.method === 'GET') return json(res, { status: 'ok', service });
         if (url.pathname === '/metrics' && req.method === 'GET') {
@@ -120,6 +137,7 @@ export function serve(service, port, handler) {
         await handler(req, res, url);
         if (!res.writableEnded) json(res, { error: 'Not found.' }, 404);
       } catch (e) {
+        logEvent('request_failed', {method: req.method, status: e.status || 500, errorType: e.constructor?.name || 'Error'}, e.status && e.status < 500 ? 'WARN' : 'ERROR');
         if (!res.headersSent) json(res, { error: e.status ? e.message : 'Internal service error.', requestId: ctx.traceId }, e.status || 500);
         else res.end();
       } finally {
@@ -129,7 +147,7 @@ export function serve(service, port, handler) {
           const key = `route="${safeRoute}",status="${res.statusCode}"`;
           counts.set(key, (counts.get(key) || 0) + 1);
           requests++; duration += (Date.now() - start) / 1000;
-          console.log(JSON.stringify({ service, route: safeRoute, status: res.statusCode, durationMs: Date.now() - start, traceId: ctx.traceId }));
+          logEvent('request_completed', {method: req.method, route: safeRoute, status: res.statusCode, durationMs: Date.now() - start}, res.statusCode >= 400 ? 'WARN' : probe ? 'DEBUG' : 'INFO');
           exportSpan(service, ctx, start, `${req.method} ${safeRoute}`, res.statusCode, ctx.attributes);
         }
       }
@@ -137,7 +155,7 @@ export function serve(service, port, handler) {
   });
   server.requestTimeout = 30000;
   server.headersTimeout = 10000;
-  server.listen(Number(process.env.PORT || port), process.env.HOST || '127.0.0.1', () => console.log(JSON.stringify({ service, event: 'listening', port: Number(process.env.PORT || port) })));
-  for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => server.close(() => process.exit(0)));
+  server.listen(Number(process.env.PORT || port), process.env.HOST || '127.0.0.1', () => context.run({service}, () => logEvent('service_listening', {port: Number(process.env.PORT || port)})));
+  for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => { context.run({service}, () => logEvent('service_stopping')); server.close(() => process.exit(0)); });
   return server;
 }

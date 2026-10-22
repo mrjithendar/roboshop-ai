@@ -51,3 +51,76 @@ producer/consumer correlation, and the absence of customer data in emitted paylo
 References: [OTLP encoding](https://opentelemetry.io/docs/specs/otlp/),
 [Spring Boot tracing](https://docs.spring.io/spring-boot/reference/actuator/tracing.html),
 [Spring AMQP observations](https://docs.spring.io/spring-amqp/reference/amqp/receiving-messages/micrometer-observation.html).
+
+
+## Operational pod logs
+
+Tracing is complemented by stdout operational events. Rebuild and deploy the changed
+service images before expecting these new records; no logging infrastructure or paid
+service is needed. Telemetry export may be disabled and pod logs still work.
+
+Python services and Node services keep their logger inside each service directory.
+Their JSON records include timestamp, level, service, event, traceId (when part of a
+request), method, safe route group, status and durationMs. Downstream HTTP records name
+the dependency host and report failures/latency without URL credentials or query text.
+Only allowlisted metadata is accepted by the runtime log helper.
+
+Useful events:
+
+- `ai_not_configured`: a superadmin must connect a provider.
+- `llm_attempt_started/completed/failed`: actual provider/model, duration and safe error
+  code; `llm_failover_selected` explains a timeout, transient error or open breaker.
+- `checkout_reserved`, `checkout_reused`, `checkout_provider_order_attached`,
+  `checkout_reconciliation_required`, `checkout_payment_captured`: explain checkout
+  progress without logging prices, payment signatures, addresses or customer identities.
+- `order_event_published`, `order_event_delivery_pending`, `purchase_history_projected`,
+  `customer_history_sync_pending`: show background delivery/projection and retries.
+- `dependency_response_rejected`, `dependency_call_completed`, `request_rejected`,
+  `request_failed`: distinguish rejected input, authorization, downstream and internal
+  failures. Exception **types**, never exception messages or raw stack locals, are logged.
+
+`LOG_LEVEL=INFO` is the default. Python/Node runtime services support DEBUG/INFO/WARN/ERROR;
+DEBUG includes successful readiness probes. Finder, FastAPI demo, Go currency and shipping
+also support log-level filtering (successful probes in Go/Java/demo remain suppressed).
+The shipping filter emits SLF4J key/value records with trace IDs. Go uses JSON slog records.
+Frontend NGINX now emits access events to stdout; edge NGINX adds upstream connect/response
+timing and the gateway request ID. Successful edge health probes are suppressed. NGINX
+configuration controls its logs rather than LOG_LEVEL. Databases, Redis, RabbitMQ, Jaeger
+and the collector retain their native operational logs; query/wire debug logging was not
+enabled. Do not enable database statement logging to troubleshoot normal application flows.
+
+The application records omit bodies, query strings, raw prompts/answers, passwords, cookies,
+authorization headers and payment secrets. Trace IDs and internal order IDs are operational
+correlation identifiers: restrict log access and retention. This does not change third-party
+framework/native error logging policies. Never paste secrets into LOG_LEVEL or debug settings.
+
+Read an individual service:
+
+```bash
+kubectl -n roboshop-ai logs deployment/ai-gateway --since=10m --follow
+kubectl -n roboshop-ai logs deployment/shopping-agent --since=10m --follow
+kubectl -n roboshop-ai logs deployment/frontend --since=10m --follow
+# Last crashed container:
+kubectl -n roboshop-ai logs deployment/ai-gateway --previous --tail=100
+```
+
+Readable filtering when jq is installed:
+
+```bash
+kubectl -n roboshop-ai logs deployment/ai-gateway --since=10m |
+  jq -R 'fromjson? | select(.level == "WARN" or .level == "ERROR")'
+# Replace TRACE_ID with the traceId in a failed request; no credentials needed.
+kubectl -n roboshop-ai logs deployment/shopping-agent --since=10m |
+  jq -R 'fromjson? | select(.traceId == "TRACE_ID")'
+```
+
+For a temporary increase in probe visibility (changes the deployment and restarts pods):
+
+```bash
+kubectl -n roboshop-ai set env deployment/ai-gateway LOG_LEVEL=DEBUG
+# Return to normal afterwards:
+kubectl -n roboshop-ai set env deployment/ai-gateway LOG_LEVEL=INFO
+```
+
+No DEBUG setting enables prompt/body/credential logging. Existing deployments were not
+changed while implementing or testing this feature.

@@ -1,5 +1,10 @@
 """Isolated FastAPI demonstration: no database, payment, or fulfilment writes."""
 from typing import Annotated, Literal
+import json
+import os
+import time
+import secrets
+from datetime import datetime, timezone
 from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -8,6 +13,25 @@ app = FastAPI(
     version="1.0.0",
     description="Sample data only. Explore products and calculate a sample estimate; no orders or payments are created.",
 )
+
+
+@app.middleware("http")
+async def request_logging(request, call_next):
+    started=time.monotonic(); status=500; request_id=secrets.token_hex(16)
+    try:
+        response=await call_next(request)
+        status=response.status_code
+        response.headers['X-Request-ID']=request_id
+        return response
+    finally:
+        route=getattr(request.scope.get('route'), 'path', 'other')
+        level = 'WARN' if status >= 400 else 'INFO'
+        threshold = {'DEBUG':10,'INFO':20,'WARN':30,'ERROR':40}.get(os.getenv('LOG_LEVEL','INFO').upper(),20)
+        if (route not in ('/health','/ready') or status >= 400) and (30 if status >= 400 else 20) >= threshold:
+            print(json.dumps({'timestamp':datetime.now(timezone.utc).isoformat(), 'service':'fastapi-demo',
+                'level':'WARN' if status >= 400 else 'INFO', 'event':'request_completed',
+                'method':request.method,'route':route,'status':status,'requestId':request_id,
+                'durationMs':round((time.monotonic()-started)*1000)}),flush=True)
 
 
 class Product(BaseModel):

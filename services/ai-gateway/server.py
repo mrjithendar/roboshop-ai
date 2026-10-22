@@ -12,7 +12,7 @@ from urllib.parse import urlencode
 SERVICE_ROOT = Path(__file__).resolve().parent
 STATIC_ROOT = Path(os.environ["FRONTEND_DIST"]).resolve() if os.getenv("FRONTEND_DIST") else None
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
-from runtime import HttpError, request, upstream, text, configure_telemetry
+from runtime import HttpError, request, upstream, text, configure_telemetry, log_event
 from user_client import UserClient
 from purchase_sync import PurchaseSync
 from auth import connect_mongo, require_role
@@ -162,12 +162,17 @@ class Gateway:
         with self.store.lock:
             if result.get("verified"):
                 self.store.mark_paid(order["id"], result, order.get("revision", 0))
-            return copy.deepcopy(self.store.payment_order(order["id"]))
+            updated = copy.deepcopy(self.store.payment_order(order["id"]))
+        if result.get("verified"):
+            log_event("checkout_payment_captured", orderId=order["id"], state="paid")
+        return updated
 
     def checkout(self, id, key, quote_token=None):
         with self.store.lock:
             order = copy.deepcopy(self.store.existing_payment(id, key))
             version = self.store.cart_version(id)
+        if order:
+            log_event("checkout_reused", orderId=order["id"], state=order["status"])
         if order and order["status"] == "paid":
             return {"order": public_order(order)}
         created = False
@@ -190,6 +195,7 @@ class Gateway:
                         id, key, products, config.get("mode", "unknown"), config.get("keyId"), version, quote_token=quote_token
                     )
         if created:
+            log_event("checkout_reserved", orderId=order["id"], state=order["status"])
             try:
                 provider = self.payment("orders", {
                     "amount": order.get("amount", cents(order["total"])), "currency": order["currency"],
@@ -198,9 +204,11 @@ class Gateway:
                 })
                 with self.store.lock:
                     order = copy.deepcopy(self.store.attach_payment(order["id"], provider, order["revision"]))
+                log_event("checkout_provider_order_attached", orderId=order["id"], state=order["status"])
             except Exception:
                 with self.store.lock:
                     self.store.review_payment(order["id"], order["revision"])
+                log_event("checkout_reconciliation_required", "WARN", orderId=order["id"], reason="provider_response_ambiguous")
                 raise
         else:
             order = self.reconcile(order)
@@ -465,11 +473,14 @@ class Gateway:
                 },
             )
             with self.store.lock:
-                return public_order(
+                updated = public_order(
                     self.store.mark_paid(order["id"], result, order.get("revision", 0))
                     if result.get("verified")
                     else self.store.payment_order(order["id"])
                 )
+            if result.get("verified"):
+                log_event("checkout_payment_captured", orderId=order["id"], state="paid")
+            return updated
         if path == "/api/products" and method == "GET":
             return {
                 "products": self.products(),
@@ -555,6 +566,7 @@ class Gateway:
             message = text(validate(ChatRequest, data).message)
             active = self.llm.current()
             if active["config"]["provider"] == "none":
+                log_event("ai_not_configured", reason="superadmin_configuration_required")
                 return unconfigured()
             products = self.catalogue(timeout=2)
             with self.store.lock:

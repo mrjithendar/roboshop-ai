@@ -17,7 +17,7 @@ from fastapi.responses import Response
 from starlette.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 from server import Gateway  # establishes the service-local library path
-from runtime import Request, HttpError, encode, trace_context, ctx, telemetry, configure_telemetry, deadline
+from runtime import Request, HttpError, encode, trace_context, ctx, telemetry, configure_telemetry, deadline, log_event, operation_name
 from api_models import ChatRequest, ChatResponse, HealthResponse, ErrorResponse
 from readiness import gateway_readiness
 
@@ -118,6 +118,7 @@ def create_app(gateway=None):
                 if isinstance(result, tuple):
                     result, status, extra = result
         except HttpError as error:
+            log_event("request_rejected", "WARN", route=route, method=request.method, status=error.status, errorType=type(error).__name__, errorCode=getattr(error, "code", None))
             status = error.status
             result = ErrorResponse(error='The request could not be completed.', requestId=context['traceId']).model_dump()
             if getattr(error, 'code', None) == 'CHECKOUT_QUOTE_INVALID':
@@ -126,14 +127,16 @@ def create_app(gateway=None):
             status, result = 408, {'error':'Request timed out.', 'requestId':context['traceId']}
         except ValidationError:
             status, result = 502, {'error':'Invalid service response.', 'requestId':context['traceId']}
-        except Exception:
+        except Exception as error:
+            log_event("request_failed", "ERROR", route=route, method=request.method, status=500, errorType=type(error).__name__)
             status, result = 500, {'error':'Internal service error.', 'requestId':context['traceId']}
         finally:
             elapsed = (time.time_ns()-start)/1e9
             if request.url.path not in ('/health','/health/live','/metrics'):
                 counts[(route,status)] += 1
                 durations[0] += elapsed
-                print(json.dumps({'service':'ai-gateway','route':route,'status':status,'durationMs':round(elapsed*1000),'traceId':context['traceId']}), flush=True)
+                probe = request.url.path in ('/health/ready', '/api/ready')
+                log_event('request_completed', 'WARN' if status >= 400 else 'DEBUG' if probe else 'INFO', route=route, operation=operation_name(request.url.path), method=request.method, status=status, durationMs=round(elapsed*1000))
                 telemetry('ai-gateway', context, start, request.method+' '+route, status)
             ctx.reset(token)
         payload = result if isinstance(result, bytes) else encode(result)

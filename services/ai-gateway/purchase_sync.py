@@ -1,3 +1,4 @@
+from runtime import log_event
 """Retry paid-order projection through the user service; orders remain gateway-owned."""
 import copy
 import json
@@ -24,21 +25,14 @@ class PurchaseSync:
             if self.project(payload):
                 with self.store.lock:
                     self.store.purchase_projected(order)
+                log_event("purchase_history_projected", orderId=order["id"], dependency="user-service")
 
     def run(self):
         while not self.stopped.is_set():
             try:
                 self.sync()
-            except Exception:
-                print(
-                    json.dumps(
-                        {
-                            "service": "ai-gateway",
-                            "event": "customer_history_sync_pending",
-                        }
-                    ),
-                    flush=True,
-                )
+            except Exception as error:
+                log_event("customer_history_sync_pending", "WARN", dependency="user-service", errorType=type(error).__name__, reason="retry_scheduled")
             self.stopped.wait(2)
 
     def start(self):

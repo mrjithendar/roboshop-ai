@@ -2,9 +2,11 @@
 import os
 from contextlib import ExitStack, contextmanager
 from server import (connect_mongo, CartRepository, Store, Gateway, OrderPublisher, SERVICE_ROOT)
+from runtime import log_event
 
 @contextmanager
 def resources():
+    log_event("service_starting")
     with ExitStack() as cleanup:
         client, db = connect_mongo()
         cleanup.callback(client.close)
@@ -26,4 +28,8 @@ def resources():
         publisher.start()
         cleanup.callback(gateway.customers.stop)
         gateway.customers.start()
-        yield gateway
+        log_event("service_ready", backend=backend)
+        try:
+            yield gateway
+        finally:
+            log_event("service_stopping")

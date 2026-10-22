@@ -1,5 +1,9 @@
 """Optional, authenticated embeddable assistant adapter. No shared service imports."""
 import json
+import contextvars
+import secrets
+import re
+from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, wait
 from http.cookies import SimpleCookie
 import os
@@ -27,6 +31,8 @@ def upstream(url, data=None, timeout=2):
     headers = {'Content-Type': 'application/json', 'Origin': UPSTREAM_ORIGIN}
     if data is not None:
         headers['Authorization'] = 'Bearer ' + os.getenv('LLM_SERVICE_TOKEN', '')
+    if TRACE.get():
+        headers['traceparent'] = '00-' + TRACE.get() + '-' + secrets.token_hex(8) + '-01'
     req = Request(url, data=payload, headers=headers)
     # URLs are operator-configured, never accepted from visitors. Never forward cookies.
     with urlopen(req, timeout=timeout) as response:
@@ -76,7 +82,8 @@ def authenticated(environ):
         with urlopen(req, timeout=2) as response:
             result = json.loads(response.read(16384))
         return bool(result.get('user'))
-    except Exception:
+    except Exception as error:
+        log_event("authentication_dependency_failed", status=503, errorType=type(error).__name__)
         return False
 
 
@@ -96,7 +103,7 @@ def allow_attempt():
         return RATE['count'] <= 30
 
 
-def application(environ, start_response):
+def _application(environ, start_response):
     path, method = environ.get('PATH_INFO', ''), environ['REQUEST_METHOD']
     origin = environ.get('HTTP_ORIGIN', '')
     headers = [('Cache-Control', 'no-store'), ('X-Content-Type-Options', 'nosniff')]
@@ -170,13 +177,44 @@ def application(environ, start_response):
         print(json.dumps({'service': 'finder', 'event': 'upstream_http_error', 'status': error.code}), flush=True)
         return send(429 if error.code == 429 else 503, {'code': 'feature-unavailable', 'feature': 'finder', 'error': 'Assistant unavailable. Please try later.'})
     except Exception as error:
-        print(json.dumps({'service': 'finder', 'event': 'request_failed', 'type': type(error).__name__}), flush=True)
+        log_event('request_failed', status=503, errorType=type(error).__name__)
         return send(503, {'code': 'feature-unavailable', 'feature': 'finder', 'error': 'Assistant unavailable.'})
     finally:
         SLOTS.release()
 
 
+TRACE = contextvars.ContextVar('finder_trace', default=None)
+def log_event(event, **fields):
+    severity = 30 if fields.get('status',200) >= 400 else 20
+    if severity < {'DEBUG':10,'INFO':20,'WARN':30,'ERROR':40}.get(os.getenv('LOG_LEVEL','INFO').upper(),20):
+        return
+    try:
+        print(json.dumps({'timestamp':datetime.now(timezone.utc).isoformat(), 'service':'finder',
+            'level':'WARN' if fields.get('status',200) >= 400 else 'INFO', 'event':event,
+            'traceId':TRACE.get(), **fields}), flush=True)
+    except OSError:
+        pass
+
+def application(environ, start_response):
+    incoming=re.fullmatch(r'00-([a-f0-9]{32})-[a-f0-9]{16}-0[01]',environ.get('HTTP_TRACEPARENT',''))
+    trace=TRACE.set(incoming[1] if incoming and int(incoming[1],16) else secrets.token_hex(16))
+    started=time.monotonic(); status=500
+    path=environ.get('PATH_INFO','')
+    route=path if path in ('/chat','/available','/ready','/health','/widget.js') else 'other'
+    def respond(line, headers):
+        nonlocal status
+        status=int(line.split()[0])
+        return start_response(line, headers+[('X-Request-ID',TRACE.get())])
+    try:
+        return _application(environ,respond)
+    finally:
+        if status >= 400 or route not in ('/health','/ready','/available') or os.getenv('LOG_LEVEL') == 'DEBUG':
+            log_event('request_completed',route=route,method=environ['REQUEST_METHOD'],status=status,durationMs=round((time.monotonic()-started)*1000))
+        TRACE.reset(trace)
+
+
 if __name__ == '__main__':
     from waitress import serve
+    log_event('service_starting', port=int(os.getenv('PORT', '4110')))
     serve(application, host='0.0.0.0', port=int(os.getenv('PORT', '4110')), threads=8,
           connection_limit=64, channel_timeout=30, max_request_body_size=8192)

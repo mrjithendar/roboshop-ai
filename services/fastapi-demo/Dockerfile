@@ -13,4 +13,4 @@ RUN pip install --no-cache-dir -r requirements-test.txt && python -m unittest -v
 FROM base AS runtime
 USER 65532:65532
 EXPOSE 4112
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "4112", "--no-proxy-headers"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "4112", "--no-proxy-headers", "--no-access-log"]

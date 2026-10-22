@@ -1,7 +1,7 @@
 import json
 import threading
 import pika
-from runtime import trace_span, trace_header
+from runtime import trace_span, trace_header, log_event
 
 
 class OrderPublisher:
@@ -103,16 +103,9 @@ class OrderPublisher:
                             timer.cancel()
                         with self.store.lock:
                             self.store.event_published(event["eventId"], lease) if lease else self.store.event_published(event["eventId"])
-            except Exception:
-                print(
-                    json.dumps(
-                        {
-                            "service": "ai-gateway",
-                            "event": "order_event_delivery_pending",
-                        }
-                    ),
-                    flush=True,
-                )
+                        log_event("order_event_published", orderId=event.get("orderId"), dependency="rabbitmq")
+            except Exception as error:
+                log_event("order_event_delivery_pending", "WARN", dependency="rabbitmq", errorType=type(error).__name__, reason="retry_scheduled")
             finally:
                 if connection and connection.is_open:
                     try:

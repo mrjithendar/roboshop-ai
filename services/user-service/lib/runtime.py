@@ -32,6 +32,29 @@ export_slots = threading.BoundedSemaphore(32)
 SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", "roboshop")
 
 
+
+OPERATIONS = frozenset("/api/auth/login /api/auth/register /api/auth/logout /api/auth/challenge /api/auth/me /api/auth/mfa/verify /api/auth/password/request /api/auth/password/reset /api/account/profile /api/account/purchases /api/payments/config /api/payments/orders /api/payments/quote /api/payments/verify /api/payments/current /api/payments/status /api/payments/webhook /api/shipping/quote /api/admin/llm /api/admin/llm/test /api/admin/llm/disconnect /api/admin/llm/status /api/chat /api/cart /internal/session /internal/limit /internal/address /internal/purchase /internal/verified-purchase /internal/request /internal/chat /internal/llm/config /internal/llm/test".split())
+def operation_name(path):
+    return path if path in OPERATIONS else "other"
+
+# Service-local structured logs; never serialize arbitrary request/exception data.
+LOG_FIELDS = frozenset("method route status durationMs dependency operation errorType errorCode provider model reason revision backend port state orderId traceId source".split())
+def log_event(event, level="INFO", **fields):
+    levels = {"DEBUG": 10, "INFO": 20, "WARN": 30, "ERROR": 40}
+    if levels.get(level, 20) < levels.get(os.getenv("LOG_LEVEL", "INFO").upper(), 20):
+        return
+    context = ctx.get() or {}
+    record = {"timestamp": datetime.now(timezone.utc).isoformat(), "level": level,
+              "service": context.get("service", SERVICE_NAME), "event": event}
+    if context.get("traceId"):
+        record["traceId"] = context["traceId"]
+    record.update({k: v for k, v in fields.items() if k in LOG_FIELDS and isinstance(v, (str, int, float, bool))})
+    try:
+        print(json.dumps(record, allow_nan=False), flush=True)
+    except (OSError, ValueError):
+        pass  # A logging sink must never change a commerce outcome.
+
+
 def configure_telemetry(service):
     global SERVICE_NAME
     SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", service)
@@ -129,6 +152,7 @@ def _request(url, data=None, headers=None, timeout=12, method=None):
         with urllib.request.urlopen(req, timeout=timeout) as response:
             return json.load(response)
     except urllib.error.HTTPError as error:
+        log_event("dependency_response_rejected", "WARN", dependency=urlsplit(url).hostname or "unknown", status=error.code)
         raise HttpError(502, "A dependent service is unavailable.") from error
     except Exception as error:
         raise HttpError(
@@ -176,7 +200,17 @@ def request(url, data=None, headers=None, timeout=12, method=None):
             "http.request.method": method or ("POST" if data is not None else "GET"),
         },
     ):
-        return _request(url, data, headers, timeout, method)
+        started = time.monotonic()
+        status, error_type = 200, None
+        try:
+            return _request(url, data, headers, timeout, method)
+        except Exception as error:
+            status, error_type = getattr(error, "status", 503), type(error.__cause__ or error).__name__
+            raise
+        finally:
+            log_event("dependency_call_completed", "WARN" if status >= 400 else "DEBUG" if urlsplit(url).path.endswith(("/ready", "/health", "/metrics")) else "INFO",
+                      dependency=urlsplit(url).hostname or "unknown", method=method or ("POST" if data is not None else "GET"),
+                      status=status, durationMs=round((time.monotonic()-started)*1000), errorType=error_type)
 
 
 def upstream(url, data=None, headers=None, timeout=15, method=None):
@@ -188,7 +222,17 @@ def upstream(url, data=None, headers=None, timeout=15, method=None):
             "http.request.method": method or ("POST" if data is not None else "GET"),
         },
     ):
-        return _upstream(url, data, headers, timeout, method)
+        started = time.monotonic()
+        status, error_type = 200, None
+        try:
+            return _upstream(url, data, headers, timeout, method)
+        except Exception as error:
+            status, error_type = getattr(error, "status", 503), type(error.__cause__ or error).__name__
+            raise
+        finally:
+            log_event("dependency_call_completed", "WARN" if status >= 400 else "DEBUG" if urlsplit(url).path.endswith(("/ready", "/health", "/metrics")) else "INFO",
+                      dependency=urlsplit(url).hostname or "unknown", method=method or ("POST" if data is not None else "GET"),
+                      status=status, durationMs=round((time.monotonic()-started)*1000), errorType=error_type)
 
 
 class Request:
@@ -419,11 +463,13 @@ def application(service, handler):
                     result, status, extra = result
                     headers = extra + headers
         except HttpError as error:
+            log_event("request_rejected", "WARN", method=req.method, route=route, status=error.status, errorType=type(error).__name__)
             status, result = error.status, {
                 "error": str(error),
                 "requestId": context["traceId"],
             }
-        except Exception:
+        except Exception as error:
+            log_event("request_failed", "ERROR", method=req.method, route=route, status=500, errorType=type(error).__name__)
             status, result = 500, {
                 "error": "Internal service error.",
                 "requestId": context["traceId"],
@@ -456,18 +502,9 @@ def application(service, handler):
             with lock:
                 counts[(route, status)] += 1
                 duration[0] += elapsed
-            print(
-                json.dumps(
-                    {
-                        "service": service,
-                        "route": route,
-                        "status": status,
-                        "durationMs": round(elapsed * 1000),
-                        "traceId": context["traceId"],
-                    }
-                ),
-                flush=True,
-            )
+            probe = req.path.endswith("/ready")
+            log_event("request_completed", "WARN" if status >= 400 else "DEBUG" if probe else "INFO",
+                      method=req.method, route=route, operation=operation_name(req.path), status=status, durationMs=round(elapsed * 1000))
             telemetry(service, context, start, req.method + " " + route, status)
         ctx.reset(token)
         return [b"" if req.method == "HEAD" else payload]
@@ -480,6 +517,7 @@ def serve(service, port, handler):
 
     configure_telemetry(service)
 
+    log_event("service_starting", port=int(os.getenv("PORT", port)))
     run(
         application(service, handler),
         host=os.getenv("HOST", "127.0.0.1"),

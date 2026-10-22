@@ -7,9 +7,10 @@ import (
 	"encoding/xml"
 	"errors"
 	"io"
-	"log"
+	"log/slog"
 	"math"
 	"net/http"
+	"os"
 	"os/signal"
 	"regexp"
 	"strconv"
@@ -148,7 +149,7 @@ func (c *rateCache) run(ctx context.Context) {
 	defer ticker.Stop()
 	for {
 		if err := c.refresh(ctx); err != nil && ctx.Err() == nil {
-			log.Print("FX refresh failed; retaining unexpired cached rates")
+			slog.Warn("fx_refresh_failed", "service", "currency-service", "action", "retaining_unexpired_cache")
 		}
 		select {
 		case <-ctx.Done():
@@ -158,6 +159,7 @@ func (c *rateCache) run(ctx context.Context) {
 	}
 }
 func (c *rateCache) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	started := time.Now()
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	status := http.StatusOK
@@ -182,10 +184,32 @@ func (c *rateCache) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			body = map[string]string{"error": "Not found"}
 		}
 	}
+	route := "other"
+	switch r.URL.Path {
+	case "/health", "/ready", "/rates":
+		route = r.URL.Path
+	}
+	if status >= 400 || route == "/rates" || route == "other" {
+		level := slog.LevelInfo
+		if status >= 400 {
+			level = slog.LevelWarn
+		}
+		slog.Log(r.Context(), level, "request_completed", "service", "currency-service", "method", r.Method, "route", route, "status", status, "durationMs", time.Since(started).Milliseconds())
+	}
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(body)
 }
 func main() {
+	level := slog.LevelInfo
+	switch os.Getenv("LOG_LEVEL") {
+	case "DEBUG":
+		level = slog.LevelDebug
+	case "WARN":
+		level = slog.LevelWarn
+	case "ERROR":
+		level = slog.LevelError
+	}
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})))
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	cache := &rateCache{client: &http.Client{Timeout: 5 * time.Second}}
@@ -197,8 +221,9 @@ func main() {
 		defer cancel()
 		_ = server.Shutdown(shutdown)
 	}()
-	log.Print("Currency service listening on :4111")
+	slog.Info("service_listening", "service", "currency-service", "port", 4111)
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Fatal(err)
+		slog.Error("server_failed", "service", "currency-service", "errorType", "http_server_error")
+		os.Exit(1)
 	}
 }

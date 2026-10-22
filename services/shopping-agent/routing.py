@@ -2,7 +2,7 @@
 import json
 import threading
 import time
-from runtime import trace_span
+from runtime import trace_span, log_event
 from providers import invoke, ProviderError
 
 ELIGIBLE = {"connection", "timeout", "transient"}
@@ -64,8 +64,16 @@ def route(config, system, prompt, revision=0, purpose="chat", *, deadline=None,
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise ProviderError("timeout")
-            return generate(target, system, prompt, revision, purpose,
-                            budget=min(6 if enabled else 12, remaining), fallback_reason=reason)
+            started = time.monotonic()
+            log_event("llm_attempt_started", provider=target["provider"], model=target.get("model"), reason=reason or "primary", revision=revision)
+            try:
+                result = generate(target, system, prompt, revision, purpose,
+                                  budget=min(6 if enabled else 12, remaining), fallback_reason=reason)
+            except ProviderError as error:
+                log_event("llm_attempt_failed", "WARN", provider=target["provider"], errorCode=error.code, durationMs=round((time.monotonic()-started)*1000))
+                raise
+            log_event("llm_attempt_completed", provider=target["provider"], model=target.get("model"), durationMs=round((time.monotonic()-started)*1000))
+            return result
 
         if purpose == "test":
             result = attempt(primary)
@@ -90,6 +98,7 @@ def route(config, system, prompt, revision=0, purpose="chat", *, deadline=None,
                 if enabled:
                     breaker.finish(key, False)
                 return result
+        log_event("llm_failover_selected", "WARN", provider="bedrock", reason=reason, revision=revision)
         attrs["roboshop.llm.fallback_reason"] = reason
         # Exactly one fallback. Errors propagate; never retry either provider.
         result = attempt(config["fallback"], reason)
