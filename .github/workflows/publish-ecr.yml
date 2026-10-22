@@ -40,6 +40,15 @@ jobs:
           echo "tag=latest" >> "$GITHUB_OUTPUT"
           test -f "services/$SERVICE/Dockerfile"
 
+      - name: Verify Node HTTP logging before publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f "services/$SERVICE/lib/runtime.mjs" ]]; then
+            docker run --rm -v "$PWD:/workspace:ro" -w /workspace node:26-alpine \
+              node --test tests/http-logging.test.mjs
+          fi
+
       - name: Log in to Amazon ECR
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2

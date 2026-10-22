@@ -142,10 +142,11 @@ export function serve(service, port, handler) {
     res.setHeader('referrer-policy', 'same-origin');
     res.setHeader('content-security-policy', "default-src 'self'; img-src 'self' https://*.razorpay.com data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://checkout.razorpay.com; connect-src 'self' https://*.razorpay.com; frame-src https://*.razorpay.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     await context.run(ctx, async () => {
-      let route = 'unknown', probe = false;
+      let route = 'unknown', probe = false, pathname = '';
       try {
         const url = new URL(req.url, 'http://localhost');
-        probe = url.pathname.endsWith('/ready');
+        pathname = url.pathname;
+        probe = pathname.endsWith('/ready');
         route = url.pathname.startsWith('/api/') ? url.pathname.split('/').slice(0, 3).join('/') : ['/health', '/metrics'].includes(url.pathname) ? url.pathname : 'static';
         if (url.pathname === '/health' && req.method === 'GET') return json(res, { status: 'ok', service });
         if (url.pathname === '/metrics' && req.method === 'GET') {
@@ -172,8 +173,8 @@ export function serve(service, port, handler) {
             '/api/products':'catalogue_read', '/api/recommendations':'recommendations_read',
             '/api/ops/summary':'operations_summary'
           };
-          const operation = operations[url.pathname] || safeRoute;
-          if (operations[url.pathname]) logEvent(operation + (res.statusCode >= 400 ? '_failed' : '_completed'), {operation,method:req.method,status:res.statusCode,outcome:res.statusCode >= 400 ? 'failure' : 'success',reason:res.statusCode >= 400 ? 'see_correlated_request_error' : 'operation_completed'}, res.statusCode >= 400 ? 'WARN' : 'INFO');
+          const operation = operations[pathname] || safeRoute;
+          if (operations[pathname]) logEvent(operation + (res.statusCode >= 400 ? '_failed' : '_completed'), {operation,method:req.method,status:res.statusCode,outcome:res.statusCode >= 400 ? 'failure' : 'success',reason:res.statusCode >= 400 ? 'see_correlated_request_error' : 'operation_completed'}, res.statusCode >= 400 ? 'WARN' : 'INFO');
           const key = `route="${safeRoute}",status="${res.statusCode}"`;
           counts.set(key, (counts.get(key) || 0) + 1);
           requests++; duration += (Date.now() - start) / 1000;
