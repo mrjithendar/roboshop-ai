@@ -176,3 +176,19 @@ Razorpay sandbox deployments use separate `RAZORPAY_TEST_*` credentials in the s
 `roboshop-secrets` Secret. Retain them when adding `RAZORPAY_LIVE_*` credentials so
 old orders reconcile in their original environment. See the [sandbox checklist and
 audited recovery procedure](../../docs/deployment/razorpay-sandbox.md).
+
+## First deployment through GitHub Actions
+
+Deploy-Minikube supports a fresh application namespace. It checks cluster access,
+Traefik and Let's Encrypt first, then applies the namespace/configuration and
+initializes `roboshop-secrets` before creating ECR pull credentials or workloads.
+Existing application passwords are reused. If persisted application data exists
+without the original Secret, deployment stops; restore the original credentials.
+
+External integrations (Razorpay, Turnstile, SES and LLM providers) still require
+their own configuration; bootstrap does not invent these credentials. Checked-in
+configuration enables Turnstile, so registration requires its keys.
+
+The workflow applies manifests and requests restarts without waiting for general
+application rollout status. The SQL import alone waits for PostgreSQL to accept
+connections, because a fresh database pod cannot immediately execute an import.

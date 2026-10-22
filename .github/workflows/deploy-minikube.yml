@@ -49,13 +49,18 @@ jobs:
           export KUBECONFIG="${RUNNER_KUBECONFIG:-${KUBECONFIG:-$HOME/.kube/config}}"
           [[ -f "$KUBECONFIG" && "$KUBECONFIG" != *$'\n'* ]] || { echo 'Kubeconfig file is missing or invalid.' >&2; exit 1; }
           echo "KUBECONFIG=$KUBECONFIG" >> "$GITHUB_ENV"
-          kubectl --context="$KUBE_CONTEXT" --request-timeout=15s get namespace roboshop-ai >/dev/null
-          # This workflow updates an already configured cluster; it does not recreate credentials.
-          kubectl --context="$KUBE_CONTEXT" -n roboshop-ai get secret roboshop-secrets -o name
-          kubectl --context="$KUBE_CONTEXT" -n roboshop-ai get configmap roboshop-config -o name
+          kubectl --context="$KUBE_CONTEXT" --request-timeout=15s get namespace kube-system >/dev/null
           kubectl --context="$KUBE_CONTEXT" get ingressclass traefik -o name
           kubectl --context="$KUBE_CONTEXT" get crd middlewares.traefik.io -o name
           kubectl --context="$KUBE_CONTEXT" get clusterissuer letsencrypt-prod -o name
+
+      - name: Initialize application namespace, configuration and credentials
+        run: |
+          set -euo pipefail
+          kubectl --context="$KUBE_CONTEXT" apply -f minikube/roboshop/config.yaml
+          # Generate only on a fresh installation; preserve existing credentials.
+          # Refuse replacement passwords when persistent data already exists.
+          python3 minikube/roboshop/deployment.py credentials --context="$KUBE_CONTEXT"
 
       - name: Refresh ECR pull credential
         run: |
@@ -64,9 +69,8 @@ jobs:
             python3 -c 'import base64,json,os,sys; token=sys.stdin.read().strip(); assert token and token != "None", "Missing ECR token"; config=json.dumps({"auths":{os.environ["ECR_REGISTRY"]:{"auth":token}}}); print(json.dumps({"apiVersion":"v1","kind":"Secret","metadata":{"name":"ecr-pull","namespace":"roboshop-ai"},"type":"kubernetes.io/dockerconfigjson","data":{".dockerconfigjson":base64.b64encode(config.encode()).decode()}}))' |
             kubectl --context="$KUBE_CONTEXT" apply --server-side --field-manager=roboshop-ecr -f -
 
-      - name: Apply consolidated configuration
+      - name: Apply data and messaging services
         run: |
-          kubectl --context="$KUBE_CONTEXT" apply -f minikube/roboshop/config.yaml
           for service in mongodb postgres redis rabbitmq otel-collector; do
             kubectl --context="$KUBE_CONTEXT" apply -f "services/$service/$service-minikube.yaml"
           done
@@ -108,6 +112,17 @@ jobs:
 
       - name: Import PostgreSQL location database
         run: |
+          # SQL import requires an accepting database on first installation.
+          # This is a bounded dependency check, not a rollout-status gate.
+          database_ready=false
+          for attempt in {1..60}; do
+            if kubectl --context="$KUBE_CONTEXT" --request-timeout=10s -n roboshop-ai exec deployment/shipping-db --               sh -c 'pg_isready --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"'; then
+              database_ready=true
+              break
+            fi
+            sleep 5
+          done
+          [[ "$database_ready" == true ]] || { echo 'PostgreSQL is not accepting connections; rerun after resolving database startup.' >&2; exit 1; }
           kubectl --context="$KUBE_CONTEXT" -n roboshop-ai exec -i deployment/shipping-db -- \
             sh -c 'exec psql -X --set=ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"' \
             < services/postgres/shipping.sql

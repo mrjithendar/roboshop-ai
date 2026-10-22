@@ -9,7 +9,6 @@ import secrets
 import subprocess
 import sys
 
-import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 SERVICES = ['mongodb', 'postgres', 'redis', 'rabbitmq', 'jaeger', 'otel-collector',
@@ -23,6 +22,7 @@ PASSWORD_KEYS = ['MONGO_ROOT_PASSWORD', 'MONGO_APP_PASSWORD', 'SHIPPING_DB_PASSW
 
 
 def render(output, prefix, tag, public_origin):
+    import yaml  # Only manifest rendering requires PyYAML; credential setup uses stdlib.
     if not re.fullmatch(r'[a-z0-9][a-z0-9./:_-]*[a-z0-9]', prefix):
         raise ValueError('Invalid IMAGE_PREFIX.')
     if tag != 'local':
