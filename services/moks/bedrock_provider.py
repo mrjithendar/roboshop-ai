@@ -36,6 +36,8 @@ def generate(config, system, prompt, max_tokens, timeout=None):
             "model": config["model"],
             "input_tokens": usage.get("inputTokens"),
             "output_tokens": usage.get("outputTokens"),
+            "cache_read_input_tokens": usage.get("cacheReadInputTokens"),
+            "cache_write_input_tokens": usage.get("cacheWriteInputTokens"),
         }
     finally:
         client.close()

@@ -56,7 +56,9 @@ management:
       probability: 1.0
   opentelemetry:
     resource-attributes:
-      service.version: ${OTEL_SERVICE_VERSION:0.2.0}
+      service.namespace: ${OTEL_SERVICE_NAMESPACE:roboshop-ai}
+      service.instance.id: ${POD_UID:${HOSTNAME:local}}
+      service.version: ${OTEL_SERVICE_VERSION:unknown}
       deployment.environment.name: ${DEPLOYMENT_ENVIRONMENT:development}
     tracing:
       export:

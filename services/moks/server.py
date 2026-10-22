@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
+from runtime import ctx
 from runtime import application as engine_application, configure_telemetry, log_event, request, text, HttpError
 from llm_config import authenticate_service, validate_config, unconfigured, service_headers
 from agent import answer
@@ -14,6 +15,8 @@ from provider_readiness import readiness
 
 
 def handle(req):
+    if req.path in ("/internal/chat", "/internal/llm/test") and ctx.get():
+        ctx.get()["attributes"]["langfuse.observation.type"] = "agent"
     if req.path == "/ready" and req.method == "GET":
         try:
             service_url = os.getenv("CATALOGUE_URL", os.getenv("INGESTION_URL", "http://127.0.0.1:4108"))

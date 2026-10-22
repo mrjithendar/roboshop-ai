@@ -9,6 +9,7 @@ import bedrock_provider
 import ollama_provider
 from llm_config import validate_config
 from runtime import HttpError, trace_span
+from generation_telemetry import generation, usage_metadata
 
 pool = ThreadPoolExecutor(max_workers=2)
 slots = threading.BoundedSemaphore(2)
@@ -42,14 +43,22 @@ def invoke(config, system, prompt, revision=0, purpose="chat", *, budget=None, f
         raise HttpError(400, "LLM input exceeds the context budget.")
     attrs = {
         "gen_ai.system": config["provider"],
+        "gen_ai.provider.name": "aws.bedrock" if config["provider"] == "bedrock" else "ollama",
+        "gen_ai.operation.name": "chat",
+        "langfuse.observation.model.name": config["model"],
+        "roboshop.cost.status": "model_definition_required",
         "gen_ai.request.model": config["model"],
         "roboshop.llm.revision": revision,
         "roboshop.llm.purpose": purpose,
         "langfuse.observation.type": "generation",
     }
+    if config["provider"] == "bedrock":
+        attrs["aws.bedrock.requested_model_id"] = config["model"]
+        if config["model"].startswith(("global.", "us.", "eu.", "apac.")) or "inference-profile/" in config["model"]:
+            attrs["aws.bedrock.inference_profile.id"] = config["model"]
     if fallback_reason:
         attrs["roboshop.llm.fallback_reason"] = fallback_reason
-    with trace_span("llm " + purpose, attributes=attrs, service="moks"):
+    with generation(attrs):
         start = time.monotonic()
         try:
             if not slots.acquire(blocking=False):
@@ -78,6 +87,7 @@ def invoke(config, system, prompt, revision=0, purpose="chat", *, budget=None, f
                     result[key] = None
                 if result[key] is not None:
                     attrs["gen_ai.usage." + key] = result[key]
+            attrs.update(usage_metadata(result))
             if result.get("refused"):
                 raise ProviderError("policy")
             if (

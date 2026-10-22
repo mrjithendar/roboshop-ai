@@ -1,4 +1,8 @@
 """At-least-once order analytics stream. RabbitMQ remains the shipping transport."""
+import sys
+from pathlib import Path
+sys.path.insert(0,str(Path(__file__).parent/'lib'))
+from runtime import trace_span, propagation_headers, ctx
 from datetime import datetime, timezone
 from log_format import format_log
 import json
@@ -16,7 +20,7 @@ health = {'tick': time.monotonic(), 'ready': False}
 
 def log(event, **fields):
     try:
-        print(format_log({'timestamp':datetime.now(timezone.utc).isoformat(), 'level':'WARN' if event in ('delivery_retry','invalid_event_quarantined') else 'INFO', 'service':'kafka-bridge', 'event':event, **fields}), flush=True)
+        print(format_log({'timestamp':datetime.now(timezone.utc).isoformat(), 'level':'WARN' if event in ('delivery_retry','invalid_event_quarantined') else 'INFO', 'service':'kafka-bridge', 'event':event, 'trace_id':(ctx.get() or {}).get('traceId'), 'span_id':(ctx.get() or {}).get('spanId'), **fields}), flush=True)
     except (OSError, ValueError, TypeError):
         pass
 
@@ -48,7 +52,13 @@ def project(body):
 
 
 def deliver(producer, body):
+    topic, _, _, _ = project(body)
+    with trace_span("publish " + topic, kind=4, service="kafka-bridge", attributes={"messaging.system":"kafka", "messaging.destination.name":topic, "messaging.operation.type":"send"}):
+        return _deliver(producer, body)
+
+def _deliver(producer, body):
     topic, key, payload, headers = project(body)
+    headers = [(k,v) for k,v in headers if k not in ('traceparent','tracestate')] + list(propagation_headers().items())
     result = []
     producer.produce(topic, key=key, value=payload, headers=headers,
                      on_delivery=lambda error, message: result.append(error))
@@ -60,7 +70,14 @@ def deliver(producer, body):
     return topic
 
 
-def handle(channel, producer, method, body):
+def handle(channel, producer, method, body, properties=None):
+    headers = getattr(properties, 'headers', None) or {}
+    with trace_span('process roboshop.kafka.orders', kind=5, parent=headers.get('traceparent'),
+                    tracestate=headers.get('tracestate'), service='kafka-bridge',
+                    attributes={'messaging.system':'rabbitmq','messaging.destination.name':QUEUE,'messaging.operation.type':'process'}):
+        return _handle(channel, producer, method, body)
+
+def _handle(channel, producer, method, body):
     try:
         topic = deliver(producer, body)
     except (ValueError, TypeError, KeyError):
@@ -122,7 +139,7 @@ def run():
                     checked = time.monotonic()
                 health['ready'] = True
                 if method:
-                    handle(channel, producer, method, body)
+                    handle(channel, producer, method, body, properties)
         except Exception as error:
             health['ready'] = False
             log('delivery_retry', errorType=type(error).__name__, errorCode='KAFKA_DELIVERY_UNCONFIRMED', reason='Broker delivery not confirmed; RabbitMQ message remains unacknowledged', retryDelaySeconds=5)

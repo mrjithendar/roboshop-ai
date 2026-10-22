@@ -4,3 +4,6 @@ langchain-core==1.6.12
 langgraph==1.2.16
 # Used only to disable ambient prompt/payload tracing.
 langsmith==0.14.12
+
+# Generation SDK uses the existing bounded OTLP exporter, not a second pipeline.
+opentelemetry-sdk==1.45.1

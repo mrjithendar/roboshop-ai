@@ -1,3 +1,4 @@
+import {routeTemplate, quietRoute, httpName, traceState} from './trace-routes.mjs';
 import http from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
@@ -40,7 +41,7 @@ export function logEvent(event, fields = {}, level = 'INFO') {
   const safe = Object.fromEntries(Object.entries(fields).filter(([k, v]) => logFields.has(k) && ['string','number','boolean'].includes(typeof v)));
   try {
     const message = logMessages[event] || event.replaceAll('_', ' ');
-    const record = {timestamp:new Date().toISOString(),level,service:ctx?.service || logService,event,message,...(ctx?.traceId ? {traceId:ctx.traceId}:{}),...safe};
+    const record = {timestamp:new Date().toISOString(),level,service:ctx?.service || logService,event,message,...(ctx?.traceId ? {traceId:ctx.traceId,trace_id:ctx.traceId,span_id:ctx.spanId}:{}),...safe};
     if ((process.env.LOG_FORMAT || 'json').toLowerCase() === 'text') {
       const details = Object.entries(record).filter(([key])=>!['timestamp','level','service','message','event'].includes(key)).map(([key,value])=>`${key}=${JSON.stringify(value)}`).join(' ');
       console.log(`${record.timestamp} ${level.padEnd(5)} [${record.service}] ${message} | event=${event} ${details}`.trimEnd());
@@ -87,9 +88,10 @@ export function text(value, name, max = 1000) {
   if (typeof value !== 'string' || !value.trim() || value.length > max) throw new HttpError(400, `${name} must contain 1–${max} characters.`);
   return value.trim();
 }
-export async function clientSpan(name, work, attributes = {}) {
+export async function businessSpan(name, work) { return clientSpan(name, work, {}, 1); }
+export async function clientSpan(name, work, attributes = {}, kind = 3) {
   const parent = context.getStore();
-  const ctx = { traceId: parent?.traceId || randomBytes(16).toString('hex'), spanId: randomBytes(8).toString('hex'), parentSpanId: parent?.spanId, flags: parent?.flags || '01', service: parent?.service || process.env.OTEL_SERVICE_NAME || 'roboshop', kind: 3, attributes: {} };
+  const ctx = { traceId: parent?.traceId || randomBytes(16).toString('hex'), spanId: randomBytes(8).toString('hex'), parentSpanId: parent?.spanId, tracestate: parent?.tracestate || "", flags: parent?.flags || '01', service: parent?.service || process.env.OTEL_SERVICE_NAME || 'roboshop', kind, attributes: {} };
   const start = Date.now(); let status = 200;
   return context.run(ctx, async () => {
     try { const result = await work(ctx); if (typeof result?.ok === "boolean" && Number.isInteger(result.status)) status = result.status; return result; }
@@ -122,8 +124,8 @@ async function fetchReadRetry(url, options) {
   }
 }
 export async function request(url, options = {}) {
-  return clientSpan(`HTTP ${options.method || 'GET'}`, async ctx => {
-    const headers = { 'content-type': 'application/json', ...options.headers, traceparent: `00-${ctx.traceId}-${ctx.spanId}-${ctx.flags}` };
+  return clientSpan(httpName(options.method || 'GET', url), async ctx => {
+    const headers = { 'content-type': 'application/json', ...options.headers, traceparent: `00-${ctx.traceId}-${ctx.spanId}-${ctx.flags}`, ...(ctx.tracestate ? {tracestate:ctx.tracestate} : {}) };
     try {
       const response = await fetchReadRetry(url, { ...options, headers });
       if (!response.ok) { logEvent('dependency_response_rejected', {dependency: new URL(url).hostname, status: response.status}, 'WARN'); throw new HttpError(502, 'A dependent service is unavailable.'); }
@@ -132,26 +134,20 @@ export async function request(url, options = {}) {
       if (e instanceof HttpError) throw e;
       throw new HttpError(503, 'A dependent service is unavailable. Please try again.');
     }
-  }, { 'server.address': new URL(url).hostname, 'http.request.method': options.method || 'GET' });
+  }, { 'url.template': routeTemplate(url), 'server.address': new URL(url).hostname, 'http.request.method': options.method || 'GET' });
 }
 let pendingExports = 0;
 export function exportSpan(service, ctx, start, name, status, attributes = {}) {
   if (process.env.OTEL_SDK_DISABLED === 'true' || ctx.flags === '00') return;
+  if (status < 400 && quietRoute(attributes['http.route'] || attributes['url.template'] || '')) return;
   const endpoint = process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
-  const lf = process.env.LANGFUSE_BASE_URL;
   const targets = [];
   if (endpoint) targets.push([endpoint, {}]);
-  if (service === 'moks' && lf && process.env.LANGFUSE_PUBLIC_KEY && process.env.LANGFUSE_SECRET_KEY) {
-    targets.push([`${lf.replace(/\/$/, '')}/api/public/otel/v1/traces`, {
-      Authorization: `Basic ${Buffer.from(`${process.env.LANGFUSE_PUBLIC_KEY}:${process.env.LANGFUSE_SECRET_KEY}`).toString('base64')}`,
-      'x-langfuse-ingestion-version': '4',
-    }]);
-  }
   if (!targets.length || pendingExports >= 32) return;
-  const payload = { resourceSpans: [{ resource: { attributes: [{ key: 'service.name', value: { stringValue: service } }, { key: 'service.version', value: { stringValue: process.env.OTEL_SERVICE_VERSION || '0.2.0' } }, { key: 'deployment.environment.name', value: { stringValue: process.env.DEPLOYMENT_ENVIRONMENT || 'development' } }] }, scopeSpans: [{ scope: { name: 'roboshop.manual', version: '0.1.0' }, spans: [{
-    traceId: ctx.traceId, spanId: ctx.spanId, ...(ctx.parentSpanId ? { parentSpanId: ctx.parentSpanId } : {}), name, kind: ctx.kind || 2, flags: 1,
+  const payload = { resourceSpans: [{ resource: { attributes: [{ key: 'service.name', value: { stringValue: service } }, {key:'service.namespace',value:{stringValue:process.env.OTEL_SERVICE_NAMESPACE || 'roboshop-ai'}}, {key:'service.instance.id',value:{stringValue:process.env.POD_UID || process.env.HOSTNAME || 'local'}}, { key: 'service.version', value: { stringValue: process.env.OTEL_SERVICE_VERSION || 'unknown' } }, { key: 'deployment.environment.name', value: { stringValue: process.env.DEPLOYMENT_ENVIRONMENT || 'development' } }] }, scopeSpans: [{ scope: { name: 'roboshop.manual', version: '0.1.0' }, spans: [{
+    traceId: ctx.traceId, spanId: ctx.spanId, ...(ctx.parentSpanId ? { parentSpanId: ctx.parentSpanId } : {}), name, kind: ctx.kind || 2, flags: parseInt(ctx.flags || '01',16), traceState: ctx.tracestate || '',
     startTimeUnixNano: String(BigInt(start) * 1000000n), endTimeUnixNano: String(BigInt(Date.now()) * 1000000n),
-    status: { code: status >= 500 ? 2 : 1 },
+    status: { code: status >= 400 ? 2 : 0 },
     attributes: Object.entries({ 'http.response.status_code': status, ...attributes }).map(([key, value]) => ({ key, value: typeof value === 'number' ? { intValue: String(value) } : { stringValue: String(value) } })),
   }] }] }] };
   for (const [url, headers] of targets) {
@@ -170,7 +166,7 @@ export function serve(service, port, handler) {
     const start = Date.now();
     let incoming = /^00-([a-f0-9]{32})-([a-f0-9]{16})-(0[01])$/.exec(req.headers.traceparent || '');
     if (incoming && (/^0+$/.test(incoming[1]) || /^0+$/.test(incoming[2]))) incoming = null;
-    const ctx = { traceId: incoming?.[1] || randomBytes(16).toString('hex'), spanId: randomBytes(8).toString('hex'), parentSpanId: incoming?.[2], flags: incoming?.[3] || '01', service, attributes: {} };
+    const ctx = { traceId: incoming?.[1] || randomBytes(16).toString('hex'), spanId: randomBytes(8).toString('hex'), parentSpanId: incoming?.[2], tracestate: incoming ? traceState(req.headers.tracestate) : "", flags: incoming?.[3] || '01', service, attributes: {} };
     res.setHeader('x-request-id', ctx.traceId);
     res.setHeader('x-content-type-options', 'nosniff');
     res.setHeader('referrer-policy', 'same-origin');
@@ -181,7 +177,8 @@ export function serve(service, port, handler) {
         const url = new URL(req.url, 'http://localhost');
         pathname = url.pathname;
         probe = pathname.endsWith('/ready');
-        route = url.pathname.startsWith('/api/') ? url.pathname.split('/').slice(0, 3).join('/') : ['/health', '/metrics'].includes(url.pathname) ? url.pathname : 'static';
+        route = routeTemplate(url.pathname);
+        ctx.attributes = {'http.route':route, 'http.request.method':req.method};
         if (url.pathname === '/health' && req.method === 'GET') return json(res, { status: 'ok', service });
         if (url.pathname === '/metrics' && req.method === 'GET') {
           const rows = ['# TYPE roboshop_http_requests_total counter'];
@@ -197,9 +194,9 @@ export function serve(service, port, handler) {
         if (!res.headersSent) json(res, { error: e.status ? e.message : 'Internal service error.', code: `HTTP_${e.status || 500}`, requestId: ctx.traceId }, e.status || 500);
         else res.end();
       } finally {
-        if (!['/health', '/metrics'].includes(route)) {
+        if (!quietRoute(route) || res.statusCode >= 400) {
           // Route labels deliberately omit query strings, SKUs, cookies and prompts.
-          const safeRoute = ['/api/auth', '/api/admin', '/api/settings', '/api/catalogue', '/api/products', '/api/recommendations', '/api/chat', '/api/cart', '/api/orders', '/api/payment', '/api/payments', '/api/shipping', '/api/ops', '/api/status', '/api/ready'].includes(route) ? route : 'other';
+          const safeRoute = route;
           const operations = {
             '/api/payment/orders':'payment_order_creation', '/api/payment/verify':'payment_verification',
             '/api/payment/recover':'payment_recovery', '/api/payment/reconcile':'payment_reconciliation',
@@ -213,7 +210,7 @@ export function serve(service, port, handler) {
           counts.set(key, (counts.get(key) || 0) + 1);
           requests++; duration += (Date.now() - start) / 1000;
           logEvent('request_completed', {method: req.method, route: safeRoute, operation, status: res.statusCode, outcome: res.statusCode >= 400 ? 'failure' : 'success', reason: res.statusCode >= 500 ? 'service_or_dependency_failure' : res.statusCode >= 400 ? 'request_rejected' : 'operation_completed', durationMs: Date.now() - start}, res.statusCode >= 400 ? 'WARN' : probe ? 'DEBUG' : 'INFO');
-          exportSpan(service, ctx, start, `${req.method} ${safeRoute}`, res.statusCode, ctx.attributes);
+          exportSpan(service, ctx, start, httpName(req.method, pathname), res.statusCode, ctx.attributes);
         }
       }
     });

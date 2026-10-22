@@ -12,7 +12,7 @@ from urllib.parse import urlencode
 SERVICE_ROOT = Path(__file__).resolve().parent
 STATIC_ROOT = Path(os.environ["FRONTEND_DIST"]).resolve() if os.getenv("FRONTEND_DIST") else None
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
-from runtime import HttpError, request, upstream, text, configure_telemetry, log_event
+from runtime import business_operation, HttpError, request, upstream, text, configure_telemetry, log_event
 from user_client import UserClient
 from purchase_sync import PurchaseSync
 from auth import connect_mongo, require_role

@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { businessSpan, timingSafeEqual } from 'node:crypto';
 import { serve, json, body, HttpError } from './lib/runtime.mjs';
 import { Razorpay } from './razorpay.mjs';
 import { fileURLToPath } from 'node:url';
@@ -13,12 +13,12 @@ return serve('payment-service', 4105, async (req, res, url) => {
   if (req.method !== 'POST') return;
   const data = await body(req, 131072);
   if (url.pathname === '/api/payment/config') return json(res, provider.context(data).settings());
-  if (url.pathname === '/api/payment/orders') return json(res, await provider.create(data));
-  if (url.pathname === '/api/payment/recover') return json(res, await provider.recover(data));
-  if (url.pathname === '/api/payment/lookup') return json(res, await provider.lookup(data));
-  if (url.pathname === '/api/payment/verify') return json(res, await provider.verify(data));
-  if (url.pathname === '/api/payment/reconcile') return json(res, await provider.reconcile(data));
-  if (url.pathname === '/api/payment/webhook-check') return json(res, provider.webhook(data));
+  if (url.pathname === '/api/payment/orders') return json(res, await businessSpan("payment.create_order", () => provider.create(data)));
+  if (url.pathname === '/api/payment/recover') return json(res, await businessSpan("payment.recover", () => provider.recover(data)));
+  if (url.pathname === '/api/payment/lookup') return json(res, await businessSpan("payment.lookup", () => provider.lookup(data)));
+  if (url.pathname === '/api/payment/verify') return json(res, await businessSpan("payment.verify", () => provider.verify(data)));
+  if (url.pathname === '/api/payment/reconcile') return json(res, await businessSpan("payment.reconcile", () => provider.reconcile(data)));
+  if (url.pathname === '/api/payment/webhook-check') return json(res, await businessSpan("payment.verify_signature", () => provider.webhook(data)));
 });
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) startPaymentService();

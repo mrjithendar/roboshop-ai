@@ -16,7 +16,7 @@ from contextlib import contextmanager, nullcontext
 import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
-from runtime import HttpError, iso
+from runtime import business_operation, HttpError, iso
 from store import Store, PENDING
 
 
@@ -251,6 +251,7 @@ class PostgresStore:
         with self.connect() as c:
             return self._engine(c,id,products).cart(id,products,payment_mode)
 
+    @business_operation("cart.update")
     def update(self,id,sku,quantity,products):
         with self.cart_lock(id):
             self.sync_cart(id)
@@ -277,6 +278,7 @@ class PostgresStore:
                 self._save_session(c,id,rules.state['sessions'][id])
                 return result
 
+    @business_operation("checkout.reserve")
     def reserve_payment(self,id,key,products,payment_mode='test',key_id=None,expected_version=None,quote_token=None):
         if payment_mode not in ('test','live'):
             raise HttpError(409,'A known payment environment is required.')
@@ -362,6 +364,7 @@ class PostgresStore:
     def review_payment(self,id,expected_revision=None):
         return self._transition(id,lambda rules,o:rules.review_payment(id,expected_revision))
 
+    @business_operation("payment.capture")
     def mark_paid(self,id,payment,expected_revision=None):
         return self._transition(id,lambda rules,o:rules.mark_paid(id,payment,expected_revision))
 

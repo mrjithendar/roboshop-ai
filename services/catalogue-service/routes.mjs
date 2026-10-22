@@ -1,4 +1,4 @@
-import { HttpError, json } from './lib/runtime.mjs';
+import { HttpError, json, businessSpan } from './lib/runtime.mjs';
 import { rank } from './lib/catalogue.mjs';
 import { readProducts } from './lib/products.mjs';
 
@@ -10,7 +10,8 @@ function segment(value) {
 }
 
 export function catalogueRoutes(db) {
-  return async (req, res, url) => {
+  return async (req, res, url) => businessSpan(
+    url.pathname === "/api/recommendations" ? "catalogue.recommend" : /\/search\//.test(url.pathname) ? "catalogue.search" : "catalogue.read", async () => {
     if (req.method !== 'GET') return;
     if (['/api/catalogue/ready', '/ready'].includes(url.pathname)) {
       try { await db.command({ ping: 1 }); } catch { throw new HttpError(503, 'Catalogue database unavailable.'); }
@@ -55,5 +56,5 @@ export function catalogueRoutes(db) {
     const terms = segment(search[1]).toLowerCase().split(/\s+/);
     // Literal matching: never pass user text as Mongo operators or executable regex.
     return json(res, products.filter(row => terms.every(term => `${row.name} ${row.manufacturer || ''} ${row.model || ''} ${row.compatibility?.join(' ') || ''} ${Object.values(row.specifications || {}).join(' ')} ${row.description} ${row.categories.join(' ')}`.toLowerCase().includes(term))));
-  };
+  });
 }

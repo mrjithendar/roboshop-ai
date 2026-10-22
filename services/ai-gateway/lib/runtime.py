@@ -1,5 +1,8 @@
 """Shared HTTP, validation and telemetry for Python services."""
 
+from trace_routes import route_template, quiet_route, http_name
+import atexit
+import queue
 import base64
 import contextvars
 import json
@@ -66,7 +69,28 @@ def remaining_timeout(timeout):
     return min(timeout, remaining)
 
 ctx = contextvars.ContextVar("request_context", default=None)
-exports = ThreadPoolExecutor(max_workers=2)
+class BoundedExports:
+    """Daemon workers; at most 32 queued exports and two seconds of shutdown drain."""
+    def __init__(self):
+        self.queue = queue.Queue(32)
+        self.closed = False
+        for _ in range(2): threading.Thread(target=self.run, daemon=True, name='otel-export').start()
+    def run(self):
+        while True:
+            fn, args = self.queue.get()
+            try: fn(*args)
+            except Exception: pass
+            finally: self.queue.task_done()
+    def submit(self, fn, *args):
+        if self.closed: raise RuntimeError('Exporter closed')
+        try: self.queue.put_nowait((fn,args))
+        except queue.Full: raise RuntimeError('Exporter full') from None
+    def shutdown(self, timeout=2):
+        self.closed = True
+        end = time.monotonic() + timeout
+        while self.queue.unfinished_tasks and time.monotonic() < end: time.sleep(0.01)
+exports = BoundedExports()
+atexit.register(exports.shutdown)
 export_slots = threading.BoundedSemaphore(32)
 SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", "roboshop")
 
@@ -126,6 +150,8 @@ def log_event(event, level="INFO", **fields):
               "service": context.get("service", SERVICE_NAME), "event": event}
     if context.get("traceId"):
         record["traceId"] = context["traceId"]
+        record["trace_id"] = context["traceId"]
+        record["span_id"] = context.get("spanId", "")
     record.update({k: v for k, v in fields.items() if k in LOG_FIELDS and isinstance(v, (str, int, float, bool))})
     try:
         print(format_log(record), flush=True)
@@ -138,7 +164,31 @@ def configure_telemetry(service):
     SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", service)
 
 
-def trace_context(header=None):
+def valid_tracestate(value):
+    # W3C limits; reject control characters and malformed/duplicate members.
+    if not isinstance(value, str) or len(value) > 512: return ''
+    members = value.split(',')
+    if len(members) > 32: return ''
+    keys = set()
+    for member in members:
+        pair = member.strip().split('=', 1)
+        if len(pair) != 2 or not re.fullmatch(r'[a-z0-9][a-z0-9_*/@.-]{0,255}', pair[0]) or pair[0] in keys or not re.fullmatch(r'[\x20-\x2b\x2d-\x3c\x3e-\x7e]{1,256}', pair[1]) or pair[1].endswith(' '): return ''
+        keys.add(pair[0])
+    return ','.join(m.strip() for m in members)
+
+def propagation_headers():
+    current = ctx.get() or {}
+    return ({'traceparent': trace_header(), **({'tracestate': current['tracestate']} if current.get('tracestate') else {})} if current else {})
+
+def business_operation(name):
+    def decorate(fn):
+        @wraps(fn)
+        def wrapped(*args, **kwargs):
+            with trace_span(name): return fn(*args, **kwargs)
+        return wrapped
+    return decorate
+
+def trace_context(header=None, tracestate=None):
     match = re.fullmatch(r"00-([a-f0-9]{32})-([a-f0-9]{16})-(0[01])", header or "")
     if match and (int(match[1], 16) == 0 or int(match[2], 16) == 0):
         match = None
@@ -146,6 +196,7 @@ def trace_context(header=None):
         "traceId": match[1] if match else secrets.token_hex(16),
         "spanId": secrets.token_hex(8),
         "attributes": {},
+        "tracestate": valid_tracestate(tracestate),
         "flags": match[3] if match else "01",
         **({"parentSpanId": match[2]} if match else {}),
     }
@@ -161,9 +212,9 @@ def trace_header(context=None):
 
 
 @contextmanager
-def trace_span(name, kind=1, attributes=None, parent=None, service=None):
+def trace_span(name, kind=1, attributes=None, parent=None, service=None, tracestate=None):
     previous = ctx.get()
-    context = trace_context(parent or trace_header(previous))
+    context = trace_context(parent or trace_header(previous), tracestate if parent else (previous or {}).get("tracestate"))
     context["service"] = service or (previous or {}).get("service", SERVICE_NAME)
     context["kind"] = kind
     context["attributes"] = attributes or {}
@@ -219,7 +270,7 @@ def _request(url, data=None, headers=None, timeout=12, method=None):
     headers = {"content-type": "application/json", **(headers or {})}
     context = ctx.get()
     if context:
-        headers["traceparent"] = trace_header(context)
+        headers.update(propagation_headers())
     req = urllib.request.Request(
         url,
         data=encode(data) if data is not None else None,
@@ -248,7 +299,7 @@ def _upstream(url, data=None, headers=None, timeout=15, method=None):
     )
     context = ctx.get()
     if context:
-        req.add_header("traceparent", trace_header(context))
+        for key, value in propagation_headers().items(): req.add_header(key, value)
     try:
         with urllib.request.urlopen(req, timeout=remaining_timeout(timeout)) as response:
             return json.load(response)
@@ -289,10 +340,11 @@ def _retry_read(fn, url, data, headers, timeout, method):
 
 def request(url, data=None, headers=None, timeout=12, method=None):
     with trace_span(
-        "HTTP " + (method or ("POST" if data is not None else "GET")),
+        http_name(method or ("POST" if data is not None else "GET"), url),
         kind=3,
         attributes={
             "server.address": urlsplit(url).hostname or "",
+            "url.template": route_template(url),
             "http.request.method": method or ("POST" if data is not None else "GET"),
         },
     ):
@@ -311,10 +363,11 @@ def request(url, data=None, headers=None, timeout=12, method=None):
 
 def upstream(url, data=None, headers=None, timeout=15, method=None):
     with trace_span(
-        "HTTP " + (method or ("POST" if data is not None else "GET")),
+        http_name(method or ("POST" if data is not None else "GET"), url),
         kind=3,
         attributes={
             "server.address": urlsplit(url).hostname or "",
+            "url.template": route_template(url),
             "http.request.method": method or ("POST" if data is not None else "GET"),
         },
     ):
@@ -401,10 +454,12 @@ class Request:
 def telemetry(service, context, start, route, status):
     if os.getenv("OTEL_SDK_DISABLED") == "true" or context.get("flags", "01") == "00":
         return
+    if status < 400 and quiet_route(context.get('attributes', {}).get('http.route') or context.get('attributes', {}).get('url.template', '')):
+        return
     targets = []
     if os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"):
         targets.append((os.environ["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"], {}))
-    if service == "moks" and all(
+    if service == "moks" and (context.get("attributes", {}).get("langfuse.observation.type") or context.get("attributes", {}).get("gen_ai.request.model")) and all(
         os.getenv(k)
         for k in ("LANGFUSE_BASE_URL", "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY")
     ):
@@ -426,10 +481,11 @@ def telemetry(service, context, start, route, status):
         "spanId": context["spanId"],
         "name": route,
         "kind": context.get("kind", 2),
-        "flags": 1,
+        "flags": int(context.get("flags", "01"), 16),
+        "traceState": context.get("tracestate", ""),
         "startTimeUnixNano": str(start),
-        "endTimeUnixNano": str(time.time_ns()),
-        "status": {"code": 2 if status >= 500 else 1},
+        "endTimeUnixNano": str(context.get("endTimeUnixNano") or time.time_ns()),
+        "status": {"code": 2 if status >= 400 else 0},
         "attributes": [
             {
                 "key": k,
@@ -451,11 +507,13 @@ def telemetry(service, context, start, route, status):
                 "resource": {
                     "attributes": [
                         {"key": "service.name", "value": {"stringValue": service}},
+                        {"key": "service.namespace", "value": {"stringValue": os.getenv("OTEL_SERVICE_NAMESPACE", "roboshop-ai")}},
+                        {"key": "service.instance.id", "value": {"stringValue": os.getenv("POD_UID") or os.getenv("HOSTNAME", "local")}},
                         {
                             "key": "service.version",
                             "value": {
                                 "stringValue": os.getenv(
-                                    "OTEL_SERVICE_VERSION", "0.2.0"
+                                    "OTEL_SERVICE_VERSION", "unknown"
                                 )
                             },
                         },
@@ -486,7 +544,10 @@ def telemetry(service, context, start, route, status):
 
     for url, headers in targets:
         if export_slots.acquire(blocking=False):
-            exports.submit(send, url, headers)
+            try:
+                exports.submit(send, url, headers)
+            except RuntimeError:
+                export_slots.release()  # Shutdown/disabled exporter cannot fail commerce.
 
 
 def application(service, handler):
@@ -496,42 +557,15 @@ def application(service, handler):
     def app(environ, start_response):
         start = time.time_ns()
         req = Request(environ)
-        context = trace_context(req.headers.get("traceparent"))
+        context = trace_context(req.headers.get("traceparent"), req.headers.get("tracestate"))
         context["service"] = service
         token = ctx.set(context)
         status, headers = 200, [
             ("Content-Type", "application/json; charset=utf-8"),
             ("Cache-Control", "no-store"),
         ]
-        route = (
-            "/".join(req.path.split("/")[:3])
-            if req.path.startswith("/api/")
-            else "other"
-        )
-        if route not in [
-            "/api/" + s
-            for s in (
-                "auth",
-                "account",
-                "admin",
-                "settings",
-                "catalogue",
-                "products",
-                "recommendations",
-                "chat",
-                "cart",
-                "orders",
-                "payments",
-                "shipping",
-                "ops",
-                "status",
-                "ready",
-                "compare",
-            )
-        ]:
-            route = "other"
-        if req.path in ("/internal/chat", "/internal/llm/test"):
-            route = req.path
+        route = route_template(req.path)
+        context['attributes'].update({'http.route': route, 'http.request.method': req.method})
         try:
             if req.path == "/health" and req.method == "GET":
                 result = {"status": "ok", "service": service}
@@ -590,7 +624,7 @@ def application(service, handler):
                 ("Content-Length", str(len(payload))),
             ],
         )
-        if req.path not in ("/health", "/metrics"):
+        if not quiet_route(route) or status >= 400:
             elapsed = (time.time_ns() - start) / 1e9
             with lock:
                 counts[(route, status)] += 1
@@ -598,7 +632,7 @@ def application(service, handler):
             probe = req.path.endswith("/ready")
             log_event("request_completed", "WARN" if status >= 400 else "DEBUG" if probe else "INFO",
                       method=req.method, route=route, operation=operation_name(req.path), outcome="failure" if status >= 400 else "success", status=status, durationMs=round(elapsed * 1000))
-            telemetry(service, context, start, req.method + " " + route, status)
+            telemetry(service, context, start, http_name(req.method, req.path), status)
         ctx.reset(token)
         return [b"" if req.method == "HEAD" else payload]
 

@@ -1,3 +1,5 @@
+from runtime import trace_context, ctx, propagation_headers, telemetry
+from trace_routes import http_name
 """Optional, authenticated embeddable assistant adapter. No shared service imports."""
 import json
 import contextvars
@@ -34,8 +36,7 @@ def upstream(url, data=None, timeout=2, session=""):
         headers['Authorization'] = 'Bearer ' + os.getenv('LLM_SERVICE_TOKEN', '')
     if session:
         headers['Cookie'] = 'rs_auth=' + session
-    if TRACE.get():
-        headers['traceparent'] = '00-' + TRACE.get() + '-' + secrets.token_hex(8) + '-01'
+    headers.update(propagation_headers())
     req = Request(url, data=payload, headers=headers)
     # URLs are operator-configured, never accepted from visitors. Forward only the explicitly validated rs_auth session cookie.
     with urlopen(req, timeout=timeout) as response:
@@ -256,7 +257,11 @@ def log_event(event, **fields):
 
 def application(environ, start_response):
     incoming=re.fullmatch(r'00-([a-f0-9]{32})-[a-f0-9]{16}-0[01]',environ.get('HTTP_TRACEPARENT',''))
-    trace=TRACE.set(incoming[1] if incoming and int(incoming[1],16) else secrets.token_hex(16))
+    context=trace_context(environ.get('HTTP_TRACEPARENT'), environ.get('HTTP_TRACESTATE'))
+    context['service']='moks'
+    context_token=ctx.set(context)
+    trace=TRACE.set(context['traceId'])
+    span_start=time.time_ns()
     started=time.monotonic(); status=500
     path=environ.get('PATH_INFO','')
     route=path if path in ('/chat','/history','/available','/ready','/health','/widget.js') else 'other'
@@ -269,6 +274,9 @@ def application(environ, start_response):
     finally:
         if status >= 400 or route not in ('/health','/ready','/available') or os.getenv('LOG_LEVEL') == 'DEBUG':
             log_event('request_completed',route=route,method=environ['REQUEST_METHOD'],status=status,errorCode=f'HTTP_{status}' if status >= 400 else 'OK',durationMs=round((time.monotonic()-started)*1000))
+        context['attributes'].update({'http.route':route if route != 'other' else '', 'http.request.method':environ['REQUEST_METHOD']})
+        telemetry('moks',context,span_start,http_name(environ['REQUEST_METHOD'],path),status)
+        ctx.reset(context_token)
         TRACE.reset(trace)
 
 

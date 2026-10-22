@@ -20,7 +20,7 @@ import time
 import uuid
 from datetime import datetime
 from pathlib import Path
-from runtime import HttpError, iso, trace_header
+from runtime import business_operation, ctx, HttpError, iso, trace_header
 
 PENDING = ("creating", "payment_pending", "payment_review")
 
@@ -250,6 +250,7 @@ class Store:
             "currency": currency,
         }
 
+    @business_operation("cart.update")
     def update(self, id, sku, quantity, products):
         with self.cart_lock(id):
             with self.lock:
@@ -311,6 +312,7 @@ class Store:
     def begin_payment(self, id, key, products, payment_mode="test"):
         return self.reserve_payment(id, key, products, payment_mode)[0]
 
+    @business_operation("checkout.reserve")
     def reserve_payment(self, id, key, products, payment_mode="test", key_id=None, expected_version=None, quote_token=None):
         with self.cart_lock(id), self.lock:
             previous = self.existing_payment(id, key)
@@ -483,6 +485,7 @@ class Store:
                 self.save(state)
                 break
 
+    @business_operation("payment.capture")
     def mark_paid(self, id, payment, expected_revision=None):
         current = self.payment_order(id)
         if (
@@ -512,6 +515,7 @@ class Store:
                 "eventId": str(uuid.uuid4()),
                 "occurredAt": iso(),
                 "traceparent": trace_header(),
+                "tracestate": (ctx.get() or {}).get("tracestate", ""),
             },
             status="paid",
             revision=current.get("revision", 0) + 1,

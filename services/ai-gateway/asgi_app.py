@@ -18,6 +18,7 @@ from starlette.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 from server import Gateway  # establishes the service-local library path
 from runtime import Request, HttpError, encode, trace_context, ctx, telemetry, configure_telemetry, deadline, log_event, operation_name, error_details, SAFE_ERRORS
+from trace_routes import route_template, http_name, quiet_route
 from api_models import ChatRequest, ChatResponse, HealthResponse, ErrorResponse
 from readiness import gateway_readiness
 
@@ -68,13 +69,12 @@ def create_app(gateway=None):
 
     async def dispatch(request: ASGIRequest):
         start = time.time_ns()
-        context = trace_context(request.headers.get('traceparent'))
+        context = trace_context(request.headers.get('traceparent'), request.headers.get('tracestate'))
         context['service'] = 'ai-gateway'
         token = ctx.set(context)
         req, extra, status = None, [], 200
-        # Fixed categories keep SKU/user IDs and prompts out of logs and metrics.
-        category = request.url.path.split('/')[2:3] if request.url.path.startswith('/api/') else []
-        route = '/api/' + category[0] if category and category[0] in {'auth','account','admin','products','cart','orders','payments','shipping','chat','ready','status','settings','compare','recommendations','catalogue','ops'} else 'other'
+        route = route_template(request.url.path)
+        context['attributes'].update({'http.route': route, 'http.request.method': request.method})
         try:
             if request.method == 'GET' and request.url.path in ('/health', '/health/live'):
                 result = HealthResponse(status='ok', service='ai-gateway').model_dump()
@@ -133,12 +133,12 @@ def create_app(gateway=None):
             status, result = 500, {'error':'Internal service error.', 'requestId':context['traceId']}
         finally:
             elapsed = (time.time_ns()-start)/1e9
-            if request.url.path not in ('/health','/health/live','/metrics'):
+            if not quiet_route(route) or status >= 400:
                 counts[(route,status)] += 1
                 durations[0] += elapsed
                 probe = request.url.path in ('/health/ready', '/api/ready')
                 log_event('request_completed', 'WARN' if status >= 400 else 'DEBUG' if probe else 'INFO', route=route, operation=operation_name(request.url.path), method=request.method, outcome="failure" if status >= 400 else "success", status=status, durationMs=round(elapsed*1000))
-                telemetry('ai-gateway', context, start, request.method+' '+route, status)
+                telemetry('ai-gateway', context, start, http_name(request.method, request.url.path), status)
             ctx.reset(token)
         payload = result if isinstance(result, bytes) else encode(result)
         headers = {**SECURITY, 'Content-Type':'application/json; charset=utf-8', 'X-Request-ID':context['traceId']}

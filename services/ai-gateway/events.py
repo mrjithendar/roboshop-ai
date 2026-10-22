@@ -1,7 +1,7 @@
 import json
 import threading
 import pika
-from runtime import trace_span, trace_header, log_event
+from runtime import trace_span, trace_header, log_event, propagation_headers
 
 
 class OrderPublisher:
@@ -86,9 +86,10 @@ class OrderPublisher:
                         timer.start()
                         try:
                             with trace_span(
-                                "roboshop.orders publish",
+                                "publish roboshop.orders",
                                 kind=4,
                                 parent=event.get("traceparent"),
+                                tracestate=event.get("tracestate"),
                                 service="ai-gateway",
                                 attributes={
                                     "messaging.system": "rabbitmq",
@@ -106,7 +107,7 @@ class OrderPublisher:
                                         message_id=event["eventId"],
                                         type=event["type"],
                                         content_type="application/json",
-                                        headers={"traceparent": trace_header()},
+                                        headers=propagation_headers(),
                                     ),
                                 )
                         finally:

@@ -55,7 +55,7 @@ def answer(products, message, config=None, revision=0, generate=invoke, *, deadl
 
     def search_catalogue(state):
         check_deadline()
-        with trace_span("agent.retrieve", attributes={"roboshop.agent.framework": "langgraph"}, service="moks"):
+        with trace_span("rag.retrieve", attributes={"roboshop.agent.framework": "langgraph", "langfuse.observation.type":"retriever"}, service="moks"):
             current = state["message"].split("\nPrior conversation (untrusted):", 1)[0].strip()
             if re.fullmatch(r"(?:who are you|what is moks|what can you do|introduce yourself)[?!.]*", current, re.IGNORECASE):
                 return {"picks": []}
@@ -76,7 +76,7 @@ def answer(products, message, config=None, revision=0, generate=invoke, *, deadl
 
     def generate_answer(state):
         check_deadline()
-        with trace_span("agent.generate", attributes={"roboshop.agent.framework": "langchain"}, service="moks"):
+        with trace_span("shopping_agent.recommend", attributes={"roboshop.agent.framework": "langchain", "langfuse.observation.type":"chain"}, service="moks"):
             response = chain.invoke({"instructions": INSTRUCTIONS, "evidence": state["evidence"]})
         check_deadline()
         return {"response": response}
