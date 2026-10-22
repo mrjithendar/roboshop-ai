@@ -13,7 +13,7 @@ from runtime import Request, HttpError
 
 class LoginLoggingTests(unittest.TestCase):
     def setUp(self):
-        env=patch.dict(os.environ, USER_SERVICE_TOKEN='u'*64);env.start();self.addCleanup(env.stop)
+        env=patch.dict(os.environ, USER_SERVICE_TOKEN='u'*64, TELEMETRY_ID_KEY='test-hmac-key');env.start();self.addCleanup(env.stop)
         with patch('accounts.Auth.initialize'):
             self.service=UserService(mongomock.MongoClient(tz_aware=True).db)
         self.service.auth=Mock()
@@ -36,7 +36,9 @@ class LoginLoggingTests(unittest.TestCase):
                 else:self.service.handle_public(self.req())
             records=[json.loads(line) for line in output.getvalue().splitlines()]
             event=next(r for r in records if r['event']==('user_login_failed' if fails else 'user_logged_in'))
-            self.assertEqual(event['username'],'alice@example.com')
+            self.assertNotIn('username',event)
+            self.assertEqual(len(event['usernameHash']),64)
+            self.assertNotIn('alice@example.com',output.getvalue())
             self.assertEqual(event['outcome'],'failure' if fails else 'success')
             if fails:self.assertEqual(event['errorCode'],'AUTH_INVALID_CREDENTIALS')
             self.assertNotIn('DO-NOT-LOG',output.getvalue())

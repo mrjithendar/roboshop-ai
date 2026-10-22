@@ -9,7 +9,7 @@ import bedrock_provider
 import ollama_provider
 from llm_config import validate_config
 from runtime import HttpError, trace_span
-from generation_telemetry import generation, usage_metadata
+from generation_telemetry import generation, usage_metadata, capture_synthetic_content
 
 pool = ThreadPoolExecutor(max_workers=2)
 slots = threading.BoundedSemaphore(2)
@@ -46,7 +46,7 @@ def invoke(config, system, prompt, revision=0, purpose="chat", *, budget=None, f
         "gen_ai.provider.name": "aws.bedrock" if config["provider"] == "bedrock" else "ollama",
         "gen_ai.operation.name": "chat",
         "langfuse.observation.model.name": config["model"],
-        "roboshop.cost.status": "model_definition_required",
+        "roboshop.cost.source": "langfuse_model_definition",
         "gen_ai.request.model": config["model"],
         "roboshop.llm.revision": revision,
         "roboshop.llm.purpose": purpose,
@@ -58,6 +58,7 @@ def invoke(config, system, prompt, revision=0, purpose="chat", *, budget=None, f
             attrs["aws.bedrock.inference_profile.id"] = config["model"]
     if fallback_reason:
         attrs["roboshop.llm.fallback_reason"] = fallback_reason
+    capture_synthetic_content(attrs, prompt)
     with generation(attrs):
         start = time.monotonic()
         try:
@@ -88,6 +89,7 @@ def invoke(config, system, prompt, revision=0, purpose="chat", *, budget=None, f
                 if result[key] is not None:
                     attrs["gen_ai.usage." + key] = result[key]
             attrs.update(usage_metadata(result))
+            capture_synthetic_content(attrs, prompt, result.get("answer"))
             if result.get("refused"):
                 raise ProviderError("policy")
             if (
@@ -96,7 +98,9 @@ def invoke(config, system, prompt, revision=0, purpose="chat", *, budget=None, f
                 or len(result["answer"]) > 12000
             ):
                 raise ValueError("invalid response")
-            attrs["gen_ai.response.model"] = config["model"]
+            attrs["gen_ai.response.model"] = result.get("model") or config["model"]
+            attrs["langfuse.observation.model.name"] = attrs["gen_ai.response.model"]
+            attrs["roboshop.model.resolution"] = "requested_identifier" if config["provider"] == "bedrock" else "provider_response"
             attrs["roboshop.llm.outcome"] = "success"
             return result
         except ProviderError as error:

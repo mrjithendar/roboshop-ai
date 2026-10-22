@@ -6,6 +6,7 @@ import threading
 import time
 import uuid
 from datetime import timedelta, datetime, timezone
+from mongo_tracing import MongoTracing
 from pymongo import MongoClient, ReturnDocument
 from pymongo.errors import DuplicateKeyError
 from runtime import HttpError, text, now, database_operation
@@ -20,6 +21,7 @@ def connect_mongo():
         raise RuntimeError("Configure MONGODB_URL and a valid MONGODB_DATABASE.")
     client = MongoClient(
         uri,
+        event_listeners=[MongoTracing()],
         maxPoolSize=10,
         serverSelectionTimeoutMS=5000,
         connectTimeoutMS=5000,

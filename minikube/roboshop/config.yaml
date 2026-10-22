@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  LOG_FORMAT: "text"
+  LOG_FORMAT: text
   name: roboshop-ai
 ---
 apiVersion: v1
@@ -12,8 +12,8 @@ metadata:
   labels:
     app.kubernetes.io/part-of: roboshop-ai
 data:
-  CHECKOUT_CURRENCIES: "INR,USD,GBP,SGD,AUD"
-  CURRENCY_URL: "http://currency-service:4111"
+  CHECKOUT_CURRENCIES: INR,USD,GBP,SGD,AUD
+  CURRENCY_URL: http://currency-service:4111
   HOST: 0.0.0.0
   APP_ENV: development
   PUBLIC_ORIGIN: https://jithendar.com
@@ -30,6 +30,8 @@ data:
   PAYMENT_URL: http://payment-service:4105
   SHIPPING_URL: http://shipping-service:4106
   OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+  OTEL_SERVICE_NAMESPACE: roboshop-ai
+  LANGFUSE_CAPTURE_CONTENT: 'false'
   OTEL_SERVICE_VERSION: 0.2.0
   DEPLOYMENT_ENVIRONMENT: minikube
   OTEL_SDK_DISABLED: 'false'
@@ -106,7 +108,19 @@ data:
     \    - key: client.address\n        action: delete\n      - key: network.peer.address\n\
     \        action: delete\n      - key: enduser.id\n        action: delete\n   \
     \   - key: db.statement\n        action: delete\n      - key: db.query.text\n\
-    \        action: delete\n  batch:\n    timeout: 2s\nexporters:\n  otlphttp/jaeger:\n\
-    \    endpoint: http://jaeger:4318\nservice:\n  pipelines:\n    traces:\n     \
-    \ receivers: [otlp]\n      processors: [memory_limiter, attributes/privacy, batch]\n\
-    \      exporters: [otlphttp/jaeger]\n"
+    \        action: delete\n      - key: http.request.header.authorization\n    \
+    \    action: delete\n      - key: http.request.header.cookie\n        action:\
+    \ delete\n      - key: exception.message\n        action: delete\n      - key:\
+    \ exception.stacktrace\n        action: delete\n      - key: gen_ai.input.messages\n\
+    \        action: delete\n      - key: gen_ai.output.messages\n        action:\
+    \ delete\n  filter/routine:\n    error_mode: ignore\n    trace_conditions:\n \
+    \     - 'span.attributes[\"http.route\"] != nil and IsMatch(span.attributes[\"\
+    http.route\"], \"^/(health(/live|/ready)?|ready|metrics|api/[^/]+/ready)$\") and\
+    \ span.status.code != STATUS_CODE_ERROR and ((span.attributes[\"http.response.status_code\"\
+    ] != nil and span.attributes[\"http.response.status_code\"] < 400) or (span.attributes[\"\
+    http.status_code\"] != nil and span.attributes[\"http.status_code\"] < 400))'\n\
+    \      # Keep error status/type; exception events can contain SQL, addresses or\
+    \ secrets.\n      - 'spanevent.name == \"exception\"'\n  batch:\n    timeout:\
+    \ 2s\nexporters:\n  otlphttp/jaeger:\n    endpoint: http://jaeger:4318\nservice:\n\
+    \  pipelines:\n    traces:\n      receivers: [otlp]\n      processors: [memory_limiter,\
+    \ attributes/privacy, filter/routine, batch]\n      exporters: [otlphttp/jaeger]\n"

@@ -50,8 +50,8 @@ def route(config, system, prompt, revision=0, purpose="chat", *, deadline=None,
     primary = {k: v for k, v in config.items() if k not in ("fallback", "automaticFailover")}
     enabled = config.get("automaticFailover") is True
     key = (revision, json.dumps(config, sort_keys=True))
-    attrs = {"roboshop.llm.revision": revision, "roboshop.llm.failover_enabled": enabled}
-    with trace_span("llm routing", attributes=attrs, service="moks"):
+    attrs = {"langfuse.observation.type":"chain", "roboshop.llm.revision": revision, "roboshop.llm.failover_enabled": enabled}
+    with trace_span("llm.route", attributes=attrs, service="moks"):
         def attempt(target, reason=None):
             if deadline - time.monotonic() <= 0:
                 raise ProviderError("timeout")

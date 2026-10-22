@@ -1,5 +1,9 @@
-from runtime import trace_context, ctx, propagation_headers, telemetry
-from trace_routes import http_name
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent / 'lib'))
+from runtime import trace_context, ctx, propagation_headers, telemetry, trace_span
+from trace_routes import http_name, route_template, quiet_route
+from urllib.parse import urlsplit
 """Optional, authenticated embeddable assistant adapter. No shared service imports."""
 import json
 import contextvars
@@ -29,6 +33,11 @@ WIDGET = Path(__file__).with_name('widget.js').read_bytes()
 
 
 def upstream(url, data=None, timeout=2, session=""):
+    with trace_span(http_name('POST' if data is not None else 'GET',url),kind=3,
+                    attributes={'server.address':urlsplit(url).hostname or '', 'url.template':route_template(url), 'http.request.method':'POST' if data is not None else 'GET'}):
+        return _upstream(url,data,timeout,session)
+
+def _upstream(url, data=None, timeout=2, session=""):
 
     payload = None if data is None else json.dumps(data).encode()
     headers = {'Content-Type': 'application/json', 'Origin': UPSTREAM_ORIGIN}
@@ -251,7 +260,7 @@ def log_event(event, **fields):
     try:
         print(format_log({'timestamp':datetime.now(timezone.utc).isoformat(), 'service': 'moks',
             'level':'WARN' if fields.get('status',200) >= 400 else 'INFO', 'event':event,
-            'traceId':TRACE.get(), **fields}), flush=True)
+            'traceId':TRACE.get(), 'trace_id':TRACE.get(), 'span_id':(ctx.get() or {}).get('spanId'), **fields}), flush=True)
     except OSError:
         pass
 
@@ -265,6 +274,7 @@ def application(environ, start_response):
     started=time.monotonic(); status=500
     path=environ.get('PATH_INFO','')
     route=path if path in ('/chat','/history','/available','/ready','/health','/widget.js') else 'other'
+    context['quiet']=quiet_route(route)
     def respond(line, headers):
         nonlocal status
         status=int(line.split()[0])

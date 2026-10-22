@@ -13,6 +13,7 @@ import time
 import uuid
 from contextlib import contextmanager, nullcontext
 
+from pg_tracing import TracingCursor
 import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
@@ -71,7 +72,7 @@ class PostgresStore:
     def connect(self):
         if self.closed or (hasattr(self,'writer_lease') and self.writer_lease.closed):
             raise RuntimeError('Commerce writer lease is closed; restart after checking database connectivity.')
-        return psycopg.connect(self.dsn, row_factory=dict_row, connect_timeout=3,
+        return psycopg.connect(self.dsn, row_factory=dict_row, cursor_factory=TracingCursor, connect_timeout=3,
                                options='-c client_encoding=UTF8 -c statement_timeout=5000 -c lock_timeout=3000')
 
     def close(self):

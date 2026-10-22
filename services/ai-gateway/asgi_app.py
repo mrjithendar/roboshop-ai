@@ -75,6 +75,7 @@ def create_app(gateway=None):
         req, extra, status = None, [], 200
         route = route_template(request.url.path)
         context['attributes'].update({'http.route': route, 'http.request.method': request.method})
+        context['quiet'] = quiet_route(route)
         try:
             if request.method == 'GET' and request.url.path in ('/health', '/health/live'):
                 result = HealthResponse(status='ok', service='ai-gateway').model_dump()

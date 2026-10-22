@@ -62,3 +62,16 @@ def usage_metadata(result):
     usage = {target: result[source] for source,target in mapping.items()
              if type(result.get(source)) is int and result[source] >= 0}
     return {'langfuse.observation.usage_details':json.dumps(usage)} if usage else {}
+
+
+def capture_synthetic_content(attributes, prompt, response=None):
+    # Real customer chat stays metadata-only even if an operator enables capture.
+    if os.getenv('LANGFUSE_CAPTURE_CONTENT') != 'synthetic-only' or (ctx.get() or {}).get('traffic') != 'evaluation': return
+    import re
+    def redact(value):
+        value=re.sub(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}', '[email]', value)
+        value=re.sub(r'(?i)(bearer\s+\S+|(?:password|secret|token|api[_-]?key)\s*[:=]\s*\S+)', '[credential]', value)
+        value=re.sub(r'\b(?:\d[ -]?){10,19}\b', '[number]', value)
+        return value[:8000]
+    attributes['langfuse.observation.input']=redact(prompt)
+    if response is not None: attributes['langfuse.observation.output']=redact(response)

@@ -2,7 +2,7 @@
 import sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).parent/'lib'))
-from runtime import trace_span, propagation_headers, ctx
+from runtime import trace_span, propagation_headers, ctx, trace_context, telemetry
 from datetime import datetime, timezone
 from log_format import format_log
 import json
@@ -154,11 +154,16 @@ def run():
 
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        started=time.time_ns()
+        context=trace_context(self.headers.get('traceparent'),self.headers.get('tracestate'))
+        route=self.path if self.path in ('/health','/ready') else ''
+        context['attributes']={'http.route':route,'http.request.method':'GET'}
         alive = time.monotonic() - health['tick'] < 90
         ok = alive and (self.path == '/health' or self.path == '/ready' and health['ready'])
         self.send_response(200 if ok else 503)
         self.end_headers()
-        self.wfile.write(b'ok' if ok else b'unavailable')
+        try: self.wfile.write(b'ok' if ok else b'unavailable')
+        finally: telemetry('kafka-bridge',context,started,('GET '+route).rstrip(),200 if ok else 503)
 
     def log_message(self, *args):
         pass

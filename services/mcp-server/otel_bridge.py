@@ -4,6 +4,8 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SpanExporter, SimpleSpanProcessor, SpanExportResult
 from opentelemetry.sdk.trace.sampling import ParentBased, ALWAYS_ON
 from runtime import telemetry
+from gateway_tools import TOOLS
+TOOL_NAMES = {item["name"] for item in TOOLS}
 
 class Exporter(SpanExporter):
     def export(self, spans):
@@ -12,8 +14,12 @@ class Exporter(SpanExporter):
                 sc = span.context
                 # FastMCP may attach tool arguments/auth subjects: strict metadata allowlist.
                 attrs = {k:v for k,v in (span.attributes or {}).items() if k in
-                         {'rpc.system','mcp.method.name','mcp.tool.name','mcp.server.name','http.route','http.request.method'}}
-                tool = attrs.get('mcp.tool.name')
+                         {'rpc.system','mcp.method.name','mcp.tool.name','mcp.server.name','gen_ai.tool.name','http.route','http.request.method'}}
+                tool = attrs.get('gen_ai.tool.name') or attrs.get('mcp.tool.name')
+                if tool and tool not in TOOL_NAMES:
+                    attrs['gen_ai.tool.name']='unknown'
+                if attrs.get('mcp.method.name') not in {'tools/call','tools/list','resources/read','resources/list','resources/templates/list','prompts/get','prompts/list','initialize','ping','server/discover'}:
+                    attrs['mcp.method.name']='other'
                 context={'traceId':format(sc.trace_id,'032x'),'spanId':format(sc.span_id,'016x'),
                          'flags':format(int(sc.trace_flags),'02x'),'tracestate':sc.trace_state.to_header(),
                          'kind':span.kind.value,'attributes':attrs,'endTimeUnixNano':span.end_time}

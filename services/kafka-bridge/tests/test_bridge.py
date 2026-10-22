@@ -1,7 +1,7 @@
 import json
 import unittest
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from bridge import deliver, handle, project, topology, TOPICS
 
 
@@ -66,6 +66,20 @@ class BridgeTests(unittest.TestCase):
         bindings = channel.queue_bind.call_args_list
         self.assertEqual({c.kwargs['routing_key'] for c in bindings}, {'order.paid', 'order.test-paid'})
         self.assertTrue(all(c.kwargs['queue'] == 'roboshop.kafka.orders' for c in bindings))
+
+    def test_consumer_and_producer_preserve_context_without_payload(self):
+        parent='00-'+'a'*32+'-'+'b'*16+'-01'
+        spans=[];producer=self.producer();channel=Mock()
+        with patch('runtime.telemetry',side_effect=lambda *args:spans.append(args)):
+            handle(channel,producer,SimpleNamespace(delivery_tag=1),event(),SimpleNamespace(headers={'traceparent':parent,'tracestate':'vendor=value'}))
+        self.assertEqual(len(spans),2)
+        produced,consumed=spans
+        self.assertEqual(produced[1]['parentSpanId'],consumed[1]['spanId'])
+        self.assertEqual(consumed[1]['traceId'],'a'*32)
+        headers=dict(producer.produce.call_args.kwargs['headers'])
+        self.assertEqual(headers['traceparent'],'00-'+'a'*32+'-'+produced[1]['spanId']+'-01')
+        self.assertEqual(headers['tracestate'],'vendor=value')
+        self.assertNotIn('private',str(spans))
 
 
 if __name__ == '__main__':

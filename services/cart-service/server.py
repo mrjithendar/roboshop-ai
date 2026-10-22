@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'lib'))
-from runtime import HttpError, serve, configure_telemetry, log_event
+from runtime import trace_span, HttpError, serve, configure_telemetry, log_event
 import redis
 
 TTL = 7 * 86400
@@ -37,10 +37,20 @@ def validate_items(items):
         raise HttpError(400, 'Invalid cart items.')
     return items
 
+class TracedRedis:
+    def __init__(self,client):self.client=client
+    def __getattr__(self,name):
+        value=getattr(self.client,name)
+        if name not in ('get','set','eval','expire','ping'):return value
+        def command(*args,**kwargs):
+            with trace_span(name.upper(),kind=3,attributes={'db.system.name':'redis','db.operation.name':name.upper()}):
+                return value(*args,**kwargs)
+        return command
+
 class CartService:
     def __init__(self, client, token):
         if len(token) < 32: raise RuntimeError('CART_SERVICE_TOKEN must contain at least 32 characters.')
-        self.redis, self.token = client, token
+        self.redis, self.token = TracedRedis(client), token
     def handle(self, req):
         if req.path == '/ready' and req.method == 'GET':
             self.redis.ping(); return {'ok': True, 'service': 'cart-service'}

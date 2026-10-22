@@ -88,10 +88,11 @@ export function text(value, name, max = 1000) {
   if (typeof value !== 'string' || !value.trim() || value.length > max) throw new HttpError(400, `${name} must contain 1–${max} characters.`);
   return value.trim();
 }
+export function configureTelemetry(service) { logService = service; }
 export async function businessSpan(name, work) { return clientSpan(name, work, {}, 1); }
 export async function clientSpan(name, work, attributes = {}, kind = 3) {
   const parent = context.getStore();
-  const ctx = { traceId: parent?.traceId || randomBytes(16).toString('hex'), spanId: randomBytes(8).toString('hex'), parentSpanId: parent?.spanId, tracestate: parent?.tracestate || "", flags: parent?.flags || '01', service: parent?.service || process.env.OTEL_SERVICE_NAME || 'roboshop', kind, attributes: {} };
+  const ctx = { traceId: parent?.traceId || randomBytes(16).toString('hex'), spanId: randomBytes(8).toString('hex'), parentSpanId: parent?.spanId, tracestate: parent?.tracestate || "", quiet: parent?.quiet || quietRoute(attributes["url.template"] || ""), flags: parent?.flags || '01', service: parent?.service || process.env.OTEL_SERVICE_NAME || logService, kind, attributes: {} };
   const start = Date.now(); let status = 200;
   return context.run(ctx, async () => {
     try { const result = await work(ctx); if (typeof result?.ok === "boolean" && Number.isInteger(result.status)) status = result.status; return result; }
@@ -139,7 +140,8 @@ export async function request(url, options = {}) {
 let pendingExports = 0;
 export function exportSpan(service, ctx, start, name, status, attributes = {}) {
   if (process.env.OTEL_SDK_DISABLED === 'true' || ctx.flags === '00') return;
-  if (status < 400 && quietRoute(attributes['http.route'] || attributes['url.template'] || '')) return;
+  if (status < 400 && (ctx.quiet || quietRoute(attributes['http.route'] || attributes['url.template'] || ''))) return;
+  attributes = Object.fromEntries(Object.entries(attributes).filter(([key]) => !/(authorization|cookie|password|secret|token|prompt|completion|db\.statement|db\.query|url\.full|url\.query|http\.url|http\.target|client\.address)/i.test(key)));
   const endpoint = process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
   const targets = [];
   if (endpoint) targets.push([endpoint, {}]);
@@ -179,6 +181,7 @@ export function serve(service, port, handler) {
         probe = pathname.endsWith('/ready');
         route = routeTemplate(url.pathname);
         ctx.attributes = {'http.route':route, 'http.request.method':req.method};
+        ctx.quiet = quietRoute(route);
         if (url.pathname === '/health' && req.method === 'GET') return json(res, { status: 'ok', service });
         if (url.pathname === '/metrics' && req.method === 'GET') {
           const rows = ['# TYPE roboshop_http_requests_total counter'];

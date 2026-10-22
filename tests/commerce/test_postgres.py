@@ -103,6 +103,19 @@ class CommerceTests(unittest.TestCase):
         return routes(SimpleNamespace(path='/api/admin/products/LIMITED',method='PUT',
             user={'id':'owner','role':'admin'},body=lambda:data),db,None,store)
 
+    def test_checkout_trace_has_single_business_span_and_private_sql(self):
+        from runtime import trace_span
+        captured=[]
+        with patch('runtime.telemetry',side_effect=lambda *args:captured.append(args)):
+            with trace_span('POST /api/cart') as root:
+                self.cart('private-customer')
+        names=[span[3] for span in captured]
+        self.assertEqual(names.count('cart.update'),1)
+        self.assertIn('SELECT',names)
+        self.assertTrue(all(span[1]['traceId']==root['traceId'] for span in captured))
+        self.assertNotIn('private-customer',str(captured))
+        self.assertNotIn('SELECT *',str(captured))
+
     def test_archive_preserves_capacity_sold_and_removable_cart(self):
         db=mongomock.MongoClient().db
         db.products.insert_one({**P,'_id':P['sku'],'revision':1,'archived':False})

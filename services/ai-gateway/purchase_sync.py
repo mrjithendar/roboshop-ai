@@ -1,4 +1,4 @@
-from runtime import log_event
+from runtime import log_event, trace_span
 """Retry paid-order projection through the user service; orders remain gateway-owned."""
 import copy
 import json
@@ -11,7 +11,9 @@ class PurchaseSync:
         self.stopped = threading.Event()
 
     def project(self, order):
-        return self.client.project(order)
+        event=order.get('shipmentEvent') or {}
+        with trace_span('purchase_history.project', parent=event.get('traceparent'), tracestate=event.get('tracestate'), service='ai-gateway'):
+            return self.client.project(order)
 
     def save_address(self, user_id, shipping):
         return self.client.save_address(user_id, shipping)

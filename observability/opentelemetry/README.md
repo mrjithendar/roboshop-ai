@@ -1,126 +1,212 @@
-# Distributed tracing
+# Distributed tracing and Langfuse
 
-## Coverage
+## Architecture and investigation (2026-10-22)
 
-| Workload | Trace coverage |
-| --- | --- |
-| Python gateway | HTTP server/client spans, MongoDB auth/customer operations, paid-event producer |
-| Python shopping agent | HTTP server/client spans, catalogue calls, model call and usage attributes; optional Langfuse |
-| Python MCP | Tool execution and gateway client spans; tool arguments/results excluded |
-| Node ingestion | HTTP server and MongoDB command spans; statements/documents excluded |
-| Node recommendations, SRE | HTTP server and downstream client spans |
-| Node payments | HTTP server and Razorpay client spans; payment bodies/IDs/signatures excluded |
-| Java shipping | Spring Boot OpenTelemetry HTTP and Rabbit listener observations |
+There is no Compose deployment in this repository. The active service manifests
+are under `services/`; Minikube uses the consolidated `roboshop-config` ConfigMap.
+No AGENTS.md was found in the repository or workspace root during this review.
 
-Python and Node use explicit bounded OTLP/HTTP JSON instrumentation. Java uses
-Spring Boot's OpenTelemetry starter and Micrometer bridge, exporting OTLP protobuf.
-The collector accepts both. Existing `/metrics` endpoints remain scraped by
-Prometheus; this change does not replace them with OTLP metrics or export application
-logs through OTLP. NGINX serves frontend assets and forwards W3C trace headers; its
-access logs correlate to the gateway's trace ID, but the standard NGINX image does
-not generate an edge span. Database/cache/broker daemons are infrastructure, not
-instrumented application runtimes. Browser click/session replay is not enabled.
+General application spans use OTLP/HTTP → otel-collector → Jaeger. Prometheus
+collects metrics and Grafana displays them; neither replaces the trace backend.
+Python/Node already had service-local OTLP JSON instrumentation. This change reuses
+it, including its parent sampling decision and bounded transport. Shipping retains
+Spring Boot/Micrometer automatic HTTP and Rabbit listener instrumentation. FastMCP's
+native SDK spans are now exported, rather than creating a second tool span. Moks
+uses OpenTelemetry SDK generation spans bridged into its existing exporter.
 
-A paid event stores the originating `traceparent` in the durable outbox. Publishing
-creates a PRODUCER span and sends a W3C `traceparent` RabbitMQ header. Shipping's
-observed listener extracts it, creating the consumer span in the same trace.
-Retries can produce multiple spans for the same event; delivery remains at least
-once and shipping deduplicates event IDs. Do not add customer IDs or addresses to
-message tracing headers.
+Confirmed in code:
 
-## Privacy and operational limits
+* Python's route categorization produced `GET other`, including internal endpoints.
+  Node/Python clients used `HTTP GET` without a known target template.
+* Moks exported **all** service spans to Langfuse, including ordinary HTTP work.
+* The widget invented an outgoing parent span ID without exporting that span.
+  Kafka forwarded an older event context without consumer/producer observations;
+  `tracestate` was not consistently propagated.
+* There was no evaluation-score submission implementation. Traces alone do not
+  create evaluation scores.
+* Generation counts were emitted, but no explicit costs were calculated. The
+  configured inference-profile ID was the model matching key.
 
-Application spans use fixed operation names and bounded route groups. They omit
-customer IP addresses, emails, customer IDs, request/response bodies, cookies, credentials,
-SQL/Mongo queries, shipping addresses and AI prompts. The collector removes common
-URL/query/client-address and query-text attributes as a second layer. Adding new
-instrumentation still requires checking its attributes; this filter is not a
-universal PII detector. Account metadata belongs in MongoDB, not traces.
+The reported 284 traces/525 observations are **not evidence of duplicates**:
+a workflow normally contains multiple observations. Those counts and the exact
+cause of the displayed $0.00 were not inspected live. Rounding, a missing model
+price definition, incomplete usage and a genuine zero-priced usage category cannot
+be distinguished from a screenshot alone. No live Langfuse/AWS access was used.
 
-`OTEL_SERVICE_VERSION` and `DEPLOYMENT_ENVIRONMENT` label resources. Incoming valid
-W3C trace context and sampling flags propagate; invalid/all-zero IDs are rejected.
-The explicit Python/Node exporters use bounded queues and short timeouts; telemetry
-failure must not fail checkout. They drop telemetry when full or unreachable.
-The collector handles batching/retries; durable collector queues and secured remote
-export endpoints remain deployment concerns. HTTP health/metrics probes are omitted
-from Python/Node server traces. Java keeps its framework observation behavior.
+## Service and naming inventory
 
-Tests assert spans from all eight application services, client spans, RabbitMQ
-producer/consumer correlation, and the absence of customer data in emitted payloads.
+HTTP names use `METHOD /route/template` from handler vocabulary. Unknown routes
+use only the method, with no raw path/query. Mounted `/roboshop/api/...` inputs
+retain the prefix when present; ingress-stripped requests use backend route names.
+`http.route` is a template, never a search phrase, SKU, address or customer ID.
+Client spans use known URL templates where available, otherwise just the method.
 
-References: [OTLP encoding](https://opentelemetry.io/docs/specs/otlp/),
-[Spring Boot tracing](https://docs.spring.io/spring-boot/reference/actuator/tracing.html),
+| Service / component | Framework / interface | Representative spans or correlation |
+| --- | --- | --- |
+| ai-gateway | FastAPI/AnyIO, synchronous domain workers | `POST /api/payments/orders`, `GET /api/products/{product_id}`, `cart.update`, `checkout.reserve`, `payment.capture`; Mongo command and PostgreSQL operation spans |
+| gateway background workers | Threaded outbox publisher, purchase projection | `publish roboshop.orders`, `purchase_history.project`; durable event parent context, independent retry attempts |
+| user-service | Python/Waitress, MongoDB, SES SMTP | `POST /internal/request`, `auth.login`, `auth.register`, Mongo command spans; credentials/addresses excluded |
+| cart-service | Python/Waitress, Redis Lua CAS | `/internal/carts/{cart_id}`, `GET`, `SET`, `EVAL`, `EXPIRE` Redis commands; keys/scripts/values excluded |
+| catalogue-service | Node HTTP, MongoDB command monitoring | `GET /api/catalogue/search/{query}`, `catalogue.search`, `catalogue.read`, `catalogue.recommend`, Mongo commands |
+| ingestion | Integrated catalogue startup/CLI, not another service | `catalogue.ingest`; insert-only behavior unchanged |
+| recommendations | Integrated catalogue ranking, not another service | `GET /api/recommendations`, `catalogue.recommend` |
+| moks | Waitress, LangGraph/LangChain | `POST /internal/chat`, `rag.retrieve`, `shopping_agent.recommend`, `llm.route`, one `llm.generate` per attempted provider |
+| Moks widget (formerly Finder) | Same Moks process, separate authenticated routes | `POST /chat`, `GET /history`; HTTP context forwarded to gateway, not all exported to Langfuse |
+| RAG | In-process catalogue retrieval, no vector database/service | `rag.retrieve`; catalogue HTTP request is linked under originating request |
+| MCP | FastMCP 4.1.3 HTTP/stdio | `POST /mcp`, native `mcp.call_tool`/`mcp.request`; native tool parent used by outgoing gateway client spans |
+| payment-service | Node HTTP, Razorpay REST | `POST /api/payment/verify`, `payment.create_order`, `payment.verify`, `payment.verify_signature`; provider client spans, no signatures/bodies |
+| shipping-service | Spring MVC, JDBC/Redis, Spring AMQP | `POST /api/shipping/quote`, `shipping.calculate`, automatic Rabbit consumer observation, `shipping.record_request` |
+| currency-service | Go net/http, hourly ECB refresh | `GET /rates`, `currency.refresh_rates`, fixed ECB HTTP client span; bounded OTLP export |
+| kafka-bridge | Python worker, pika + librdkafka | `process roboshop.kafka.orders`, `publish roboshop.orders.live.v1` or `.test.v1`; headers link consumer → producer |
+| sre-copilot | Node HTTP, bounded dependency probes | `GET /api/ops`, dependency client spans; successful probes suppressed, failures kept |
+| nginx | Stock NGINX reverse proxy | W3C headers forwarded; safe access-log correlation. **No native spans**: image has no OTel module |
+| frontend | TypeScript browser UI, stock NGINX static server | Safe access logs; no browser RUM/SDK or native NGINX spans installed |
+| mongodb, postgres, redis | Database infrastructure | Client spans above; not instrumented database-server processes |
+| rabbitmq, kafka | Messaging infrastructure | Producer/consumer spans above; broker metrics/logs remain separate |
+| otel-collector, jaeger | Trace transport/backend | Collector filtering/privacy/batching; no application generations |
+| monitoring Grafana/Prometheus | External monitoring deployments | Metrics/dashboard infrastructure, no application trace export added |
+
+SDK/dependency audit: Moks declares LangChain Core 1.6.12, LangGraph 1.2.16,
+boto3 1.43.114; gateway FastAPI 0.156.3; PyMongo 4.19.0; Node MongoDB 7.7.0.
+Moks and MCP now pin OpenTelemetry SDK 1.45.1. Shipping's existing Gradle lock pins
+Spring Boot 4.1.1, Micrometer 1.17.1/tracing 1.7.1 and OTel 1.62.0. Collector stays
+at 0.162.0. No automatic framework/provider instrumentation was added on top of
+existing spans. A Python test environment was aligned to the declared versions.
+
+## Context, resources, noise and privacy
+
+W3C `traceparent` and bounded `tracestate` travel through HTTP and supported
+RabbitMQ/Kafka headers. Context variables/AsyncLocalStorage preserve async work;
+existing AnyIO/thread-pool context copying is retained. Each outbox event is processed
+individually, so a parent relationship is used, not a misleading batch parent.
+Old events lacking context create new roots. Retries never replay business operations
+for tracing. Repeated message deliveries get distinct spans and retain event
+idempotency behavior. Purchase projection uses the saved paid-event context.
+
+Resources: `service.name`, `service.namespace` (`OTEL_SERVICE_NAMESPACE`, default
+`roboshop-ai`), `service.version` (`OTEL_SERVICE_VERSION`, default `unknown`),
+`service.instance.id` (`POD_UID` or hostname), and `deployment.environment.name`
+(`DEPLOYMENT_ENVIRONMENT`). Set version to the deployed release/commit in deployment
+configuration; a mutable `latest` image does not prove its source revision.
+No second probabilistic sampler is installed. New roots retain existing full-sampling
+behavior; sampled/unsampled parent flags are respected.
+
+Successful health/readiness/metrics and widget-static requests are filtered by
+route attributes. Ordinary catalogue GETs are retained. Failed probes remain visible.
+The collector also filters successful Spring health spans and removes exception
+events, while retaining error status. Sources and the embedded Minikube collector
+configuration are checked for consistency. Child errors of suppressed probes can
+appear without their successful parent, intentionally preserving error visibility.
+
+Structured application logs include `trace_id`/`span_id` where context exists.
+Login identities are no longer logged as email addresses: set a backend-only
+`TELEMETRY_ID_KEY` for HMAC pseudonyms, or leave it absent to omit identities.
+No user/session identifiers are sent to Langfuse by default. Provider credentials,
+headers, payment fields, tool arguments/results and SQL statements are not captured.
+
+`LANGFUSE_CAPTURE_CONTENT=false` is the default. The only opt-in supported is
+`synthetic-only`, and it additionally requires an explicitly marked evaluation
+context (`traffic=evaluation`). It cannot enable capture of live customer chats.
+Known credential/email/number patterns are redacted even for synthetic content;
+free-text redaction is not a general PII detector. LangSmith ambient tracing stays
+explicitly disabled. Langfuse keys remain backend Secret references.
+
+Export is best effort: bounded Python queues (32 entries, two daemon workers),
+bounded Node in-flight exports, and eight Go exports; network deadlines are two
+seconds. Python/Go shutdown draining is bounded to two seconds, not a delivery
+guarantee. Disabled/unavailable/closed exporters do not fail commerce requests.
+Abrupt process termination can lose observations. No unlimited export retry queue.
+
+## Langfuse generation data and costs
+
+Only marked AI observations (`agent`, `retriever`, `chain`, `generation`) go to
+Langfuse; the same trace IDs correlate with Jaeger. General HTTP, DB and broker spans
+stay in Jaeger. Each actual provider attempt creates exactly one SDK generation,
+including failed attempts; routing/graph spans are not generations. Provider SDK
+retries, failover eligibility, budgets, authorization and tool behavior are unchanged.
+
+Generation attributes include requested model/profile, provider, outcome, duration,
+failover reason, available input/output usage and Bedrock cache-read/cache-write
+usage. Missing values remain absent; no fabricated zero counts, costs or totals.
+Bedrock Converse does not supply a resolved backend model ID here: the requested
+profile is retained and tagged `requested_identifier`, not represented as a resolved
+model. Ollama's returned model is retained when supplied. These adapters are
+non-streaming; there is no streaming completion usage to collect. Reasoning-token
+usage is not inferred when the adapters do not return it.
+
+For `global.amazon.nova-2-lite-v1:0`, inspect a new **generation** in Langfuse:
+
+1. Confirm model/profile spelling, input/output usage and observation type.
+2. Inspect the numeric cost detail, not only the rounded dashboard total.
+3. In Project Settings → Models, check for a matching definition. If absent, create
+   a reviewed custom definition matching `^global\.amazon\.nova-2-lite-v1:0$`.
+4. Enter the applicable, current AWS model/inference-tier/region pricing per usage
+   unit. Match `input`, `output`, `cache_read_input_tokens` and
+   `cache_write_input_tokens` only where applicable. Do not guess a price or silently
+   alias an inference profile to another model. No prices are hardcoded here.
+5. Inspect newly ingested generations; don't assume existing observations are
+   automatically repriced. Costs are **estimates**; AWS billing is authoritative.
+   Ollama's lack of a per-token API charge does not mean free infrastructure.
+
+Sources consulted: [Langfuse OTLP mapping](https://langfuse.com/integrations/native/opentelemetry),
+[model definitions](https://langfuse.com/docs/observability/features/token-and-cost-tracking),
+[Bedrock usage fields](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_TokenUsage.html),
+[HTTP semantic conventions](https://opentelemetry.io/docs/specs/semconv/http/http-spans/),
+[FastMCP native telemetry](https://gofastmcp.com/servers/telemetry),
+[OTel Python SDK API](https://opentelemetry-python.readthedocs.io/en/latest/sdk/trace.html),
 [Spring AMQP observations](https://docs.spring.io/spring-amqp/reference/amqp/receiving-messages/micrometer-observation.html).
 
+## Explicit evaluations
 
-## Operational pod logs
+`evaluations/agents/catalogue-v1/dataset.json` is synthetic and versioned, independent
+of merchant inventory. `evaluate.py` checks recorded product IDs, selection,
+stock, budget/currency, price and structured specification claims. It never invokes
+models. Free-text factual accuracy is **not** proven by structured checks; human
+review or a separately approved judge is needed. No LLM judge is enabled.
 
-Tracing is complemented by stdout operational events. Rebuild and deploy the changed
-service images before expecting these new records; no logging infrastructure or paid
-service is needed. Telemetry export may be disabled and pod logs still work.
-
-Python services and Node services keep their logger inside each service directory.
-Their JSON records include timestamp, level, service, event, traceId (when part of a
-request), method, safe route group, status and durationMs. Downstream HTTP records name
-the dependency host and report failures/latency without URL credentials or query text.
-Only allowlisted metadata is accepted by the runtime log helper.
-
-Useful events:
-
-- `ai_not_configured`: a superadmin must connect a provider.
-- `llm_attempt_started/completed/failed`: actual provider/model, duration and safe error
-  code; `llm_failover_selected` explains a timeout, transient error or open breaker.
-- `checkout_reserved`, `checkout_reused`, `checkout_provider_order_attached`,
-  `checkout_reconciliation_required`, `checkout_payment_captured`: explain checkout
-  progress without logging prices, payment signatures, addresses or customer identities.
-- `order_event_published`, `order_event_delivery_pending`, `purchase_history_projected`,
-  `customer_history_sync_pending`: show background delivery/projection and retries.
-- `dependency_response_rejected`, `dependency_call_completed`, `request_rejected`,
-  `request_failed`: distinguish rejected input, authorization, downstream and internal
-  failures. Exception **types**, never exception messages or raw stack locals, are logged.
-
-`LOG_LEVEL=INFO` is the default. Python/Node runtime services support DEBUG/INFO/WARN/ERROR;
-DEBUG includes successful readiness probes. Finder, FastAPI demo, Go currency and shipping
-also support log-level filtering (successful probes in Go/Java/demo remain suppressed).
-The shipping filter emits SLF4J key/value records with trace IDs. Go uses JSON slog records.
-Frontend NGINX now emits access events to stdout; edge NGINX adds upstream connect/response
-timing and the gateway request ID. Successful edge health probes are suppressed. NGINX
-configuration controls its logs rather than LOG_LEVEL. Databases, Redis, RabbitMQ, Jaeger
-and the collector retain their native operational logs; query/wire debug logging was not
-enabled. Do not enable database statement logging to troubleshoot normal application flows.
-
-The application records omit bodies, query strings, raw prompts/answers, passwords, cookies,
-authorization headers and payment secrets. Trace IDs and internal order IDs are operational
-correlation identifiers: restrict log access and retention. This does not change third-party
-framework/native error logging policies. Never paste secrets into LOG_LEVEL or debug settings.
-
-Read an individual service:
+Each result row must include `datasetVersion: catalogue-v1`, `traffic: evaluation`,
+`caseId`, actual `traceId` and `observationId`, and `products`. Optional `claims` are
+`{sku, field, value}` assertions. Missing required evidence fails, not a perfect
+placeholder score. Supply IDs from the actual evaluated generation, never fabricated
+IDs or another user execution. No automatic production scoring or fixture import.
 
 ```bash
-kubectl -n roboshop-ai logs deployment/ai-gateway --since=10m --follow
-kubectl -n roboshop-ai logs deployment/moks --since=10m --follow
-kubectl -n roboshop-ai logs deployment/frontend --since=10m --follow
-# Last crashed container:
-kubectl -n roboshop-ai logs deployment/ai-gateway --previous --tail=100
+python3 evaluations/agents/evaluate.py --results /path/to/recorded-evaluation-results.json
+# Explicit upload only, using backend environment credentials:
+python3 evaluations/agents/evaluate.py --results /path/to/recorded-evaluation-results.json --publish
 ```
 
-Readable filtering when jq is installed:
+Scores use versioned names and deterministic IDs linked to **both** trace and
+observation, making resubmission idempotent. Upload uses the supported
+[Scores API](https://langfuse.com/docs/evaluation/evaluation-methods/scores-via-sdk).
+Tests include deliberately incorrect output; mock test results are not published.
 
-```bash
-kubectl -n roboshop-ai logs deployment/ai-gateway --since=10m |
-  jq -R 'fromjson? | select(.level == "WARN" or .level == "ERROR")'
-# Replace TRACE_ID with the traceId in a failed request; no credentials needed.
-kubectl -n roboshop-ai logs deployment/moks --since=10m |
-  jq -R 'fromjson? | select(.traceId == "TRACE_ID")'
-```
+## Rollout and connected-trace checklist
 
-For a temporary increase in probe visibility (changes the deployment and restarts pods):
+No live deployment or project settings were changed. Rebuild the affected application
+images (Python services, Node services, Moks/MCP, currency, shipping and proxies).
+Moks/MCP need their new SDK dependency; do not copy only source files into old images.
+Apply the updated consolidated ConfigMap and service manifests through the normal
+workflow, including the collector restart needed to load its updated configuration.
+No Secret rotation, business-data migration, provider calls or payment actions are
+required. Existing Langfuse URL/project keys still work. No Compose/Helm application
+chart was introduced; archived reference-only AWS collector examples are unchanged.
 
-```bash
-kubectl -n roboshop-ai set env deployment/ai-gateway LOG_LEVEL=DEBUG
-# Return to normal afterwards:
-kubectl -n roboshop-ai set env deployment/ai-gateway LOG_LEVEL=INFO
-```
+After a separately authorized deployment:
 
-No DEBUG setting enables prompt/body/credential logging. Existing deployments were not
-changed while implementing or testing this feature.
+- Perform a catalogue search; use response `X-Request-ID` to locate the gateway
+  trace in Jaeger. Check catalogue child HTTP and Mongo spans share its trace ID.
+- Add/remove a cart item; inspect gateway → cart-service → Redis command spans.
+- In sandbox only, inspect checkout reservation → payment-service/provider and paid
+  outbox → Rabbit consumer/Kafka producer, plus purchase projection. Verify parents
+  and immutable payment mode without exposing payment data.
+- Ask Moks a question; find `POST /internal/chat`, retrieval, chain, routing and
+  generation children. Compare the trace ID with Langfuse.
+- For mocked/approved failover, expect one failed primary generation and one fallback
+  generation under the same routing span, with different observation IDs.
+- Check health noise is absent, failed probes remain, and unrelated catalogue GETs
+  have not been filtered. Check no request text/IDs appear in names.
+- Inspect generation usage/model definitions and an explicitly uploaded evaluation
+  score. Do not infer success from aggregate dashboard counts alone.
+
+Local commands and verification results: [verification.md](verification.md).

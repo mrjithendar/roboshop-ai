@@ -1,4 +1,5 @@
 import re
+from mongo_tracing import MongoTracing
 from pymongo import MongoClient
 from runtime import HttpError
 
@@ -12,6 +13,7 @@ def connect_mongo():
         raise RuntimeError("Configure MONGODB_URL and a valid MONGODB_DATABASE.")
     client = MongoClient(
         uri,
+        event_listeners=[MongoTracing()],
         maxPoolSize=10,
         serverSelectionTimeoutMS=5000,
         connectTimeoutMS=5000,

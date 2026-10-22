@@ -75,7 +75,7 @@ def generate(config, system, prompt, max_tokens, timeout=None):
         return {
             "answer": result["message"]["content"],
             "provider": "ollama",
-            "model": config["model"],
+            "model": result.get("model") if isinstance(result.get("model"),str) and len(result["model"]) <= 200 else config["model"],
             "input_tokens": result.get("prompt_eval_count"),
             "output_tokens": result.get("eval_count"),
         }

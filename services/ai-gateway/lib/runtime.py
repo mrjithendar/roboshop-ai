@@ -190,7 +190,9 @@ def business_operation(name):
     def decorate(fn):
         @wraps(fn)
         def wrapped(*args, **kwargs):
-            with trace_span(name): return fn(*args, **kwargs)
+            if (ctx.get() or {}).get('attributes',{}).get('roboshop.business.operation') == name:
+                return fn(*args, **kwargs)
+            with trace_span(name,attributes={'roboshop.business.operation':name}): return fn(*args, **kwargs)
         return wrapped
     return decorate
 
@@ -202,7 +204,7 @@ def trace_context(header=None, tracestate=None):
         "traceId": match[1] if match else secrets.token_hex(16),
         "spanId": secrets.token_hex(8),
         "attributes": {},
-        "tracestate": valid_tracestate(tracestate),
+        "tracestate": valid_tracestate(tracestate) if match else "",
         "flags": match[3] if match else "01",
         **({"parentSpanId": match[2]} if match else {}),
     }
@@ -223,7 +225,8 @@ def trace_span(name, kind=1, attributes=None, parent=None, service=None, tracest
     context = trace_context(parent or trace_header(previous), tracestate if parent else (previous or {}).get("tracestate"))
     context["service"] = service or (previous or {}).get("service", SERVICE_NAME)
     context["kind"] = kind
-    context["attributes"] = attributes or {}
+    context["attributes"] = attributes if attributes is not None else {}
+    context["quiet"] = (previous or {}).get("quiet", False) or quiet_route(context["attributes"].get("url.template", ""))
     token = ctx.set(context)
     start, status = time.time_ns(), 200
     try:
@@ -241,9 +244,8 @@ def database_operation(name):
         @wraps(fn)
         def wrapped(*args, **kwargs):
             with trace_span(
-                "mongodb " + name,
-                kind=3,
-                attributes={"db.system.name": "mongodb", "db.operation.name": name},
+                name,
+                kind=1,
             ):
                 return fn(*args, **kwargs)
 
@@ -464,7 +466,7 @@ def safe_attributes(attributes):
         # Token usage is a numeric measure, not a bearer token.
         usage = key.startswith('gen_ai.usage.') and type(value) is int and value >= 0
         if not usage and any(part in key.lower() for part in blocked): continue
-        if key in ('langfuse.observation.input','langfuse.observation.output') and os.getenv('LANGFUSE_CAPTURE_CONTENT') != 'true': continue
+        if key in ('langfuse.observation.input','langfuse.observation.output') and os.getenv('LANGFUSE_CAPTURE_CONTENT') != 'synthetic-only': continue
         if isinstance(value,(str,int,float,bool)):
             result[key] = value[:16000] if isinstance(value,str) else value
     return result
@@ -472,7 +474,7 @@ def safe_attributes(attributes):
 def telemetry(service, context, start, route, status):
     if os.getenv("OTEL_SDK_DISABLED") == "true" or context.get("flags", "01") == "00":
         return
-    if status < 400 and quiet_route(context.get('attributes', {}).get('http.route') or context.get('attributes', {}).get('url.template', '')):
+    if status < 400 and (context.get('quiet') or quiet_route(context.get('attributes', {}).get('http.route') or context.get('attributes', {}).get('url.template', ''))):
         return
     targets = []
     if os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"):
@@ -584,6 +586,7 @@ def application(service, handler):
         ]
         route = route_template(req.path)
         context['attributes'].update({'http.route': route, 'http.request.method': req.method})
+        context['quiet'] = quiet_route(route)
         try:
             if req.path == "/health" and req.method == "GET":
                 result = {"status": "ok", "service": service}
