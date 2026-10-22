@@ -117,13 +117,14 @@ def main():
     if transport not in ("stdio", "http"):
         raise SystemExit("MCP_TRANSPORT must be stdio or http")
     configure_telemetry("mcp-server")
-    from otel_bridge import configure
+    from otel_bridge import configure, HTTPTracing
+    from starlette.middleware import Middleware
     configure()
     server = create_server(http=transport == "http")
     if transport == "http":
         server.run(transport="http", host=os.getenv("HOST", "0.0.0.0"),
                    port=int(os.getenv("PORT", "4107")), path="/mcp",
-                   stateless_http=True, json_response=True, show_banner=False)
+                   stateless_http=True, json_response=True, show_banner=False, middleware=[Middleware(HTTPTracing)])
     else:
         server.run(transport="stdio", show_banner=False)
 

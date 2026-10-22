@@ -9,6 +9,9 @@ import java.util.Map;
 @RestController
 public class ShippingController {
     private final Locations locations;
+    private io.micrometer.observation.ObservationRegistry observations = io.micrometer.observation.ObservationRegistry.NOOP;
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    void observations(io.micrometer.observation.ObservationRegistry registry) { observations=registry; }
     public ShippingController(Locations locations) { this.locations = locations; }
     @GetMapping("/health") Map<String,Object> health() { return Map.of("status","ok","service","shipping-service"); }
     @GetMapping("/api/shipping/ready") ResponseEntity<?> ready() {
@@ -17,7 +20,7 @@ public class ShippingController {
     }
     @GetMapping("/api/shipping/countries") Map<String,Object> countries() { return Map.of("countries",locations.countries(),"source","GeoNames","license","CC BY 4.0"); }
     @GetMapping("/api/shipping/cities") Map<String,Object> cities(@RequestParam(required=false) String country,@RequestParam(required=false) String q) { return Map.of("cities",locations.search(country,q)); }
-    @PostMapping("/api/shipping/quote") Map<String,Object> quote(@RequestBody Map<String,Object> input) { return locations.quote(input); }
+    @PostMapping("/api/shipping/quote") Map<String,Object> quote(@RequestBody Map<String,Object> input) { return io.micrometer.observation.Observation.createNotStarted("shipping.calculate", observations).observe(() -> locations.quote(input)); }
     @ExceptionHandler(ResponseStatusException.class) ResponseEntity<?> invalid(ResponseStatusException e) { return ResponseEntity.status(e.getStatusCode()).body(Map.of("error",e.getReason())); }
     @ExceptionHandler(HttpMessageNotReadableException.class) ResponseEntity<?> malformed() { return ResponseEntity.badRequest().body(Map.of("error","Expected a JSON object.")); }
     @ExceptionHandler(DataAccessException.class) ResponseEntity<?> databaseError() { return ResponseEntity.status(503).body(Map.of("error","Shipping database unavailable.")); }

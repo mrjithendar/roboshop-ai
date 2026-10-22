@@ -33,8 +33,15 @@ public class OrderEvents {
     private final ObjectMapper mapper;
     private final MeterRegistry meters;
     public OrderEvents(JdbcTemplate jdbc,ObjectMapper mapper,MeterRegistry meters) { this.jdbc=jdbc;this.mapper=mapper;this.meters=meters; }
+    private io.micrometer.observation.ObservationRegistry observations = io.micrometer.observation.ObservationRegistry.NOOP;
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    void observations(io.micrometer.observation.ObservationRegistry registry) { observations=registry; }
     @RabbitListener(queues=QUEUE)
     public void receive(Message message) {
+        // Spring AMQP owns extraction and the consumer span; this is business work only.
+        io.micrometer.observation.Observation.createNotStarted("shipping.record_request", observations).observe(() -> record(message));
+    }
+    private void record(Message message) {
         UUID order,event;
         String payload;
         try {

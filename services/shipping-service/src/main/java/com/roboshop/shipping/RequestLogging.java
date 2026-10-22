@@ -14,7 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /** Log route templates and timings, never shipping addresses, query text or bodies. */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE + 2)
 class RequestLogging extends OncePerRequestFilter {
     private static final Logger LOG = LoggerFactory.getLogger(RequestLogging.class);
     private static final Set<String> ROUTES = Set.of("/health", "/metrics", "/api/shipping/ready", "/api/shipping/countries", "/api/shipping/cities", "/api/shipping/quote");
@@ -24,18 +24,20 @@ class RequestLogging extends OncePerRequestFilter {
         String method = Set.of("GET","POST","PUT","DELETE","PATCH","OPTIONS","HEAD").contains(request.getMethod()) ? request.getMethod() : "other";
         String parent = request.getHeader("traceparent");
         String traceId = parent != null && parent.matches("00-[a-f0-9]{32}-[a-f0-9]{16}-0[01]") ? parent.substring(3,35) : UUID.randomUUID().toString().replace("-", "");
+        if (org.slf4j.MDC.get("traceId") != null) traceId=org.slf4j.MDC.get("traceId");
+        String spanId=org.slf4j.MDC.get("spanId");
         response.setHeader("X-Request-ID", traceId);
         boolean failed = false;
         try { chain.doFilter(request, response); }
         catch (IOException | ServletException | RuntimeException error) {
             failed = true;
-            LOG.error("request_failed service=shipping-service errorCode=SHIPPING_REQUEST_FAILED route={} traceId={} errorType={}", route, traceId, error.getClass().getSimpleName());
+            LOG.error("request_failed service=shipping-service errorCode=SHIPPING_REQUEST_FAILED route={} trace_id={} span_id={} errorType={}", route, traceId, spanId, error.getClass().getSimpleName());
             throw error;
         } finally {
             int status = failed ? 500 : response.getStatus();
             if (status >= 400 || !Set.of("/health","/metrics","/api/shipping/ready").contains(route)) {
-                if (status >= 400) LOG.warn("request_completed service=shipping-service method={} route={} status={} errorCode=HTTP_{} durationMs={} traceId={}", method, route, status, status, (System.nanoTime()-started)/1_000_000, traceId);
-                else LOG.info("request_completed service=shipping-service method={} route={} status={} errorCode=HTTP_{} durationMs={} traceId={}", method, route, status, status, (System.nanoTime()-started)/1_000_000, traceId);
+                if (status >= 400) LOG.warn("request_completed service=shipping-service method={} route={} status={} errorCode=HTTP_{} durationMs={} trace_id={} span_id={}", method, route, status, status, (System.nanoTime()-started)/1_000_000, traceId, spanId);
+                else LOG.info("request_completed service=shipping-service method={} route={} status={} errorCode=HTTP_{} durationMs={} trace_id={} span_id={}", method, route, status, status, (System.nanoTime()-started)/1_000_000, traceId, spanId);
             }
         }
     }
