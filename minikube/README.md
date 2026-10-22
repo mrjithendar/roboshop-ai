@@ -351,7 +351,8 @@ See [Argo CD setup and troubleshooting](argocd/README.md) for login and CLI comm
 
 ## Langfuse AI tracing
 
-Install the optional Langfuse dashboard at `https://jithendar.com/langfuse/` with `bash minikube/deploy-langfuse.sh`.
+Use Langfuse Cloud; no Langfuse database or dashboard runs in Minikube.
+Connect an existing Cloud project Secret with `bash minikube/connect-langfuse.sh`.
 Requires Helm 4.3.1+; setup and connection commands are in
 [Langfuse deployment and trace guide](langfuse/README.md).
 

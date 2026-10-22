@@ -1,5 +1,7 @@
 python3 generate-secrets.py # creates secret and creates .env file
 
+minikube start -p mk4 --driver=docker --force
+
 docker run --rm \
   --volumes-from roboshop-ai-shipping-db-1:ro \
   --entrypoint sh postgres:18-alpine \
