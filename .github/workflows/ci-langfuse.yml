@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux, ARM64]
     timeout-minutes: 90
     env:
       AWS_REGION: us-east-1
@@ -41,21 +41,15 @@ jobs:
           fi
       - uses: aws-actions/amazon-ecr-login@v2
         id: ecr
-      # UBI RPM installroot scriptlets must execute natively. Emulated
-      # chroot execution fails on this runner while installing glibc/CA certs.
-      - name: Select native Linux image platform
-        id: platform
+      # Native ARM64 avoids QEMU failures in UBI RPM installroot scriptlets.
+      - name: Verify ARM64 Docker engine
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$(uname -s)" == Linux ]] || { echo 'A Linux build runner is required.' >&2; exit 1; }
-          case "$(uname -m)" in
-            aarch64|arm64) platform=linux/arm64 ;;
-            x86_64|amd64) platform=linux/amd64 ;;
-            *) echo 'Unsupported runner CPU architecture.' >&2; exit 1 ;;
+          case "$(docker info --format '{{.Architecture}}')" in
+            arm64|aarch64) ;;
+            *) echo 'ARM64 Docker engine required.' >&2; exit 1 ;;
           esac
-          echo "platform=$platform" >> "$GITHUB_OUTPUT"
-          echo "Building native image: $platform (single architecture)"
       - uses: docker/setup-buildx-action@v4
         id: buildx
       - name: Build web image with compiled subpath
@@ -64,7 +58,7 @@ jobs:
           context: ./langfuse-source
           file: ./roboshop/minikube/langfuse/Dockerfile
           builder: ${{ steps.buildx.outputs.name }}
-          platforms: ${{ steps.platform.outputs.platform }}
+          platforms: linux/arm64
           build-args: NEXT_PUBLIC_BASE_PATH=/langfuse
           push: true
           tags: ${{ steps.ecr.outputs.registry }}/roboshop-langfuse:4.63.0-subpath

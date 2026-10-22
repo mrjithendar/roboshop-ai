@@ -18,8 +18,7 @@ done
 # Use the Docker engine architecture, ignoring stale DOCKER_DEFAULT_PLATFORM values.
 case "$(docker info --format '{{.Architecture}}')" in
   arm64|aarch64) platform=linux/arm64 ;;
-  amd64|x86_64) platform=linux/amd64 ;;
-  *) echo 'Docker must run on ARM64 or AMD64.' >&2; exit 1 ;;
+  *) echo 'ARM64 Docker engine required; these images target ARM64 cluster nodes.' >&2; exit 1 ;;
 esac
 repositories=()
 for service in "${services[@]}"; do

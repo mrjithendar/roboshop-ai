@@ -21,7 +21,7 @@
 ARG BASE_IMAGE=registry.access.redhat.com/ubi9/ubi:9.8
 ARG MICRO_BASE_IMAGE=registry.access.redhat.com/ubi9/ubi-micro:9.8
 
-FROM --platform=${TARGETPLATFORM:-linux/amd64} ${BASE_IMAGE} AS base
+FROM --platform=${TARGETPLATFORM:-linux/arm64} ${BASE_IMAGE} AS base
 
 # nodejs:24 and openssl (incl. the FIPS provider) come from the freely
 # redistributable UBI repos, so no RHEL entitlement is required.
@@ -33,7 +33,7 @@ RUN dnf -y upgrade && \
     dnf -y install --setopt=install_weak_deps=0 nodejs npm nodejs-full-i18n && \
     dnf clean all
 
-FROM --platform=${TARGETPLATFORM:-linux/amd64} base AS build-base
+FROM --platform=${TARGETPLATFORM:-linux/arm64} base AS build-base
 # Pin turbo to avoid nondeterministic prune output from future patch releases.
 # pnpm is installed pinned via npm instead of corepack: the corepack shim would
 # fetch pnpm from an unpinned CDN on first use.
@@ -44,7 +44,7 @@ ARG NODE_USE_ENV_PROXY
 # Runtime rootfs assembled with dnf --installroot and layered onto ubi9-micro:
 # the final image carries no package manager, python, or curl. It holds only
 # the packages listed below plus their deps, with an intact rpmdb for scanners.
-FROM --platform=${TARGETPLATFORM:-linux/amd64} base AS rpm-installer
+FROM --platform=${TARGETPLATFORM:-linux/arm64} base AS rpm-installer
 
 ARG TARGETARCH
 ARG UID=1001
@@ -88,7 +88,7 @@ RUN sed 's#/etc/crypto-policies/back-ends/opensslcnf.config#/usr/share/crypto-po
 # dumb-init is not packaged in UBI; install the pinned, checksum-verified
 # static release binary (preserves the semver-covered ENTRYPOINT contract).
 RUN set -eux; \
-    case "${TARGETARCH:-amd64}" in \
+    case "${TARGETARCH:-arm64}" in \
     amd64) di_arch=x86_64; di_sha256=e874b55f3279ca41415d290c512a7ba9d08f98041b28ae7c2acb19a545f1c4df ;; \
     arm64) di_arch=aarch64; di_sha256=b7d648f97154a99c539b63c55979cd29f005f88430fb383007fe3458340b795e ;; \
     *) echo "unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
@@ -101,12 +101,12 @@ RUN set -eux; \
 RUN echo "nodejs:x:${GID}:" >> /mnt/rootfs/etc/group && \
     echo "nextjs:x:${UID}:${GID}::/home/nextjs:/sbin/nologin" >> /mnt/rootfs/etc/passwd
 
-FROM --platform=${TARGETPLATFORM:-linux/amd64} ${MICRO_BASE_IMAGE} AS runtime-base
+FROM --platform=${TARGETPLATFORM:-linux/arm64} ${MICRO_BASE_IMAGE} AS runtime-base
 COPY --from=rpm-installer /mnt/rootfs /
 
 # prisma CLI + optional dd-trace are npm-installed here and copied into the
 # package-manager-less runtime image.
-FROM --platform=${TARGETPLATFORM:-linux/amd64} build-base AS web-tools
+FROM --platform=${TARGETPLATFORM:-linux/arm64} build-base AS web-tools
 RUN npm install -g --prefix /opt/prisma-cli --no-package-lock --no-save prisma@6.19.3
 ARG NEXT_PUBLIC_LANGFUSE_CLOUD_REGION
 RUN mkdir -p /opt/dd/node_modules && \
@@ -135,14 +135,14 @@ ENV GOFIPS140=v1.0.0
 RUN /usr/local/go/bin/go install -trimpath -tags 'clickhouse' -ldflags='-s -w' \
     github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
 
-FROM --platform=${TARGETPLATFORM:-linux/amd64} build-base AS pruner
+FROM --platform=${TARGETPLATFORM:-linux/arm64} build-base AS pruner
 
 WORKDIR /app
 
 COPY . .
 RUN turbo prune web --docker
 
-FROM --platform=${TARGETPLATFORM:-linux/amd64} build-base AS builder
+FROM --platform=${TARGETPLATFORM:-linux/arm64} build-base AS builder
 
 WORKDIR /app
 
@@ -244,7 +244,7 @@ ENV CI true
 RUN NODE_OPTIONS='--max-old-space-size-percentage=75' turbo run build --filter=web...
 
 # Production image, copy all the files and run next
-FROM --platform=${TARGETPLATFORM:-linux/amd64} runtime-base AS runner
+FROM --platform=${TARGETPLATFORM:-linux/arm64} runtime-base AS runner
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM

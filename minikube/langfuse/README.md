@@ -6,7 +6,7 @@ Langfuse collects AI traces: request timing, model/provider attempts, errors and
 
 The stock image cannot serve this subpath. The [official subpath guide](https://langfuse.com/self-hosting/deployment/infrastructure/subpath) requires `NEXT_PUBLIC_BASE_PATH` at image build time. This configuration builds upstream v4.63.0 with `/langfuse`; stripping the ingress prefix is not a substitute.
 
-1. Publish `.github/workflows/ci-langfuse.yml` to your repository, then run **Langfuse subpath image** in GitHub Actions. It builds a web image for the Linux runner’s native CPU architecture and pushes `881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-langfuse:4.63.0-subpath`. The self-hosted runner needs Docker/Buildx and AWS ECR create/describe/push access. Worker uses the upstream image.
+1. Publish `.github/workflows/ci-langfuse.yml` to your repository, then run **Langfuse subpath image** in GitHub Actions. It builds a web image for ARM64 on a native Linux ARM64 runner and pushes `881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-langfuse:4.63.0-subpath`. The self-hosted runner needs Docker/Buildx and AWS ECR create/describe/push access. Worker uses the upstream image.
 2. With Helm >=4.3.1, kubectl, Python 3 with PyYAML, and AWS CLI configured, run from the repository root:
 
    ```bash
@@ -53,11 +53,9 @@ A rendered-manifest check cannot prove a built Next.js image works. After publis
 
 `minikube/langfuse/Dockerfile` is the checked-in upstream v4.63.0 web Dockerfile,
 with the migration-tool stage explicitly using `TARGETPLATFORM`. This avoids
-Go's `GOBIN` cross-compilation error and supports native ARM64 or AMD64 builds. CI publishes only the runner’s
-architecture; it does not use QEMU because UBI RPM installroot scriptlets fail
-under emulation on the current ARM64 runner. Use a runner matching your cluster
-nodes. A mixed-architecture cluster requires separately built native images
-and a combined manifest before deployment. The workflow no longer rewrites upstream files.
+Go's `GOBIN` cross-compilation error and uses native ARM64 builds. CI publishes only ARM64; it does not use QEMU because UBI RPM installroot scriptlets fail
+under emulation on the current ARM64 runner. Both build workflows require the GitHub runner labels `self-hosted`, `linux`,
+and `ARM64`. Cluster nodes must be ARM64. The workflow no longer rewrites upstream files.
 
 CI checks out this repository into `roboshop/` and the pinned Langfuse source
 into `langfuse-source/`. It uses our Dockerfile with the **upstream source as
