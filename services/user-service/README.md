@@ -90,3 +90,19 @@ configuration separately. The superadmin setup command now runs
 It still accepts `SUPERADMIN_EMAIL`, `SUPERADMIN_NAME`, and `SUPERADMIN_PASSWORD`
 from the environment and refuses to create a second superadmin. Keep passwords
 out of shell history and source control.
+
+### SES authentication troubleshooting
+
+SMTP status 535 means SES rejected the credential pair. `SMTP_USERNAME` must be
+the access-key ID from **SES → SMTP settings → Create SMTP credentials**, not an
+IAM user name or email address. `SMTP_PASSWORD` must be the SMTP password for the
+same region as `SMTP_HOST`, not an AWS secret access key or console password.
+Update both fields together in `roboshop-secrets` and restart user-service to reload
+environment variables. Never paste credentials into logs or issue reports.
+
+Check SES account sending status and verified domain in the matching AWS region.
+While SES is in sandbox mode, recipients must also be verified (or use the SES
+mailbox simulator). Domain verification alone does not remove that restriction.
+`AUTH_ENCRYPTION_KEY` is unrelated to SMTP authentication; preserve it to keep
+existing authenticator secrets decryptable. Logs include the numeric SMTP response
+code but omit the server response, recipient, and credentials.

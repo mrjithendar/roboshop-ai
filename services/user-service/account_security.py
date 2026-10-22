@@ -168,6 +168,11 @@ class AccountSecurity:
         if (host.startswith('email-smtp.') and host.endswith('.amazonaws.com')) and (not os.getenv('SMTP_USERNAME') or not os.getenv('SMTP_PASSWORD')):
             log_event('password_recovery_configuration_missing', 'ERROR', errorCode='RESET_EMAIL_CREDENTIALS_MISSING', reason='SES requires both SMTP_USERNAME and SMTP_PASSWORD in the user-service environment')
             raise HttpError(503, 'Password recovery email credentials are not configured. Contact the store.')
+        if host.startswith('email-smtp.') and host.endswith('.amazonaws.com'):
+            username, password = os.environ['SMTP_USERNAME'], os.environ['SMTP_PASSWORD']
+            if not re.fullmatch(r'[A-Za-z0-9]{16,128}', username) or password != password.strip():
+                log_event('password_recovery_configuration_invalid', 'ERROR', errorCode='RESET_EMAIL_CREDENTIALS_INVALID', reason='Use the SES SMTP access-key username and region-specific SMTP password, not the IAM user name, email, or AWS console password; remove surrounding whitespace')
+                raise HttpError(503, 'Password recovery email credentials are not configured. Contact the store.')
         return host, email_address(sender)
 
     def send(self, recipient, code):
@@ -212,7 +217,7 @@ class AccountSecurity:
             import logging
             logging.getLogger(__name__).error('Password reset email delivery failed; check SMTP configuration.')
             reason = 'SMTP connection or response timed out; check outbound network access' if isinstance(error, TimeoutError) else 'SMTP authentication rejected; check SES SMTP credentials' if isinstance(error, smtplib.SMTPAuthenticationError) else 'SMTP rejected email or connection failed; check SES identity, sandbox status and network'
-            log_event('password_reset_email_failed', 'ERROR', dependency='ses-smtp', errorCode='RESET_EMAIL_DELIVERY_FAILED', errorType=type(error).__name__, reason=reason)
+            log_event('password_reset_email_failed', 'ERROR', dependency='ses-smtp', errorCode='RESET_EMAIL_DELIVERY_FAILED', errorType=type(error).__name__, reason=reason, smtpCode=getattr(error, 'smtp_code', None))
         return response
 
     def reset_password(self, data):

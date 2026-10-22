@@ -38,6 +38,24 @@ class SecurityTests(unittest.TestCase):
                 self.security.mail_config()
             self.assertEqual(error_details(caught.exception)['errorCode'], 'RESET_EMAIL_CREDENTIALS_MISSING')
 
+    def test_ses_rejects_iam_name_and_whitespace_without_logging_secrets(self):
+        for username, password in [('smtp-user@example.com', 'private-value'), ('A' * 20, ' private-value ')]:
+            with self.subTest(username=username), patch.dict(os.environ, SMTP_HOST='email-smtp.us-east-1.amazonaws.com', SMTP_USERNAME=username, SMTP_PASSWORD=password), patch('account_security.log_event') as log:
+                with self.assertRaises(HttpError):
+                    self.security.mail_config()
+                self.assertEqual(log.call_args.kwargs['errorCode'], 'RESET_EMAIL_CREDENTIALS_INVALID')
+                self.assertNotIn(password, str(log.call_args))
+                self.assertNotIn(username, str(log.call_args))
+
+    def test_smtp_auth_failure_logs_code_without_server_response(self):
+        import smtplib
+        with patch.object(self.security, 'send', side_effect=smtplib.SMTPAuthenticationError(535, b'sensitive server response')), patch('account_security.log_event') as log:
+            result = self.security.request_reset({'email': self.user['email']})
+        self.assertIn('resetId', result)
+        self.assertEqual(log.call_args.kwargs['smtpCode'], 535)
+        self.assertNotIn('sensitive server response', str(log.call_args))
+        self.assertEqual(self.db.auth_challenges.count_documents({'kind': 'reset'}), 0)
+
     def tearDown(self):
         self.env.stop()
 
