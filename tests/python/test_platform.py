@@ -21,11 +21,6 @@ from store import Store, cents
 from accounts import hash_password, verify
 from runtime import HttpError, application
 
-spec = importlib.util.spec_from_file_location(
-    "mcp_server", ROOT / "services/mcp-server/server.py"
-)
-mcp = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(mcp)
 PRODUCTS = json.loads(
     (ROOT / "tests/fixtures/catalogue/fictional-products.json").read_text()
 )
@@ -107,83 +102,6 @@ class StoreTests(unittest.TestCase):
         self.assertFalse(verify("wrong", encoded))
         self.assertTrue(
             verify("long-test-password", hash_password("long-test-password"))
-        )
-
-
-class MCPTests(unittest.TestCase):
-    def setUp(self):
-        self.calls = []
-
-        def fake(*a, **kw):
-            self.calls.append((a, kw))
-            return {"ok": True}
-
-        self.server = mcp.MCP(fake)
-        self.server.handle({"jsonrpc": "2.0", "id": 1, "method": "initialize"})
-
-    def call(self, name, args={}):
-        return self.server.handle(
-            {
-                "jsonrpc": "2.0",
-                "id": 2,
-                "method": "tools/call",
-                "params": {"name": name, "arguments": args},
-            }
-        )
-
-    def test_read_tools(self):
-        self.assertFalse(
-            self.call("compare_products", {"skus": ["RED", "RMC"]})["result"]["isError"]
-        )
-        self.assertIn("skus=RED%2CRMC", self.calls[0][0][0])
-        self.assertTrue(
-            self.call("compare_products", {"skus": ["RED", "RED"]})["result"]["isError"]
-        )
-        self.assertTrue(
-            self.call("search_products", {"query": "x", "url": "http://evil"})[
-                "result"
-            ]["isError"]
-        )
-
-    def test_mutation_requires_session_and_forwards_role_checks(self):
-        with patch.dict(os.environ, {"MCP_SESSION_TOKEN": ""}):
-            self.assertTrue(
-                self.call("update_cart", {"sku": "RMC", "quantity": 1})["result"][
-                    "isError"
-                ]
-            )
-        with patch.dict(os.environ, {"MCP_SESSION_TOKEN": "a" * 64}):
-            self.assertFalse(
-                self.call("update_cart", {"sku": "RMC", "quantity": 1})["result"][
-                    "isError"
-                ]
-            )
-        self.assertEqual(self.calls[0][0][2]["cookie"], "rs_auth=" + "a" * 64)
-        self.assertEqual(self.calls[0][1]["method"], "POST")
-        self.assertEqual(self.call("execute_shell")["error"]["code"], -32602)
-
-    def test_sensitive_schema(self):
-        self.assertTrue(
-            self.call("admin_update_settings", {"secret": "abc"})["result"]["isError"]
-        )
-        self.assertTrue(
-            self.call(
-                "admin_set_user_access",
-                {"userId": "a" * 36, "role": "superadmin", "disabled": False},
-            )["result"]["isError"]
-        )
-
-    def test_protocol(self):
-        self.assertEqual(
-            mcp.MCP().handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})[
-                "error"
-            ]["code"],
-            -32002,
-        )
-        self.assertIsNone(
-            self.server.handle(
-                {"jsonrpc": "2.0", "method": "notifications/initialized"}
-            )
         )
 
 

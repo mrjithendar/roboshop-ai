@@ -4,6 +4,7 @@ import base64
 import contextvars
 import json
 import os
+import sys
 import re
 import secrets
 import threading
@@ -119,7 +120,7 @@ def log_event(event, level="INFO", **fields):
         record["traceId"] = context["traceId"]
     record.update({k: v for k, v in fields.items() if k in LOG_FIELDS and isinstance(v, (str, int, float, bool))})
     try:
-        print(format_log(record), flush=True)
+        print(format_log(record), file=sys.stderr, flush=True)
     except (OSError, ValueError):
         pass  # A logging sink must never change a commerce outcome.
 

@@ -1,1 +1,1 @@
-# Standard library only.
+fastmcp==4.1.3

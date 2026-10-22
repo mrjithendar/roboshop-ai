@@ -30,8 +30,8 @@ file by one gateway process. The legacy account/payment services are independent
 
 All services expose liveness and metrics. Gateway readiness checks SRE health probes
 for its dependencies. Traces propagate across internal HTTP calls; the manual exporter
-is best-effort. SRE guidance is deterministic and non-mutating. MCP is stdio, not a
-public HTTP endpoint. Model outputs are guidance only and cannot execute tools.
+is best-effort. SRE guidance is deterministic and non-mutating. MCP uses FastMCP: stdio for local clients and authenticated Streamable HTTP
+on the internal Kubernetes Service. No public ingress is configured. Model outputs are guidance only and cannot execute tools.
 
 Razorpay checkout uses stock reservations, signature validation, captured-payment checks,
 and signed webhook/status recovery. The legacy dummy payment route is not exposed.

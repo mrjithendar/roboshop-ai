@@ -6,4 +6,7 @@ COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt && useradd --uid 1000 --create-home app
 COPY --chown=app:app . ./services/mcp-server/
 USER app
+RUN python -m unittest discover -s services/mcp-server/tests
+ENV MCP_TRANSPORT=http
+EXPOSE 4107
 CMD ["python", "services/mcp-server/server.py"]

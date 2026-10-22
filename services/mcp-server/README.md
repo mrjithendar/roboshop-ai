@@ -1,28 +1,74 @@
-# Python MCP server
+# RoboShop FastMCP service
 
-Run `npm run mcp`, or configure an MCP client with the Python interpreter and
-absolute path to `services/mcp-server/server.py`. The process uses stdio JSON-RPC;
-stdout contains protocol responses only. No third-party packages are required.
+FastMCP owns protocol negotiation, tool discovery, dispatch and transport. The
+service preserves 15 tools, their strict schemas and mutation annotations. Tool
+implementations live in `gateway_tools.py`; all calls go through the gateway,
+which checks account ownership, roles and optimistic product revisions. Tools do
+not execute shell commands, accept arbitrary upstream URLs or take payments.
 
-Set `GATEWAY_URL` to the gateway's reachable internal URL. Public tools search and
-compare products, list shipping countries/cities, and inspect service health.
-Availability comes from the gateway, including reserved/sold quantities.
+## Kubernetes: Streamable HTTP
 
-Account tools read/update the cart and return cart-based recommendations. Admin
-tools list/create/update products; super-admin tools list users, change user access,
-and read/update public store settings. All 15 tools have strict input schemas.
-Mutation tools are marked destructive and should be invoked only after the user
-requests the specific change. Tools cannot execute shell commands or take payments.
+The container runs `MCP_TRANSPORT=http` on port **4107**, endpoint **`/mcp`**:
+`http://mcp-server.roboshop-ai.svc.cluster.local:4107/mcp`.
+This is an internal ClusterIP service, with no public ingress. Use a trusted cluster
+network or a local authenticated port-forward; do not expose bearer sessions over
+public plaintext HTTP. Public deployment would require TLS and an appropriate
+MCP OAuth authorization flow.
 
-For protected tools, configure `MCP_SESSION_TOKEN` through the client's secret
-injection facility with the value of an existing `rs_auth` session. Never commit
-it, paste it into prompts, or put it in command-line arguments. Set `PUBLIC_ORIGIN`
-to the store's exact origin for authenticated mutations. The gateway validates the
-session and role on every request: customers cannot use admin tools, admins cannot
-change roles/settings, and the super-admin account remains protected. Sessions
-expire after eight hours and are revoked on logout or access changes. No elevated
-service identity or arbitrary cookie/header override is provided.
+Each HTTP client must supply `Authorization: Bearer <its-own-rs_auth-session>`.
+The custom FastMCP verifier checks that session against `/api/auth/me` on every
+request, without caching it. The gateway also validates the same session and role
+on each protected tool call. Expired/revoked sessions fail closed. This is an
+internal opaque-session integration, **not an OAuth server**. Never put tokens in
+URLs, prompts, source code or command arguments.
 
-## Independent service build
+HTTP mode deliberately ignores `MCP_SESSION_TOKEN`: there is no shared user
+identity in the Deployment. Authentication applies to discovery and read tools
+too. Stateless HTTP avoids cross-client session state. A customer cannot gain
+admin permissions by choosing an admin tool.
 
-Run `docker build -t roboshop-mcp-server:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+- `/health`: process liveness, no dependency requests.
+- `/ready`: bounded gateway readiness check; failures return 503.
+- Neither health endpoint requires a user session.
+- Gateway network calls run in worker threads; no automatic mutation retries.
+- Tool failures are sanitized; traces retain `mcp.tool <name>` spans.
+
+For local access:
+
+```bash
+kubectl --context=mk4 -n roboshop-ai port-forward service/mcp-server 4107:4107
+```
+
+Then configure your MCP client with `http://localhost:4107/mcp` and inject its
+session bearer token through the client's secret settings.
+
+## Local stdio
+
+```bash
+python -m pip install -r services/mcp-server/requirements.txt
+MCP_TRANSPORT=stdio python services/mcp-server/server.py
+# Or: npm run mcp
+```
+
+Stdio is the default when running Python directly. Public read tools need no
+session; protected tools use `MCP_SESSION_TOKEN`, injected by the local client.
+Set `GATEWAY_URL` and `PUBLIC_ORIGIN` to your store's internal URL and exact public
+origin. Logs go to stderr, preserving stdout for protocol messages only.
+
+## Tests, build and deployment
+
+```bash
+python -m unittest discover -s services/mcp-server/tests -v
+bash build-push-ecr.sh mcp-server
+bash deploy-minikube.sh mcp-server
+```
+
+Tests use the actual FastMCP client, stdio subprocess and HTTP transport with
+mocked gateway calls. They cover schemas, invalid input, auth isolation, revocation,
+role rejection, safe errors and health checks. Docker runs these tests before
+publishing; dependencies are pinned in this service's `requirements.txt`.
+The Docker build context remains `services/mcp-server`.
+
+Existing stdio clients keep the same tool names and arguments. HTTP clients must
+provide their own sessions; existing `MCP_SESSION_TOKEN` Secret values can remain
+for old clients but are no longer injected into Kubernetes pods.
