@@ -31,6 +31,7 @@ k create namespace argocd --dry-run=client -o yaml | k apply -f -
 helm upgrade --install argocd argo-cd --repo https://argoproj.github.io/argo-helm \
   --version "$version" --kube-context "$KUBE_CONTEXT" --namespace argocd \
   -f "$SCRIPT_DIR/argocd/values.yaml" --timeout 10m
+KUBE_CONTEXT="$KUBE_CONTEXT" bash "$SCRIPT_DIR/setup-shared-tls.sh"
 k apply -f "$SCRIPT_DIR/argocd/ingress.yaml"
 echo 'Submitted: https://jithendar.com/argocd/ (pods and certificate may still be starting).'
 echo 'Username: admin. After startup, retrieve the initial password with:'

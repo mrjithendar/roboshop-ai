@@ -54,5 +54,5 @@ fi
 k get clusterissuer letsencrypt-staging letsencrypt-prod
 echo 'cert-manager and Let’s Encrypt issuers are ready. No website certificate has been requested.'
 echo 'Use letsencrypt-prod for trusted certificates; letsencrypt-staging for testing.'
-echo 'Application installers manage their certificates: shared monitoring/certificate.yaml for Grafana + Prometheus; WordPress chart for WordPress.'
+echo 'The WordPress chart owns jithendar.com TLS. Run minikube/setup-shared-tls.sh to reuse it via Traefik for Argo CD, monitoring and RoboShop.'
 echo 'See minikube/monitoring/README.md for certificate ownership. The roboshop-ai certificate.example.yaml is a legacy/manual example only.'

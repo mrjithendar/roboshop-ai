@@ -1,0 +1,44 @@
+# Langfuse chart 2.1.6 / application 4.63.0. Development, not HA.
+langfuse:
+  nextauth:
+    url: http://localhost:3000
+  features:
+    telemetryEnabled: false
+  replicas: 1
+  web:
+    resources:
+      requests: {cpu: 100m, memory: 512Mi}
+      limits: {cpu: '1', memory: 1Gi}
+  worker:
+    resources:
+      requests: {cpu: 100m, memory: 512Mi}
+      limits: {cpu: '1', memory: 1Gi}
+  ingress:
+    enabled: false
+postgresql:
+  storage:
+    requestedSize: 5Gi
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: '1', memory: 1Gi}
+redis:
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 512Mi}
+# A standalone ClickHouse avoids installing cluster-wide operator CRDs/Keeper.
+clickhouse:
+  deploy: false
+  host: langfuse-clickhouse
+  cluster:
+    enabled: false
+  auth:
+    username: langfuse
+    existingSecret: langfuse-clickhouse
+    existingSecretKey: password
+s3:
+  allInOne:
+    data:
+      size: 10Gi
+    resources:
+      requests: {cpu: 100m, memory: 512Mi}
+      limits: {cpu: '1', memory: 1Gi}

@@ -40,19 +40,19 @@ legacy="$(k -n roboshop-ai get deployment/grafana ingress/grafana pvc/grafana --
 k create namespace monitoring --dry-run=client -o yaml | k apply -f -
 python3 "$SCRIPT_DIR/monitoring/credentials.py" ensure --context "$KUBE_CONTEXT"
 # Both installers reconcile this SAME namespace/name; this is not a per-app certificate.
-echo 'TLS: ensuring shared Certificate monitoring/jithendar-com -> Secret monitoring/jithendar-com-tls (Grafana + Prometheus).'
-k apply -f "$SCRIPT_DIR/monitoring/certificate.yaml"
+echo 'TLS: ensuring shared Certificate jithendar/jithendar-com via Traefik TLSStore.'
+KUBE_CONTEXT="$KUBE_CONTEXT" bash "$SCRIPT_DIR/setup-shared-tls.sh"
 h upgrade --install grafana grafana \
   --repo https://grafana-community.github.io/helm-charts \
   --version "$GRAFANA_CHART_VERSION" --namespace monitoring \
   -f "$SCRIPT_DIR/monitoring/grafana/values.yaml" --wait --timeout 10m
 echo 'Synchronizing Grafana administrator with the shared monitoring-auth Secret...'
 python3 "$SCRIPT_DIR/monitoring/credentials.py" sync-grafana --context "$KUBE_CONTEXT"
-if ! k -n monitoring wait --for=condition=Ready certificate/jithendar-com --timeout=10m; then
-  k -n monitoring describe certificate jithendar-com
+if ! k -n jithendar wait --for=condition=Ready certificate/jithendar-com --timeout=10m; then
+  k -n jithendar describe certificate jithendar-com
   fail 'Grafana is installed but HTTPS is not ready. Check DNS, public port 80 and ACME Challenge events. See minikube/monitoring/grafana/README.md.'
 fi
-k -n monitoring get deployment/grafana ingress/grafana certificate/jithendar-com
+k -n monitoring get deployment/grafana ingress/grafana
 echo 'Grafana and its certificate are ready: https://jithendar.com/grafana/'
 echo 'Login user: admin. Retrieve the shared password (not printed automatically):'
 printf 'kubectl --context=%q -n monitoring get secret monitoring-auth -o jsonpath=' "$KUBE_CONTEXT"

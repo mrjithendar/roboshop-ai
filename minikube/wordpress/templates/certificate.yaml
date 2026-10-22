@@ -1,4 +1,4 @@
-# TLS Secrets are namespace-scoped; Grafana keeps its own certificate in monitoring.
+# Canonical jithendar.com certificate; other namespaces use the Traefik TLSStore.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:

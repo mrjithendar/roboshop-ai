@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: langfuse-clickhouse
+  namespace: langfuse
+spec:
+  selector: {app: langfuse-clickhouse}
+  ports:
+    - {name: http, port: 8123, targetPort: 8123}
+    - {name: native, port: 9000, targetPort: 9000}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: langfuse-clickhouse
+  namespace: langfuse
+spec:
+  serviceName: langfuse-clickhouse
+  replicas: 1
+  selector:
+    matchLabels: {app: langfuse-clickhouse}
+  template:
+    metadata:
+      labels: {app: langfuse-clickhouse}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: clickhouse
+          image: clickhouse/clickhouse-server:26.4
+          env:
+            - {name: CLICKHOUSE_USER, value: langfuse}
+            - {name: CLICKHOUSE_DB, value: default}
+            - {name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT, value: '1'}
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: langfuse-clickhouse, key: password}
+          ports:
+            - {name: http, containerPort: 8123}
+            - {name: native, containerPort: 9000}
+          resources:
+            requests: {cpu: 500m, memory: 2Gi}
+            limits: {cpu: '2', memory: 4Gi}
+          startupProbe:
+            httpGet: {path: /ping, port: http}
+            failureThreshold: 60
+            periodSeconds: 5
+          readinessProbe:
+            httpGet: {path: /ping, port: http}
+          livenessProbe:
+            httpGet: {path: /ping, port: http}
+            failureThreshold: 6
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/clickhouse}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests: {storage: 20Gi}

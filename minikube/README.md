@@ -348,3 +348,16 @@ This offline import does not fix expired certificates or blocked API ports.
 Run `bash minikube/deploy-argocd.sh` to install Argo CD at
 `https://jithendar.com/argocd/` using the existing Traefik and Let's Encrypt issuer.
 See [Argo CD setup and troubleshooting](argocd/README.md) for login and CLI commands.
+
+## Langfuse AI tracing
+
+Install the optional private Langfuse dashboard with `bash minikube/deploy-langfuse.sh`.
+Requires Helm 4.3.1+; setup and connection commands are in
+[Langfuse deployment and trace guide](../observability/langfuse/README.md).
+
+## Shared jithendar.com certificate
+
+Use `bash minikube/setup-shared-tls.sh` to reuse the ready WordPress certificate
+for Argo CD, monitoring and RoboShop without new ACME requests. See
+[shared TLS migration and renewal](shared-tls/README.md). This replaces the older
+per-namespace certificate instructions for this hostname.

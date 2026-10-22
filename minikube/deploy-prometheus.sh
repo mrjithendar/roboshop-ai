@@ -35,8 +35,8 @@ legacy="$(k -n roboshop-ai get deployment/prometheus ingress/prometheus pvc/prom
 k create namespace monitoring --dry-run=client -o yaml | k apply -f -
 python3 "$SCRIPT_DIR/monitoring/credentials.py" ensure --context "$KUBE_CONTEXT"
 # Both installers reconcile this SAME namespace/name; this is not a per-app certificate.
-echo 'TLS: ensuring shared Certificate monitoring/jithendar-com -> Secret monitoring/jithendar-com-tls (Grafana + Prometheus).'
-k apply -f "$SCRIPT_DIR/monitoring/certificate.yaml"
+echo 'TLS: ensuring shared Certificate jithendar/jithendar-com via Traefik TLSStore.'
+KUBE_CONTEXT="$KUBE_CONTEXT" bash "$SCRIPT_DIR/setup-shared-tls.sh"
 diagnose() {
   echo 'Prometheus diagnostics (pods, storage, events and recent logs):' >&2
   k --request-timeout=15s -n monitoring get deployment/prometheus pvc/prometheus-data -o wide || true
@@ -61,8 +61,8 @@ if ! k -n monitoring rollout status deployment/prometheus --timeout=10m; then
   fail 'Prometheus did not become ready. Check Pending/PVC events, ImagePullBackOff, or CrashLoopBackOff in the diagnostics above. Data and credentials were preserved.'
 fi
 echo 'Prometheus pod is ready. Checking the shared monitoring TLS certificate...'
-if ! k -n monitoring wait --for=condition=Ready certificate/jithendar-com --timeout=10m; then
-  k --request-timeout=15s -n monitoring describe certificate jithendar-com || true
+if ! k -n jithendar wait --for=condition=Ready certificate/jithendar-com --timeout=10m; then
+  k --request-timeout=15s -n jithendar describe certificate jithendar-com || true
   fail 'Prometheus is running, but its HTTPS certificate is not ready.'
 fi
 k -n monitoring get deployment/prometheus ingress/prometheus pvc/prometheus-data

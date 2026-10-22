@@ -184,6 +184,7 @@ jobs:
       # Do not exec into a container that may still be restarting (Recreate strategy).
       - name: Apply ingress and TLS configuration
         run: |
+          KUBE_CONTEXT="$KUBE_CONTEXT" bash minikube/setup-shared-tls.sh
           kubectl --context="$KUBE_CONTEXT" apply -f minikube/roboshop/ingress.yaml
 
       - name: Record deployment

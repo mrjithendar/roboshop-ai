@@ -58,6 +58,7 @@ h upgrade --install wordpress "$SCRIPT_DIR/wordpress" --namespace jithendar \
   --set "ingress.enabled=$enabled" --wait --timeout 10m
 k -n jithendar exec -i deployment/wordpress -c cli -- sh -s < "$SCRIPT_DIR/wordpress/bootstrap.sh"
 k -n jithendar wait --for=condition=Ready certificate/jithendar-com --timeout=10m
+KUBE_CONTEXT="$KUBE_CONTEXT" bash "$SCRIPT_DIR/setup-shared-tls.sh"
 # Publish only after installation and the cross-process Redis check succeed.
 h upgrade --install wordpress "$SCRIPT_DIR/wordpress" --namespace jithendar \
   --set ingress.enabled=true --wait --timeout 10m

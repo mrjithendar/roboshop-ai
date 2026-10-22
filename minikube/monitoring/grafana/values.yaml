@@ -31,8 +31,7 @@ ingress:
   path: /grafana
   pathType: Prefix
   tls:
-    - secretName: jithendar-com-tls
-      hosts: [jithendar.com]
+    - hosts: [jithendar.com]
 # Do not strip /grafana at the ingress: Grafana handles the prefix itself.
 grafana.ini:
   server:
