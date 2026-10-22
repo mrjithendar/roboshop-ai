@@ -4,9 +4,10 @@ import {once} from 'node:events';
 
 // Exercise actual HTTP completion, including finally: syntax checks cannot detect
 // block-scoped references used by a different block.
-for (const service of ['catalogue-service','product-ingestion','payment-service','recommendation-service','sre-copilot']) {
- test(`${service}: success, rejection, missing route and probes leave server alive`, async t => {
+for (const format of ['json','text']) for (const service of ['catalogue-service','product-ingestion','payment-service','recommendation-service','sre-copilot']) {
+ test(`${service} ${format}: success, rejection, missing route and probes leave server alive`, async t => {
   const {serve,json,HttpError}=await import(`../services/${service}/lib/runtime.mjs`);
+  const originalFormat=process.env.LOG_FORMAT; process.env.LOG_FORMAT=format;
   const original = console.log, lines=[];
   console.log=(line)=>lines.push(line);
   const before=new Map(['SIGINT','SIGTERM'].map(s=>[s,process.listeners(s)]));
@@ -17,6 +18,7 @@ for (const service of ['catalogue-service','product-ingestion','payment-service'
   });
   t.after(async()=>{
     console.log=original;
+    if(originalFormat===undefined)delete process.env.LOG_FORMAT;else process.env.LOG_FORMAT=originalFormat;
     server.closeAllConnections();
     await new Promise(resolve=>server.close(resolve));
     for(const [signal,listeners] of before) for(const listener of process.listeners(signal)) if(!listeners.includes(listener)) process.removeListener(signal,listener);
@@ -28,7 +30,7 @@ for (const service of ['catalogue-service','product-ingestion','payment-service'
     assert.equal(response.status,status);await response.text();
   }
   await new Promise(resolve=>setImmediate(resolve));
-  const records=lines.map(line=>JSON.parse(line));
+  const records=lines.map(line=>format==='json'?JSON.parse(line):{event:/event=([^ ]+)/.exec(line)?.[1],status:Number(/status=(\d+)/.exec(line)?.[1])});
   assert.ok(records.some(r=>r.event==='catalogue_read_completed'));
   assert.ok(records.some(r=>r.event==='payment_verification_failed'));
   assert.ok(records.some(r=>r.event==='request_completed'&&r.status===500));

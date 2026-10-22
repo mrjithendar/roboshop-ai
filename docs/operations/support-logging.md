@@ -72,3 +72,31 @@ errorCode and trace correlation; infrastructure retains its native service logs.
 The standalone FastAPI demo was retired. FastAPI remains the AI gateway framework.
 Its ECR repository is removed from Terraform defaults; no AWS resources or images
 are deleted by these code changes. Review the next Terraform plan before applying.
+
+## Readable console format
+
+Minikube's shared ConfigMap sets `LOG_FORMAT=text`. Python/Node services, Finder,
+Kafka bridge and the Go currency service support it. Java shipping already uses
+readable Spring/SLF4J lines; infrastructure keeps its native logs.
+
+Example (illustrative):
+
+```text
+2026-10-22T04:40:00Z INFO  [user-service] User logged in successfully | event=user_logged_in username="alice@example.com" outcome="success" traceId="..."
+2026-10-22T04:40:01Z WARN  [user-service] User failed to log in | event=user_login_failed username="alice@example.com" errorCode="AUTH_INVALID_CREDENTIALS" reason="Invalid email or password."
+```
+
+JSON remains the default outside Minikube and now includes a human-readable
+`message`. Use `LOG_FORMAT=json` for collectors requiring JSON parsing. Values
+are escaped onto one line; logging sink failures must not affect requests.
+HTTP 5xx uses ERROR; expected 4xx/retries use WARN; successful work uses INFO.
+
+After building the updated images, change only the logging key in an existing
+cluster (preserving its other configuration), then deploy:
+
+```bash
+kubectl -n roboshop-ai patch configmap roboshop-config --type=merge -p '{"data":{"LOG_FORMAT":"text"}}'
+bash deploy-minikube.sh
+```
+
+New installs receive this setting from `minikube/roboshop/config.yaml`.

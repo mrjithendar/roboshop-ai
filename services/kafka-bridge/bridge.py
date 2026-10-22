@@ -1,4 +1,6 @@
 """At-least-once order analytics stream. RabbitMQ remains the shipping transport."""
+from datetime import datetime, timezone
+from log_format import format_log
 import json
 import os
 import signal
@@ -13,7 +15,10 @@ health = {'tick': time.monotonic(), 'ready': False}
 
 
 def log(event, **fields):
-    print(json.dumps({'service': 'kafka-bridge', 'event': event, **fields}), flush=True)
+    try:
+        print(format_log({'timestamp':datetime.now(timezone.utc).isoformat(), 'level':'WARN' if event in ('delivery_retry','invalid_event_quarantined') else 'INFO', 'service':'kafka-bridge', 'event':event, **fields}), flush=True)
+    except (OSError, ValueError, TypeError):
+        pass
 
 
 def project(body):

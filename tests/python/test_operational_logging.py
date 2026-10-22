@@ -34,7 +34,7 @@ class OperationalLogging(unittest.TestCase):
         record=json.loads(output.getvalue())
         self.assertEqual(record['dependency'],'catalogue.example')
         self.assertEqual(record['status'],503)
-        self.assertEqual(record['level'],'WARN')
+        self.assertEqual(record['level'],'ERROR')
         self.assertNotIn('private',output.getvalue());self.assertNotIn('secret',output.getvalue())
 
     def test_stdout_failure_does_not_change_checkout_result(self):

@@ -195,7 +195,7 @@ func (c *rateCache) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if status >= 400 {
 			level = slog.LevelWarn
 		}
-		slog.Log(r.Context(), level, "request_completed", "service", "currency-service", "method", r.Method, "route", route, "status", status, "durationMs", time.Since(started).Milliseconds())
+		slog.Log(r.Context(), level, "HTTP request completed", "service", "currency-service", "method", r.Method, "route", route, "status", status, "durationMs", time.Since(started).Milliseconds())
 	}
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(body)
@@ -210,7 +210,11 @@ func main() {
 	case "ERROR":
 		level = slog.LevelError
 	}
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})))
+	var handler slog.Handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})
+	if os.Getenv("LOG_FORMAT") == "text" {
+		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level})
+	}
+	slog.SetDefault(slog.New(handler))
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	cache := &rateCache{client: &http.Client{Timeout: 5 * time.Second}}
@@ -222,7 +226,7 @@ func main() {
 		defer cancel()
 		_ = server.Shutdown(shutdown)
 	}()
-	slog.Info("service_listening", "service", "currency-service", "port", 4111)
+	slog.Info("Service listening for requests", "service", "currency-service", "port", 4111)
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("server_failed", "service", "currency-service", "errorType", "http_server_error")
 		os.Exit(1)

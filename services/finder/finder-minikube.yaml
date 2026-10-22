@@ -50,6 +50,12 @@ spec:
               name: roboshop-secrets
               key: LLM_SERVICE_TOKEN
               optional: true
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: roboshop-config
+              key: LOG_FORMAT
+              optional: true
         resources:
           requests:
             cpu: 50m

@@ -76,6 +76,13 @@ spec:
           timeoutSeconds: 5
           periodSeconds: 10
           failureThreshold: 3
+        env:
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: roboshop-config
+              key: LOG_FORMAT
+              optional: true
       volumes:
       - name: tmp
         emptyDir: {}

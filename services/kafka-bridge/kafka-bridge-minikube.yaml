@@ -1,4 +1,3 @@
-# Kafka broker and event bridge run together in one persistent pod.
 apiVersion: v1
 kind: Service
 metadata:
@@ -137,6 +136,12 @@ spec:
           value: amqp://roboshop:$(RABBITMQ_PASSWORD)@rabbitmq:5672
         - name: KAFKA_BOOTSTRAP_SERVERS
           value: kafka:9092
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: roboshop-config
+              key: LOG_FORMAT
+              optional: true
         resources:
           requests:
             cpu: 50m

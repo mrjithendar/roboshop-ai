@@ -11,6 +11,15 @@ class SupportLoggingTests(unittest.TestCase):
             spec=importlib.util.spec_from_file_location('support_runtime',path)
             module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
             yield module
+    def test_readable_format_is_single_line_and_logger_failure_is_safe(self):
+        for r in self.runtimes():
+            with patch.dict(r.os.environ, LOG_FORMAT='text'):
+                value=r.format_log({'timestamp':'2026-10-22','service':'user-service','level':'WARN','event':'user_login_failed','username':'a\nb@example.com'})
+                self.assertIn('User failed to log in',value)
+                self.assertNotIn('\n',value)
+                with patch('builtins.print',side_effect=OSError('sink unavailable')):
+                    r.log_event('request_failed','ERROR')
+
     def test_safe_reasons_and_secret_redaction(self):
         for r in self.runtimes():
             self.assertEqual(r.error_details(r.HttpError(401,'Invalid email or password.'))['errorCode'],'AUTH_INVALID_CREDENTIALS')

@@ -6,12 +6,46 @@ export const context = new AsyncLocalStorage();
 
 let logService = process.env.OTEL_SERVICE_NAME || 'roboshop';
 const logFields = new Set('method route operation status durationMs dependency operation errorType errorCode provider reason revision port state attempt maxAttempts outcome'.split(' '));
+const logMessages = {
+  "user_logged_in": "User logged in successfully",
+  "user_login_failed": "User failed to log in",
+  "user_login_mfa_required": "Password accepted; waiting for second-factor verification",
+  "user_registered": "User account created",
+  "user_logged_out": "User logged out",
+  "authentication_challenge_passed": "Human verification passed",
+  "authentication_challenge_rejected": "Human verification rejected",
+  "request_completed": "HTTP request completed",
+  "request_failed": "Request failed",
+  "request_rejected": "Request rejected",
+  "dependency_call_completed": "Dependency request completed",
+  "dependency_retry_scheduled": "Dependency unavailable; retrying a safe read",
+  "service_starting": "Starting service",
+  "service_listening": "Service listening for requests",
+  "service_stopping": "Stopping service",
+  "cart_updated": "Cart saved",
+  "cart_update_rejected": "Cart update rejected; refresh the cart",
+  "checkout_reserved": "Checkout reserved; creating payment order",
+  "checkout_payment_captured": "Payment captured and order confirmed",
+  "checkout_reconciliation_required": "Payment outcome uncertain; reconciliation required",
+  "order_event_published": "Order event delivered to RabbitMQ",
+  "delivery_retry": "Kafka delivery not confirmed; message retained for retry",
+  "event_delivered": "Order event delivered to Kafka",
+  "invalid_event_quarantined": "Invalid order event moved to quarantine"
+};
 export function logEvent(event, fields = {}, level = 'INFO') {
+  if (fields.status >= 500) level = 'ERROR';
   const levels = { DEBUG: 10, INFO: 20, WARN: 30, ERROR: 40 };
   if ((levels[level] || 20) < (levels[(process.env.LOG_LEVEL || 'INFO').toUpperCase()] || 20)) return;
   const ctx = context.getStore();
   const safe = Object.fromEntries(Object.entries(fields).filter(([k, v]) => logFields.has(k) && ['string','number','boolean'].includes(typeof v)));
-  try { console.log(JSON.stringify({ timestamp: new Date().toISOString(), level, service: ctx?.service || logService, event, ...(ctx?.traceId ? {traceId: ctx.traceId} : {}), ...safe })); }
+  try {
+    const message = logMessages[event] || event.replaceAll('_', ' ');
+    const record = {timestamp:new Date().toISOString(),level,service:ctx?.service || logService,event,message,...(ctx?.traceId ? {traceId:ctx.traceId}:{}),...safe};
+    if ((process.env.LOG_FORMAT || 'json').toLowerCase() === 'text') {
+      const details = Object.entries(record).filter(([key])=>!['timestamp','level','service','message','event'].includes(key)).map(([key,value])=>`${key}=${JSON.stringify(value)}`).join(' ');
+      console.log(`${record.timestamp} ${level.padEnd(5)} [${record.service}] ${message} | event=${event} ${details}`.trimEnd());
+    } else console.log(JSON.stringify(record));
+  }
   catch { /* Logging must not change the request outcome. */ }
 }
 
