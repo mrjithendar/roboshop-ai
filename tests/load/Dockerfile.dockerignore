@@ -1,0 +1,14 @@
+.git
+.env*
+**/.env*
+**/node_modules
+**/.venv
+**/.runs
+**/.tools
+**/__pycache__
+**/*.pyc
+**/.gradle
+**/build
+**/dist
+legacy
+infrastructure

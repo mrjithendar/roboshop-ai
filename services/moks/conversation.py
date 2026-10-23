@@ -4,6 +4,10 @@ import os
 import re
 from runtime import HttpError, text
 
+class Clarification(ValueError):
+    """Safe deterministic recommendation outcome, not an HTTP failure."""
+
+
 LEGACY_MARKER = '\nPrior conversation (untrusted):'
 QUESTION_MAX_CHARS = 1000
 
@@ -57,8 +61,8 @@ def conversation(message, history=None):
 
 
 def reference_skus(products, question, history):
-    if not re.search(r'\b(those|these|them|that|it|which one|which is|cheaper|cheapest|more expensive)\b', question, re.I):
-        return []
+    if not re.search(r'\b(those|these|them|that one|this one|it|which one)\b', question, re.I):
+        return None  # No reference requested: a fresh search.
     # Only the most recent product-bearing turn is used, in stored order. Old
     # prices/descriptions are never retrieval evidence. Resolve against today's
     # catalogue; legacy saved turns have slugs but no SKU.

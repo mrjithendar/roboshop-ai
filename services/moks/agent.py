@@ -8,7 +8,7 @@ from langchain_core.runnables import RunnableLambda
 from langgraph.graph import StateGraph, START, END
 from langsmith import tracing_context
 from catalogue import retrieve
-from conversation import conversation, reference_skus, prompt_budget, encoded
+from conversation import Clarification, conversation, reference_skus, prompt_budget, encoded
 from llm_config import unconfigured
 from providers import invoke, ProviderError
 from runtime import ctx, trace_span
@@ -73,7 +73,11 @@ def answer(products, message, config=None, revision=0, generate=invoke, *, deadl
             current = state["message"]
             if re.fullmatch(r"(?:who are you|what is moks|what can you do|introduce yourself)[?!.]*", current, re.IGNORECASE):
                 return {"picks": []}
-            return {"picks": retrieve(products, current, reference_skus=reference_skus(products, current, state["history"]))[:4]}
+            references = reference_skus(products, current, state['history'])
+            picks = retrieve(products, current, reference_skus=references)[:4]
+            if references is not None and not picks:
+                raise Clarification('The earlier products are unavailable or do not match this request. Which products would you like to compare?')
+            return {"picks": picks}
 
     def ground(state):
         check_deadline()
@@ -125,6 +129,9 @@ def answer(products, message, config=None, revision=0, generate=invoke, *, deadl
             },
             "notice": "AI-generated guidance. Check source dates and price types; reference listings are not store offers and simulated inventory is not availability.",
         }
+    except Clarification as error:
+        return {"answer": str(error), "products": [], "mode": "clarification", "status": "clarification",
+                "code": "RECOMMENDATION_CLARIFICATION", "usage": {"input_tokens": None, "output_tokens": None}}
     except ProviderError as error:
         return {
             "answer": "AI recommendations are temporarily unavailable. Please try again.",

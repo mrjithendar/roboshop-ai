@@ -1,0 +1,5 @@
+-r ../../services/ai-gateway/requirements.txt
+-r ../../services/moks/requirements.txt
+-r ../../services/user-service/requirements.txt
+-r ../../services/cart-service/requirements.txt
+mongomock==4.3.0

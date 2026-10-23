@@ -1,0 +1,42 @@
+# Explicit opt-in dedicated namespace; no production service or secret references.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: roboshop-load-testing
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: load-lab
+  namespace: roboshop-load-testing
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: load-lab}
+  template:
+    metadata:
+      labels: {app: load-lab}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: lab
+          image: roboshop-load-lab:local
+          imagePullPolicy: Never
+          ports: [{containerPort: 18080}]
+          resources:
+            requests: {cpu: '1', memory: 1Gi}
+            limits: {cpu: '2', memory: 2Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: isolate-load-lab
+  namespace: roboshop-load-testing
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  ingress: []
+  egress: []

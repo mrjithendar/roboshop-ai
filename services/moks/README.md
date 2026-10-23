@@ -172,3 +172,21 @@ trace headers are forwarded: no arbitrary browser headers or other cookies.
 Authentication retains its origin check, two-second timeout, 16 KiB response read
 and no retries. Spans contain normalized routes and actual response statuses only;
 no response means no HTTP status. Export failure cannot fail authentication.
+
+### Deterministic recommendation constraints
+
+Retrieval parses explicit currency codes and symbols before lexical matching:
+`under INR 500`, `under ₹500`, `below USD 100`, `budget of EUR 200`, and
+`under 500 INR` are supported. Dot decimals and validated comma/space thousands
+groupings are supported; locale-ambiguous decimals require clarification. `$`
+means USD; use SGD/AUD/CAD or their qualified symbols for other dollar currencies.
+Conflicting currencies/budgets and unqualified budgets over mixed currencies
+return a clarification with no product cards or provider call. Retrieval never
+performs implicit FX conversion or uses saved conversation prices.
+
+Comparative words alone do not activate history references: a new search for the
+cheapest vacuum remains a vacuum search. Explicit references such as “those two”
+use saved SKUs resolved against the current catalogue, while current category and
+budget constraints still apply. Missing/unavailable references request
+clarification instead of broadening to unrelated products. Existing history and
+prompt budgets, account isolation and provider routing remain unchanged.
