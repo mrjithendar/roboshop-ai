@@ -1,0 +1,302 @@
+{
+  "runId": "load-smoke-limited-stock",
+  "scenario": "limited-stock",
+  "profile": "smoke",
+  "workload": {
+    "executor": "constant-vus",
+    "vus": 2,
+    "duration": "1s"
+  },
+  "providerMode": "mock",
+  "metrics": {
+    "operation_latency{operation:shipping}": {
+      "contains": "time",
+      "values": {
+        "p(95)": 10.8978,
+        "p(99)": 10.94436,
+        "max": 10.956,
+        "med": 8.0975
+      },
+      "thresholds": {
+        "p(95)<3000": {
+          "ok": true
+        }
+      },
+      "type": "trend"
+    },
+    "http_req_receiving": {
+      "contains": "time",
+      "values": {
+        "med": 0.047,
+        "p(95)": 0.164,
+        "p(99)": 0.1712,
+        "max": 0.173
+      },
+      "type": "trend"
+    },
+    "http_req_connecting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 0.272,
+        "p(95)": 0.744,
+        "p(99)": 0.8784,
+        "max": 0.912
+      }
+    },
+    "correctness_failures": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 0,
+        "rate": 0
+      },
+      "thresholds": {
+        "count==0": {
+          "ok": true
+        }
+      }
+    },
+    "data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "rate": 6612.030370901959,
+        "count": 7767
+      }
+    },
+    "operation_latency{operation:checkout}": {
+      "thresholds": {
+        "p(95)<3000": {
+          "ok": true
+        }
+      },
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(99)": 42.187580000000004,
+        "max": 42.2,
+        "med": 39.039500000000004,
+        "p(95)": 42.1379
+      }
+    },
+    "http_req_failed": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0.2857142857142857,
+        "passes": 6,
+        "fails": 15
+      }
+    },
+    "http_req_duration{expected_response:true}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 41.9102,
+        "p(99)": 42.14204,
+        "max": 42.2,
+        "med": 15.808
+      }
+    },
+    "http_reqs": {
+      "contains": "default",
+      "values": {
+        "count": 21,
+        "rate": 17.87725476875771
+      },
+      "type": "counter"
+    },
+    "operation_latency{operation:verify}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 31.678,
+        "p(95)": 31.7563,
+        "p(99)": 31.76326,
+        "max": 31.765
+      },
+      "thresholds": {
+        "p(95)<3000": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_waiting": {
+      "contains": "time",
+      "values": {
+        "max": 42.133,
+        "med": 13.054,
+        "p(95)": 41.757,
+        "p(99)": 42.0578
+      },
+      "type": "trend"
+    },
+    "operation_latency{operation:cart_update}": {
+      "values": {
+        "med": 13.333,
+        "p(95)": 16.9084,
+        "p(99)": 17.49528,
+        "max": 17.642
+      },
+      "thresholds": {
+        "p(95)<3000": {
+          "ok": true
+        }
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "operation_latency": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 13.3445,
+        "p(95)": 41.8067,
+        "p(99)": 42.121340000000004,
+        "max": 42.2
+      }
+    },
+    "vus": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "min": 2,
+        "max": 2,
+        "value": 2
+      }
+    },
+    "vus_max": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "value": 2,
+        "min": 2,
+        "max": 2
+      }
+    },
+    "completed_journeys": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 4,
+        "rate": 3.405191384525278
+      },
+      "thresholds": {
+        "count>0": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_blocked": {
+      "contains": "time",
+      "values": {
+        "med": 0.293,
+        "p(95)": 0.883,
+        "p(99)": 1.011,
+        "max": 1.043
+      },
+      "type": "trend"
+    },
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 13.333,
+        "p(95)": 41.786,
+        "p(99)": 42.117200000000004,
+        "max": 42.2
+      }
+    },
+    "successful_operations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 14,
+        "rate": 11.918169845838474
+      }
+    },
+    "admission_rejections": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 6,
+        "rate": 5.107787076787917
+      }
+    },
+    "http_req_tls_handshaking": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 0
+      }
+    },
+    "data_received": {
+      "values": {
+        "count": 18338,
+        "rate": 15611.099902356138
+      },
+      "type": "counter",
+      "contains": "data"
+    },
+    "checks": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 1,
+        "passes": 6,
+        "fails": 0
+      }
+    },
+    "unexpected_failures": {
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 20
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      },
+      "type": "rate",
+      "contains": "default"
+    },
+    "http_req_sending": {
+      "values": {
+        "med": 0.029,
+        "p(95)": 0.126,
+        "p(99)": 0.1292,
+        "max": 0.13
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "iteration_duration": {
+      "values": {
+        "p(99)": 298.59064636,
+        "max": 298.937083,
+        "med": 216.023709,
+        "p(95)": 297.20489979999996
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 9,
+        "rate": 7.661680615181876
+      }
+    }
+  },
+  "limitations": [
+    "No production capacity claim",
+    "Default local lab uses MongoMock and single-writer JSON commerce",
+    "No email, external fulfilment or real settlement"
+  ]
+}

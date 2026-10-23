@@ -24,7 +24,7 @@ class RunExistsError(RuntimeError):
  """An explicit run ID must not overwrite an earlier or active run."""
 
 @contextlib.contextmanager
-def running(run,count):
+def running(run,count,rate_limit_mode="per-user"):
  folder=HERE/'.runs'/safe_run(run)
  try:
   folder.mkdir(parents=True,exist_ok=False)
@@ -46,7 +46,7 @@ def running(run,count):
  env={k:os.environ[k] for k in ('PATH','SYSTEMROOT','LANG','TMPDIR') if k in os.environ}
  token=secrets.token_hex(32)
  env.update(LOAD_FIXTURES=str(path),HOST='127.0.0.1',PUBLIC_ORIGIN=base,UPSTREAM_ORIGIN=base,ALLOWED_ORIGINS=base,
-  USER_SERVICE_TOKEN=token,LLM_SERVICE_TOKEN=token,PAYMENT_SERVICE_TOKEN=token, PAYMENT_MODE='test',CHECKOUT_CURRENCIES='INR',
+  LOAD_RATE_LIMIT_MODE=rate_limit_mode,USER_SERVICE_TOKEN=token,LLM_SERVICE_TOKEN=token,PAYMENT_SERVICE_TOKEN=token, PAYMENT_MODE='test',CHECKOUT_CURRENCIES='INR',
   RAZORPAY_KEY_ID='rzp_test_LOAD',RAZORPAY_KEY_SECRET=fixture['paymentSecret'],RAZORPAY_WEBHOOK_SECRET=secrets.token_hex(32),
   USER_URL=f"http://127.0.0.1:{ports['user']}",AI_GATEWAY_URL=f"http://127.0.0.1:{ports['gateway']}",
   AGENT_URL=f"http://127.0.0.1:{ports['moks']}",PAYMENT_URL=f"http://127.0.0.1:{ports['payment']}",
@@ -137,7 +137,7 @@ def main():
   else:print(json.dumps(verify(folder)))
   return
  if not 1<=args.vus<=100:raise ValueError('VUs must be 1–100')
- with running(args.run_id,max(50,args.vus)) as (folder,fixture):
+ with running(args.run_id,max(50,args.vus),'shared' if args.scenario=='rate-limit' else 'per-user') as (folder,fixture):
   if args.action=='serve':
    print(f"Isolated lab: {fixture['baseUrl']}\nFixture file: {folder/'fixtures.json'}",flush=True)
    try:
@@ -147,7 +147,7 @@ def main():
   env={k:v for k,v in os.environ.items() if k in ('PATH','HOME','LANG','TMPDIR','RATE','PACE_SECONDS','WARMUP_SECONDS','MAX_UNEXPECTED_RATE','P95_MS','AI_P95_MS','MAX_REJECTIONS','MAX_DROPPED')}
   env.update(BASE_URL=fixture['baseUrl'],TARGET_ALLOWLIST=fixture['baseUrl'],FIXTURES=str(folder/'fixtures.json'),RUN_ID=args.run_id,SCENARIO=args.scenario,PROFILE=args.profile,VUS=str(args.vus),RESULT_DIR=str(folder))
   if args.seconds:env['DURATION']=args.seconds+'s'
-  environment={'cpuCount':os.cpu_count(),'platform':platform.platform(),'python':sys.version.split()[0],'generatorCoLocated':True,'storage':'single-writer JSON','mongo':'mongomock','replicas':1,'providerMode':'mock','commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()}
+  environment={'cpuCount':os.cpu_count(),'platform':platform.platform(),'python':sys.version.split()[0],'generatorCoLocated':True,'storage':'single-writer JSON','mongo':'mongomock','replicas':1,'providerMode':'mock','rateLimitMode':'shared' if args.scenario=='rate-limit' else 'per-user','commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()}
   for key,path in [('cgroupMemoryLimit','/sys/fs/cgroup/memory.max'),('cgroupCpuLimit','/sys/fs/cgroup/cpu.max')]:
    if Path(path).exists():environment[key]=Path(path).read_text().strip()
   (folder/'environment.json').write_text(json.dumps(environment,indent=2))

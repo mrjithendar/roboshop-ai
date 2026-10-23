@@ -1,0 +1,7 @@
+{
+  "runId": "load-final-limited-stock",
+  "logicalOrders": 3,
+  "reservedOrSold": 3,
+  "errors": [],
+  "backend": "single-writer JSON; not a PostgreSQL capacity result"
+}

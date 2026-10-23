@@ -1,0 +1,11 @@
+{
+  "cpuCount": 12,
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "python": "3.11.9",
+  "generatorCoLocated": true,
+  "storage": "single-writer JSON",
+  "mongo": "mongomock",
+  "replicas": 1,
+  "providerMode": "mock",
+  "commit": "e9bd487618f55a55a55877042b315e1844bfe32f"
+}

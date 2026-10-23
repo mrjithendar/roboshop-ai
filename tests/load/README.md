@@ -50,8 +50,9 @@ password-login load must not be claimed from this scenario.
 
 All subprocesses use a minimal environment, not inherited AWS/SES/Langfuse,
 production database, superadmin or payment credentials. Existing deployments and
-data are never modified. Private fixtures and raw logs live in ignored `.runs/`
-folders with restrictive permissions. Never upload fixtures, ledger snapshots,
+data are never modified. Private fixtures and raw logs live in `.runs/` folders with restrictive
+permissions and are individually ignored. Only sanitized `summary.json`,
+`verification.json` and `environment.json` are eligible for Git tracking. Never upload fixtures, ledger snapshots,
 provider reports or raw logs. CI uploads only sanitized numeric summaries,
 verification and environment metadata, then deletes its own run directory.
 An active marker prevents cleanup of a running lab; an interrupted force-killed
@@ -116,12 +117,17 @@ it checks duplicate logical keys, provider receipts, test provenance and stock.
 Pacing defaults to one second, or 30 seconds between two-turn chat journeys.
 Arrival-rate scheduling supplies its own pacing, as described in
 [k6's executor documentation](https://grafana.com/docs/k6/latest/using-k6/scenarios/executors/constant-arrival-rate/).
-The gateway's existing 300 requests/minute/address and 10 AI requests/minute/address
-limits remain active; chat also has a two-request gateway concurrency cap. Higher
-profiles can intentionally hit these admission limits. Do not weaken them or
-spoof forwarded IPs to manufacture a capacity result. Rate-limit validation has
-separate thresholds; capacity runs fail on rejections unless the operator
-explicitly changes `MAX_REJECTIONS`.
+The gateway's existing 300 requests/minute/client and 10 AI requests/minute/client
+limits remain active. In this disposable lab only, known synthetic session cookies
+map to separate simulated client identities, so 50 users do not share one IP
+bucket. Unknown sessions still use the real peer address. Production address
+resolution, authorization and thresholds are unchanged. This simulates customers
+on separate networks, not many customers behind one NAT.
+
+The `rate-limit` scenario retains the shared peer bucket to verify throttling.
+Per-user limits and global AI concurrency limits can still reject overly fast
+traffic; do not hide these failures. Environment reports record the selected mode.
+
 
 ## Metrics, thresholds and chaos
 

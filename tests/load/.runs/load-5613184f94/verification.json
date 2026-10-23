@@ -1,0 +1,7 @@
+{
+  "runId": "load-5613184f94",
+  "logicalOrders": 10,
+  "reservedOrSold": 10,
+  "errors": [],
+  "backend": "single-writer JSON; not a PostgreSQL capacity result"
+}

@@ -21,7 +21,11 @@ if role=='user':
   db.auth_sessions.insert_one({'_id':hashlib.sha256(user['session'].encode()).hexdigest(),'userId':user['id'],'version':1,'expiresAt':datetime.now(timezone.utc)+timedelta(hours=8)})
  serve('user-service',int(os.environ['PORT']),app.handle)
 elif role=='gateway':
+ import server
  from server import Gateway
+ if os.environ.get('LOAD_RATE_LIMIT_MODE') == 'per-user':
+  from identity import client_identity
+  server.client_address = client_identity(fixture['users'], server.client_address)
  from store import Store
  from asgi_app import create_app
  import uvicorn

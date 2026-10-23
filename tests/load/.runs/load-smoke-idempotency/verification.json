@@ -1,0 +1,7 @@
+{
+  "runId": "load-smoke-idempotency",
+  "logicalOrders": 6,
+  "reservedOrSold": 6,
+  "errors": [],
+  "backend": "single-writer JSON; not a PostgreSQL capacity result"
+}

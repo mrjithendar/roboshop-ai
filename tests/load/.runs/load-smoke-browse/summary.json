@@ -1,0 +1,292 @@
+{
+  "runId": "load-smoke-browse",
+  "scenario": "browse",
+  "profile": "smoke",
+  "workload": {
+    "executor": "constant-vus",
+    "vus": 1,
+    "duration": "2s"
+  },
+  "providerMode": "mock",
+  "metrics": {
+    "unexpected_failures": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 6
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 14.759,
+        "med": 8.003,
+        "p(95)": 14.2454,
+        "p(99)": 14.65628
+      }
+    },
+    "http_req_sending": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 0.067,
+        "p(95)": 0.19359999999999997,
+        "p(99)": 0.22912,
+        "max": 0.238
+      }
+    },
+    "successful_operations": {
+      "values": {
+        "count": 6,
+        "rate": 1.168690546520604
+      },
+      "type": "counter",
+      "contains": "default"
+    },
+    "http_req_receiving": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 0.112,
+        "p(95)": 0.295,
+        "p(99)": 0.3118,
+        "max": 0.316
+      }
+    },
+    "operation_latency": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 13.59725,
+        "p(99)": 13.84185,
+        "max": 13.903,
+        "med": 9.190999999999999
+      }
+    },
+    "http_req_waiting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 7.785,
+        "p(95)": 13.9434,
+        "p(99)": 14.50308,
+        "max": 14.643
+      }
+    },
+    "iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 2,
+        "rate": 0.3895635155068679
+      }
+    },
+    "vus_max": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "value": 1,
+        "min": 1,
+        "max": 1
+      }
+    },
+    "iteration_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 1038.507333,
+        "med": 1031.423104,
+        "p(95)": 1037.7989101,
+        "p(99)": 1038.36564842
+      }
+    },
+    "http_req_duration{expected_response:true}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 8.003,
+        "p(95)": 14.2454,
+        "p(99)": 14.65628,
+        "max": 14.759
+      }
+    },
+    "checks": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 1,
+        "passes": 2,
+        "fails": 0
+      }
+    },
+    "http_req_blocked": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 0.535,
+        "p(95)": 1.1116,
+        "p(99)": 1.26712,
+        "max": 1.306
+      }
+    },
+    "data_received": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 187225,
+        "rate": 36468.014595386674
+      }
+    },
+    "http_req_connecting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 0.455,
+        "p(95)": 0.8729999999999999,
+        "p(99)": 0.9762,
+        "max": 1.002
+      }
+    },
+    "http_req_failed": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 13
+      }
+    },
+    "admission_rejections": {
+      "thresholds": {
+        "count<=0": {
+          "ok": true
+        }
+      },
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 0,
+        "rate": 0
+      }
+    },
+    "correctness_failures": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "count": 0
+      },
+      "thresholds": {
+        "count==0": {
+          "ok": true
+        }
+      }
+    },
+    "operation_latency{operation:detail}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 6.9952,
+        "p(99)": 7.15264,
+        "max": 7.192,
+        "med": 5.224
+      },
+      "thresholds": {
+        "p(95)<3000": {
+          "ok": true
+        }
+      }
+    },
+    "operation_latency{operation:browse}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(99)": 13.87587,
+        "max": 13.903,
+        "med": 12.5465,
+        "p(95)": 13.76735
+      },
+      "thresholds": {
+        "p(95)<3000": {
+          "ok": true
+        }
+      }
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 13,
+        "rate": 2.5321628507946414
+      }
+    },
+    "data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 2006,
+        "rate": 390.73220605338855
+      }
+    },
+    "completed_journeys": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 2,
+        "rate": 0.3895635155068679
+      },
+      "thresholds": {
+        "count>0": {
+          "ok": true
+        }
+      }
+    },
+    "vus": {
+      "values": {
+        "max": 1,
+        "value": 1,
+        "min": 0
+      },
+      "type": "gauge",
+      "contains": "default"
+    },
+    "operation_latency{operation:search}": {
+      "contains": "time",
+      "values": {
+        "med": 8.9775,
+        "p(95)": 12.30975,
+        "p(99)": 12.60595,
+        "max": 12.68
+      },
+      "thresholds": {
+        "p(95)<3000": {
+          "ok": true
+        }
+      },
+      "type": "trend"
+    },
+    "http_req_tls_handshaking": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 0
+      }
+    }
+  },
+  "limitations": [
+    "No production capacity claim",
+    "Default local lab uses MongoMock and single-writer JSON commerce",
+    "No email, external fulfilment or real settlement"
+  ]
+}

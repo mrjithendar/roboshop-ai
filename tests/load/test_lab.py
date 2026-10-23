@@ -6,8 +6,20 @@ from unittest.mock import patch
 from http.server import ThreadingHTTPServer
 import lab
 import mocks
+from identity import client_identity
 
 class LoadGuards(unittest.TestCase):
+ def test_synthetic_identities_are_bounded_and_do_not_trust_unknown_sessions(self):
+  from unittest.mock import Mock
+  users=lab.fixtures('load-identity',2)['users']
+  original=Mock(return_value='127.0.0.1');resolve=client_identity(users,original)
+  requests=[Mock() for _ in range(3)]
+  for request,value in zip(requests,[users[0]['session'],users[1]['session'],'unknown']):request.cookie.return_value=value
+  self.assertNotEqual(resolve(requests[0]),resolve(requests[1]))
+  self.assertEqual(resolve(requests[0]),resolve(requests[0]))
+  self.assertEqual(resolve(requests[2]),'127.0.0.1')
+  original.assert_called_once_with(requests[2])
+
  def test_existing_run_preserved_before_services_start(self):
   with tempfile.TemporaryDirectory() as temporary:
    root=Path(temporary);run=root/'.runs/load-existing';run.mkdir(parents=True)

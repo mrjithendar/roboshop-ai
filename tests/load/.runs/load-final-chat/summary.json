@@ -1,0 +1,314 @@
+{
+  "throughput": {
+    "measuredSeconds": 2.2162710000000003,
+    "completedJourneysPerSecond": 1.8048334341784011,
+    "successfulOperationsPerSecond": 3.6096668683568023,
+    "offeredIterationsPerSecond": null,
+    "droppedIterations": 0
+  },
+  "runId": "load-final-chat",
+  "scenario": "chat",
+  "profile": "smoke",
+  "workload": {
+    "executor": "constant-vus",
+    "vus": 2,
+    "duration": "2s"
+  },
+  "providerMode": "mock",
+  "metrics": {
+    "data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 3488,
+        "rate": 1075.4574625432165
+      }
+    },
+    "ai_answer_latency": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 64.00255,
+        "p(99)": 64.46931,
+        "max": 64.586,
+        "med": 52.729
+      },
+      "thresholds": {
+        "p(95)<16000": {
+          "ok": true
+        }
+      }
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 11,
+        "rate": 3.3916376399011985
+      }
+    },
+    "http_req_waiting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 63.482,
+        "p(99)": 64.1676,
+        "max": 64.339,
+        "med": 44.199
+      }
+    },
+    "correctness_failures": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 0,
+        "rate": 0
+      },
+      "thresholds": {
+        "count==0": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_receiving": {
+      "contains": "time",
+      "values": {
+        "med": 0.057,
+        "p(95)": 0.16799999999999993,
+        "p(99)": 0.24239999999999998,
+        "max": 0.261
+      },
+      "type": "trend"
+    },
+    "ai_accepted_requests": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 8,
+        "rate": 2.466645556291781
+      }
+    },
+    "iterations": {
+      "values": {
+        "rate": 1.2333227781458904,
+        "count": 4
+      },
+      "type": "counter",
+      "contains": "default"
+    },
+    "ai_successful_answers": {
+      "thresholds": {
+        "count>0": {
+          "ok": true
+        }
+      },
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 8,
+        "rate": 2.466645556291781
+      }
+    },
+    "unexpected_failures": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 8
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_tls_handshaking": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 0
+      }
+    },
+    "successful_operations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "rate": 2.466645556291781,
+        "count": 8
+      }
+    },
+    "ai_outcomes": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 4,
+        "rate": 1.2333227781458904
+      }
+    },
+    "http_req_sending": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 0.2115,
+        "p(99)": 0.2175,
+        "max": 0.219,
+        "med": 0.032
+      }
+    },
+    "admission_rejections": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 0,
+        "rate": 0
+      },
+      "thresholds": {
+        "count<=0": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_failed": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 11
+      }
+    },
+    "vus": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "value": 2,
+        "min": 0,
+        "max": 2
+      }
+    },
+    "data_received": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 42159,
+        "rate": 12998.913750963147
+      }
+    },
+    "http_req_blocked": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 0.291,
+        "p(95)": 0.8999999999999999,
+        "p(99)": 0.9536,
+        "max": 0.967
+      }
+    },
+    "operation_latency{operation:chat}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 52.729,
+        "p(95)": 64.00255,
+        "p(99)": 64.46931,
+        "max": 64.586
+      },
+      "thresholds": {
+        "p(95)<16000": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 44.271,
+        "p(95)": 63.7525,
+        "p(99)": 64.41929999999999,
+        "max": 64.586
+      }
+    },
+    "warmup_ms": {
+      "type": "trend",
+      "contains": "default",
+      "values": {
+        "med": 1027,
+        "p(95)": 1027,
+        "p(99)": 1027,
+        "max": 1027
+      }
+    },
+    "iteration_duration": {
+      "values": {
+        "max": 1112.187416,
+        "med": 1107.6062295000002,
+        "p(95)": 1112.16488495,
+        "p(99)": 1112.18290979
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "vus_max": {
+      "values": {
+        "value": 2,
+        "min": 2,
+        "max": 2
+      },
+      "type": "gauge",
+      "contains": "default"
+    },
+    "operation_latency": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 52.729,
+        "p(95)": 64.00255,
+        "p(99)": 64.46931,
+        "max": 64.586
+      }
+    },
+    "http_req_connecting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 0.25,
+        "p(95)": 0.753,
+        "p(99)": 0.7546,
+        "max": 0.755
+      }
+    },
+    "completed_journeys": {
+      "contains": "default",
+      "values": {
+        "count": 4,
+        "rate": 1.2333227781458904
+      },
+      "thresholds": {
+        "count>0": {
+          "ok": true
+        }
+      },
+      "type": "counter"
+    },
+    "http_req_duration{expected_response:true}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(99)": 64.41929999999999,
+        "max": 64.586,
+        "med": 44.271,
+        "p(95)": 63.7525
+      }
+    }
+  },
+  "limitations": [
+    "No production capacity claim",
+    "Default local lab uses MongoMock and single-writer JSON commerce",
+    "No email, external fulfilment or real settlement"
+  ]
+}

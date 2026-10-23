@@ -1,4 +1,8 @@
-.runs/
+# Track only sanitized run reports; never generated credentials or raw state.
+.runs/*/*
+!.runs/*/summary.json
+!.runs/*/verification.json
+!.runs/*/environment.json
 .tools/
 .venv/
 __pycache__/

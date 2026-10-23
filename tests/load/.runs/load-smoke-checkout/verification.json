@@ -1,0 +1,7 @@
+{
+  "runId": "load-smoke-checkout",
+  "logicalOrders": 8,
+  "reservedOrSold": 8,
+  "errors": [],
+  "backend": "single-writer JSON; not a PostgreSQL capacity result"
+}

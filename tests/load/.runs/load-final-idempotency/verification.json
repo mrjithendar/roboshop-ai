@@ -1,0 +1,7 @@
+{
+  "runId": "load-final-idempotency",
+  "logicalOrders": 4,
+  "reservedOrSold": 4,
+  "errors": [],
+  "backend": "single-writer JSON; not a PostgreSQL capacity result"
+}

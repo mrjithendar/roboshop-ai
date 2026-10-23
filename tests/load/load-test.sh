@@ -11,3 +11,17 @@ tests/load/.venv/bin/python tests/load/lab.py run --scenario idempotency --secon
 
 PACE_SECONDS=5 tests/load/.venv/bin/python tests/load/lab.py run \
   --scenario idempotency --seconds 60 --vus 2 --k6 tests/load/.tools/k6
+
+# Use the ramp profile to increase load gradually: 10 → 20 → 50 simulated users, then decrease.
+tests/load/.venv/bin/python tests/load/lab.py run \
+  --scenario browse --profile ramp --k6 tests/load/.tools/k6
+
+# steady load of 20 users for 5 minutes:
+tests/load/.venv/bin/python tests/load/lab.py run --scenario browse --seconds 120 --vus 20 \
+  --k6 tests/load/.tools/k6
+
+# Inspect summary.json in the printed results directory for:
+# - p95/p99 latency: how slowly the slower requests completed.
+# - Unexpected failures: application errors.
+# - Admission rejections: requests blocked by rate/concurrency limits.
+# - Completed journeys: work successfully completed.
