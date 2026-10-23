@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Entry point: validate options and the CentOS host before installing anything.
+# Entry point: validate options and the supported host before installing anything.
 # Only a missing bootstrap Python is installed here; profile decisions live in
 # scripts/setup/initialize.py. Forwarding the original argument array preserves
 # quoted values and the child process exit code.
@@ -28,11 +28,18 @@ source "$ROOT/scripts/lib/require-centos.sh"
 roboshop_require_centos
 if ! command -v python3 >/dev/null; then
   if [[ "$READ_ONLY" == 1 ]]; then
-    echo 'Python 3.9+ missing; normal init installs it using dnf. No changes made.' >&2
+    echo 'Python 3.9+ missing; install Python 3.9+ separately or use normal Linux init. No changes made.' >&2
     exit 1
   fi
   ADMIN=()
   if [[ "$EUID" != 0 ]]; then ADMIN=(sudo); fi
-  "${ADMIN[@]}" dnf install -y python3
+  if [[ "$(uname -s)" == Darwin ]]; then
+    echo 'Install Python 3.9+ manually on macOS; no host bootstrap performed.' >&2; exit 1
+  fi
+  . /etc/os-release
+  case "$ID" in
+    ubuntu) "${ADMIN[@]}" apt-get update; "${ADMIN[@]}" apt-get install -y python3 ;;
+    centos|amzn) "${ADMIN[@]}" dnf install -y python3 ;;
+  esac
 fi
 exec python3 "$ROOT/scripts/setup/initialize.py" "${ORIGINAL_ARGS[@]}"

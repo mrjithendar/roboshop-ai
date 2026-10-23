@@ -3,7 +3,7 @@
 # The chart release and public route are separate resources; applying them is
 # not proof that the browser UI or certificate is already ready.
 
-# CentOS host prerequisite; reject other OSes before operational side effects.
+# Validate the supported host before operational side effects.
 if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
 roboshop_require_centos "${1:-}" || exit 1

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Expose the verified private CLI at the command path used by root's shell."""
 
-# CentOS-only operator command; imports remain usable by isolated tests.
+# Portable operator command; imports remain usable by isolated tests.
 if __name__ == '__main__':
     import sys as _host_sys
     if not any(arg in ('--help', '-h') for arg in _host_sys.argv[1:]):

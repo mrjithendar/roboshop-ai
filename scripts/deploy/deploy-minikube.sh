@@ -4,7 +4,7 @@
 # and restart submit changes only: the final message is not a readiness check.
 # Credentials are preserved except for creating missing keys/refreshing ECR auth.
 
-# CentOS host prerequisite; reject other OSes before operational side effects.
+# Validate the supported host before operational side effects.
 if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)/scripts/lib/require-centos.sh"
 roboshop_require_centos "${1:-}" || exit 1

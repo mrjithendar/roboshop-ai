@@ -1,9 +1,7 @@
 kubectl -n monitoring get secret prometheus-auth \
 
-> Operational scripts now require **CentOS Stream 9 or 10 (x86_64/ARM64)**.
-> Start with `./init.sh --help`. Other hosts are rejected before changes; older
-> cross-platform examples below are historical and are not supported execution paths.
-> Container runtimes and test/CI code retain their declared environments.
+> Linux and macOS clients are supported; see [the script matrix](../docs/operations/scripts.md).
+
 
   -o jsonpath='{.data.password}' | base64 --decode; echo
 
@@ -120,7 +118,6 @@ Optional overrides: `PROFILE`, `NODES`, `CPUS`, `MEMORY` (MiB/node), and standal
 
 Linux root startup automatically supplies Minikube's `--force` flag because the Docker driver normally rejects root. This flag bypasses some Minikube checks; use this setup for development clusters. Cluster state and kubeconfig belong to the current user (`/root/.minikube` and `/root/.kube` for root), with no switching to another account.
 
-CentOS setup replaces only the old RoboShop forwarding wrappers with actual binaries. Unrelated symlinks are not overwritten. Existing `roboshop` accounts and clusters are not deleted or migrated. A cluster created by that user will not appear in root's profile list; if its Docker container name conflicts, choose a distinct `PROFILE` for root.
 
 Setup does not deploy RoboShop or guarantee the full stack fits a small host. Stop preserves cluster data.
 

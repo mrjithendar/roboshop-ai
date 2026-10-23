@@ -22,13 +22,14 @@ BIN = Path.home()/'.local/bin'
 DATA = Path.home()/'.local/share/roboshop-tools'
 
 
-# Keep distro checks stricter than "uses dnf": other RPM systems are not supported.
+# Explicit release matrix; package managers alone do not identify supported hosts.
 def host(system=None, machine=None, release=None):
     system = system or platform.system()
     machine = machine or platform.machine()
     arch = {'x86_64':'amd64','arm64':'arm64','aarch64':'arm64'}.get(machine)
     if not arch:raise ValueError('Supported architectures: x86_64 and ARM64')
-    if system != 'Linux':raise ValueError('Only CentOS Stream 9/10 is supported')
+    if system == 'Darwin':return 'macos','darwin',arch,'brew'
+    if system != 'Linux':raise ValueError('Unsupported operating system: '+system)
     if release is None:
         release = {}
         for line in Path('/etc/os-release').read_text().splitlines():
@@ -36,6 +37,8 @@ def host(system=None, machine=None, release=None):
                 key,value=line.split('=',1);release[key]=value.strip('"')
     distro, version = release.get('ID'), release.get('VERSION_ID')
     if distro == 'centos' and version in ('9','10') and 'Stream' in release.get('NAME',''):return 'centos','linux',arch,'dnf'
+    if distro == 'amzn' and version == '2023':return 'amzn','linux',arch,'dnf'
+    if distro == 'ubuntu' and version in ('22.04','24.04'):return 'ubuntu','linux',arch,'apt-get'
     raise ValueError(f'Unsupported Linux release: {distro} {version}')
 
 
@@ -48,7 +51,7 @@ def run(args, capture=False):
 
 # Probe commands locally; no credentials, cloud API calls or daemon mutations here.
 def version(tool):
-    commands={'kubectl':['version','--client','-o','json'],'helm':['version','--short'],
+    commands={'openssl':['version'],'kubectl':['version','--client','-o','json'],'helm':['version','--short'],
               'java':['-version'],'minikube':['version','--short'],'terraform':['version','-json']}
     try:
         r=run([tool,*commands.get(tool,['--version'])],True)
@@ -58,6 +61,7 @@ def version(tool):
 
 # Compatibility ranges permit reuse; pinned versions apply only to missing tools.
 def compatible(tool, output):
+    if tool=='openssl':return bool(re.match(r'OpenSSL (?:1\.1\.1|3\.)',output))
     if tool=='aws':return output.startswith('aws-cli/2.')
     if tool=='helm':return bool(re.match(r'v[34]\.',output))
     if tool=='kubectl':return bool(re.search(r'"gitVersion"\s*:\s*"v1\.',output))
@@ -81,8 +85,9 @@ class Installer:
     def packages(self, packages):
         def install():
             if not shutil.which(self.manager):raise ValueError(f'Install {self.manager} first; no bootstrap shell downloads are executed')
-            sudo=[] if os.geteuid()==0 else ['sudo']
-            run(sudo+[self.manager,'install']+['-y']+packages)
+            sudo=[] if os.geteuid()==0 or self.manager=='brew' else ['sudo']
+            if self.manager=='apt-get':run(sudo+['apt-get','update'])
+            run(sudo+[self.manager,'install']+([] if self.manager=='brew' else ['-y'])+packages)
         self.action('Install signed OS packages: '+', '.join(packages),install)
     # Presence alone is insufficient (e.g. the unrelated PyPI aws/helm commands).
     def need(self, tool, install):
@@ -161,7 +166,7 @@ class Installer:
             print('REUSE isolated .venv: '+output);return
         if env.exists():raise ValueError('Existing .venv is incomplete; inspect it before retrying')
         a='x86_64' if self.arch=='amd64' else 'aarch64'
-        target=a+'-unknown-linux-gnu'
+        target=a+('-apple-darwin' if self.os=='darwin' else '-unknown-linux-gnu')
         u=f'https://github.com/astral-sh/uv/releases/download/{VERSIONS["uv"]}/uv-{target}.tar.gz'
         self.need('uv',lambda:self.artifact('uv',u,u+'.sha256',f'uv-{target}/uv'))
         if self.mode=='check':self.missing.append('.venv');print('MISSING isolated .venv');return
@@ -172,6 +177,14 @@ class Installer:
     # Docker is a host service, so package installation and service enablement need privilege.
     # This does not grant users access to the root-equivalent Docker socket.
     def docker(self):
+        if self.os=='darwin':
+            if self.mode!='install':
+                print('MANUAL prerequisite: compatible Docker engine on macOS');return
+            raise ValueError('Install/select a Docker-compatible engine manually on macOS; init never installs Docker Desktop')
+        if self.distro in ('ubuntu','amzn'):
+            self.packages(['docker.io'] if self.distro=='ubuntu' else ['docker'])
+            self.action('Enable Docker service (no socket permission changes)',lambda:run(([] if os.geteuid()==0 else ['sudo'])+['systemctl','enable','--now','docker']))
+            return
         def repo():
             run(([] if os.geteuid()==0 else ['sudo'])+['dnf','config-manager','--add-repo','https://download.docker.com/linux/centos/docker-ce.repo'])
         self.packages(['dnf-plugins-core'])
@@ -180,6 +193,11 @@ class Installer:
         self.action('Enable Docker service (no group or socket permission changes)',lambda:run(([] if os.geteuid()==0 else ['sudo'])+['systemctl','enable','--now','docker']))
     # Verify with an isolated GPG keyring, not the operator's personal trust/key configuration.
     def aws(self):
+        if self.os=='darwin':
+            # Reuse existing AWS v2; missing CLI is an explicit operator prerequisite.
+            if self.mode!='install':
+                print('MANUAL prerequisite: AWS CLI v2 on macOS');return
+            raise ValueError('Install AWS CLI v2 manually on macOS, then rerun; no system-wide installer is run by init')
         self.need('gpg',lambda:self.packages(['gnupg2']))
         def install():
             with tempfile.TemporaryDirectory(prefix='roboshop-aws-') as temp:
@@ -210,6 +228,14 @@ def main():
     info=host();print('Host: '+' / '.join(info)+'; profile='+args.profile+'; mode='+mode)
     # Reuse the caller's selected command first; private installs are a fallback.
     os.environ['PATH']=os.environ['PATH']+os.pathsep+str(BIN)
+    # Preflight macOS prerequisites before any other install actions.
+    if mode=='install' and info[1]=='darwin':
+        required={'docker':['docker'],'minikube':['docker'],'aws':['aws']}.get(args.profile,[])
+        for tool in required:
+            if not shutil.which(tool) or not compatible(tool,version(tool)):
+                raise ValueError(f'Select a compatible {tool} manually on macOS before init; no changes made')
+        if any(not shutil.which(t) for t in ('git','curl','jq')) and not shutil.which('brew'):
+            raise ValueError('Missing base tools require existing Homebrew; init never installs Homebrew')
     i=Installer(mode,info)
     for tool in ('git','curl','jq'):i.need(tool,lambda tool=tool:i.packages([tool]))
     if args.profile=='dev':
@@ -222,6 +248,7 @@ def main():
         for tool in ('kubectl','helm','minikube'):i.need(tool,lambda tool=tool:i.binary(tool))
     if args.profile=='aws':
         i.need('aws',i.aws);i.need('terraform',lambda:i.binary('terraform'))
+    print('Scope: tool versions only; application packages, credentials, Docker access and deployment readiness are not verified.')
     print('PATH for new shells: export PATH="$HOME/.local/bin:$PATH"')
     print('Next: '+{'dev':'npm ci; install service requirements in .venv as needed; see scripts index for Java/Go builds', 'docker':'docker info; ./init.sh --profile aws for ECR publishing', 'minikube':'bash minikube/install.sh start (explicit cluster creation)', 'aws':'aws sts get-caller-identity (after separately configuring credentials); terraform -chdir=infrastructure init'}[args.profile])
     return 1 if mode=='check' and i.missing else 0

@@ -4,10 +4,10 @@
 # must match the requested repository; fetching a new token must not silently
 # replace a healthy runner. Never trace commands that handle registration secrets.
 
-# CentOS host prerequisite; reject other OSes before operational side effects.
+# Validate the supported host before operational side effects.
 if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
-roboshop_require_centos "${1:-}" || exit 1
+roboshop_require_centos "${1:-}" centos || exit 1
 set +x
 set -euo pipefail
 umask 077

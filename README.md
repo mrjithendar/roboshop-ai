@@ -1,9 +1,9 @@
 # RoboShop AI
 
-> Operational scripts now require **CentOS Stream 9 or 10 (x86_64/ARM64)**.
-> Start with `./init.sh --help`. Other hosts are rejected before changes; older
-> cross-platform examples below are historical and are not supported execution paths.
-> Container runtimes and test/CI code retain their declared environments.
+> Initialization supports CentOS Stream 9/10, Amazon Linux 2023, Ubuntu 22.04/24.04 LTS,
+> and macOS development/client tooling on x86_64/ARM64. See
+> [the script matrix](docs/operations/scripts.md) for operation-specific prerequisites.
+
 
 
 Start a new host with `./init.sh --help`, then choose `--profile dev`, `docker`,
@@ -168,11 +168,11 @@ full-stack command `bash scripts/deploy/deploy-minikube.sh --load-images` remain
 ### Quick build and deploy to existing Minikube
 
 ```bash
-bash scripts/build/build-push-ecr.sh frontend
+bash scripts/images/build-push-ecr.sh frontend
 bash scripts/deploy/deploy-minikube.sh frontend
 
 # All application services (omit service names in both commands):
-bash scripts/build/build-push-ecr.sh
+bash scripts/images/build-push-ecr.sh
 bash scripts/deploy/deploy-minikube.sh
 ```
 

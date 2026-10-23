@@ -1,21 +1,22 @@
 #!/usr/bin/env bash
-# Keep host policy in one place so setup, deployment and maintenance agree.
-# Help bypasses the OS check because reading instructions must not require a
-# supported server. No environment override bypasses the real host check.
-
-# Shared host gate. Source before operational side effects; help stays portable.
+# Historical filename/function retained for callers. Default policy is portable
+# tooling; host-mutating callers explicitly request linux or centos operations.
 roboshop_require_centos() {
   case "${1:-}" in --help|-h|help) return 0;; esac
-  if [[ "$(uname -s)" != Linux || ! -r /etc/os-release ]]; then
-    echo 'ERROR: Operational scripts require CentOS Stream 9 or 10 (x86_64/ARM64). No changes made.' >&2
-    return 1
+  local operation="${2:-portable}" system arch
+  system="$(uname -s)"; arch="$(uname -m)"
+  case "$arch" in x86_64|aarch64|arm64) ;; *) echo 'ERROR: x86_64 or ARM64 required.' >&2; return 1;; esac
+  if [[ "$system" == Darwin && "$operation" == portable ]]; then return 0; fi
+  if [[ "$system" != Linux || ! -r /etc/os-release ]]; then
+    echo "ERROR: $operation operation requires a supported Linux host." >&2; return 1
   fi
   local ID='' VERSION_ID='' NAME=''
   . /etc/os-release
-  if [[ "$ID" != centos || "$NAME" != *Stream* || ! "$VERSION_ID" =~ ^(9|10)$ ]]; then
-    echo 'ERROR: Only CentOS Stream 9/10 is supported; Ubuntu, Amazon Linux, RHEL derivatives and macOS are not supported.' >&2
-    return 1
+  if [[ "$ID" == centos && "$NAME" == *Stream* && "$VERSION_ID" =~ ^(9|10)$ ]]; then return 0; fi
+  if [[ "$operation" != centos ]]; then
+    case "$ID:$VERSION_ID" in amzn:2023|ubuntu:22.04|ubuntu:24.04) return 0;; esac
   fi
-  case "$(uname -m)" in x86_64|aarch64|arm64) ;; *) echo 'ERROR: x86_64 or ARM64 required.' >&2; return 1;; esac
+  echo "ERROR: Unsupported host $ID $VERSION_ID for $operation operation. No changes made." >&2
+  return 1
 }
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then roboshop_require_centos "$@"; fi

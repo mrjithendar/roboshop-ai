@@ -4,11 +4,11 @@
 # fitted profile. NODES/CPUS/MEMORY affect capacity, while PUBLIC_HOST controls
 # direct API access; neither should be changed casually on a populated cluster.
 
-# CentOS host prerequisite; reject other OSes before operational side effects.
+# Validate the supported host before operational side effects.
 if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
 roboshop_require_centos "${1:-}" || exit 1
-# Docker-backed Minikube on CentOS Stream 9/10 (amd64/arm64).
+# Docker-backed Minikube on supported Linux hosts and macOS (amd64/arm64).
 set -euo pipefail
 PROFILE="${PROFILE:-mk4}"
 CPUS="${CPUS:-2}"
@@ -36,7 +36,7 @@ if [[ "$ACTION" == reset ]]; then
 fi
 case "$ACTION" in -h|--help|help) usage; exit 0 ;; install|start|status|stop|diagnose) ;; *) usage >&2; exit 1 ;; esac
 [[ $# -le 1 ]] || fail 'Expected at most one action.'
-case "$(uname -s)" in Linux) OS=linux ;; *) fail 'Supported systems: CentOS Stream 9/10.' ;; esac
+case "$(uname -s)" in Linux) OS=linux ;; Darwin) OS=darwin ;; *) fail 'Supported systems: Linux and macOS.' ;; esac
 case "$(uname -m)" in x86_64|amd64) ARCH=amd64 ;; arm64|aarch64) ARCH=arm64 ;; *) fail 'Supported architectures: amd64 and arm64.' ;; esac
 ROOT_ARGS=()
 if [[ "$EUID" == 0 ]]; then
@@ -111,7 +111,7 @@ if [[ "$OS" == linux && -r /etc/os-release ]]; then
     echo 'CentOS: for Docker prerequisites, run bash minikube/setup.sh (Stream 9/10).'
   fi
 fi
-command -v docker >/dev/null 2>&1 || fail 'Run ./init.sh --profile minikube on CentOS, then rerun. See minikube/README.md.'
+command -v docker >/dev/null 2>&1 || fail 'Run ./init.sh --profile minikube, then rerun. See minikube/README.md.'
 if ! docker info >/dev/null 2>&1; then
   if [[ "$OS" == darwin && -n "$DOCKER_APP" ]]; then
     open -a "$DOCKER_APP" || fail 'Could not open Docker Desktop.'
@@ -130,7 +130,7 @@ if ! docker info >/dev/null 2>&1; then
   fi
 fi
 [[ "$(docker info --format '{{.OSType}}')" == linux ]] || fail 'Docker must run Linux containers.'
-command -v jq >/dev/null 2>&1 || fail 'Install jq to inspect existing Minikube configuration (CentOS setup installs it automatically).'
+command -v jq >/dev/null 2>&1 || fail 'Install jq to inspect existing Minikube configuration (init installs it when missing).'
 docker_memory="$(docker info --format '{{.MemTotal}}')"
 docker_cpus="$(docker info --format '{{.NCPU}}')"
 [[ "$docker_memory" =~ ^[0-9]+$ && "$docker_cpus" =~ ^[0-9]+$ ]] || fail 'Could not read Docker CPU/RAM capacity.'

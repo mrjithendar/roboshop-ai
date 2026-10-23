@@ -1,7 +1,7 @@
 [
   {
     "old": "build-push-ecr.sh",
-    "path": "scripts/build/build-push-ecr.sh",
+    "path": "scripts/images/build-push-ecr.sh",
     "purpose": "Container registry operations",
     "dependencies": [
       "bash",
@@ -9,7 +9,7 @@
       "minikube",
       "aws"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "AWS_ACCOUNT_ID",
       "AWS_REGION",
@@ -35,7 +35,7 @@
       "gh",
       "jq"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "BASH_SOURCE"
     ],
@@ -53,7 +53,7 @@
       "minikube",
       "aws"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "AWS_ACCOUNT_ID",
       "AWS_REGION",
@@ -99,7 +99,7 @@
     "path": "evaluations/agents/evaluate.py",
     "purpose": "Build and test",
     "dependencies": [],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [
       "observability/opentelemetry/README.md"
@@ -113,7 +113,7 @@
     "dependencies": [
       "python3"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [
       "README.md",
@@ -132,7 +132,7 @@
       "minikube",
       "aws"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "ADMIN",
       "BASH_SOURCE",
@@ -159,7 +159,7 @@
       "kubectl",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "KUBECONFIG"
     ],
@@ -178,7 +178,7 @@
       "kubectl",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "KUBE_CONTEXT",
       "LANGFUSE_SECRET_NAME"
@@ -199,7 +199,7 @@
       "helm",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "ARGOCD_CHART_VERSION",
       "BASH_SOURCE",
@@ -223,7 +223,7 @@
       "helm",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "BASH_SOURCE",
       "CERT_MANAGER_VERSION",
@@ -257,7 +257,7 @@
       "helm",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "BASH_SOURCE",
       "GRAFANA_CHART_VERSION",
@@ -287,7 +287,7 @@
       "helm",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "BASH_SOURCE",
       "BASH_VERSION",
@@ -313,7 +313,7 @@
       "helm",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "BASH_SOURCE",
       "BASH_VERSION",
@@ -338,7 +338,7 @@
       "helm",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "BASH_SOURCE",
       "BASH_VERSION",
@@ -365,7 +365,7 @@
       "helm",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "BASH_SOURCE",
       "KUBE_CONTEXT",
@@ -393,7 +393,7 @@
       "helm",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "BASH_SOURCE",
       "KUBE_CONTEXT",
@@ -417,7 +417,7 @@
       "kubectl",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "DOCKER_HOST",
       "MINIKUBE_HOME",
@@ -441,7 +441,7 @@
       "bash",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "ADMIN"
     ],
@@ -461,7 +461,7 @@
       "helm",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [
       "minikube/wordpress/README.md"
@@ -481,7 +481,7 @@
       "minikube",
       "systemctl"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "BASH_SOURCE",
       "CPUS",
@@ -511,7 +511,7 @@
     "dependencies": [
       "kubectl"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [],
     "effects": "May write database/secrets; explicit operator action"
@@ -524,7 +524,7 @@
       "node",
       "kubectl"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [],
     "effects": "Local processes/configuration; helper-specific remote reads/writes"
@@ -538,7 +538,7 @@
       "docker",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "BASH_SOURCE",
       "BASH_VERSION",
@@ -557,7 +557,7 @@
       "python3",
       "kubectl"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [
       "minikube/README.md"
@@ -576,7 +576,7 @@
       "kubectl",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "API_HOST",
       "CONFIG",
@@ -596,7 +596,7 @@
     "dependencies": [
       "kubectl"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [],
     "effects": "May write database/secrets; explicit operator action"
@@ -612,7 +612,7 @@
       "helm",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "KUBE_CONTEXT"
     ],
@@ -632,7 +632,7 @@
       "helm",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "BASH_SOURCE",
       "BASH_VERSION",
@@ -654,7 +654,7 @@
       "bash",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "MINIKUBE_HOME"
     ],
@@ -671,7 +671,7 @@
       "kubectl",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "IMAGE_PREFIX",
       "PUBLIC_ORIGIN"
@@ -692,7 +692,7 @@
       "python3",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "KUBE_CONTEXT"
     ],
@@ -712,7 +712,7 @@
       "bash",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "BASH_SOURCE"
     ],
@@ -730,7 +730,7 @@
     "dependencies": [
       "kubectl"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "KUBE_CONTEXT"
     ],
@@ -746,7 +746,7 @@
       "python3",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [],
     "effects": "Local processes/configuration; helper-specific remote reads/writes"
@@ -756,7 +756,7 @@
     "path": "minikube/wordpress/bootstrap.sh",
     "purpose": "Database/configuration and synthetic data",
     "dependencies": [],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "WP_ADMIN_EMAIL",
       "WP_ADMIN_PASSWORD",
@@ -771,7 +771,7 @@
     "path": "minikube/wordpress/check-routes.py",
     "purpose": "Local development / operational helper",
     "dependencies": [],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [],
     "effects": "Local processes/configuration; helper-specific remote reads/writes"
@@ -784,7 +784,7 @@
       "bash",
       "python3"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "CentOS Stream 9/10 (systemd runner setup)",
     "environment": [],
     "callers": [],
     "effects": "May delete/modify local or remote state; inspect explicit confirmation flags"
@@ -798,7 +798,7 @@
       "aws",
       "pip"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "CentOS Stream 9/10 (systemd runner setup)",
     "environment": [
       "BASH_SOURCE"
     ],
@@ -816,7 +816,7 @@
       "python3",
       "aws"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "CentOS Stream 9/10 (systemd runner setup)",
     "environment": [],
     "callers": [],
     "effects": "Host packages/services or runner registration; init alone never registers"
@@ -830,7 +830,7 @@
       "gh",
       "aws"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "CentOS Stream 9/10 (systemd runner setup)",
     "environment": [
       "GH_TOKEN",
       "GITHUB_TOKEN",
@@ -847,7 +847,7 @@
       "bash",
       "systemctl"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "CentOS Stream 9/10 (systemd runner setup)",
     "environment": [],
     "callers": [],
     "effects": "May delete/modify local or remote state; inspect explicit confirmation flags"
@@ -861,7 +861,7 @@
       "python3",
       "systemctl"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "CentOS Stream 9/10 (systemd runner setup)",
     "environment": [
       "RUNNER_COUNT",
       "RUNNER_DIR",
@@ -888,7 +888,7 @@
       "systemctl",
       "pip"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "CentOS Stream 9/10 (systemd runner setup)",
     "environment": [
       "ID",
       "RUNNER_DIR",
@@ -908,7 +908,7 @@
       "python3",
       "node"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [
       "package.json"
@@ -922,7 +922,7 @@
     "dependencies": [
       "python3"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [
       ".github/workflows/llm-checks.yml",
@@ -939,7 +939,7 @@
       "python3",
       "node"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [
       "package.json"
@@ -955,7 +955,7 @@
       "kubectl",
       "minikube"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "KUBECONFIG",
       "KUBE_CONTEXT"
@@ -986,7 +986,7 @@
       "openssl",
       "systemctl"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [],
     "effects": "Local processes/configuration; helper-specific remote reads/writes"
@@ -1000,7 +1000,7 @@
       "git",
       "gh"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [
       "scripts/squash-history.README.md"
@@ -1012,7 +1012,7 @@
     "path": "services/ai-gateway/commerce_migrate.py",
     "purpose": "Database/configuration and synthetic data",
     "dependencies": [],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [
       "docs/deployment/postgres-commerce-migration.md"
@@ -1024,7 +1024,7 @@
     "path": "services/catalogue-service/bootstrap.mjs",
     "purpose": "Database/configuration and synthetic data",
     "dependencies": [],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [],
     "effects": "May write database/secrets; explicit operator action"
@@ -1037,7 +1037,7 @@
       "node",
       "npm"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "JSON"
     ],
@@ -1053,7 +1053,7 @@
     "dependencies": [
       "node"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [],
     "effects": "May write database/secrets; explicit operator action"
@@ -1063,7 +1063,7 @@
     "path": "services/catalogue-service/publish-catalogue.mjs",
     "purpose": "Database/configuration and synthetic data",
     "dependencies": [],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [
       "tests/reference-catalogue.test.mjs"
@@ -1077,7 +1077,7 @@
     "dependencies": [
       "python3"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [
       "docs/demo-scenarios/merchant-catalogue.md"
@@ -1091,7 +1091,7 @@
     "dependencies": [
       "python3"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "APP_ENV",
       "DEMO_MONGODB_URL",
@@ -1108,7 +1108,7 @@
     "path": "services/nginx/start.sh",
     "purpose": "Local development / operational helper",
     "dependencies": [],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "FRONTEND_BASE_PATH",
       "FRONTEND_HOST",
@@ -1138,7 +1138,7 @@
     "dependencies": [
       "psql"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [],
     "effects": "Local processes/configuration; helper-specific remote reads/writes"
@@ -1150,7 +1150,7 @@
     "dependencies": [
       "bash"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "APP_HOME",
       "ARGS"
@@ -1165,7 +1165,7 @@
     "path": "services/user-service/bootstrap.py",
     "purpose": "Database/configuration and synthetic data",
     "dependencies": [],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "SUPERADMIN_EMAIL",
       "SUPERADMIN_NAME",
@@ -1182,7 +1182,7 @@
     "path": "tests/load/identity.py",
     "purpose": "Build and test",
     "dependencies": [],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [],
     "effects": "Local outputs; load real-ai/live website modes require explicit opt-in"
@@ -1196,7 +1196,7 @@
       "curl",
       "k6"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [
       ".github/workflows/load-smoke.yml",
@@ -1214,7 +1214,7 @@
       "git",
       "k6"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "LOAD_EDGE_BIND",
       "LOAD_EDGE_PORT"
@@ -1233,7 +1233,7 @@
     "dependencies": [
       "bash"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [],
     "effects": "Local outputs; load real-ai/live website modes require explicit opt-in"
@@ -1245,7 +1245,7 @@
     "dependencies": [
       "k6"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [
       "tests/load/README.md"
@@ -1257,7 +1257,7 @@
     "path": "tests/load/mocks.py",
     "purpose": "Build and test",
     "dependencies": [],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [
       "MOCK_ERROR_EVERY",
       "MOCK_LATENCY_MS",
@@ -1272,7 +1272,7 @@
     "path": "tests/load/payment.mjs",
     "purpose": "Build and test",
     "dependencies": [],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [],
     "effects": "Local outputs; load real-ai/live website modes require explicit opt-in"
@@ -1282,7 +1282,7 @@
     "path": "tests/load/service.py",
     "purpose": "Build and test",
     "dependencies": [],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [],
     "effects": "Local outputs; load real-ai/live website modes require explicit opt-in"
@@ -1294,7 +1294,7 @@
     "dependencies": [
       "k6"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [],
     "effects": "Mocks/local fixtures"
@@ -1304,7 +1304,7 @@
     "path": "tests/load/test_website.py",
     "purpose": "Build and test (retained tests)",
     "dependencies": [],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [],
     "effects": "Mocks/local fixtures"
@@ -1317,7 +1317,7 @@
       "python3",
       "curl"
     ],
-    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "platform": "Supported Linux/macOS tooling; see docs/operations/scripts.md for host-only restrictions",
     "environment": [],
     "callers": [
       "tests/load/README.md"

@@ -28,7 +28,7 @@ First run the existing Create infrastructure workflow to create the new
 Then, from the repository root on your build host:
 
 ```bash
-bash scripts/build/build-push-ecr.sh kafka-bridge ai-gateway
+bash scripts/images/build-push-ecr.sh kafka-bridge ai-gateway
 bash scripts/deploy/deploy-minikube.sh kafka-bridge ai-gateway
 ```
 

@@ -3,7 +3,7 @@
 # Key availability is not proof of successful export. Never enable shell tracing
 # or print the Kubernetes Secret while diagnosing connectivity.
 
-# CentOS host prerequisite; reject other OSes before operational side effects.
+# Validate the supported host before operational side effects.
 if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
 roboshop_require_centos "${1:-}" || exit 1

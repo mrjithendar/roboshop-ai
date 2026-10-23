@@ -3,10 +3,10 @@
 # refresh or re-registration flow. Keep the runner directory and service identity
 # aligned so repair cannot attach another repository's runner state.
 
-# CentOS host prerequisite; reject other OSes before operational side effects.
+# Validate the supported host before operational side effects.
 if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
-roboshop_require_centos "${1:-}" || exit 1
+roboshop_require_centos "${1:-}" centos || exit 1
 # Usage: bash runner/repair-service.sh --help
 case "${1:-}" in --help|-h) echo 'Purpose: Repair existing service without fetching secrets or registering again.'; echo 'Usage: bash runner/repair-service.sh; see docs/operations/script-audit.md for prerequisites, variables and effects.'; exit 0;; esac
 # Repair existing service without fetching secrets or registering again.

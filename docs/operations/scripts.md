@@ -9,7 +9,7 @@ registers runners, seeds databases or configures credentials.
 init.sh                         first host prerequisite entry point
 scripts/setup/                  platform detection, versions, verified installers
 scripts/dev/                    local process launcher, kubectl convenience command
-scripts/build/                  build and publish ARM64 ECR images
+scripts/images/                  build and publish ARM64 ECR images
 scripts/deploy/                 application apply/restart command
 scripts/data/                   secret-file generation, explicit synthetic seed
 scripts/maintenance/            branch/history maintenance, test-order recovery
@@ -40,18 +40,24 @@ Pins live in `scripts/setup/versions.json`; existing compatible versions are
 preserved. Downloads use published SHA256 files; Linux AWS uses its detached
 signature and the AWS CLI public key checked into setup from the official AWS
 installation guide. OS packages use the distribution's signed package sources.
-There are no Homebrew, apt, yum or zypper installation paths.
+Supported host matrix (x86_64 and ARM64):
 
-Supported operational hosts: **CentOS Stream 9 and 10, x86_64 or ARM64**.
-All host commands reject macOS, Ubuntu, Amazon Linux, CentOS 7/8 and other
-systems before side effects. Help remains portable. Application containers,
-service modules and isolated test/CI utilities are not host installers and retain
-their own environments. Linux installation paths are mock-tested, not installed
-on a real CentOS host in this change.
+| Operation/profile | CentOS Stream 9/10 | Amazon Linux 2023 | Ubuntu 22.04/24.04 LTS | macOS |
+| --- | --- | --- | --- | --- |
+| dev | dnf + private tools | dnf + private tools | apt + private tools | existing Python/Homebrew + private tools |
+| docker/minikube prerequisites | Docker CE | distro Docker | distro docker.io | existing Docker engine required |
+| aws | signed CLI + Terraform | signed CLI + Terraform | signed CLI + Terraform | existing AWS v2 + private Terraform |
+| client deploy/kubeconfig/secrets/maintenance | yes | yes | yes | yes |
+| runner setup/SELinux repair | yes, systemd | not yet supported | not yet supported | no |
+| ingress host exposure/host limits | Linux only | Linux only | Linux only | no |
 
-Python 3.9+ runs init; if absent it is bootstrapped with dnf. Check/dry-run never
-bootstrap packages. Root can run setup; other users use sudo only for host package
-and service changes. No firewall, SELinux or socket permissions are relaxed.
+Init does not install Homebrew or Docker Desktop. Missing macOS prerequisites
+fail before installation; preview lists them. Linux bootstrap Python uses dnf or
+apt. Normal package installation may use sudo; private downloads do not.
+These paths are fixture/mock-tested, not fresh-machine validation. A successful
+check confirms compatible commands, not application dependencies, daemon access,
+cloud credentials, or deployment readiness. OpenSSL uses `openssl version` and
+accepts OpenSSL 1.1.1 or 3.x; select OpenSSL explicitly if macOS provides LibreSSL.
 
 `--check` executes only local version probes; exit 1 means missing/incompatible
 tools. `--dry-run` prints decisions without filesystem/package changes. Neither
@@ -73,7 +79,7 @@ docker info
 # Only if ECR publishing is needed:
 ./init.sh --profile aws
 # Configure AWS access separately; init never writes credentials.
-bash scripts/build/build-push-ecr.sh --dry-run frontend
+bash scripts/images/build-push-ecr.sh --dry-run frontend
 ```
 
 Docker group access is root-equivalent. An administrator may explicitly grant
@@ -136,10 +142,10 @@ tools instead of independently downloading/updating Python/AWS.
 
 | Command | Environment/profile | Side effects |
 |---|---|---|
-| `scripts/dev/start.mjs` | CentOS Stream 9/10; dev + backing services | starts local services |
-| `scripts/dev/kubectl.sh` | CentOS Stream 9/10; minikube | passes kubectl arguments to selected config; may mutate cluster |
-| `scripts/build/build-push-ecr.sh [--dry-run] [services]` | ARM64 Docker; docker + aws | builds and pushes ECR `:local` |
-| `scripts/deploy/deploy-minikube.sh [--dry-run] [services]` | CentOS Stream 9/10; minikube + aws | credentials/config apply and deployment restart |
+| `scripts/dev/start.mjs` | supported host; dev + backing services | starts local services |
+| `scripts/dev/kubectl.sh` | supported host; minikube | passes kubectl arguments to selected config; may mutate cluster |
+| `scripts/images/build-push-ecr.sh [--dry-run] [services]` | ARM64 Docker; docker + aws | builds and pushes ECR `:local` |
+| `scripts/deploy/deploy-minikube.sh [--dry-run] [services]` | supported host; minikube + aws | credentials/config apply and deployment restart |
 | `scripts/data/generate-secrets.py --help` | dev Python | new private output file; never overwrites existing file |
 | `scripts/data/seed-minikube-demo.py --apply` | minikube + dev/pymongo | labelled synthetic database and gateway settings |
 | `scripts/maintenance/reset-test-checkout.py --help` | minikube + Python | explicit test checkout retirement; existing guards preserved |
@@ -159,20 +165,15 @@ or switching branches. `run.notes.sh` and `tests/load/load-test.sh` refuse to ru
 whole command notebooks; examples moved to Markdown. No application modules,
 service build contexts or test directories were moved.
 
-## CentOS-only validation
-
-Initializer unit tests cover Stream 9/10 on both architectures, rejection of other
-OSes, offline profile plans, checksum rejection and repeat reuse. Bash syntax and
-Node/Python syntax are checked without installations. On the current macOS host,
-help works and operational commands deliberately fail before changes. No actual
-CentOS package installation or deployment was executed. Historical broad-platform
-verification from the original reorganization no longer establishes support for
-those platforms.
+## Regression verification
 
 ```bash
 python3 -m unittest discover -s tests/scripts -v
-./init.sh --help
-# Run the following on CentOS only:
-./init.sh --profile docker --check
-./init.sh --profile minikube --dry-run
+python3 -m unittest discover -s runner -p 'test_*.py'
+git diff --check
 ```
+
+The script tests export tracked working-tree files to a temporary directory with
+spaces, validate every path mapping and run ECR help/preview offline. New source
+files must be in the Git index for completeness tests to pass. No commit is made.
+Generated `**/build/` artifacts remain ignored; source lives in `scripts/images/`.

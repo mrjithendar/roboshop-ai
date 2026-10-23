@@ -1,6 +1,6 @@
 """Reject an existing competing root route without deleting or changing it."""
 
-# CentOS-only operator command; imports remain usable by isolated tests.
+# Portable operator command; imports remain usable by isolated tests.
 if __name__ == '__main__':
     import sys as _host_sys
     if not any(arg in ('--help', '-h') for arg in _host_sys.argv[1:]):

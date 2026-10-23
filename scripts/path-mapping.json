@@ -1,5 +1,5 @@
 {
-  "build-push-ecr.sh": "scripts/build/build-push-ecr.sh",
+  "build-push-ecr.sh": "scripts/images/build-push-ecr.sh",
   "deploy-minikube.sh": "scripts/deploy/deploy-minikube.sh",
   "kubectl.sh": "scripts/dev/kubectl.sh",
   "generate-secrets.py": "scripts/data/generate-secrets.py",

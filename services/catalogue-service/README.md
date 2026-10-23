@@ -23,7 +23,7 @@ Configuration: `MONGODB_URL`, `MONGODB_DATABASE` (default `roboshop`), port 4108
 ## Build and deploy
 
 ```bash
-bash scripts/build/build-push-ecr.sh catalogue-service
+bash scripts/images/build-push-ecr.sh catalogue-service
 bash scripts/deploy/deploy-minikube.sh catalogue-service
 ```
 

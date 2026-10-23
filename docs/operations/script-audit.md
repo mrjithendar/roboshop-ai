@@ -4,7 +4,7 @@ Inventory of current commands and retained service-owned tools. Detailed caller/
 
 | Old path → canonical path | Purpose | Dependencies | Platform | Side effects |
 |---|---|---|---|---|
-| `build-push-ecr.sh` → `scripts/build/build-push-ecr.sh` | Container registry operations | bash, docker, minikube, aws | ARM64 Docker engine (existing restriction) | Builds images; authenticated remote registry writes |
+| `build-push-ecr.sh` → `scripts/images/build-push-ecr.sh` | Container registry operations | bash, docker, minikube, aws | ARM64 Docker engine (existing restriction) | Builds images; authenticated remote registry writes |
 | `delete_branch.sh` → `scripts/maintenance/delete-branches.sh` | Maintenance and cleanup | bash, git, gh, jq | CentOS Stream 9/10 | May delete/modify local or remote state; inspect explicit confirmation flags |
 | `deploy-minikube.sh` → `scripts/deploy/deploy-minikube.sh` | Deployment | bash, python3, kubectl, minikube, aws | CentOS Stream 9/10 | Changes Kubernetes/host networking; never initialization |
 | `evaluations/agents/evaluate.py` | Build and test |  | CentOS Stream 9/10 | Local outputs; load real-ai/live website modes require explicit opt-in |

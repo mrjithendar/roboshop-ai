@@ -2,7 +2,7 @@
 # This file is sourced by deployments, so it must not install packages or edit
 # PATH. A missing/broken CLI stops deployment and points to explicit setup.
 
-# CentOS host prerequisite; reject other OSes before operational side effects.
+# Validate the supported host before operational side effects.
 if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
 roboshop_require_centos "${1:-}" || exit 1

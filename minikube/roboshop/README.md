@@ -12,7 +12,7 @@ bash build-images.sh
 bash scripts/deploy/deploy-minikube.sh --load-images
 ```
 
-Application image publishing targets `linux/arm64`. Use `bash scripts/build/build-push-ecr.sh` on an ARM64 Docker engine to publish `:local` images, or the service CI workflows to publish `:latest`. CI requires a runner with `self-hosted`, `linux`, and `ARM64` labels. Cluster nodes must be ARM64. Infrastructure images are pulled from upstream multi-architecture registries; Kubernetes selects their ARM64 variant.
+Application image publishing targets `linux/arm64`. Use `bash scripts/images/build-push-ecr.sh` on an ARM64 Docker engine to publish `:local` images, or the service CI workflows to publish `:latest`. CI requires a runner with `self-hosted`, `linux`, and `ARM64` labels. Cluster nodes must be ARM64. Infrastructure images are pulled from upstream multi-architecture registries; Kubernetes selects their ARM64 variant.
 
 The script follows the selected profile saved by `minikube/install.sh` (base `PROFILE=mk4`). The profile and Kubernetes context must match when loading images. The default deploy command loads images and restarts applications. To deliberately apply manifests only (without an image refresh), run:
 

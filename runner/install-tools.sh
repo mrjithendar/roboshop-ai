@@ -3,10 +3,10 @@
 # a runner venv isolate the service PATH without replacing system commands.
 # Existing tool environments are reused rather than rebuilt during registration.
 
-# CentOS host prerequisite; reject other OSes before operational side effects.
+# Validate the supported host before operational side effects.
 if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
-roboshop_require_centos "${1:-}" || exit 1
+roboshop_require_centos "${1:-}" centos || exit 1
 # Prepare private runner links from initialized tooling; no downloads or host repair.
 set -euo pipefail
 case "${1:-}" in --help|-h) echo 'Usage: runner/install-tools.sh EXISTING_RUNNER_DIR'; echo 'First run ./init.sh --profile dev and ./init.sh --profile aws. Creates private runner links, not AWS credentials.'; exit 0;; esac

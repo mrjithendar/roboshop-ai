@@ -116,7 +116,7 @@ to activate this change; the compatibility widget URL and gateway APIs remain un
 
 ```bash
 # First create roboshop-moks via the infrastructure Terraform (review its plan).
-bash scripts/build/build-push-ecr.sh moks nginx frontend
+bash scripts/images/build-push-ecr.sh moks nginx frontend
 bash scripts/deploy/deploy-minikube.sh moks nginx frontend
 ```
 

@@ -1,9 +1,7 @@
 # Runner prerequisites
 
-> Operational scripts now require **CentOS Stream 9 or 10 (x86_64/ARM64)**.
-> Start with `./init.sh --help`. Other hosts are rejected before changes; older
-> cross-platform examples below are historical and are not supported execution paths.
-> Container runtimes and test/CI code retain their declared environments.
+> See [the script matrix](../docs/operations/scripts.md). Runner host setup remains CentOS Stream 9/10 with systemd.
+
 
 
 Before runner registration, run `./init.sh --profile dev` and
@@ -52,7 +50,6 @@ install project dependencies in project virtual environments or workflow steps.
 They preserve runner registration and do not fetch a new GitHub secret for an
 already registered runner. If tool installation or registration configuration fails, the service remains stopped until fixed.
 
-Targets are modern Ubuntu/Debian, CentOS Stream/RHEL/Rocky/AlmaLinux/Fedora/Amazon Linux and openSUSE/SLES systems with matching package repositories. Requires **systemd, Python 3.9+, x86_64 or arm64**, and either root or a regular user with sudo access. Python is installed automatically, but an old release whose repositories provide only an older Python must be upgraded. Alpine/musl, OpenRC-only hosts, end-of-life releases and arbitrary Linux distributions are not guaranteed compatible. zypper package availability varies by SUSE release. Setup checks the runner runtime before fetching registration credentials.
 
 When working runner files are absent, the installer downloads runner 2.337.0 and verifies its pinned SHA-256 checksum. Initial registration uses GH_TOKEN/GITHUB_TOKEN, then an authenticated GitHub CLI login, then the specified AWS secret as a legacy fallback. The AWS identity needs `secretsmanager:GetSecretValue` (plus KMS decrypt permission for a customer-managed key). Provide an EC2 instance role or configure AWS credentials/profile for your user before running. The installer does not create GitHub access tokens or AWS credentials. Outbound HTTPS to package repositories, GitHub, AWS and PyPI, astral.sh, python-build-standalone release downloads and awscli.amazonaws.com is required.
 
