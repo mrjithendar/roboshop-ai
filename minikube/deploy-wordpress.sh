@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# Deploys the WordPress chart and performs its cache/bootstrap checks before
+# publishing the website route. Chart values own application configuration;
+# persistent data and existing credentials must survive routine upgrades.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
 set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 fail() { echo "ERROR: $*" >&2; exit 1; }

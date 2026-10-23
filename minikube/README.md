@@ -1,4 +1,10 @@
 kubectl -n monitoring get secret prometheus-auth \
+
+> Operational scripts now require **CentOS Stream 9 or 10 (x86_64/ARM64)**.
+> Start with `./init.sh --help`. Other hosts are rejected before changes; older
+> cross-platform examples below are historical and are not supported execution paths.
+> Container runtimes and test/CI code retain their declared environments.
+
   -o jsonpath='{.data.password}' | base64 --decode; echo
 
 # Minikube on Linux and macOS
@@ -252,21 +258,21 @@ Installs Metrics Server in `kube-system` for `kubectl top` and resource-based HP
 
 ## Deploy RoboShop application services
 
-From the repository root, use `bash deploy-minikube.sh` to apply each service's `*-minikube.yaml` in dependency order. See [application deployment](roboshop/README.md) for building/loading images, remote deployment and configuration.
+From the repository root, use `bash scripts/deploy/deploy-minikube.sh` to apply each service's `*-minikube.yaml` in dependency order. See [application deployment](roboshop/README.md) for building/loading images, remote deployment and configuration.
 
-RoboShop is served at **https://jithendar.com/roboshop/** using the root `deploy-minikube.sh` script. See [HTTPS routing and rebuild instructions](roboshop/README.md#https-access-at-jithendarcomroboshop). WordPress continues serving the domain root.
+RoboShop is served at **https://jithendar.com/roboshop/** using the root `scripts/deploy/deploy-minikube.sh` script. See [HTTPS routing and rebuild instructions](roboshop/README.md#https-access-at-jithendarcomroboshop). WordPress continues serving the domain root.
 
 ### Use the downloaded kubeconfig without exporting it
 
 From the repository root:
 
 ```bash
-bash kubectl.sh get nodes
-bash kubectl.sh -n roboshop-ai get pods
-bash deploy-minikube.sh
+bash scripts/dev/kubectl.sh get nodes
+bash scripts/dev/kubectl.sh -n roboshop-ai get pods
+bash scripts/deploy/deploy-minikube.sh
 ```
 
-`kubectl.sh` uses `~/.kube/vultr-minikube.json` and fails clearly if it is missing. The deployment script also selects this file when present; on the Minikube host it falls back to the usual kubectl configuration. Both respect an existing `KUBECONFIG`. Neither changes your shell or overwrites `~/.kube/config`. Plain `kubectl` commands still use your shell's configuration.
+`scripts/dev/kubectl.sh` uses `~/.kube/vultr-minikube.json` and fails clearly if it is missing. The deployment script also selects this file when present; on the Minikube host it falls back to the usual kubectl configuration. Both respect an existing `KUBECONFIG`. Neither changes your shell or overwrites `~/.kube/config`. Plain `kubectl` commands still use your shell's configuration.
 
 ## JFrog artifact and Docker registry
 

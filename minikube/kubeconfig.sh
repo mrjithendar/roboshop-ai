@@ -1,4 +1,14 @@
-#!/bin/sh
+#!/usr/bin/env bash
+# Imports a remote cluster configuration through SSH and validates its endpoint
+# before updating local configuration. VULTR_HOST is a historical variable name;
+# it identifies the SSH destination, not a requirement to use that cloud vendor.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
+# Usage: bash minikube/kubeconfig.sh --help
+case "${1:-}" in --help|-h) echo 'Purpose: Run locally. Works with both `sh` and `bash`; never starts an SSH tunnel.'; echo 'Usage: bash minikube/kubeconfig.sh; see docs/operations/script-audit.md for prerequisites, variables and effects.'; exit 0;; esac
 # Run locally. Works with both `sh` and `bash`; never starts an SSH tunnel.
 set -eu
 SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"

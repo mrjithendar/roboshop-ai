@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
 # Build one image locally, then publish it to JFrog's docker-local repository.
 [ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
 set -euo pipefail

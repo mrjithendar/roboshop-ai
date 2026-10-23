@@ -6,7 +6,7 @@ Deploy the whole application from the repository root:
 
 ```bash
 bash build-images.sh
-bash deploy-minikube.sh
+bash scripts/deploy/deploy-minikube.sh
 ```
 
 Paid-order events are consumed by shipping to create shipment requests. Preserve the PVC and credentials across deployments. For a private management session use `kubectl -n roboshop-ai port-forward service/rabbitmq 15672:15672`, then open localhost:15672. Do not publish the management UI directly.

@@ -1,4 +1,15 @@
 """Reuse the existing site certificate without copying or printing private keys."""
+
+# CentOS-only operator command; imports remain usable by isolated tests.
+if __name__ == '__main__':
+    import sys as _host_sys
+    if not any(arg in ('--help', '-h') for arg in _host_sys.argv[1:]):
+        import subprocess as _host_subprocess
+        from pathlib import Path as _HostPath
+        _host_gate = _HostPath(__file__).resolve().parent / '../..' / 'scripts/lib/require-centos.sh'
+        if _host_subprocess.call(['bash', str(_host_gate)]):
+            raise SystemExit(1)
+
 import json
 import os
 from pathlib import Path

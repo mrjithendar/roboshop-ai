@@ -1,4 +1,15 @@
+#!/usr/bin/env bash
+# Reads the API target from CONFIG and prepares an SSH-forwarded endpoint.
+# This is an explicit alternative to direct API access, not an automatic fallback;
+# the SSH session must stay available while clients use the forwarded endpoint.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
 VULTR_HOST=root@jithendar.com
+# Usage: bash minikube/tunnel-endpoint.sh --help
+case "${1:-}" in --help|-h) echo 'Purpose: tunnel-endpoint'; echo 'Usage: bash minikube/tunnel-endpoint.sh; see docs/operations/script-audit.md for prerequisites, variables and effects.'; exit 0;; esac
 
 API_TARGET=$(python3 - "$CONFIG" <<'PY'
 import json, sys

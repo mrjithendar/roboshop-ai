@@ -37,7 +37,7 @@ jobs:
       - run: python -m unittest discover -s tests/python -v
       - run: python -m unittest discover -s services/ai-gateway/tests -v
       - run: python -m unittest discover -s services/user-service/tests -v
-      - run: python scripts/evaluate.py
+      - run: python scripts/test/evaluate.py
       - run: npm ci
       - run: npm run frontend:build
       - run: node --test services/frontend/tests/admin-ui.test.mjs services/frontend/tests/frontend.test.mjs

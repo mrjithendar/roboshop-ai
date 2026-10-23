@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# Use --check to inspect prerequisites or --render-only to review configuration
+# before installation. Registry storage and memory requirements are independent
+# of whether the ingress URL can be reached; preserve persistent artifact data.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
 [ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
 set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

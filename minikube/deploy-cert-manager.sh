@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# Installs the certificate controller and issuer resources. A Ready issuer does
+# not guarantee a site certificate: DNS and HTTP challenge reachability must also
+# work. Keep staging and production issuers distinct when testing issuance.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
 # Installs cert-manager and separate staging/production Let's Encrypt issuers.
 set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

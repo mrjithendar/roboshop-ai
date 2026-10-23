@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# Installs the in-cluster ingress controller. Host port forwarding is deliberately
+# a separate command, because Kubernetes ingress configuration alone does not
+# make Docker-backed Minikube reachable from the public Internet.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
 # Install the ingress controller; host routing is a separate, host-only step.
 set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

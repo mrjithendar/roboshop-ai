@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
-# Also tolerate invocation through sh on Linux/macOS.
+# Deploys metrics storage and its authenticated ingress in monitoring.
+# A bound PVC does not guarantee writable storage or a healthy server. Failure
+# diagnostics should guide recovery without discarding metrics or credentials.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
+# Tolerate invocation through sh; the host gate still requires CentOS.
 [ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
 set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

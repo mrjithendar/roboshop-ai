@@ -52,7 +52,7 @@ Original SVG category illustrations in `illustrations/` replace the common place
 
 Verify: `npm run frontend:build`, then `node --test services/frontend/tests/frontend.test.mjs services/frontend/tests/frontend-paths.test.mjs services/frontend/tests/product-page.test.mjs` and `npm run test:nginx`.
 
-Deploy on the Minikube host after syncing changes: `bash build-images.sh` then `bash deploy-minikube.sh --load-images`. Frontend and NGINX must both be rebuilt for the new illustration routes. No data migration is required.
+Deploy on the Minikube host after syncing changes: `bash build-images.sh` then `bash scripts/deploy/deploy-minikube.sh --load-images`. Frontend and NGINX must both be rebuilt for the new illustration routes. No data migration is required.
 
 ## Cart and checkout pages
 

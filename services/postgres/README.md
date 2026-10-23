@@ -6,7 +6,7 @@ Deploy the whole application from the repository root:
 
 ```bash
 bash build-images.sh
-bash deploy-minikube.sh
+bash scripts/deploy/deploy-minikube.sh
 ```
 
 `10-shipping-role.sh` runs only on a new database. Shipping applies its own schema migrations and worldwide location seed before serving HTTP. Runtime access includes location reads and shipment-request writes. Changing a Secret does not rotate an existing database password; coordinate role and Secret changes without deleting the PVC.

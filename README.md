@@ -1,5 +1,18 @@
 # RoboShop AI
 
+> Operational scripts now require **CentOS Stream 9 or 10 (x86_64/ARM64)**.
+> Start with `./init.sh --help`. Other hosts are rejected before changes; older
+> cross-platform examples below are historical and are not supported execution paths.
+> Container runtimes and test/CI code retain their declared environments.
+
+
+Start a new host with `./init.sh --help`, then choose `--profile dev`, `docker`,
+`minikube` or `aws`. Use `--dry-run` first. See the
+[operational script index](docs/operations/scripts.md) for dependencies, canonical
+commands, compatibility paths and first-time setup. Initialization never deploys
+applications, creates credentials or starts a cluster.
+
+
 RoboShop includes a TypeScript storefront, MongoDB catalogue and accounts, Redis cart service, Java shipping, Razorpay payment integration, Python AI gateway and shopping assistant, and distributed tracing. Application and supporting services live under `services/`.
 
 ## Build and deploy to Minikube
@@ -8,7 +21,7 @@ On the Minikube host, from this directory:
 
 ```bash
 bash build-images.sh
-bash deploy-minikube.sh
+bash scripts/deploy/deploy-minikube.sh
 ```
 
 The build script removes the previous application `:local` tags and rebuilds all twelve images without cache. The deployment script loads them into Minikube, applies all eighteen workloads in dependency order, restarts application pods, and checks readiness. Infrastructure uses official upstream images. These commands preserve existing database volumes and credentials.
@@ -24,7 +37,7 @@ kubectl -n roboshop-ai logs deployment/frontend --tail=100
 kubectl -n roboshop-ai logs deployment/ai-gateway --tail=100
 
 # Render and validate YAML without changing the cluster
-bash deploy-minikube.sh --render-only /tmp/roboshop-manifests
+bash scripts/deploy/deploy-minikube.sh --render-only /tmp/roboshop-manifests
 python3 tests/minikube-manifests.test.py
 ```
 
@@ -42,7 +55,7 @@ export PYTHON="$PWD/.venv/bin/python"
 npm run dev
 ```
 
-Open **http://localhost:3000**. Ctrl+C stops the launcher’s child processes. `npm run dev` builds the frontend and shipping application first. `python3 generate-secrets.py` can generate fresh native-development credentials; it does not provision database accounts or replace Minikube’s secret initialization.
+Open **http://localhost:3000**. Ctrl+C stops the launcher’s child processes. `npm run dev` builds the frontend and shipping application first. `python3 scripts/data/generate-secrets.py` can generate fresh native-development credentials; it does not provision database accounts or replace Minikube’s secret initialization.
 
 ## Services
 
@@ -143,24 +156,24 @@ To build and deploy one application manually (its dependencies must already exis
 
 ```bash
 bash build-images.sh --service frontend --local
-bash deploy-minikube.sh --service frontend --load-images
+bash scripts/deploy/deploy-minikube.sh --service frontend --load-images
 ```
 
-For a fresh staged deployment, run `bash deploy-minikube.sh --infrastructure` first,
+For a fresh staged deployment, run `bash scripts/deploy/deploy-minikube.sh --infrastructure` first,
 then process application services in the workflow order, and finish with
-`bash deploy-minikube.sh --finalize`. Single-service mode loads/restarts only that
+`bash scripts/deploy/deploy-minikube.sh --finalize`. Single-service mode loads/restarts only that
 application and does not republish the catalogue or change ingress. The existing
-full-stack command `bash deploy-minikube.sh --load-images` remains supported.
+full-stack command `bash scripts/deploy/deploy-minikube.sh --load-images` remains supported.
 
 ### Quick build and deploy to existing Minikube
 
 ```bash
-bash build-push-ecr.sh frontend
-bash deploy-minikube.sh frontend
+bash scripts/build/build-push-ecr.sh frontend
+bash scripts/deploy/deploy-minikube.sh frontend
 
 # All application services (omit service names in both commands):
-bash build-push-ecr.sh
-bash deploy-minikube.sh
+bash scripts/build/build-push-ecr.sh
+bash scripts/deploy/deploy-minikube.sh
 ```
 
 Both scripts use ECR images tagged `local`. Deployment refreshes the ECR pull
@@ -169,7 +182,7 @@ restarts without waiting for rollout status. Existing application secrets,
 configuration and databases are preserved; use the installation workflow for a
 fresh cluster. Requires AWS CLI credentials, kubectl and Python 3. Uses your
 existing kubeconfig and context `mk4`; override with `KUBE_CONTEXT=your-context`.
-Use `IMAGE_TAG=latest bash deploy-minikube.sh frontend` to deploy CI images instead.
+Use `IMAGE_TAG=latest bash scripts/deploy/deploy-minikube.sh frontend` to deploy CI images instead.
 
 ### Kafka analytics stream
 

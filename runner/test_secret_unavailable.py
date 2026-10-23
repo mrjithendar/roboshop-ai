@@ -3,6 +3,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from test_helpers import python_runner_source
 
 class SecretUnavailableTests(unittest.TestCase):
     def test_retrieval_failure_is_safe_and_distinct(self):
@@ -10,7 +11,7 @@ class SecretUnavailableTests(unittest.TestCase):
             aws=Path(tmp)/'aws'
             aws.write_text('#!/bin/sh\necho private-error-detail >&2\nexit 1\n')
             aws.chmod(0o755)
-            r=subprocess.run(['python3',str(Path(__file__).with_name('register.py')),'owner/repo','runner'],env=dict(os.environ,PATH=tmp+':'+os.environ['PATH'],RUNNER_AUTH='aws'),capture_output=True,text=True)
+            r=subprocess.run(['python3','-c', python_runner_source(Path(__file__).with_name('register.py')), 'owner/repo','runner'],env=dict(os.environ,PATH=tmp+':'+os.environ['PATH'],RUNNER_AUTH='aws'),capture_output=True,text=True)
             self.assertEqual(r.returncode,75)
             self.assertIn('Registration is pending',r.stderr)
             self.assertNotIn('private-error-detail',r.stderr+r.stdout)

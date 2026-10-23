@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# DESTRUCTIVE: removes monitoring application data and credentials before
+# reinstallation. Preserve the explicit scope/confirmation checks; a dashboard
+# login problem alone is not justification for deleting its persistent volume.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
 # DESTRUCTIVE: remove monitoring application data and credentials, then reinstall.
 [ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
 set -euo pipefail

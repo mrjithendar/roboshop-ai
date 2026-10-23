@@ -7,12 +7,12 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "node --env-file-if-exists=.env scripts/dev.mjs",
-    "start": "node --env-file-if-exists=.env scripts/dev.mjs",
+    "dev": "node --env-file-if-exists=.env scripts/dev/start.mjs",
+    "start": "node --env-file-if-exists=.env scripts/dev/start.mjs",
     "test": "node --test tests/*.test.mjs services/*/tests/*.test.mjs",
-    "evaluate": "node scripts/run-python.mjs scripts/evaluate.py",
+    "evaluate": "node scripts/lib/run-python.mjs scripts/test/evaluate.py",
     "ingest": "node services/catalogue-service/import.mjs",
-    "mcp": "node --env-file-if-exists=.env scripts/run-python.mjs services/mcp-server/server.py",
+    "mcp": "node --env-file-if-exists=.env scripts/lib/run-python.mjs services/mcp-server/server.py",
     "shipping:build": "sh services/shipping-service/gradlew -p services/shipping-service --no-daemon test bootJar",
     "predev": "npm run frontend:build && npm run shipping:build",
     "prestart": "npm run frontend:build && npm run shipping:build",
@@ -21,8 +21,8 @@
     "frontend:build": "npm --prefix services/frontend run build",
     "frontend:typecheck": "npm --prefix services/frontend run typecheck",
     "pretest:nginx": "npm run frontend:build",
-    "admin:bootstrap": "node --env-file-if-exists=.env scripts/run-python.mjs services/user-service/bootstrap.py",
-    "test:python": "node scripts/run-python.mjs -m unittest discover -s tests/python -v && node scripts/run-python.mjs -m unittest discover -s services/ai-gateway/tests -v && node scripts/run-python.mjs -m unittest discover -s services/user-service/tests -v && node scripts/run-python.mjs -m unittest discover -s services/moks/tests -v"
+    "admin:bootstrap": "node --env-file-if-exists=.env scripts/lib/run-python.mjs services/user-service/bootstrap.py",
+    "test:python": "node scripts/lib/run-python.mjs -m unittest discover -s tests/python -v && node scripts/lib/run-python.mjs -m unittest discover -s services/ai-gateway/tests -v && node scripts/lib/run-python.mjs -m unittest discover -s services/user-service/tests -v && node scripts/lib/run-python.mjs -m unittest discover -s services/moks/tests -v"
   },
   "dependencies": {
     "amqplib": "^2.2.0",

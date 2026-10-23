@@ -32,7 +32,7 @@ Browser → NGINX :8080 (HTTP) / :8443 (optional HTTPS)
 
 ## Minikube
 
-Run `bash build-images.sh` and `bash deploy-minikube.sh` from the repository root. Traefik and cert-manager terminate HTTPS at `https://jithendar.com/roboshop/`; NGINX forwards requests inside the cluster.
+Run `bash build-images.sh` and `bash scripts/deploy/deploy-minikube.sh` from the repository root. Traefik and cert-manager terminate HTTPS at `https://jithendar.com/roboshop/`; NGINX forwards requests inside the cluster.
 
 ```bash
 kubectl -n roboshop-ai logs deployment/nginx --tail=100

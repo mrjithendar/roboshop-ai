@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# Connects host ports to the selected local Minikube ingress endpoints.
+# TCP forwarding leaves TLS termination to Traefik. This changes host networking;
+# it does not create DNS records or prove that upstream firewalls allow traffic.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
 # Run on the Linux Docker/Minikube host, never on the remote Mac client.
 # HAProxy forwards TCP unchanged; Traefik handles TLS and cert-manager handles ACME.
 set -euo pipefail

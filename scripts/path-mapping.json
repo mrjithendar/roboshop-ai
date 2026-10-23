@@ -1,0 +1,13 @@
+{
+  "build-push-ecr.sh": "scripts/build/build-push-ecr.sh",
+  "deploy-minikube.sh": "scripts/deploy/deploy-minikube.sh",
+  "kubectl.sh": "scripts/dev/kubectl.sh",
+  "generate-secrets.py": "scripts/data/generate-secrets.py",
+  "delete_branch.sh": "scripts/maintenance/delete-branches.sh",
+  "scripts/dev.mjs": "scripts/dev/start.mjs",
+  "scripts/run-python.mjs": "scripts/lib/run-python.mjs",
+  "scripts/evaluate.py": "scripts/test/evaluate.py",
+  "scripts/reset-test-checkout.py": "scripts/maintenance/reset-test-checkout.py",
+  "scripts/seed-minikube-demo.py": "scripts/data/seed-minikube-demo.py",
+  "scripts/squash-history.py": "scripts/maintenance/squash-history.py"
+}

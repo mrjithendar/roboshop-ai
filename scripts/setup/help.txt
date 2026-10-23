@@ -1,0 +1,16 @@
+Usage: ./init.sh [--profile dev|docker|minikube|aws] [--check|--dry-run]
+Supported host: CentOS Stream 9 or 10, x86_64 or ARM64. dnf is required.
+Default: dev. --check reports only; --dry-run prints decisions without changes.
+Profiles:
+  dev       Git, curl, jq, managed Python 3.14, Node 26/npm; isolated .venv.
+  docker    Git, curl, jq, Docker Engine/client.
+  minikube  docker + Python, kubectl, Helm, Minikube, OpenSSL.
+  aws       Git, curl, jq, AWS CLI v2, Terraform; no credentials or resources.
+Tools install under ~/.local/bin and ~/.local/share/roboshop-tools; compatible
+PATH installations are reused. Incompatible commands are never silently replaced.
+Add ~/.local/bin to PATH in future shells. No automatic shell-profile edits.
+No cluster start, deployment, migration, seed, runner registration or cloud setup.
+Docker group membership is never changed; re-login after an administrator grants access.
+Other operating systems are rejected before changes. --help remains portable.
+Exit: 0 ready/plan; 1 unsupported host or prerequisite/install failure; 2 invalid arguments.
+See docs/operations/scripts.md for first-run commands and profile scope.

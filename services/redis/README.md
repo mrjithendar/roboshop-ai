@@ -6,7 +6,7 @@ Deploy the whole application from the repository root:
 
 ```bash
 bash build-images.sh
-bash deploy-minikube.sh
+bash scripts/deploy/deploy-minikube.sh
 ```
 
 Redis stores cached shipping locations and cart-service state. This sandbox has no Redis PVC; restarts can discard cached state. The gateway keeps its durable order ledger separately. Do not use a cache restart as a cart or order reset mechanism. Keep Redis private to the cluster.

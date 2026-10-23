@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# Installs Kubernetes resource metrics for kubectl top and autoscaling clients.
+# This is distinct from Prometheus application metrics and does not configure
+# a public dashboard or prove that application telemetry is being scraped.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
 [ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
 set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

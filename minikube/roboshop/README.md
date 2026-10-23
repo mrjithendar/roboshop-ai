@@ -1,6 +1,6 @@
 # Deploy all RoboShop services to Minikube
 
-Each runnable service has its own **`services/<service>/<service>-minikube.yaml`**. The root **`deploy-minikube.sh`** applies all 18 in dependency order into `roboshop-ai`, checking readiness between services. Each application keeps its internal libraries in its own `lib/` folder; these libraries are not separate workloads.
+Each runnable service has its own **`services/<service>/<service>-minikube.yaml`**. The root **`scripts/deploy/deploy-minikube.sh`** applies all 18 in dependency order into `roboshop-ai`, checking readiness between services. Each application keeps its internal libraries in its own `lib/` folder; these libraries are not separate workloads.
 
 ## Local images on the Vultr Minikube host
 
@@ -9,15 +9,15 @@ Run from the repository root. Install Python 3 with PyYAML in your virtual envir
 ```bash
 python3 -m pip install PyYAML
 bash build-images.sh
-bash deploy-minikube.sh --load-images
+bash scripts/deploy/deploy-minikube.sh --load-images
 ```
 
-Application image publishing targets `linux/arm64`. Use `bash build-push-ecr.sh` on an ARM64 Docker engine to publish `:local` images, or the service CI workflows to publish `:latest`. CI requires a runner with `self-hosted`, `linux`, and `ARM64` labels. Cluster nodes must be ARM64. Infrastructure images are pulled from upstream multi-architecture registries; Kubernetes selects their ARM64 variant.
+Application image publishing targets `linux/arm64`. Use `bash scripts/build/build-push-ecr.sh` on an ARM64 Docker engine to publish `:local` images, or the service CI workflows to publish `:latest`. CI requires a runner with `self-hosted`, `linux`, and `ARM64` labels. Cluster nodes must be ARM64. Infrastructure images are pulled from upstream multi-architecture registries; Kubernetes selects their ARM64 variant.
 
 The script follows the selected profile saved by `minikube/install.sh` (base `PROFILE=mk4`). The profile and Kubernetes context must match when loading images. The default deploy command loads images and restarts applications. To deliberately apply manifests only (without an image refresh), run:
 
 ```bash
-bash deploy-minikube.sh --manifests-only
+bash scripts/deploy/deploy-minikube.sh --manifests-only
 ```
 
 Local images must be available to every node where pods may schedule. This script does not build images automatically. For private registry images, configure registry access/image pull credentials on the cluster before deploying.
@@ -29,7 +29,7 @@ First build and push your images to a registry accessible to the cluster, using 
 ```bash
 export KUBECONFIG="$HOME/.kube/vultr-minikube.json"
 IMAGE_PREFIX=registry.example.com/team/roboshop KUBE_CONTEXT=mk4 \
-  bash deploy-minikube.sh --registry-images
+  bash scripts/deploy/deploy-minikube.sh --registry-images
 ```
 
 Replace the example prefix with your registry prefix; publish every application image with the local tag. The renderer changes application image references only; infrastructure images retain their checked-in versions. Run `--load-images` on the actual Minikube host, not on a Mac pointed at the remote cluster.
@@ -46,7 +46,7 @@ On the Minikube host, rebuild the frontend and NGINX changes using the fixed loc
 
 ```bash
 bash build-images.sh
-bash deploy-minikube.sh --load-images
+bash scripts/deploy/deploy-minikube.sh --load-images
 ```
 
 If TLS is pending:
@@ -96,7 +96,7 @@ Registration challenges are disabled for the sandbox, and no administrator or ex
 ## Validate without deployment
 
 ```bash
-bash deploy-minikube.sh --render-only /tmp/roboshop-manifests
+bash scripts/deploy/deploy-minikube.sh --render-only /tmp/roboshop-manifests
 python3 tests/minikube-manifests.test.py
 ```
 
@@ -122,7 +122,7 @@ The installer stops at the first failing rollout and prints diagnostics. Fix the
 
 ### Rebuilding the same local tag
 
-`bash build-images.sh` and `bash deploy-minikube.sh --load-images` always use matching `:local` application images. An old exported `IMAGE_TAG` is ignored. The loader checks that all twelve images exist in host Docker, explicitly overwrites Minikube's cached tags from that daemon, then restarts each application deployment and waits for readiness. Databases and infrastructure are not restarted by this image refresh. Run the loader on the Minikube host. The default command now performs the same refresh as `--load-images`. Only `--manifests-only` skips refreshing images and forcing restarts. `--registry-images` uses `Always` pull policy and restarts applications so a changed registry `:local` tag is fetched. Progress is sequential: a service waiting for readiness delays all later services, including frontend. The script prints each step and the final running image IDs; an incomplete run is not a successful release.
+`bash build-images.sh` and `bash scripts/deploy/deploy-minikube.sh --load-images` always use matching `:local` application images. An old exported `IMAGE_TAG` is ignored. The loader checks that all twelve images exist in host Docker, explicitly overwrites Minikube's cached tags from that daemon, then restarts each application deployment and waits for readiness. Databases and infrastructure are not restarted by this image refresh. Run the loader on the Minikube host. The default command now performs the same refresh as `--load-images`. Only `--manifests-only` skips refreshing images and forcing restarts. `--registry-images` uses `Always` pull policy and restarts applications so a changed registry `:local` tag is fetched. Progress is sequential: a service waiting for readiness delays all later services, including frontend. The script prints each step and the final running image IDs; an incomplete run is not a successful release.
 
 ### Shipping exits while binding the Redis port
 
@@ -135,7 +135,7 @@ If the previous container log reports `spring.data.redis.port` cannot parse `tcp
 The ECR deployment workflow deploys `user-service` before `ai-gateway`.
 Account data stays in the existing MongoDB collections. See
 [the user-service migration and deployment guide](../../services/user-service/README.md).
-`deploy-minikube.sh` adds a missing `USER_SERVICE_TOKEN` to the existing Secret
+`scripts/deploy/deploy-minikube.sh` adds a missing `USER_SERVICE_TOKEN` to the existing Secret
 without rotating stored database passwords. User-service now uses SES directly;
 configure its SMTP credentials in `roboshop-secrets`.
 

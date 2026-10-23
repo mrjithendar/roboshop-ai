@@ -29,7 +29,7 @@ and start another MongoDB process against the same volume. The deploy workflow
 performs this same transition before applying data-service manifests. Repeated
 runs leave the StatefulSet and its PVC intact. Do not delete the PVC or Secrets.
 
-The application-only `deploy-minikube.sh` does not deploy databases; use the workflow
+The application-only `scripts/deploy/deploy-minikube.sh` does not deploy databases; use the workflow
 or commands above for this transition. Existing Minikube hostPath storage can be
 node-local: a StatefulSet does not make that volume replicated or portable. Do not
 delete its node or cluster expecting data to survive. Backups and a production

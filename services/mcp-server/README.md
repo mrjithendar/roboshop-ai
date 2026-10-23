@@ -59,8 +59,8 @@ origin. Logs go to stderr, preserving stdout for protocol messages only.
 
 ```bash
 python -m unittest discover -s services/mcp-server/tests -v
-bash build-push-ecr.sh mcp-server
-bash deploy-minikube.sh mcp-server
+bash scripts/build/build-push-ecr.sh mcp-server
+bash scripts/deploy/deploy-minikube.sh mcp-server
 ```
 
 Tests use the actual FastMCP client, stdio subprocess and HTTP transport with

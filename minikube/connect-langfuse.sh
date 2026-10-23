@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+# Reads existing project keys and connects application telemetry to Langfuse.
+# Key availability is not proof of successful export. Never enable shell tracing
+# or print the Kubernetes Secret while diagnosing connectivity.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
+# Usage: bash minikube/connect-langfuse.sh --help
+case "${1:-}" in --help|-h) echo 'Purpose: Read existing project keys without prompting or logging secret values.'; echo 'Usage: bash minikube/connect-langfuse.sh; see docs/operations/script-audit.md for prerequisites, variables and effects.'; exit 0;; esac
 # Read existing project keys without prompting or logging secret values.
 set +x
 set -euo pipefail

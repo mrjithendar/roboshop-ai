@@ -9,13 +9,13 @@ The account must have permission to edit repository rulesets and push the branch
 From the repository root, preview first:
 
 ```sh
-python3 scripts/squash-history.py
+python3 scripts/maintenance/squash-history.py
 ```
 
 After committing this script and any other work, execute intentionally:
 
 ```sh
-python3 scripts/squash-history.py --apply
+python3 scripts/maintenance/squash-history.py --apply
 ```
 
 Defaults are `mrjithendar/roboshop-ai`, `master`, and the baseline title

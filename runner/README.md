@@ -1,3 +1,18 @@
+# Runner prerequisites
+
+> Operational scripts now require **CentOS Stream 9 or 10 (x86_64/ARM64)**.
+> Start with `./init.sh --help`. Other hosts are rejected before changes; older
+> cross-platform examples below are historical and are not supported execution paths.
+> Container runtimes and test/CI code retain their declared environments.
+
+
+Before runner registration, run `./init.sh --profile dev` and
+`./init.sh --profile aws` as the runner owner. Existing compatible Python/AWS
+installations are reused; `runner/install-tools.sh` creates private links and an
+isolated runner venv only. It no longer downloads uv/AWS, overwrites system AWS,
+or edits shell profiles. Runner setup still installs CI-specific OS libraries
+and registers/starts the runner explicitly; it is never called by init.
+
 # GitHub Actions runner
 
 Run from the checkout as root or your regular Linux user (for example `ec2-user` or `ubuntu`):
@@ -14,15 +29,12 @@ This installs one job slot; keep the entire `runner/` directory together. With n
 | `mrjithendar-github-pat` | AWS Secrets Manager secret holding a GitHub token |
 | `us-east-1` | AWS region containing that secret |
 
-Setup detects apt, dnf/yum or zypper and installs bootstrap Python, download
-utilities, unzip, Git and runner dependencies. `install-tools.sh` then installs
-fresh uv, the latest stable CPython available in uv's managed distribution catalogue,
-latest pip, and the latest official AWS CLI v2 Linux bundle (x86_64 or ARM64).
-These private tools live under `$RUNNER_DIR/.tools`; OS Python and existing global
-AWS installations remain untouched. Managed Python uses Astral python-build-standalone
-binaries, not your distribution's Python packages. The runner's `.path` file ensures
-workflow steps can use `python`, `python3`, `pip`, `pip3` and `aws` after startup.
-AWS credentials/profile still belong to the invoking user; no credentials are created.
+Setup retains CI-specific OS runtime libraries. Run the central initializer for
+Python/Node and AWS prerequisites first. `install-tools.sh` reuses the repository
+Python environment to create a private runner venv and links the selected AWS CLI
+v2 into `$RUNNER_DIR/.tools`. It never downloads independent tool versions, edits
+shell profiles or replaces a global command. The runner `.path` file selects these
+private tools for jobs. AWS credentials remain separately managed by the operator.
 
 For an existing runner, wait until GitHub shows **Idle**, then stop its service
 before updating tools:
@@ -166,7 +178,7 @@ python3 -m unittest discover -s runner -p 'test_*.py' -v
 
 Local validation: shell syntax and four registration tests pass. Package installation, runner registration and systemd service startup have not been tested on live distribution instances.
 
-Compatibility is bounded by [GitHub’s supported runner platforms](https://docs.github.com/en/actions/reference/runners/self-hosted-runners). The fallback CLI uses [AWS’s virtual-environment installation approach](https://docs.aws.amazon.com/cli/v1/userguide/install-virtualenv.html).
+Compatibility is bounded by [GitHub’s supported runner platforms](https://docs.github.com/en/actions/reference/runners/self-hosted-runners). AWS CLI v1 is not accepted by the centralized initializer.
 
 References: [runner release and checksums](https://github.com/actions/runner/releases/tag/v2.337.0), [GitHub registration tokens](https://docs.github.com/en/rest/actions/self-hosted-runners#create-a-registration-token-for-a-repository).
 

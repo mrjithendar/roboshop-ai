@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# DESTRUCTIVE: targets the current user's Minikube clusters and installer state.
+# The confirmation is a data-loss boundary. It must remain separate from normal
+# start/repair operations; cluster-local volumes may contain the only data copy.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
 # Destructive reset of the current user's Minikube clusters and installer state.
 set -euo pipefail
 fail() { echo "ERROR: $*" >&2; exit 1; }

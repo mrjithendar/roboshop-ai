@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# Installs Argo CD behind the existing Traefik ingress and shared TLS setup.
+# The chart release and public route are separate resources; applying them is
+# not proof that the browser UI or certificate is already ready.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
 # Install/update Argo CD behind the existing Traefik + Let's Encrypt setup.
 set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

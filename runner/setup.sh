@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
+# Explicit runner registration/service setup, not part of host initialization.
+# RUNNER_DIR owns registration state and private tool paths. Existing registration
+# must match the requested repository; fetching a new token must not silently
+# replace a healthy runner. Never trace commands that handle registration secrets.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
 set +x
 set -euo pipefail
 umask 077
+case "${1:-}" in --help|-h) echo 'Usage: runner/setup.sh [OWNER/REPO [AWS_SECRET_NAME [AWS_REGION]]]'; echo 'Prerequisites: init dev + aws, systemd Linux. Registers runner, reads AWS secret, installs runner OS libraries and starts its service. RUNNER_DIR selects installation.'; exit 0;; esac
 
 [[ $(uname -s) == Linux ]] || { echo 'This installer requires Linux.' >&2; exit 1; }
 
@@ -30,27 +40,12 @@ install_missing() {
   done
   if (( ${#missing[@]} == 0 )); then return; fi
   case "$package_manager" in
-    apt-get) as_root apt-get update; as_root apt-get install -y "${missing[@]}" ;;
-    zypper) as_root zypper --non-interactive install "${missing[@]}" ;;
     *) as_root "$package_manager" install -y "${missing[@]}" ;;
   esac
 }
-if command -v apt-get >/dev/null; then
-  package_manager=apt-get
-  install_missing ca-certificates curl tar gzip coreutils util-linux python3 python3-venv unzip git
-elif command -v dnf >/dev/null || command -v yum >/dev/null; then
-  package_manager=dnf
-  command -v dnf >/dev/null || package_manager=yum
-  install_missing ca-certificates tar gzip coreutils util-linux python3 python3-pip unzip git libicu openssl-libs krb5-libs zlib libstdc++ libgcc
-  # Keep curl-minimal where installed, avoiding RPM package conflicts.
-  command -v curl >/dev/null || as_root "$package_manager" install -y curl
-elif command -v zypper >/dev/null; then
-  package_manager=zypper
-  install_missing ca-certificates curl tar gzip coreutils util-linux python3 python3-pip unzip git libicu libopenssl3 libkrb5-3 libz1 libstdc++6 libgcc_s1
-else
-  echo "No supported package manager found on ${ID:-unknown}; supported: apt, dnf/yum, zypper." >&2
-  exit 1
-fi
+package_manager=dnf
+install_missing ca-certificates tar gzip coreutils util-linux python3 python3-pip unzip git libicu openssl-libs krb5-libs zlib libstdc++ libgcc
+command -v curl >/dev/null || as_root dnf install -y curl
 for command in python3 curl tar sha256sum flock; do
   command -v "$command" >/dev/null || { echo "Missing prerequisite after installation: $command" >&2; exit 1; }
 done
@@ -88,11 +83,7 @@ printf '%s\n' "$PATH" > .path
 python3 --version
 python3 -m pip --version
 aws --version
-# Root's existing shell may have /usr/local/bin/aws cached from `pip install aws`.
-# Replacing that same path fixes it without sourcing PATH or restarting the shell.
-if [[ $EUID == 0 ]]; then
-  python3 "$script_dir/publish_aws.py" "$runner_dir/.tools/bin/aws" /usr/local/bin/aws
-fi
+
 export AWS_PAGER=""
 
 if [[ ! -f .runner ]]; then
@@ -112,11 +103,7 @@ if [[ ! -f .runner ]]; then
     tar --no-same-owner -xzf "$archive"
     rm -f -- "$archive"
     trap - EXIT
-    # RPM/SUSE runtime libraries were installed above; Debian/Ubuntu package
-    # names vary by release, so use the runner's own dependency detection there.
-    if command -v apt-get >/dev/null; then
-      as_root bash ./bin/installdependencies.sh
-    fi
+
     # Fail before fetching credentials if the runner runtime cannot start.
     ./config.sh --version
   fi

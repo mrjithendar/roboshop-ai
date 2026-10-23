@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+# Removes self-hosted compute/network resources while retaining database state
+# and credentials. Inventory failures must stop deletion; an unreachable API must
+# never be interpreted as an empty or successfully removed installation.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
+# Usage: bash minikube/remove-langfuse.sh --help
+case "${1:-}" in --help|-h) echo 'Purpose: Remove self-hosted compute/network resources, retaining databases and credentials.'; echo 'Usage: bash minikube/remove-langfuse.sh; see docs/operations/script-audit.md for prerequisites, variables and effects.'; exit 0;; esac
 # Remove self-hosted compute/network resources, retaining databases and credentials.
 set -euo pipefail
 export KUBE_CONTEXT=${KUBE_CONTEXT:-mk4}

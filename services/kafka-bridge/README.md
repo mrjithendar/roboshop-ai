@@ -28,8 +28,8 @@ First run the existing Create infrastructure workflow to create the new
 Then, from the repository root on your build host:
 
 ```bash
-bash build-push-ecr.sh kafka-bridge ai-gateway
-bash deploy-minikube.sh kafka-bridge ai-gateway
+bash scripts/build/build-push-ecr.sh kafka-bridge ai-gateway
+bash scripts/deploy/deploy-minikube.sh kafka-bridge ai-gateway
 ```
 
 One service folder (`services/kafka-bridge`) owns one StatefulSet (`kafka`):

@@ -1,0 +1,1327 @@
+[
+  {
+    "old": "build-push-ecr.sh",
+    "path": "scripts/build/build-push-ecr.sh",
+    "purpose": "Container registry operations",
+    "dependencies": [
+      "bash",
+      "docker",
+      "minikube",
+      "aws"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "AWS_ACCOUNT_ID",
+      "AWS_REGION",
+      "BASH_SOURCE"
+    ],
+    "callers": [
+      "README.md",
+      "minikube/roboshop/README.md",
+      "services/catalogue-service/README.md",
+      "services/kafka-bridge/README.md",
+      "services/mcp-server/README.md",
+      "services/moks/README.md"
+    ],
+    "effects": "Builds images; authenticated remote registry writes"
+  },
+  {
+    "old": "delete_branch.sh",
+    "path": "scripts/maintenance/delete-branches.sh",
+    "purpose": "Maintenance and cleanup",
+    "dependencies": [
+      "bash",
+      "git",
+      "gh",
+      "jq"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "BASH_SOURCE"
+    ],
+    "callers": [],
+    "effects": "May delete/modify local or remote state; inspect explicit confirmation flags"
+  },
+  {
+    "old": "deploy-minikube.sh",
+    "path": "scripts/deploy/deploy-minikube.sh",
+    "purpose": "Deployment",
+    "dependencies": [
+      "bash",
+      "python3",
+      "kubectl",
+      "minikube",
+      "aws"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "AWS_ACCOUNT_ID",
+      "AWS_REGION",
+      "BASH_SOURCE",
+      "IMAGE_TAG",
+      "KUBE_CONTEXT"
+    ],
+    "callers": [
+      "README.md",
+      "docs/architecture/customer-records.md",
+      "docs/architecture/identity-and-admin.md",
+      "docs/architecture/review.md",
+      "docs/deployment/llm-providers.md",
+      "docs/operations/support-logging.md",
+      "minikube/README.md",
+      "minikube/roboshop/README.md",
+      "services/cart-service/README.md",
+      "services/catalogue-service/README.md",
+      "services/frontend/README.md",
+      "services/frontend/frontend-minikube.yaml",
+      "services/jaeger/jaeger-minikube.yaml",
+      "services/kafka-bridge/README.md",
+      "services/mcp-server/README.md",
+      "services/mcp-server/mcp-server-minikube.yaml",
+      "services/moks/README.md",
+      "services/moks/moks-minikube.yaml",
+      "services/mongodb/README.md",
+      "services/nginx/README.md",
+      "services/nginx/nginx-minikube.yaml",
+      "services/payment-service/payment-service-minikube.yaml",
+      "services/postgres/README.md",
+      "services/rabbitmq/README.md",
+      "services/redis/README.md",
+      "services/shipping-service/shipping-service-minikube.yaml",
+      "services/sre-copilot/sre-copilot-minikube.yaml",
+      "tests/README.md",
+      "tests/minikube-manifests.test.py"
+    ],
+    "effects": "Changes Kubernetes/host networking; never initialization"
+  },
+  {
+    "old": "evaluations/agents/evaluate.py",
+    "path": "evaluations/agents/evaluate.py",
+    "purpose": "Build and test",
+    "dependencies": [],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [
+      "observability/opentelemetry/README.md"
+    ],
+    "effects": "Local outputs; load real-ai/live website modes require explicit opt-in"
+  },
+  {
+    "old": "generate-secrets.py",
+    "path": "scripts/data/generate-secrets.py",
+    "purpose": "Database/configuration and synthetic data",
+    "dependencies": [
+      "python3"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [
+      "README.md",
+      "docs/deployment/llm-providers.md"
+    ],
+    "effects": "May write database/secrets; explicit operator action"
+  },
+  {
+    "old": "init.sh",
+    "path": "init.sh",
+    "purpose": "Host initialization / runner administration",
+    "dependencies": [
+      "bash",
+      "python3",
+      "docker",
+      "minikube",
+      "aws"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "ADMIN",
+      "BASH_SOURCE",
+      "ID",
+      "ORIGINAL_ARGS",
+      "VERSION_ID"
+    ],
+    "callers": [
+      "README.md",
+      "minikube/install-dependencies.sh",
+      "minikube/install.sh",
+      "minikube/setup.sh",
+      "runner/README.md",
+      "runner/install-tools.sh"
+    ],
+    "effects": "Host packages/services or runner registration; init alone never registers"
+  },
+  {
+    "old": "kubectl.sh",
+    "path": "scripts/dev/kubectl.sh",
+    "purpose": "Local development / operational helper",
+    "dependencies": [
+      "bash",
+      "kubectl",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "KUBECONFIG"
+    ],
+    "callers": [
+      "minikube/README.md"
+    ],
+    "effects": "Local processes/configuration; helper-specific remote reads/writes"
+  },
+  {
+    "old": "minikube/connect-langfuse.sh",
+    "path": "minikube/connect-langfuse.sh",
+    "purpose": "Observability / TLS",
+    "dependencies": [
+      "bash",
+      "python3",
+      "kubectl",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "KUBE_CONTEXT",
+      "LANGFUSE_SECRET_NAME"
+    ],
+    "callers": [
+      "minikube/README.md",
+      "minikube/langfuse/README.md"
+    ],
+    "effects": "Changes monitoring/TLS resources or credentials"
+  },
+  {
+    "old": "minikube/deploy-argocd.sh",
+    "path": "minikube/deploy-argocd.sh",
+    "purpose": "Deployment",
+    "dependencies": [
+      "bash",
+      "kubectl",
+      "helm",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "ARGOCD_CHART_VERSION",
+      "BASH_SOURCE",
+      "KUBE_CONTEXT",
+      "MINIKUBE_HOME",
+      "PROFILE"
+    ],
+    "callers": [
+      "minikube/README.md",
+      "minikube/argocd/README.md"
+    ],
+    "effects": "Changes Kubernetes/host networking; never initialization"
+  },
+  {
+    "old": "minikube/deploy-cert-manager.sh",
+    "path": "minikube/deploy-cert-manager.sh",
+    "purpose": "Deployment",
+    "dependencies": [
+      "bash",
+      "kubectl",
+      "helm",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "BASH_SOURCE",
+      "CERT_MANAGER_VERSION",
+      "INGRESS_CLASS",
+      "ISSUER_ARGS",
+      "KUBE_CONTEXT",
+      "LETSENCRYPT_EMAIL",
+      "MINIKUBE_HOME",
+      "PROFILE"
+    ],
+    "callers": [
+      "minikube/README.md",
+      "minikube/cert-manager/README.md",
+      "minikube/deploy-argocd.sh",
+      "minikube/deploy-grafana.sh",
+      "minikube/expose-ingress.sh",
+      "minikube/monitoring/grafana/README.md",
+      "minikube/traefik/README.md",
+      "minikube/wordpress/README.md"
+    ],
+    "effects": "Changes Kubernetes/host networking; never initialization"
+  },
+  {
+    "old": "minikube/deploy-grafana.sh",
+    "path": "minikube/deploy-grafana.sh",
+    "purpose": "Observability / TLS",
+    "dependencies": [
+      "bash",
+      "python3",
+      "kubectl",
+      "helm",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "BASH_SOURCE",
+      "GRAFANA_CHART_VERSION",
+      "KUBE_CONTEXT",
+      "MINIKUBE_HOME",
+      "PROFILE"
+    ],
+    "callers": [
+      "minikube/README.md",
+      "minikube/deploy-prometheus.sh",
+      "minikube/expose-ingress.sh",
+      "minikube/monitoring/README.md",
+      "minikube/monitoring/grafana/README.md",
+      "minikube/monitoring/prometheus/README.md",
+      "minikube/traefik/README.md"
+    ],
+    "effects": "Changes monitoring/TLS resources or credentials"
+  },
+  {
+    "old": "minikube/deploy-jfrog.sh",
+    "path": "minikube/deploy-jfrog.sh",
+    "purpose": "Deployment",
+    "dependencies": [
+      "bash",
+      "python3",
+      "kubectl",
+      "helm",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "BASH_SOURCE",
+      "BASH_VERSION",
+      "JFROG_SIZE",
+      "KUBECONFIG",
+      "KUBE_CONTEXT",
+      "MINIKUBE_HOME",
+      "PROFILE"
+    ],
+    "callers": [
+      "minikube/README.md",
+      "minikube/jfrog/README.md"
+    ],
+    "effects": "Changes Kubernetes/host networking; never initialization"
+  },
+  {
+    "old": "minikube/deploy-metrics-server.sh",
+    "path": "minikube/deploy-metrics-server.sh",
+    "purpose": "Observability / TLS",
+    "dependencies": [
+      "bash",
+      "kubectl",
+      "helm",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "BASH_SOURCE",
+      "BASH_VERSION",
+      "KUBE_CONTEXT",
+      "MINIKUBE_HOME",
+      "PROFILE"
+    ],
+    "callers": [
+      "minikube/README.md",
+      "minikube/metrics-server/README.md"
+    ],
+    "effects": "Changes monitoring/TLS resources or credentials"
+  },
+  {
+    "old": "minikube/deploy-prometheus.sh",
+    "path": "minikube/deploy-prometheus.sh",
+    "purpose": "Observability / TLS",
+    "dependencies": [
+      "bash",
+      "python3",
+      "kubectl",
+      "helm",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "BASH_SOURCE",
+      "BASH_VERSION",
+      "KUBE_CONTEXT",
+      "MINIKUBE_HOME",
+      "PROFILE"
+    ],
+    "callers": [
+      "minikube/README.md",
+      "minikube/monitoring/README.md",
+      "minikube/monitoring/grafana/README.md",
+      "minikube/monitoring/prometheus/README.md",
+      "minikube/roboshop/README.md"
+    ],
+    "effects": "Changes monitoring/TLS resources or credentials"
+  },
+  {
+    "old": "minikube/deploy-traefik.sh",
+    "path": "minikube/deploy-traefik.sh",
+    "purpose": "Deployment",
+    "dependencies": [
+      "bash",
+      "kubectl",
+      "helm",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "BASH_SOURCE",
+      "KUBE_CONTEXT",
+      "MINIKUBE_HOME",
+      "PROFILE",
+      "TRAEFIK_CHART_VERSION"
+    ],
+    "callers": [
+      "minikube/README.md",
+      "minikube/deploy-grafana.sh",
+      "minikube/monitoring/grafana/README.md",
+      "minikube/traefik/README.md",
+      "minikube/wordpress/README.md"
+    ],
+    "effects": "Changes Kubernetes/host networking; never initialization"
+  },
+  {
+    "old": "minikube/deploy-wordpress.sh",
+    "path": "minikube/deploy-wordpress.sh",
+    "purpose": "Deployment",
+    "dependencies": [
+      "bash",
+      "python3",
+      "kubectl",
+      "helm",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "BASH_SOURCE",
+      "KUBE_CONTEXT",
+      "MINIKUBE_HOME",
+      "PROFILE"
+    ],
+    "callers": [
+      "minikube/README.md",
+      "minikube/wordpress/README.md"
+    ],
+    "effects": "Changes Kubernetes/host networking; never initialization"
+  },
+  {
+    "old": "minikube/expose-ingress.sh",
+    "path": "minikube/expose-ingress.sh",
+    "purpose": "Deployment",
+    "dependencies": [
+      "bash",
+      "node",
+      "docker",
+      "kubectl",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "DOCKER_HOST",
+      "MINIKUBE_HOME",
+      "PROFILE"
+    ],
+    "callers": [
+      "minikube/README.md",
+      "minikube/deploy-grafana.sh",
+      "minikube/deploy-traefik.sh",
+      "minikube/monitoring/grafana/README.md",
+      "minikube/traefik/README.md",
+      "minikube/wordpress/README.md"
+    ],
+    "effects": "Changes Kubernetes/host networking; never initialization"
+  },
+  {
+    "old": "minikube/host-limits.sh",
+    "path": "minikube/host-limits.sh",
+    "purpose": "Local development / operational helper",
+    "dependencies": [
+      "bash",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "ADMIN"
+    ],
+    "callers": [
+      "minikube/README.md"
+    ],
+    "effects": "Local processes/configuration; helper-specific remote reads/writes"
+  },
+  {
+    "old": "minikube/install-dependencies.sh",
+    "path": "minikube/install-dependencies.sh",
+    "purpose": "Host initialization / runner administration",
+    "dependencies": [
+      "bash",
+      "python3",
+      "kubectl",
+      "helm",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [
+      "minikube/wordpress/README.md"
+    ],
+    "effects": "Host packages/services or runner registration; init alone never registers"
+  },
+  {
+    "old": "minikube/install.sh",
+    "path": "minikube/install.sh",
+    "purpose": "Host initialization / runner administration",
+    "dependencies": [
+      "bash",
+      "node",
+      "jq",
+      "docker",
+      "kubectl",
+      "minikube",
+      "systemctl"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "BASH_SOURCE",
+      "CPUS",
+      "ID",
+      "INSTALL_DIR",
+      "MEMORY",
+      "MINIKUBE_HOME",
+      "NETWORK_ARGS",
+      "NODES",
+      "PROFILE",
+      "PUBLIC_HOST",
+      "PUBLIC_IP",
+      "ROOT_ARGS"
+    ],
+    "callers": [
+      "minikube/README.md",
+      "minikube/kubeconfig.sh",
+      "minikube/roboshop/README.md",
+      "minikube/setup.sh"
+    ],
+    "effects": "Host packages/services or runner registration; init alone never registers"
+  },
+  {
+    "old": "minikube/jfrog/bootstrap.py",
+    "path": "minikube/jfrog/bootstrap.py",
+    "purpose": "Database/configuration and synthetic data",
+    "dependencies": [
+      "kubectl"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "May write database/secrets; explicit operator action"
+  },
+  {
+    "old": "minikube/jfrog/preflight.py",
+    "path": "minikube/jfrog/preflight.py",
+    "purpose": "Local development / operational helper",
+    "dependencies": [
+      "node",
+      "kubectl"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "Local processes/configuration; helper-specific remote reads/writes"
+  },
+  {
+    "old": "minikube/jfrog/publish-image.sh",
+    "path": "minikube/jfrog/publish-image.sh",
+    "purpose": "Container registry operations",
+    "dependencies": [
+      "bash",
+      "docker",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "BASH_SOURCE",
+      "BASH_VERSION",
+      "IMAGE_PREFIX"
+    ],
+    "callers": [
+      "minikube/jfrog/README.md"
+    ],
+    "effects": "Builds images; authenticated remote registry writes"
+  },
+  {
+    "old": "minikube/kubeconfig.py",
+    "path": "minikube/kubeconfig.py",
+    "purpose": "Local development / operational helper",
+    "dependencies": [
+      "python3",
+      "kubectl"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [
+      "minikube/README.md"
+    ],
+    "effects": "Local processes/configuration; helper-specific remote reads/writes"
+  },
+  {
+    "old": "minikube/kubeconfig.sh",
+    "path": "minikube/kubeconfig.sh",
+    "purpose": "Local development / operational helper",
+    "dependencies": [
+      "bash",
+      "python3",
+      "jq",
+      "docker",
+      "kubectl",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "API_HOST",
+      "CONFIG",
+      "MINIKUBE_HOME",
+      "PROFILE",
+      "VULTR_HOST"
+    ],
+    "callers": [
+      "minikube/README.md"
+    ],
+    "effects": "Local processes/configuration; helper-specific remote reads/writes"
+  },
+  {
+    "old": "minikube/monitoring/credentials.py",
+    "path": "minikube/monitoring/credentials.py",
+    "purpose": "Database/configuration and synthetic data",
+    "dependencies": [
+      "kubectl"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "May write database/secrets; explicit operator action"
+  },
+  {
+    "old": "minikube/remove-langfuse.sh",
+    "path": "minikube/remove-langfuse.sh",
+    "purpose": "Maintenance and cleanup",
+    "dependencies": [
+      "bash",
+      "python3",
+      "kubectl",
+      "helm",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "KUBE_CONTEXT"
+    ],
+    "callers": [
+      "minikube/langfuse/README.md"
+    ],
+    "effects": "May delete/modify local or remote state; inspect explicit confirmation flags"
+  },
+  {
+    "old": "minikube/reset-monitoring.sh",
+    "path": "minikube/reset-monitoring.sh",
+    "purpose": "Maintenance and cleanup",
+    "dependencies": [
+      "bash",
+      "python3",
+      "kubectl",
+      "helm",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "BASH_SOURCE",
+      "BASH_VERSION",
+      "KUBE_CONTEXT",
+      "MINIKUBE_HOME",
+      "PROFILE"
+    ],
+    "callers": [
+      "minikube/README.md",
+      "minikube/monitoring/README.md"
+    ],
+    "effects": "May delete/modify local or remote state; inspect explicit confirmation flags"
+  },
+  {
+    "old": "minikube/reset.sh",
+    "path": "minikube/reset.sh",
+    "purpose": "Maintenance and cleanup",
+    "dependencies": [
+      "bash",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "MINIKUBE_HOME"
+    ],
+    "callers": [
+      "minikube/README.md"
+    ],
+    "effects": "May delete/modify local or remote state; inspect explicit confirmation flags"
+  },
+  {
+    "old": "minikube/roboshop/deployment.py",
+    "path": "minikube/roboshop/deployment.py",
+    "purpose": "Deployment",
+    "dependencies": [
+      "kubectl",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "IMAGE_PREFIX",
+      "PUBLIC_ORIGIN"
+    ],
+    "callers": [
+      ".github/workflows/deploy-minikube.yml",
+      "minikube/roboshop/README.md",
+      "tests/minikube-manifests.test.py"
+    ],
+    "effects": "Changes Kubernetes/host networking; never initialization"
+  },
+  {
+    "old": "minikube/setup-shared-tls.sh",
+    "path": "minikube/setup-shared-tls.sh",
+    "purpose": "Observability / TLS",
+    "dependencies": [
+      "bash",
+      "python3",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "KUBE_CONTEXT"
+    ],
+    "callers": [
+      ".github/workflows/deploy-minikube.yml",
+      "minikube/README.md",
+      "minikube/deploy-cert-manager.sh",
+      "minikube/shared-tls/README.md"
+    ],
+    "effects": "Changes monitoring/TLS resources or credentials"
+  },
+  {
+    "old": "minikube/setup.sh",
+    "path": "minikube/setup.sh",
+    "purpose": "Host initialization / runner administration",
+    "dependencies": [
+      "bash",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "BASH_SOURCE"
+    ],
+    "callers": [
+      "minikube/README.md",
+      "minikube/install.sh",
+      "minikube/reset.sh"
+    ],
+    "effects": "Host packages/services or runner registration; init alone never registers"
+  },
+  {
+    "old": "minikube/shared-tls/configure.py",
+    "path": "minikube/shared-tls/configure.py",
+    "purpose": "Observability / TLS",
+    "dependencies": [
+      "kubectl"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "KUBE_CONTEXT"
+    ],
+    "callers": [],
+    "effects": "Changes monitoring/TLS resources or credentials"
+  },
+  {
+    "old": "minikube/tunnel-endpoint.sh",
+    "path": "minikube/tunnel-endpoint.sh",
+    "purpose": "Local development / operational helper",
+    "dependencies": [
+      "bash",
+      "python3",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "Local processes/configuration; helper-specific remote reads/writes"
+  },
+  {
+    "old": "minikube/wordpress/bootstrap.sh",
+    "path": "minikube/wordpress/bootstrap.sh",
+    "purpose": "Database/configuration and synthetic data",
+    "dependencies": [],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "WP_ADMIN_EMAIL",
+      "WP_ADMIN_PASSWORD",
+      "WP_ADMIN_USER",
+      "WP_TITLE"
+    ],
+    "callers": [],
+    "effects": "May write database/secrets; explicit operator action"
+  },
+  {
+    "old": "minikube/wordpress/check-routes.py",
+    "path": "minikube/wordpress/check-routes.py",
+    "purpose": "Local development / operational helper",
+    "dependencies": [],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "Local processes/configuration; helper-specific remote reads/writes"
+  },
+  {
+    "old": "runner/fix-selinux.sh",
+    "path": "runner/fix-selinux.sh",
+    "purpose": "Maintenance and cleanup",
+    "dependencies": [
+      "bash",
+      "python3"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "May delete/modify local or remote state; inspect explicit confirmation flags"
+  },
+  {
+    "old": "runner/install-tools.sh",
+    "path": "runner/install-tools.sh",
+    "purpose": "Host initialization / runner administration",
+    "dependencies": [
+      "bash",
+      "aws",
+      "pip"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "BASH_SOURCE"
+    ],
+    "callers": [
+      "runner/README.md",
+      "runner/test_tools.py"
+    ],
+    "effects": "Host packages/services or runner registration; init alone never registers"
+  },
+  {
+    "old": "runner/publish_aws.py",
+    "path": "runner/publish_aws.py",
+    "purpose": "Host initialization / runner administration",
+    "dependencies": [
+      "python3",
+      "aws"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "Host packages/services or runner registration; init alone never registers"
+  },
+  {
+    "old": "runner/register.py",
+    "path": "runner/register.py",
+    "purpose": "Host initialization / runner administration",
+    "dependencies": [
+      "python3",
+      "gh",
+      "aws"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "GH_TOKEN",
+      "GITHUB_TOKEN",
+      "RUNNER_AUTH"
+    ],
+    "callers": [],
+    "effects": "Host packages/services or runner registration; init alone never registers"
+  },
+  {
+    "old": "runner/repair-service.sh",
+    "path": "runner/repair-service.sh",
+    "purpose": "Maintenance and cleanup",
+    "dependencies": [
+      "bash",
+      "systemctl"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "May delete/modify local or remote state; inspect explicit confirmation flags"
+  },
+  {
+    "old": "runner/setup-parallel.sh",
+    "path": "runner/setup-parallel.sh",
+    "purpose": "Host initialization / runner administration",
+    "dependencies": [
+      "bash",
+      "python3",
+      "systemctl"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "RUNNER_COUNT",
+      "RUNNER_DIR",
+      "RUNNER_NAME",
+      "RUNNER_SECRET_NAME"
+    ],
+    "callers": [
+      "runner/README.md"
+    ],
+    "effects": "Host packages/services or runner registration; init alone never registers"
+  },
+  {
+    "old": "runner/setup.sh",
+    "path": "runner/setup.sh",
+    "purpose": "Host initialization / runner administration",
+    "dependencies": [
+      "bash",
+      "python3",
+      "git",
+      "gh",
+      "curl",
+      "aws",
+      "openssl",
+      "systemctl",
+      "pip"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "ID",
+      "RUNNER_DIR",
+      "RUNNER_NAME",
+      "RUNNER_SECRET_NAME"
+    ],
+    "callers": [
+      "runner/README.md"
+    ],
+    "effects": "Host packages/services or runner registration; init alone never registers"
+  },
+  {
+    "old": "scripts/dev.mjs",
+    "path": "scripts/dev/start.mjs",
+    "purpose": "Local development / operational helper",
+    "dependencies": [
+      "python3",
+      "node"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [
+      "package.json"
+    ],
+    "effects": "Local processes/configuration; helper-specific remote reads/writes"
+  },
+  {
+    "old": "scripts/evaluate.py",
+    "path": "scripts/test/evaluate.py",
+    "purpose": "Build and test",
+    "dependencies": [
+      "python3"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [
+      ".github/workflows/llm-checks.yml",
+      ".github/workflows/showcase-checks.yml",
+      "package.json"
+    ],
+    "effects": "Local outputs; load real-ai/live website modes require explicit opt-in"
+  },
+  {
+    "old": "scripts/run-python.mjs",
+    "path": "scripts/lib/run-python.mjs",
+    "purpose": "Local development / operational helper",
+    "dependencies": [
+      "python3",
+      "node"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [
+      "package.json"
+    ],
+    "effects": "Local processes/configuration; helper-specific remote reads/writes"
+  },
+  {
+    "old": "scripts/seed-minikube-demo.py",
+    "path": "scripts/data/seed-minikube-demo.py",
+    "purpose": "Database/configuration and synthetic data",
+    "dependencies": [
+      "python3",
+      "kubectl",
+      "minikube"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "KUBECONFIG",
+      "KUBE_CONTEXT"
+    ],
+    "callers": [
+      "docs/demo-scenarios/merchant-catalogue.md"
+    ],
+    "effects": "May write database/secrets; explicit operator action"
+  },
+  {
+    "old": "scripts/setup/initialize.py",
+    "path": "scripts/setup/initialize.py",
+    "purpose": "Local development / operational helper",
+    "dependencies": [
+      "bash",
+      "python3",
+      "node",
+      "npm",
+      "git",
+      "curl",
+      "jq",
+      "docker",
+      "kubectl",
+      "helm",
+      "minikube",
+      "aws",
+      "terraform",
+      "openssl",
+      "systemctl"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "Local processes/configuration; helper-specific remote reads/writes"
+  },
+  {
+    "old": "scripts/squash-history.py",
+    "path": "scripts/maintenance/squash-history.py",
+    "purpose": "Maintenance and cleanup",
+    "dependencies": [
+      "python3",
+      "git",
+      "gh"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [
+      "scripts/squash-history.README.md"
+    ],
+    "effects": "May delete/modify local or remote state; inspect explicit confirmation flags"
+  },
+  {
+    "old": "services/ai-gateway/commerce_migrate.py",
+    "path": "services/ai-gateway/commerce_migrate.py",
+    "purpose": "Database/configuration and synthetic data",
+    "dependencies": [],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [
+      "docs/deployment/postgres-commerce-migration.md"
+    ],
+    "effects": "May write database/secrets; explicit operator action"
+  },
+  {
+    "old": "services/catalogue-service/bootstrap.mjs",
+    "path": "services/catalogue-service/bootstrap.mjs",
+    "purpose": "Database/configuration and synthetic data",
+    "dependencies": [],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "May write database/secrets; explicit operator action"
+  },
+  {
+    "old": "services/catalogue-service/import.mjs",
+    "path": "services/catalogue-service/import.mjs",
+    "purpose": "Database/configuration and synthetic data",
+    "dependencies": [
+      "node",
+      "npm"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "JSON"
+    ],
+    "callers": [
+      "package.json"
+    ],
+    "effects": "May write database/secrets; explicit operator action"
+  },
+  {
+    "old": "services/catalogue-service/migrate-catalogue.mjs",
+    "path": "services/catalogue-service/migrate-catalogue.mjs",
+    "purpose": "Database/configuration and synthetic data",
+    "dependencies": [
+      "node"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "May write database/secrets; explicit operator action"
+  },
+  {
+    "old": "services/catalogue-service/publish-catalogue.mjs",
+    "path": "services/catalogue-service/publish-catalogue.mjs",
+    "purpose": "Database/configuration and synthetic data",
+    "dependencies": [],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [
+      "tests/reference-catalogue.test.mjs"
+    ],
+    "effects": "May write database/secrets; explicit operator action"
+  },
+  {
+    "old": "services/catalogue-service/scripts/export-demo.py",
+    "path": "services/catalogue-service/scripts/export-demo.py",
+    "purpose": "Database/configuration and synthetic data",
+    "dependencies": [
+      "python3"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [
+      "docs/demo-scenarios/merchant-catalogue.md"
+    ],
+    "effects": "May write database/secrets; explicit operator action"
+  },
+  {
+    "old": "services/catalogue-service/scripts/seed-demo.py",
+    "path": "services/catalogue-service/scripts/seed-demo.py",
+    "purpose": "Database/configuration and synthetic data",
+    "dependencies": [
+      "python3"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "APP_ENV",
+      "DEMO_MONGODB_URL",
+      "MONGODB_DATABASE"
+    ],
+    "callers": [
+      "docs/deployment/robotics-showcase.md",
+      "tests/python/test_showcase.py"
+    ],
+    "effects": "May write database/secrets; explicit operator action"
+  },
+  {
+    "old": "services/nginx/start.sh",
+    "path": "services/nginx/start.sh",
+    "purpose": "Local development / operational helper",
+    "dependencies": [],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "FRONTEND_BASE_PATH",
+      "FRONTEND_HOST",
+      "FRONTEND_PORT",
+      "GATEWAY_HOST",
+      "GATEWAY_PORT",
+      "NGINX_CONFIG_DIR",
+      "NGINX_HTTPS_PORT",
+      "NGINX_HTTP_PORT",
+      "NGINX_MIME_TYPES",
+      "NGINX_RESOLVER",
+      "NGINX_RUN_DIR",
+      "NGINX_SERVER_NAME",
+      "NGINX_TLS",
+      "NGINX_TLS_CERT_FILE",
+      "NGINX_TLS_KEY_FILE"
+    ],
+    "callers": [
+      "tests/helpers/nginx.mjs"
+    ],
+    "effects": "Local processes/configuration; helper-specific remote reads/writes"
+  },
+  {
+    "old": "services/postgres/10-shipping-role.sh",
+    "path": "services/postgres/10-shipping-role.sh",
+    "purpose": "Local development / operational helper",
+    "dependencies": [
+      "psql"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "Local processes/configuration; helper-specific remote reads/writes"
+  },
+  {
+    "old": "services/shipping-service/gradlew",
+    "path": "services/shipping-service/gradlew",
+    "purpose": "Build and test",
+    "dependencies": [
+      "bash"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "APP_HOME",
+      "ARGS"
+    ],
+    "callers": [
+      "package.json"
+    ],
+    "effects": "Local outputs; load real-ai/live website modes require explicit opt-in"
+  },
+  {
+    "old": "services/user-service/bootstrap.py",
+    "path": "services/user-service/bootstrap.py",
+    "purpose": "Database/configuration and synthetic data",
+    "dependencies": [],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "SUPERADMIN_EMAIL",
+      "SUPERADMIN_NAME",
+      "SUPERADMIN_PASSWORD"
+    ],
+    "callers": [
+      "package.json",
+      "services/user-service/README.md"
+    ],
+    "effects": "May write database/secrets; explicit operator action"
+  },
+  {
+    "old": "tests/load/identity.py",
+    "path": "tests/load/identity.py",
+    "purpose": "Build and test",
+    "dependencies": [],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "Local outputs; load real-ai/live website modes require explicit opt-in"
+  },
+  {
+    "old": "tests/load/install-k6.py",
+    "path": "tests/load/install-k6.py",
+    "purpose": "Host initialization / runner administration",
+    "dependencies": [
+      "python3",
+      "curl",
+      "k6"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [
+      ".github/workflows/load-smoke.yml",
+      "tests/load/README.md"
+    ],
+    "effects": "Host packages/services or runner registration; init alone never registers"
+  },
+  {
+    "old": "tests/load/lab.py",
+    "path": "tests/load/lab.py",
+    "purpose": "Build and test",
+    "dependencies": [
+      "python3",
+      "node",
+      "git",
+      "k6"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "LOAD_EDGE_BIND",
+      "LOAD_EDGE_PORT"
+    ],
+    "callers": [
+      ".github/workflows/load-smoke.yml",
+      "tests/load/README.md",
+      "tests/load/VERIFICATION.md"
+    ],
+    "effects": "Local outputs; load real-ai/live website modes require explicit opt-in"
+  },
+  {
+    "old": "tests/load/load-test.sh",
+    "path": "tests/load/load-test.sh",
+    "purpose": "Build and test",
+    "dependencies": [
+      "bash"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "Local outputs; load real-ai/live website modes require explicit opt-in"
+  },
+  {
+    "old": "tests/load/load.js",
+    "path": "tests/load/load.js",
+    "purpose": "Build and test",
+    "dependencies": [
+      "k6"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [
+      "tests/load/README.md"
+    ],
+    "effects": "Local outputs; load real-ai/live website modes require explicit opt-in"
+  },
+  {
+    "old": "tests/load/mocks.py",
+    "path": "tests/load/mocks.py",
+    "purpose": "Build and test",
+    "dependencies": [],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [
+      "MOCK_ERROR_EVERY",
+      "MOCK_LATENCY_MS",
+      "MOCK_STATUS",
+      "MOCK_TIMEOUT_MS"
+    ],
+    "callers": [],
+    "effects": "Local outputs; load real-ai/live website modes require explicit opt-in"
+  },
+  {
+    "old": "tests/load/payment.mjs",
+    "path": "tests/load/payment.mjs",
+    "purpose": "Build and test",
+    "dependencies": [],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "Local outputs; load real-ai/live website modes require explicit opt-in"
+  },
+  {
+    "old": "tests/load/service.py",
+    "path": "tests/load/service.py",
+    "purpose": "Build and test",
+    "dependencies": [],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "Local outputs; load real-ai/live website modes require explicit opt-in"
+  },
+  {
+    "old": "tests/load/test_lab.py",
+    "path": "tests/load/test_lab.py",
+    "purpose": "Build and test (retained tests)",
+    "dependencies": [
+      "k6"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "Mocks/local fixtures"
+  },
+  {
+    "old": "tests/load/test_website.py",
+    "path": "tests/load/test_website.py",
+    "purpose": "Build and test (retained tests)",
+    "dependencies": [],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [],
+    "effects": "Mocks/local fixtures"
+  },
+  {
+    "old": "tests/load/website.py",
+    "path": "tests/load/website.py",
+    "purpose": "Build and test",
+    "dependencies": [
+      "python3",
+      "curl"
+    ],
+    "platform": "CentOS Stream 9/10 x86_64/ARM64 (host operations); service containers/tests retain own environments",
+    "environment": [],
+    "callers": [
+      "tests/load/README.md"
+    ],
+    "effects": "Local outputs; load real-ai/live website modes require explicit opt-in"
+  }
+]

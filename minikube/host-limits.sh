@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+# Docker-backed nodes share the host kernel. Increasing inotify capacity is a
+# host-wide change, not a per-pod setting; inspect the proposed values and keep
+# this operation separate from ordinary application deployment.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
+# Usage: bash minikube/host-limits.sh --help
+case "${1:-}" in --help|-h) echo 'Purpose: Docker-backed nodes share the Linux hosts inotify resources. Run on that host.'; echo 'Usage: bash minikube/host-limits.sh; see docs/operations/script-audit.md for prerequisites, variables and effects.'; exit 0;; esac
 # Docker-backed nodes share the Linux host's inotify resources. Run on that host.
 set -euo pipefail
 [[ $(uname -s) == Linux ]] || exit 0

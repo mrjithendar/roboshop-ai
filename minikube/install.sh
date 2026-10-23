@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
-# Docker-backed Minikube on Linux and macOS (amd64/arm64).
+# Cluster lifecycle entry point. Tool installation delegates to root init.sh.
+# PROFILE identifies the cluster; saved installer state can select a previously
+# fitted profile. NODES/CPUS/MEMORY affect capacity, while PUBLIC_HOST controls
+# direct API access; neither should be changed casually on a populated cluster.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
+# Docker-backed Minikube on CentOS Stream 9/10 (amd64/arm64).
 set -euo pipefail
 PROFILE="${PROFILE:-mk4}"
 CPUS="${CPUS:-2}"
@@ -19,7 +28,7 @@ usage() {
   echo 'Overrides: PROFILE, NODES, CPUS, MEMORY (MiB/node), INSTALL_DIR'
   echo 'Direct access: PUBLIC_HOST=jithendar.com (or PUBLIC_IP for an IPv4 endpoint).'
   echo 'Runs as the current user; Linux root starts use --force.'
-  echo 'Optional download pins: MINIKUBE_VERSION=vX.Y.Z, KUBECTL_VERSION=vX.Y.Z'
+  echo 'Tool installation is centralized in ./init.sh --profile minikube; versions live in scripts/setup/versions.json.'
 }
 if [[ "$ACTION" == reset ]]; then
   [[ $# -eq 1 ]] || fail 'Usage: bash minikube/install.sh reset'
@@ -27,7 +36,7 @@ if [[ "$ACTION" == reset ]]; then
 fi
 case "$ACTION" in -h|--help|help) usage; exit 0 ;; install|start|status|stop|diagnose) ;; *) usage >&2; exit 1 ;; esac
 [[ $# -le 1 ]] || fail 'Expected at most one action.'
-case "$(uname -s)" in Linux) OS=linux ;; Darwin) OS=darwin ;; *) fail 'Supported systems: Linux and macOS.' ;; esac
+case "$(uname -s)" in Linux) OS=linux ;; *) fail 'Supported systems: CentOS Stream 9/10.' ;; esac
 case "$(uname -m)" in x86_64|amd64) ARCH=amd64 ;; arm64|aarch64) ARCH=arm64 ;; *) fail 'Supported architectures: amd64 and arm64.' ;; esac
 ROOT_ARGS=()
 if [[ "$EUID" == 0 ]]; then
@@ -36,52 +45,12 @@ if [[ "$EUID" == 0 ]]; then
 fi
 [[ "$INSTALL_DIR" == /* ]] || fail 'INSTALL_DIR must be an absolute path.'
 export PATH="$INSTALL_DIR:$PATH"
-TEMP_DIR=''
-trap '[[ -z "$TEMP_DIR" ]] || rm -rf "$TEMP_DIR"' EXIT
-trap 'echo "Failed at line $LINENO. For cluster diagnostics: minikube logs -p $PROFILE" >&2' ERR
-fetch() { curl --fail --silent --show-error --location --retry 3 --connect-timeout 15 --max-time 300 "$@"; }
-install_binary() {
-  local name="$1" url="$2" expected actual
-  command -v curl >/dev/null 2>&1 || fail 'Install curl using your OS package manager.'
-  if ! command -v sha256sum >/dev/null 2>&1 && ! command -v shasum >/dev/null 2>&1; then
-    fail 'Install sha256sum or shasum to verify downloads.'
-  fi
-  [[ -n "$TEMP_DIR" ]] || TEMP_DIR="$(mktemp -d)"
-  echo "Downloading $name for $OS/$ARCH..."
-  fetch "$url" -o "$TEMP_DIR/$name"
-  expected="$(fetch "$url.sha256" | awk '{print $1}')"
-  [[ "$expected" =~ ^[a-fA-F0-9]{64}$ ]] || fail "Invalid checksum for $name."
-  if command -v sha256sum >/dev/null 2>&1; then
-    actual="$(sha256sum "$TEMP_DIR/$name" | awk '{print $1}')"
-  else
-    actual="$(shasum -a 256 "$TEMP_DIR/$name" | awk '{print $1}')"
-  fi
-  [[ "$actual" == "$expected" ]] || fail "Checksum mismatch for $name; nothing installed."
-  mkdir -p "$INSTALL_DIR"
-  install -m 0755 "$TEMP_DIR/$name" "$INSTALL_DIR/$name"
-}
-tool_available() {
-  local resolved
-  resolved="$(command -v "$1")" || return 1
-  # Replace our previous forwarding wrappers with actual binaries.
-  ! grep -aq '^# RoboShop managed CLI wrapper$' "$resolved"
-}
-if [[ "$ACTION" == install || "$ACTION" == start ]]; then
-  # Existing tools are preserved; version pins apply only when downloading missing tools.
-  if ! tool_available minikube; then
-    version="${MINIKUBE_VERSION:-latest}"
-    [[ "$version" == latest || "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail 'Invalid MINIKUBE_VERSION.'
-    install_binary minikube "https://storage.googleapis.com/minikube/releases/$version/minikube-$OS-$ARCH"
-  fi
-  if ! tool_available kubectl; then
-    command -v curl >/dev/null 2>&1 || fail 'Install curl using your OS package manager.'
-    version="${KUBECTL_VERSION:-$(fetch https://dl.k8s.io/release/stable.txt)}"
-    [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail 'Invalid KUBECTL_VERSION.'
-    install_binary kubectl "https://dl.k8s.io/release/$version/bin/$OS/$ARCH/kubectl"
-  fi
-  echo "Tools available for $(id -un) in $INSTALL_DIR."
+if [[ "$ACTION" == install ]]; then
+  exec bash "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/init.sh" --profile minikube
 fi
-[[ "$ACTION" != install ]] || exit 0
+for tool in minikube kubectl; do
+  command -v "$tool" >/dev/null || fail "$tool is required. Run ./init.sh --profile minikube first."
+done
 [[ "$BASE_PROFILE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || fail 'Invalid PROFILE name.'
 STATE_DIR="${MINIKUBE_HOME:-$HOME/.minikube}/roboshop-installer"
 STATE_FILE="$STATE_DIR/$BASE_PROFILE.profile"
@@ -142,7 +111,7 @@ if [[ "$OS" == linux && -r /etc/os-release ]]; then
     echo 'CentOS: for Docker prerequisites, run bash minikube/setup.sh (Stream 9/10).'
   fi
 fi
-command -v docker >/dev/null 2>&1 || fail 'Install Docker Engine on Linux or Docker Desktop on macOS, then rerun. See minikube/README.md.'
+command -v docker >/dev/null 2>&1 || fail 'Run ./init.sh --profile minikube on CentOS, then rerun. See minikube/README.md.'
 if ! docker info >/dev/null 2>&1; then
   if [[ "$OS" == darwin && -n "$DOCKER_APP" ]]; then
     open -a "$DOCKER_APP" || fail 'Could not open Docker Desktop.'

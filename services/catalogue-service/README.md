@@ -23,8 +23,8 @@ Configuration: `MONGODB_URL`, `MONGODB_DATABASE` (default `roboshop`), port 4108
 ## Build and deploy
 
 ```bash
-bash build-push-ecr.sh catalogue-service
-bash deploy-minikube.sh catalogue-service
+bash scripts/build/build-push-ecr.sh catalogue-service
+bash scripts/deploy/deploy-minikube.sh catalogue-service
 ```
 
 The selected image is `roboshop-catalogue-service:local`; only this service needs rebuilding for the merge. Kubernetes uses `catalogue-service-minikube.yaml`. No data reset is required. Shared runtime provides request logs, trace propagation, OpenTelemetry export and metrics; SRE readiness checks use the Mongo-aware endpoint.

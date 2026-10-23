@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# Deploys Grafana in monitoring, reusing managed credentials and shared TLS.
+# Legacy-resource checks avoid creating two competing installations. Do not
+# delete a PVC merely to resolve a failed rollout; it contains dashboard state.
+
+# CentOS host prerequisite; reject other OSes before operational side effects.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
+roboshop_require_centos "${1:-}" || exit 1
 # Deploy Grafana at https://jithendar.com/grafana using the shared site certificate.
 set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

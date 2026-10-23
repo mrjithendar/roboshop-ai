@@ -5,13 +5,14 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from test_helpers import copy_runner, runner_source
 
 
 class ParallelTests(unittest.TestCase):
     def test_install_and_rerun_preserve_active_slots(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            shutil.copy(Path(__file__).with_name('setup-parallel.sh'), root)
+            copy_runner(Path(__file__).with_name('setup-parallel.sh'), root)
             (root / 'systemctl').write_text('#!/bin/sh\nexit 0\n')
             (root / 'systemctl').chmod(0o700)
             (root / 'setup.sh').write_text('''#!/bin/bash
@@ -33,14 +34,14 @@ echo "$RUNNER_NAME" >> "$CALL_LOG"
 
     def test_invalid_count_rejected_before_setup(self):
         for count in ('0', '21', 'five', '-1'):
-            result = subprocess.run(['bash', str(Path(__file__).with_name('setup-parallel.sh'))], env={**os.environ, 'RUNNER_COUNT':count}, capture_output=True, text=True)
+            result = subprocess.run(['bash', '-c', runner_source(Path(__file__).with_name('setup-parallel.sh'))], env={**os.environ, 'RUNNER_COUNT':count}, capture_output=True, text=True)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('RUNNER_COUNT', result.stderr)
 
     def test_pending_registration_is_not_reported_as_success(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            shutil.copy(Path(__file__).with_name('setup-parallel.sh'), root)
+            copy_runner(Path(__file__).with_name('setup-parallel.sh'), root)
             (root/'setup.sh').write_text('exit 0\n')
             result = subprocess.run(['bash', str(root/'setup-parallel.sh')], env={**os.environ, 'RUNNER_DIR':str(root/'runner')}, capture_output=True, text=True)
             self.assertNotEqual(result.returncode, 0)

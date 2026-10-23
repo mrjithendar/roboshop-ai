@@ -18,7 +18,7 @@ The demo catalogue uses INR. The separate manufacturer reference collection reta
 
 ```bash
 python services/catalogue-service/scripts/export-demo.py
-python scripts/seed-minikube-demo.py
+python scripts/data/seed-minikube-demo.py --apply
 ```
 
 These scripts require `pymongo` in your Python environment and `kubectl` for the import. The importer uses `KUBECONFIG` when set; otherwise it prefers `~/.kube/vultr-minikube.json`. Set `KUBE_CONTEXT` to select another context. It uses namespace `roboshop-ai` and the isolated database `roboshop_demo_merchant20`.

@@ -42,9 +42,9 @@ infrastructure shutdown remains a separate action.
 
 ## Operator setup
 
-Minikube initializes `LLM_SERVICE_TOKEN` in `roboshop-secrets` and shares it only with the gateway and shopping agent. Keep existing credentials when upgrading. Configure the approved Ollama endpoint mapping in the moks manifest, then rebuild and deploy with `bash build-images.sh` and `bash deploy-minikube.sh`.
+Minikube initializes `LLM_SERVICE_TOKEN` in `roboshop-secrets` and shares it only with the gateway and shopping agent. Keep existing credentials when upgrading. Configure the approved Ollama endpoint mapping in the moks manifest, then rebuild and deploy with `bash build-images.sh` and `bash scripts/deploy/deploy-minikube.sh`.
 
-For native development, `python3 generate-secrets.py` creates a new private `.env`; an existing installation should add only missing keys rather than regenerate database credentials. Configure `LLM_SERVICE_TOKEN` and `OLLAMA_ENDPOINTS_JSON` before starting the services.
+For native development, `python3 scripts/data/generate-secrets.py` creates a new private `.env`; an existing installation should add only missing keys rather than regenerate database credentials. Configure `LLM_SERVICE_TOKEN` and `OLLAMA_ENDPOINTS_JSON` before starting the services.
 
 Log in as super admin and open the AI / LLM configuration panel. Provider changes do not require restarting services. Token rotation or an operator allowlist change requires restarting the affected backends.
 
