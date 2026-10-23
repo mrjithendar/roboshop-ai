@@ -1,0 +1,24 @@
+{
+  "runId": "website-20261023T045302Z-d560506f",
+  "target": "https://jithendar.com/roboshop/",
+  "scope": "HTML GET only; no assets, cookies, API, login, payment or AI",
+  "stages": [
+    {
+      "users": 2,
+      "scheduledSeconds": 10,
+      "elapsedSeconds": 10.005,
+      "intervalSecondsPerUser": 1,
+      "maximumOfferedRequestsPerSecond": 2.0,
+      "requests": 20,
+      "achievedRequestsPerSecond": 1.999,
+      "statuses": {
+        "200": 20
+      },
+      "transportErrors": 0,
+      "medianMs": 701.9,
+      "p95Ms": 750.1,
+      "maxMs": 802.6,
+      "stoppedEarly": false
+    }
+  ]
+}

@@ -25,3 +25,12 @@ tests/load/.venv/bin/python tests/load/lab.py run --scenario browse --seconds 12
 # - Unexpected failures: application errors.
 # - Admission rejections: requests blocked by rate/concurrency limits.
 # - Completed journeys: work successfully completed.
+
+# test website
+python3 tests/load/website.py --confirm-live
+
+# Multiple loads — 2 → 5 → 10 visitors, 30 seconds each:
+python3 tests/load/website.py --confirm-live --users 2,5,10 --seconds 30
+
+# Custom load with slower pacing:
+python3 tests/load/website.py --confirm-live --users 10 --seconds 60 --interval 2

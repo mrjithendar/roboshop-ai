@@ -1,0 +1,58 @@
+{
+  "runId": "website-20261023T045412Z-9791bdba",
+  "target": "https://jithendar.com/roboshop/",
+  "scope": "HTML GET only; no assets, cookies, API, login, payment or AI",
+  "stages": [
+    {
+      "users": 2,
+      "scheduledSeconds": 30,
+      "elapsedSeconds": 30.006,
+      "intervalSecondsPerUser": 1,
+      "maximumOfferedRequestsPerSecond": 2.0,
+      "requests": 60,
+      "achievedRequestsPerSecond": 2.0,
+      "statuses": {
+        "200": 60
+      },
+      "transportErrors": 0,
+      "medianMs": 724.8,
+      "p95Ms": 812.5,
+      "maxMs": 859.3,
+      "stoppedEarly": false
+    },
+    {
+      "users": 5,
+      "scheduledSeconds": 30,
+      "elapsedSeconds": 30.005,
+      "intervalSecondsPerUser": 1,
+      "maximumOfferedRequestsPerSecond": 5.0,
+      "requests": 150,
+      "achievedRequestsPerSecond": 4.999,
+      "statuses": {
+        "200": 150
+      },
+      "transportErrors": 0,
+      "medianMs": 694.3,
+      "p95Ms": 795.7,
+      "maxMs": 829.2,
+      "stoppedEarly": false
+    },
+    {
+      "users": 10,
+      "scheduledSeconds": 30,
+      "elapsedSeconds": 30.006,
+      "intervalSecondsPerUser": 1,
+      "maximumOfferedRequestsPerSecond": 10.0,
+      "requests": 300,
+      "achievedRequestsPerSecond": 9.998,
+      "statuses": {
+        "200": 300
+      },
+      "transportErrors": 0,
+      "medianMs": 716.3,
+      "p95Ms": 818.0,
+      "maxMs": 956.9,
+      "stoppedEarly": false
+    }
+  ]
+}

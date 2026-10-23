@@ -245,3 +245,46 @@ CI adds one GitHub-hosted PR smoke workflow; existing self-hosted publish/deploy
 workflows are unchanged. Actions and k6 archives are pinned; no AWS, payment,
 Langfuse or deployment credentials are needed. Only tiny healthy-mock tests run
 automatically. Docker/Minikube, ramp, soak and real-model tests are manual.
+
+## Read-only live website tests
+
+`website.py` is separate from the mocked lab. It uses Python's standard library
+and curl; no virtual environment or k6 installation is required. It only sends
+GET requests to `https://jithendar.com/roboshop/`, never login, APIs, payments or
+AI. It does not execute JavaScript or fetch page assets. CDN/cache responses may
+hide origin load, so this is not a full storefront/database capacity test.
+
+```bash
+# First: two visitors, 10 seconds.
+python3 tests/load/website.py --confirm-live
+
+# Multiple stages: 2, then 5, then 10 visitors, 30 seconds each.
+python3 tests/load/website.py --confirm-live --users 2,5,10 --seconds 30
+
+# A single chosen level, paced at one request every two seconds per visitor.
+python3 tests/load/website.py --confirm-live --users 10 --seconds 60 --interval 2
+```
+
+There is a five-second cooldown between stages. Each visitor has at most one
+request in flight; default pacing is one second. Maximum offered rate is users /
+interval, while achieved rate depends on response time. Stop with Ctrl+C. The
+script stops later stages after **any** non-200 response (including 429), transport
+failure or request over three seconds. Other already-running requests finish
+within their timeout. `--stop-latency` can adjust that threshold up to 10 seconds.
+Redirects are not followed; curl configuration, browser cookies and authentication
+are not loaded. Production rate limits are never bypassed.
+
+Reports are saved to `.runs/website-*/summary.json` with per-stage status counts,
+request totals, achieved rate, median/p95/max latency and early-stop status.
+Reports contain no page bodies or credentials and can be tracked in Git. Exit 0
+means all stages completed; 1 means a safety threshold stopped the run; 130 means
+interrupted (the interrupted stage's partial measurements are not included).
+
+The live test shares resources with other deployed services. Begin with the first
+command and inspect server metrics before increasing load. All requests originate
+from your machine's IP; reaching a rate limit is not proof of server saturation.
+Validate the script without live traffic using:
+
+```bash
+python3 -m unittest discover -s tests/load -p test_website.py
+```
