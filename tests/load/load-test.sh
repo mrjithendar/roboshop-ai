@@ -8,3 +8,6 @@ tests/load/.venv/bin/python tests/load/lab.py run --scenario browse --seconds 2 
 # test mocked checkout and duplicate-request handling:
 tests/load/.venv/bin/python tests/load/lab.py run --scenario idempotency --seconds 5 --vus 2 \
   --k6 tests/load/.tools/k6
+
+PACE_SECONDS=5 tests/load/.venv/bin/python tests/load/lab.py run \
+  --scenario idempotency --seconds 60 --vus 2 --k6 tests/load/.tools/k6
