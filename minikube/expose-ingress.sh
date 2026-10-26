@@ -85,4 +85,4 @@ fi
 [[ "$(docker inspect --format '{{.State.Running}}' "$name")" == true ]] || fail "Proxy failed; inspect docker logs $name."
 echo "Host ports 80/443 now forward to $PROFILE via $name."
 echo 'Allow TCP 80/443 in the Vultr firewall and point jithendar.com DNS to this server.'
-echo 'Next: bash minikube/deploy-cert-manager.sh && bash minikube/deploy-grafana.sh'
+echo 'Manage applications and cert-manager through the argocd/ catalog. Reuse a ready certificate with ./patch-ssl.sh.'

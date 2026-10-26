@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from installer_test_helpers import prepare_source
 
 SCRIPT = Path(__file__).with_name('install.sh').resolve()
 
@@ -41,7 +42,13 @@ case "$*" in start*) exit "${TEST_START_EXIT:-0}";; esac''',
                         TEST_CALLS=str(self.root / 'calls'), NODES='1')
 
     def run_script(self, action='start', **overrides):
-        return subprocess.run(['bash', str(SCRIPT), action],
+        script = self.root / 'install.sh'
+        source = prepare_source(SCRIPT.read_text())
+        source = source.replace('$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)', str(SCRIPT.parent))
+        # Host limits have a separate suite; keep this lifecycle fixture offline.
+        source = source.replace(f'bash "{SCRIPT.parent}/host-limits.sh"', 'true')
+        script.write_text(source)
+        return subprocess.run(['bash', str(script), action],
                               env={**self.env, **overrides}, text=True,
                               capture_output=True)
 

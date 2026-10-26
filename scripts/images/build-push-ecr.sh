@@ -62,4 +62,4 @@ for index in "${!services[@]}"; do
   docker push "$image"
 done
 echo "Done: pushed ${#services[@]} images tagged local for $platform."
-echo 'Deploy these images with: bash deploy-minikube.sh [service ...]'
+echo 'Update the desired image in Git and sync its Application in Argo CD. deploy-minikube.sh manages the cluster only.'

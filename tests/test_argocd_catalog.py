@@ -21,8 +21,7 @@ def test_catalog_has_unique_safe_ownership():
 def test_catalog_contains_only_projects_and_applications():
     assert all(doc['kind'] in ('Application','AppProject') for doc in module.catalog())
     assert not (ROOT/'minikube/openclaw/argocd/application.yaml').exists()
-    source=(ROOT/'scripts/openclaw/manage.py').read_text()
-    assert "ROOT/'argocd/openclaw.yaml'" in source
+    assert (ROOT/'argocd/openclaw.yaml').is_file()
 
 
 def test_adoption_baselines_have_no_credentials_or_server_metadata():

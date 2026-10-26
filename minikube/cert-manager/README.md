@@ -1,3 +1,8 @@
+> Deployment-script cleanup: imperative application deployment commands in this
+> document are retired. Use the Argo CD catalog and the five supported commands
+> documented in `docs/operations/scripts.md`. Historical examples below are not
+> runnable deployment instructions.
+
 # cert-manager with Let's Encrypt
 
 Run from the repository root on your Minikube host:

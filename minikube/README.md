@@ -1,3 +1,8 @@
+> Deployment-script cleanup: imperative application deployment commands in this
+> document are retired. Use the Argo CD catalog and the five supported commands
+> documented in `docs/operations/scripts.md`. Historical examples below are not
+> runnable deployment instructions.
+
 kubectl -n monitoring get secret prometheus-auth \
 
 > Linux and macOS clients are supported; see [the script matrix](../docs/operations/scripts.md).
@@ -20,7 +25,8 @@ Use the updated repository on the server:
 ```bash
 cd ~/roboshop-ai
 PUBLIC_HOST=jithendar.com PROFILE=mk4 NODES=3 CPUS=2 MEMORY=2560 \
-  bash minikube/setup.sh
+  ./init.sh --profile minikube
+./deploy-minikube.sh start
 ```
 
 No separate Docker installation, user switching, or `chmod` step is needed on the supported CentOS setup. Wait until both nodes are Ready and the installer prints `Direct API: https://jithendar.com:PORT`. If it exits with an error, resolve that error before importing the kubeconfig on your Mac.
@@ -32,7 +38,7 @@ No separate Docker installation, user switching, or `chmod` step is needed on th
 ```bash
 kubectl get nodes
 kubectl get pods -A
-PROFILE=mk4 bash minikube/install.sh status
+PROFILE=mk4 ./deploy-minikube.sh status
 
 SELECTED_PROFILE=$(cat "$HOME/.minikube/roboshop-installer/mk4.profile")
 docker port "$SELECTED_PROFILE" 8443/tcp
@@ -62,13 +68,13 @@ Run the export only after the helper succeeds. The helper requires local `ssh`, 
 ```bash
 # Start or resume with the same configuration.
 PUBLIC_HOST=jithendar.com PROFILE=mk4 NODES=2 CPUS=2 MEMORY=2560 \
-  bash minikube/install.sh start
+  ./deploy-minikube.sh start
 
 # Stop, preserving data.
-PROFILE=mk4 bash minikube/install.sh stop
+PROFILE=mk4 ./deploy-minikube.sh stop
 
 # Troubleshoot.
-PROFILE=mk4 bash minikube/install.sh diagnose
+PROFILE=mk4 ./deploy-minikube.sh diagnose
 ```
 
 Use the script for starting as root; bare `minikube start` does not add `--force` or follow the installer's selected profile.
@@ -79,9 +85,10 @@ Use the script for starting as root; bare `minikube start` does not add `--force
 
 ```bash
 cd ~/roboshop-ai
-bash minikube/install.sh reset
+./deploy-minikube.sh reset
 PUBLIC_HOST=jithendar.com PROFILE=mk4 NODES=2 CPUS=2 MEMORY=2560 \
-  bash minikube/setup.sh
+  ./init.sh --profile minikube
+./deploy-minikube.sh start
 ```
 
 After a reset, recheck the API port/firewall and rerun the helper on your Mac to obtain new credentials. Creating Minikube does not deploy the RoboShop website or issue a Let's Encrypt website certificate.
@@ -93,8 +100,9 @@ This installs Docker Engine from its official RPM repository, enables Docker, in
 The base profile is `mk4`. The quick-start commands explicitly select two nodes and 2 CPUs per node; use explicit resource settings to keep starts consistent. Memory is sized from Docker physical RAM, reserving 1024 MiB for host overhead, rounded down to 256 MiB increments and capped at 2560 MiB per node. Swap is excluded. Hosts unable to fit at least 2048 MiB per node are rejected before cluster changes. Explicit requests exceeding the budget are also rejected. For a named development cluster:
 
 ```sh
-PROFILE=roboshop NODES=1 CPUS=2 MEMORY=2048 bash minikube/setup.sh
-PROFILE=roboshop bash minikube/install.sh stop
+PROFILE=roboshop NODES=1 CPUS=2 MEMORY=2048 ./init.sh --profile minikube
+./deploy-minikube.sh start
+PROFILE=roboshop ./deploy-minikube.sh stop
 ```
 
 Use `--install-only` to install without starting. `--start` remains accepted. Docker package installation is noninteractive and uses the repository's package signature checks. Conflicting runtime packages are reported instead of removed. SELinux and firewalld settings are preserved. Docker group membership grants root-level host access.
@@ -104,10 +112,10 @@ Use `--install-only` to install without starting. `--start` remains accepted. Do
 Install Docker Engine on Linux or Docker Desktop on macOS first, then:
 
 ```sh
-bash minikube/install.sh install
-bash minikube/install.sh start
-bash minikube/install.sh status
-bash minikube/install.sh stop
+./deploy-minikube.sh install
+./deploy-minikube.sh start
+./deploy-minikube.sh status
+./deploy-minikube.sh stop
 ```
 
 The standalone installer defaults to `/usr/local/bin` for root and `~/.local/bin` for regular users; it adds that path internally for every action. For direct CLI use outside the standalone script, the installation directory must already be on your shell PATH. CentOS setup publishes tools into `/usr/local/bin`, on the standard CentOS PATH, automatically. On macOS run as a regular user; the script opens an installed Docker Desktop when needed.
@@ -128,7 +136,7 @@ References: [Docker on CentOS](https://docs.docker.com/engine/install/centos/), 
 A `nodes "mk4-m04" not found` label error means that worker had not registered with the API server. It does not establish the underlying cause. Startup prints diagnostics automatically; the capacity check reserves 1024 MiB of Docker memory for host overhead and rejects allocations exceeding that budget. No cluster is deleted or resized automatically.
 
 ```sh
-PROFILE=mk4 bash minikube/install.sh diagnose
+PROFILE=mk4 ./deploy-minikube.sh diagnose
 # Inspect the failing worker's kubelet directly if its container is running:
 docker exec mk4-m04 journalctl -u kubelet --no-pager -n 100
 ```
@@ -137,7 +145,8 @@ Check for out-of-memory kills, kubelet errors, certificate/authentication failur
 
 ## Existing configuration and automatic adjustment
 
-Run `bash minikube/setup.sh` or, once dependencies are installed, `bash minikube/install.sh start`. On an older 3904 MiB host, explicitly set `NODES=1 CPUS=2 MEMORY=2560`; the two-node quick start is for the upgraded 8 GiB host.
+Run `./init.sh --profile minikube
+./deploy-minikube.sh start` or, once dependencies are installed, `./deploy-minikube.sh start`. On an older 3904 MiB host, explicitly set `NODES=1 CPUS=2 MEMORY=2560`; the two-node quick start is for the upgraded 8 GiB host.
 
 The installer inspects the selected profile's saved driver, node count, CPU and memory settings, including nodes that never successfully joined. If settings differ, it stops and preserves that profile, then starts a deterministic replacement such as `mk4-fit-1n-2560m-2c`. Existing workloads and data stay in the stopped cluster; they are **not migrated**. No nodes, clusters, or volumes are deleted. This operation interrupts workloads in the old profile.
 
@@ -150,9 +159,10 @@ The capacity check uses total Docker RAM, not current free RAM; unrelated runnin
 For the upgraded 8 GiB Vultr host, run with your domain pointing to the Vultr host:
 
 ```sh
-PUBLIC_HOST=jithendar.com NODES=1 bash minikube/setup.sh
+PUBLIC_HOST=jithendar.com NODES=1 ./init.sh --profile minikube
+./deploy-minikube.sh start
 # Or, with dependencies already installed:
-PUBLIC_HOST=jithendar.com NODES=1 bash minikube/install.sh start
+PUBLIC_HOST=jithendar.com NODES=1 ./deploy-minikube.sh start
 ```
 
 The installer binds Docker's published API port to `0.0.0.0`, includes the DNS hostname in the API certificate, and writes `~/.kube/<selected-profile>-direct.json` with embedded credentials and file permissions 0600. TLS verification remains enabled. It prints the actual port and exact `scp` and local `kubectl` commands. Allow that TCP port from your laptop's public IP in Vultr Firewall (and any other upstream firewall); the script does not manage your Vultr account. No SSH tunnel is required after copying the file.
@@ -164,8 +174,9 @@ A profile created for localhost access cannot simply change its Docker port bind
 On the Vultr host, as the user who created the clusters:
 
 ```sh
-bash minikube/install.sh reset
-PUBLIC_HOST=jithendar.com NODES=1 bash minikube/setup.sh
+./deploy-minikube.sh reset
+PUBLIC_HOST=jithendar.com NODES=1 ./init.sh --profile minikube
+./deploy-minikube.sh start
 ```
 
 `bash minikube/reset.sh` is equivalent to the reset action. It immediately runs `minikube delete --all --purge`: all current-user Minikube clusters and their cluster-local data are deleted, along with cached downloads, profiles, installer selection/network metadata and matching direct-access exports. There is no interactive confirmation. It retains installed tools, unrelated Docker resources, and unrelated Kubernetes contexts. It requires the standard non-symlink `~/.minikube` directory.
@@ -174,7 +185,8 @@ Reset does not remove clusters owned by another account, copies of kubeconfig on
 
 ### Domain endpoint: jithendar.com
 
-Use `PUBLIC_HOST=jithendar.com NODES=1 bash minikube/setup.sh`. The installer adds `jithendar.com` as a DNS certificate SAN and exports `https://jithendar.com:<published-port>`. It prints the exact port and local copy command; TLS verification stays enabled. `PUBLIC_IP` is still supported for IPv4 endpoints, but do not set both variables.
+Use `PUBLIC_HOST=jithendar.com NODES=1 ./init.sh --profile minikube
+./deploy-minikube.sh start`. The installer adds `jithendar.com` as a DNS certificate SAN and exports `https://jithendar.com:<published-port>`. It prints the exact port and local copy command; TLS verification stays enabled. `PUBLIC_IP` is still supported for IPv4 endpoints, but do not set both variables.
 
 The domain must resolve directly to your Vultr host. A normal website HTTP reverse proxy does not forward this Kubernetes API port; use a direct DNS record. Existing website ports 80/443 are unchanged. If the main domain must stay behind a website proxy, use a dedicated DNS hostname such as `k8s.jithendar.com` instead. The Vultr firewall still needs to allow the printed TCP port from your local public IP.
 
@@ -190,7 +202,7 @@ The helper uses one SSH connection to discover the selected `mk4` profile, read 
 
 Overrides: `VULTR_HOST=root@jithendar.com`, `API_HOST=jithendar.com`, `PROFILE=mk4`, and `CONFIG=/absolute/local/path`. The remote cluster must already publish its API on `0.0.0.0`, and its port must be reachable through the Vultr firewall. The helper preserves the original certificate identity using `tls-server-name`, while changing the connection address to the public domain; TLS verification stays enabled. Shell scripts cannot export variables into their parent shell, so run the printed `export KUBECONFIG=...` command after success.
 
-If local import says the profile has no public API binding, read the actual binding printed by the helper. `127.0.0.1:PORT` is host-local and cannot be reached from your laptop. On Vultr, run `PUBLIC_HOST=jithendar.com NODES=2 CPUS=2 MEMORY=2560 bash minikube/install.sh start` and wait for the `Direct API:` message. This can preserve/stop the local-only profile and create a replacement; workloads are not migrated. The installer now saves a new profile selection only after the requested direct-access export succeeds, and later starts retain its saved hostname.
+If local import says the profile has no public API binding, read the actual binding printed by the helper. `127.0.0.1:PORT` is host-local and cannot be reached from your laptop. On Vultr, run `PUBLIC_HOST=jithendar.com NODES=2 CPUS=2 MEMORY=2560 ./deploy-minikube.sh start` and wait for the `Direct API:` message. This can preserve/stop the local-only profile and create a replacement; workloads are not migrated. The installer now saves a new profile selection only after the requested direct-access export succeeds, and later starts retain its saved hostname.
 
 ### Kubeconfig helper files
 

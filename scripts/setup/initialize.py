@@ -250,7 +250,7 @@ def main():
         i.need('aws',i.aws);i.need('terraform',lambda:i.binary('terraform'))
     print('Scope: tool versions only; application packages, credentials, Docker access and deployment readiness are not verified.')
     print('PATH for new shells: export PATH="$HOME/.local/bin:$PATH"')
-    print('Next: '+{'dev':'npm ci; install service requirements in .venv as needed; see scripts index for Java/Go builds', 'docker':'docker info; ./init.sh --profile aws for ECR publishing', 'minikube':'bash minikube/install.sh start (explicit cluster creation)', 'aws':'aws sts get-caller-identity (after separately configuring credentials); terraform -chdir=infrastructure init'}[args.profile])
+    print('Next: '+{'dev':'npm ci; install service requirements in .venv as needed; see scripts index for Java/Go builds', 'docker':'docker info; ./init.sh --profile aws for ECR publishing', 'minikube':'./deploy-minikube.sh start (explicit cluster creation)', 'aws':'aws sts get-caller-identity (after separately configuring credentials); terraform -chdir=infrastructure init'}[args.profile])
     return 1 if mode=='check' and i.missing else 0
 
 

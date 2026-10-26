@@ -133,7 +133,7 @@ def restore(args):
 
 def main():
     p=argparse.ArgumentParser()
-    p.add_argument('command',choices=['doctor','validate','bootstrap','deploy','status','logs','test','backup','restore','rollback'])
+    p.add_argument('command',choices=['doctor','validate','status','logs','test','backup','restore'])
     for name in ('output','recipient','archive','identity','target','revision'):p.add_argument('--'+name)
     args=p.parse_args()
     if args.command=='doctor':
@@ -152,38 +152,6 @@ def main():
         sys.path.insert(0,str(ROOT/'services/mcp-server'))
         from operations.policy import redact
         print(redact(kube('logs','-n','openclaw','deployment/openclaw-operations','--tail=100')))
-    elif args.command=='bootstrap':
-        deployment_gate();confirm('bootstrap')
-        kube('apply','-f',str(ROOT/'argocd/project-openclaw.yaml'),'-f',str(ROOT/'argocd/openclaw.yaml'),capture=False)
-    elif args.command=='deploy':
-        deployment_gate();confirm('deploy')
-        # Request an Argo operation; never apply its managed workload resources.
-        import uuid,time
-        request_id=uuid.uuid4().hex
-        operation={'initiatedBy':{'username':'openclaw-management'},'info':[{'name':'openclaw-request','value':request_id}],'sync':{'prune':False}}
-        current=json.loads(kube('get','application','openclaw','-n','argocd','-o','json'))
-        if current.get('operation'):raise RuntimeError('An Argo operation is already active; do not overwrite it')
-        patch=[{'op':'test','path':'/metadata/resourceVersion','value':current['metadata']['resourceVersion']},{'op':'add','path':'/operation','value':operation}]
-        kube('patch','application','openclaw','-n','argocd','--type=json','-p',json.dumps(patch))
-        end=time.monotonic()+300
-        while time.monotonic()<end:
-            app=json.loads(kube('get','application','openclaw','-n','argocd','-o','json'))
-            status=app.get('status',{});state=status.get('operationState',{})
-            ours=any(i.get('value')==request_id for i in state.get('operation',{}).get('info',[]))
-            if ours and state.get('phase') in ('Failed','Error'):raise RuntimeError('Argo synchronization failed; inspect Application status')
-            if ours and state.get('phase')=='Succeeded' and status.get('sync',{}).get('status')=='Synced' and status.get('health',{}).get('status')=='Healthy':
-                print('Argo reports Synced / Healthy for this sync request');break
-            time.sleep(5)
-        else:raise RuntimeError('Timed out awaiting this Argo sync operation')
-    elif args.command=='rollback':
-        if not args.revision:raise RuntimeError('rollback requires --revision OPENCLAW_ONLY_COMMIT_TO_REVERT')
-        import re
-        if not re.fullmatch('[a-fA-F0-9]{7,40}',args.revision):raise RuntimeError('Use a hexadecimal commit SHA')
-        paths=run(['git','diff-tree','--no-commit-id','--name-only','-r',args.revision],True,cwd=ROOT).splitlines()
-        if not paths or any(not f.startswith(('minikube/openclaw/','services/mcp-server/operations/','docs/openclaw/','scripts/openclaw')) for f in paths):raise RuntimeError('Commit is not isolated to OpenClaw; prepare a reviewed rollback PR manually.')
-        if run(['git','status','--porcelain'],True,cwd=ROOT).strip():raise RuntimeError('Working tree must be clean before rollback preparation')
-        confirm('rollback');run(['git','revert','--no-commit',args.revision],cwd=ROOT)
-        print('Rollback staged locally. Review, commit and push through branch protection; Argo will reconcile. No live rollback bypass.')
     elif args.command=='backup':backup(args)
     elif args.command=='restore':restore(args)
     return 0

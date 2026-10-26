@@ -1,3 +1,8 @@
+> Deployment-script cleanup: imperative application deployment commands in this
+> document are retired. Use the Argo CD catalog and the five supported commands
+> documented in `docs/operations/scripts.md`. Historical examples below are not
+> runnable deployment instructions.
+
 # Prometheus at https://jithendar.com/prometheus/
 
 From the repository root, with Traefik, public host routing and cert-manager already installed:

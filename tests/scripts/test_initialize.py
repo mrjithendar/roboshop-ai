@@ -35,7 +35,7 @@ class InitializeTests(unittest.TestCase):
    with self.assertRaisesRegex(ValueError,'checksum'):i.artifact('helm','https://example/file','https://example/sum')
    self.assertFalse((Path(temp)/'bin').exists())
  def test_help_and_dry_run_from_other_directory(self):
-  for script,args in [('init.sh',['--help']),('scripts/images/build-push-ecr.sh',['--help']),('scripts/deploy/deploy-minikube.sh',['--help']),('delete_branch.sh',['--help'])]:
+  for script,args in [('init.sh',['--help']),('scripts/images/build-push-ecr.sh',['--help']),('deploy-minikube.sh',['--help']),('delete_branch.sh',['--help'])]:
    r=subprocess.run(['bash',str(ROOT/script),*args],cwd='/tmp',capture_output=True,text=True)
    self.assertEqual(r.returncode,0,r.stderr)
  def test_invalid_profile_before_commands(self):

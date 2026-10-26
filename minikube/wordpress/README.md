@@ -1,3 +1,8 @@
+> Deployment-script cleanup: imperative application deployment commands in this
+> document are retired. Use the Argo CD catalog and the five supported commands
+> documented in `docs/operations/scripts.md`. Historical examples below are not
+> runnable deployment instructions.
+
 # WordPress with Redis at https://jithendar.com/
 
 WordPress runs in the dedicated **`jithendar`** namespace and becomes the main website. Kubernetes namespace names cannot contain dots; the website domain remains **`jithendar.com`**. Grafana's more specific `/grafana` ingress remains separate. RoboShop must use another hostname/path if it currently owns `/` on `jithendar.com`; the installer reports that conflict rather than deleting its ingress.

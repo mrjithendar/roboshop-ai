@@ -1,3 +1,8 @@
+> Deployment-script cleanup: imperative application deployment commands in this
+> document are retired. Use the Argo CD catalog and the five supported commands
+> documented in `docs/operations/scripts.md`. Historical examples below are not
+> runnable deployment instructions.
+
 # Operational script audit
 
 Inventory of current commands and retained service-owned tools. Detailed caller/dependency/variable lists are in `script-audit.json`. Dependencies below are static command references, not proof that all branches execute. No AGENTS.md was found in the repository or parent workspace.

@@ -108,7 +108,7 @@ fi
 if [[ "$OS" == linux && -r /etc/os-release ]]; then
   distro_id="$(. /etc/os-release; printf '%s' "${ID:-}")"
   if [[ "$distro_id" == centos ]]; then
-    echo 'CentOS: for Docker prerequisites, run bash minikube/setup.sh (Stream 9/10).'
+    echo 'CentOS: for Docker prerequisites, run ./init.sh --profile minikube (Stream 9/10).'
   fi
 fi
 command -v docker >/dev/null 2>&1 || fail 'Run ./init.sh --profile minikube, then rerun. See minikube/README.md.'

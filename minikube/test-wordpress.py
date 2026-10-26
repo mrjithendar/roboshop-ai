@@ -42,60 +42,14 @@ class WordPressTests(unittest.TestCase):
         for svc in (x for x in items if x['kind'] == 'Service'):
             self.assertEqual(svc['spec'].get('type', 'ClusterIP'), 'ClusterIP')
 
-    def run_installer(self, bootstrap_exit, legacy_data=False):
-        with tempfile.TemporaryDirectory() as tmp:
-            home = Path(tmp)
-            bindir = home / '.local/bin'
-            bindir.mkdir(parents=True)
-            for name in ('helm', 'kubectl'):
-                tool = bindir / name
-                tool.write_text('#!/bin/sh\n'
-                    f'echo "{name} $*" >> "$TEST_LOG"\n'
-                    'case "$*" in\n'
-                    ' "version --short") echo v3.19.0;;\n'
-                    ' *"-n roboshop-ai get pvc"*) if [ "$LEGACY_DATA" = yes ]; then echo persistentvolumeclaim/wordpress-mysql; fi;;\n'
-                    ' *"get ingress --all-namespaces"*) echo \'{"items":[]}\';;\n'
-                    ' *"get secret wordpress-credentials"*) echo secret/wordpress-credentials;;\n'
-                    ' *"exec -i deployment/wordpress"*) cat >/dev/null; exit "$BOOTSTRAP_EXIT";;\n'
-                    ' *"apply -f -"*) cat >/dev/null;;\n'
-                    'esac\n')
-                tool.chmod(0o755)
-            # Keep relative helpers available, but force mock tools ahead of host tools.
-            script = home / 'deploy-wordpress.sh'
-            source = (ROOT / 'deploy-wordpress.sh').read_text()
-            source = source.replace('SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"',
-                                    'SCRIPT_DIR=' + "'" + str(ROOT).replace("'", "'\\''") + "'")
-            script.write_text(prepare_source(source).replace('/usr/local/bin:$HOME/.local/bin:$PATH', '$HOME/.local/bin:$PATH'))
-            env = {**os.environ, 'HOME': tmp, 'KUBE_CONTEXT': 'test-cluster',
-                   'TEST_LOG': str(home / 'calls'), 'BOOTSTRAP_EXIT': str(bootstrap_exit), 'LEGACY_DATA': 'yes' if legacy_data else 'no'}
-            result = subprocess.run(['bash', str(script)], env=env, text=True, capture_output=True)
-            return result, (home / 'calls').read_text()
 
-    def test_legacy_data_stops_before_mutation(self):
-        result, calls = self.run_installer(0, legacy_data=True)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn('Existing WordPress data', result.stderr)
-        self.assertNotIn('helm upgrade', calls)
-        self.assertNotIn('apply ', calls)
 
     def test_old_namespace_root_route_is_not_ignored(self):
         data = {'items': [{'metadata': {'namespace': 'roboshop-ai', 'name': 'wordpress'},
                           'spec': {'rules': [{'host': 'jithendar.com', 'http': {'paths': [{'path': '/'}]}}]}}]}
         self.assertEqual(list(routes.conflicts(data)), ['roboshop-ai/wordpress'])
 
-    def test_failed_bootstrap_never_publishes(self):
-        result, calls = self.run_installer(1)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertNotIn('ingress.enabled=true', calls)
 
-    def test_success_publishes_after_cache_check_and_certificate(self):
-        result, calls = self.run_installer(0)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertLess(calls.index('exec -i deployment/wordpress'), calls.index('ingress.enabled=true'))
-        self.assertLess(calls.index('certificate/jithendar-com'), calls.index('ingress.enabled=true'))
-        self.assertIn('--namespace jithendar', calls)
-        self.assertIn('-n jithendar exec', calls)
-        self.assertNotIn('create -f ', calls)  # Existing credentials are reused.
 
 
 if __name__ == '__main__':

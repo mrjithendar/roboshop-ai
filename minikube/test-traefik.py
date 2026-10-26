@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from installer_test_helpers import prepare_source
 
 ROOT = Path(__file__).parent
 
@@ -34,7 +35,7 @@ class TraefikTests(unittest.TestCase):
 
     def run_script(self, name, **env):
         script = self.home / name
-        script.write_text((ROOT / name).read_text().replace(
+        script.write_text(prepare_source((ROOT / name).read_text()).replace(
             '/usr/local/bin:$HOME/.local/bin:$PATH', '$HOME/.local/bin:$PATH'))
         return subprocess.run(['bash', str(script)], env={**self.env, **env},
                               capture_output=True, text=True)

@@ -9,19 +9,11 @@ read-only observer Role/RoleBinding in `argocd` is still owned by OpenClaw.
 
 ## Register the catalog
 
-```bash
-export ARGOCD_CONTEXT=mk4
-# Use an environment with PyYAML; kubectl and Helm must be installed.
-./scripts/argocd.sh validate --external-charts
-# Review, commit and push these changes to master before registration.
-./scripts/argocd.sh bootstrap
-./scripts/argocd.sh status
-```
-
-Bootstrap verifies the selected context, a clean tree, and that HEAD equals
-published master. It never changes kube contexts. OpenClaw must have completed
-its own gated bootstrap first. Its moved manifest is `argocd/openclaw.yaml` and
-its project is `argocd/project-openclaw.yaml`; the old combined file was removed.
+Validate with `python3 scripts/argocd/validate.py --external-charts`.
+Review, commit and push the catalog and workload changes before registering
+Applications from `argocd/kustomization.yaml` with kubectl in the intended
+context. Review each Application in Argo CD before syncing. The bootstrap shell
+wrapper has been removed; existing Applications remain unchanged.
 
 New Applications have **manual sync**, no deletion finalizers, no automatic
 pruning and `FailOnSharedResource=true`. Registering them does not adopt or
@@ -69,8 +61,7 @@ Traefik; full validation checks that every identity is covered.
    do not use the legacy cluster installer to reapply them after adoption.
 5. Stop imperative Helm upgrades and kubectl deployment scripts for adopted
    workloads. CI builds/pushes images; desired image changes go through Git.
-   The legacy deploy workflow and service/Helm deployment scripts now refuse
-   to deploy workloads with registered Applications.
+   The legacy deploy workflow and service/Helm deployment scripts have been removed.
    Argo CD and Traefik are the intentional exception. Do not uninstall the old
    Helm releases: uninstalling would delete the adopted workload resources.
 6. Check health after each manual sync. Only consider enabling automatic sync

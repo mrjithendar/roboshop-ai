@@ -1,3 +1,8 @@
+> Deployment-script cleanup: imperative application deployment commands in this
+> document are retired. Use the Argo CD catalog and the five supported commands
+> documented in `docs/operations/scripts.md`. Historical examples below are not
+> runnable deployment instructions.
+
 # Deploy all RoboShop services to Minikube
 
 Each runnable service has its own **`services/<service>/<service>-minikube.yaml`**. The root **`scripts/deploy/deploy-minikube.sh`** applies all 18 in dependency order into `roboshop-ai`, checking readiness between services. Each application keeps its internal libraries in its own `lib/` folder; these libraries are not separate workloads.

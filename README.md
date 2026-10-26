@@ -15,33 +15,28 @@ applications, creates credentials or starts a cluster.
 
 RoboShop includes a TypeScript storefront, MongoDB catalogue and accounts, Redis cart service, Java shipping, Razorpay payment integration, Python AI gateway and shopping assistant, and distributed tracing. Application and supporting services live under `services/`.
 
-## Build and deploy to Minikube
+## Cluster setup and application deployment
 
-On the Minikube host, from this directory:
-
-```bash
-bash build-images.sh
-bash scripts/deploy/deploy-minikube.sh
-```
-
-The build script removes the previous application `:local` tags and rebuilds all twelve images without cache. The deployment script loads them into Minikube, applies all eighteen workloads in dependency order, restarts application pods, and checks readiness. Infrastructure uses official upstream images. These commands preserve existing database volumes and credentials.
-
-Open **https://jithendar.com/roboshop/**. Traefik routes this path to NGINX, which proxies static pages to the frontend and API requests to the gateway. TLS is provided by cert-manager. WordPress and monitoring have separate routes.
-
-For a fresh host, follow [cluster installation](minikube/README.md), then the [application deployment guide](minikube/roboshop/README.md) for ingress, certificates, secrets, remote registry deployment and troubleshooting. Docker Compose is no longer supported; its manifests and helper tools have been removed.
+The supported infrastructure commands are:
 
 ```bash
-# Inspect a deployment
-kubectl -n roboshop-ai get pods,pvc,ingress
-kubectl -n roboshop-ai logs deployment/frontend --tail=100
-kubectl -n roboshop-ai logs deployment/ai-gateway --tail=100
-
-# Render and validate YAML without changing the cluster
-bash scripts/deploy/deploy-minikube.sh --render-only /tmp/roboshop-manifests
-python3 tests/minikube-manifests.test.py
+./init.sh --profile minikube
+./deploy-minikube.sh start
+./deploy-traefik.sh
+./patch-ssl.sh
+./kubectl.sh get pods -A
 ```
 
-First installation generates `roboshop-secrets`. Existing credentials are reused. Do not delete this Secret or the PVCs to resolve startup problems. The scripts do not automatically enable live payments, create an administrator or configure an LLM.
+`deploy-minikube.sh` manages the cluster only. `patch-ssl.sh` reuses an existing,
+Ready site certificate; it does not install cert-manager or issue a certificate.
+Set `KUBECONFIG` when using `kubectl.sh`, or provide its downloaded kubeconfig.
+See [the command index](docs/operations/scripts.md) for prerequisites.
+
+Applications are deployed through the [Argo CD catalog](argocd/README.md).
+Build/publish tooling remains available; update image references in Git and sync
+through Argo CD. Imperative application deployment scripts and the old
+Deploy-Minikube workflow have been removed. Existing manifests, Secrets and PVCs
+are preserved; this repository cleanup does not change a live cluster.
 
 ## Native development
 
@@ -148,41 +143,10 @@ failures, check `aws sts get-caller-identity`, `kubectl --context=mk4 get nodes`
 and `python3 -c 'import yaml'` as the runner user.
 
 Build and push one service using its **Actions → service image → Run workflow** entry.
-Omit `--service` to build every application image. The workflow keeps all build
-steps and deployment in one job so they share the same host Docker images; a
-failed service build stops its deployment and all subsequent service steps.
+Omit `--service` to build every application image. Image publishing is separate from Argo CD deployment.
 
-To build and deploy one application manually (its dependencies must already exist):
-
-```bash
-bash build-images.sh --service frontend --local
-bash scripts/deploy/deploy-minikube.sh --service frontend --load-images
-```
-
-For a fresh staged deployment, run `bash scripts/deploy/deploy-minikube.sh --infrastructure` first,
-then process application services in the workflow order, and finish with
-`bash scripts/deploy/deploy-minikube.sh --finalize`. Single-service mode loads/restarts only that
-application and does not republish the catalogue or change ingress. The existing
-full-stack command `bash scripts/deploy/deploy-minikube.sh --load-images` remains supported.
-
-### Quick build and deploy to existing Minikube
-
-```bash
-bash scripts/images/build-push-ecr.sh frontend
-bash scripts/deploy/deploy-minikube.sh frontend
-
-# All application services (omit service names in both commands):
-bash scripts/images/build-push-ecr.sh
-bash scripts/deploy/deploy-minikube.sh
-```
-
-Both scripts use ECR images tagged `local`. Deployment refreshes the ECR pull
-secret, applies the selected service manifests with that image tag, and requests
-restarts without waiting for rollout status. Existing application secrets,
-configuration and databases are preserved; use the installation workflow for a
-fresh cluster. Requires AWS CLI credentials, kubectl and Python 3. Uses your
-existing kubeconfig and context `mk4`; override with `KUBE_CONTEXT=your-context`.
-Use `IMAGE_TAG=latest bash scripts/deploy/deploy-minikube.sh frontend` to deploy CI images instead.
+Build images with `bash scripts/images/build-push-ecr.sh frontend`, then update
+the application's image reference in Git and sync it through Argo CD.
 
 ### Kafka analytics stream
 

@@ -14,12 +14,3 @@ class MongoManifestTests(unittest.TestCase):
         services={d['metadata']['name']:d for d in docs if d['kind']=='Service'}
         self.assertEqual(services[sts['spec']['serviceName']]['spec']['clusterIP'],'None')
         self.assertIn('mongodb',services)
-
-    def test_workflow_stops_old_writer_before_applying_new_controller(self):
-        workflow=yaml.safe_load((ROOT/'.github/workflows/deploy-minikube.yml').read_text())
-        commands='\n'.join(s.get('run','') for s in workflow['jobs']['deploy']['steps'])
-        stop=commands.index('delete deployment/mongodb')
-        apply=commands.index('for service in mongodb')
-        self.assertLess(stop,apply)
-        self.assertIn('--cascade=foreground --wait=true --timeout=120s',commands[stop:apply])
-        self.assertNotIn('delete pvc',commands)
