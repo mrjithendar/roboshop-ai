@@ -28,7 +28,10 @@
     },
     "cliAgents": {
       "enabled": false
-    }
+    },
+    "trustedProxies": [
+      "10.244.2.2/32"
+    ]
   },
   "browser": {
     "enabled": false
@@ -313,8 +316,8 @@
     ],
     "load": {
       "paths": [
-        "${OPENCLAW_PLUGINS_DIR}/node_modules/@openclaw/diagnostics-otel",
-        "${OPENCLAW_PLUGINS_DIR}/node_modules/@openclaw/diagnostics-prometheus"
+        "/opt/openclaw-plugins/node_modules/@openclaw/diagnostics-otel",
+        "/opt/openclaw-plugins/node_modules/@openclaw/diagnostics-prometheus"
       ]
     },
     "entries": {

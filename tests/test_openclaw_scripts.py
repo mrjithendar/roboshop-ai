@@ -212,6 +212,10 @@ def test_plugin_copy_does_not_change_volume_root_metadata(tmp_path):
  deployment=next(x for x in workloads if x['kind']=='Deployment' and x['metadata']['name']=='openclaw')
  command=deployment['spec']['template']['spec']['initContainers'][0]['command'][2]
  command=command.replace('/opt/openclaw-plugins',str(source)).replace('/plugins',str(target))
+ config=tmp_path/'config.json';config.write_text('{}')
+ runtime=tmp_path/'runtime';runtime.mkdir()
+ state=tmp_path/'state';state.mkdir();(state/'existing.txt').write_text('preserve')
+ command=command.replace('/etc/openclaw/openclaw.json',str(config)).replace('/runtime-config',str(runtime)).replace('/state-volume',str(state))
  original=shutil.copystat
  def copystat(src,dst,**kwargs):
   if Path(dst)==target:raise PermissionError('volume root belongs to root')
@@ -221,3 +225,6 @@ def test_plugin_copy_does_not_change_volume_root_metadata(tmp_path):
   exec(command,{})
  assert (target/'plugin'/'index.js').read_text()=='plugin'
  assert (target/'manifest.json').read_text()=='{}'
+ assert (state/'runtime'/'existing.txt').read_text()=='preserve'
+ assert (state/'existing.txt').read_text()=='preserve'
+ assert (runtime/'config'/'openclaw.json').read_text()=='{}'

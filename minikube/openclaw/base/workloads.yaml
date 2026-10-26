@@ -70,6 +70,7 @@ spec:
           mountPath: /tmp
         - name: state
           mountPath: /home/node/.openclaw
+          subPath: runtime
         - name: config
           mountPath: /etc/openclaw
           readOnly: true
@@ -108,13 +109,15 @@ spec:
         - name: plugins
           mountPath: /opt/openclaw-plugins
           readOnly: true
+        - name: runtime-config
+          mountPath: /runtime-config
         env:
         - name: XDG_CACHE_HOME
           value: /tmp/cache
         - name: NODE_COMPILE_CACHE
           value: /tmp/node-compile-cache
         - name: OPENCLAW_CONFIG_PATH
-          value: /etc/openclaw/openclaw.json
+          value: /runtime-config/config/openclaw.json
         - name: OPENCLAW_STATE_DIR
           value: /home/node/.openclaw
         - name: OPENCLAW_PLUGINS_DIR
@@ -138,24 +141,28 @@ spec:
       - name: plugins
         emptyDir:
           sizeLimit: 256Mi
+      - name: runtime-config
+        emptyDir: {}
       initContainers:
       - name: telemetry-plugins
         image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-mcp-server@sha256:0e02d68ab9371decb4248f855d483405f08d2b831001df3a3f551229ec4ba2bd
         command:
         - python
         - -c
-        - |
-          from pathlib import Path
-          import shutil
-          source = Path("/opt/openclaw-plugins")
-          target = Path("/plugins")
-          # The volume root is group-writable but owned by root; do not copy its metadata.
-          for entry in source.iterdir():
-              destination = target / entry.name
-              if entry.is_dir():
-                  shutil.copytree(entry, destination, dirs_exist_ok=True)
-              else:
-                  shutil.copy2(entry, destination)
+        - "from pathlib import Path\nimport shutil\nsource = Path(\"/opt/openclaw-plugins\"\
+          )\ntarget = Path(\"/plugins\")\n# The volume root is group-writable but\
+          \ owned by root; do not copy its metadata.\nfor entry in source.iterdir():\n\
+          \    destination = target / entry.name\n    if entry.is_dir():\n       \
+          \ shutil.copytree(entry, destination, dirs_exist_ok=True)\n    else:\n \
+          \       shutil.copy2(entry, destination)\n\nPath(\"/runtime-config/config\"\
+          ).mkdir(mode=0o700, exist_ok=True)\nshutil.copyfile(\"/etc/openclaw/openclaw.json\"\
+          , \"/runtime-config/config/openclaw.json\")\n# Own the state directory without\
+          \ changing permissions on the hostPath mount.\nstate = Path(\"/state-volume\"\
+          )\nruntime = state / \"runtime\"\nif not runtime.exists():\n    runtime.mkdir(mode=0o700)\n\
+          \    for entry in state.iterdir():\n        if entry == runtime:\n     \
+          \       continue\n        destination = runtime / entry.name\n        if\
+          \ entry.is_dir():\n            shutil.copytree(entry, destination, dirs_exist_ok=True)\n\
+          \        else:\n            shutil.copy2(entry, destination)\n"
         securityContext: *id001
         resources:
           requests:
@@ -167,6 +174,13 @@ spec:
         volumeMounts:
         - name: plugins
           mountPath: /plugins
+        - name: config
+          mountPath: /etc/openclaw
+          readOnly: true
+        - name: runtime-config
+          mountPath: /runtime-config
+        - name: state
+          mountPath: /state-volume
 ---
 apiVersion: v1
 kind: Service

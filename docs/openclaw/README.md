@@ -463,3 +463,46 @@ existing gateway token/device authentication. The `openclaw-edge-auth` Secret
 must exist before syncing. The local initial credential is stored outside Git
 at `~/.local/state/openclaw/ingress-credentials.txt` with mode 0600.
 The route preserves `/openclaw` and does not expose the operations service.
+
+### Container startup and proxy attribution
+
+The init container stages a writable configuration under `/runtime-config/config`
+and copies any existing state into the UID-1000-owned `runtime` subdirectory of
+the PVC on first initialization. Original state files are preserved. The gateway
+mounts that subdirectory at `/home/node/.openclaw`; its image filesystem remains
+read-only. The official image runs `doctor --fix` before gateway startup, so
+configuration files and the state directory must support owner permission changes.
+Plugin paths use the actual `/opt/openclaw-plugins` mount.
+
+`gateway.trustedProxies` currently contains only `10.244.2.2/32`, the verified
+Traefik pod address. If Traefik is recreated with a new IP, update this exact
+address from `kubectl -n traefik get pods -o wide` and sync OpenClaw. Do not replace
+it with a wildcard or the entire cluster subnet. Edge BasicAuth and gateway
+authentication remain enabled.
+
+### One-command local patches
+
+`argocd/openclaw.yaml` is a plain Application manifest. To apply the local
+OpenClaw fixes without embedding large patch strings in that file:
+
+```bash
+./patch-openclaw.sh --dry-run  # preview; no cluster writes
+./patch-openclaw.sh           # patch the existing Application and request sync
+```
+
+The script reads workloads, config, ingress and node placement from their normal
+manifest files. It checks the current context (default `mk4`), refuses to replace
+an active sync operation, and sends overrides through Argo CD. It does not write
+workloads directly, prune resources or create credentials. It requires Python
+with PyYAML and kubectl. Use `KUBE_CONTEXT` to select another already-current
+context. After the desired manifests are published to Git, normal Argo CD sync
+can use the plain Application without these temporary source overrides.
+
+`Apply OpenClaw patches` runs `patch-openclaw.sh` automatically on pushes to
+`master` that change the script, Application, OpenClaw manifests or its workflow.
+It also supports manual Actions dispatch. It runs on the existing self-hosted
+Linux ARM64 runner with its Kubernetes credentials, using `OPENCLAW_CONTEXT`
+(repository variable, default `mk4`). The runner's current context must match.
+The workflow validates/render-checks first, waits for any active Argo operation,
+and serializes patch runs. It requests sync; successful workflow completion
+alone does not certify application readiness. No patch runs on pull requests.

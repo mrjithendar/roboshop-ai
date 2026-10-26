@@ -26,3 +26,8 @@ The per-application Helm/deploy scripts, application apply/restart helper,
 OpenClaw/Argo bootstrap shell wrappers and imperative Deploy-Minikube workflow
 have been removed. Keep manifests and Helm values in Git and use Argo CD to
 review and sync them. Build/publish workflows remain available.
+
+OpenClaw-specific convenience command: `./patch-openclaw.sh [--dry-run]` derives
+Argo CD overrides from the local manifests and requests sync. This explicitly
+requested helper replaces embedded patches in `argocd/openclaw.yaml`; it does
+not restore the retired application deployment scripts.

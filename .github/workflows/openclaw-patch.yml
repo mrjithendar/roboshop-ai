@@ -1,0 +1,61 @@
+name: Apply OpenClaw patches
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - patch-openclaw.sh
+      - argocd/openclaw.yaml
+      - minikube/openclaw/**
+      - .github/workflows/openclaw-patch.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openclaw-patch-mk4
+  cancel-in-progress: false
+
+jobs:
+  patch:
+    runs-on: [self-hosted, linux, ARM64]
+    timeout-minutes: 15
+    env:
+      KUBE_CONTEXT: ${{ vars.OPENCLAW_CONTEXT || 'mk4' }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare isolated Python environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/openclaw-patch-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          echo "PYTHON=$RUNNER_TEMP/openclaw-patch-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT/bin/python" >> "$GITHUB_ENV"
+          "$RUNNER_TEMP/openclaw-patch-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT/bin/python" -m pip install PyYAML
+      - name: Validate manifests and patch syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v kubectl
+          bash -n patch-openclaw.sh
+          kubectl kustomize minikube/openclaw/overlays/mk4 > /dev/null
+          ./patch-openclaw.sh --dry-run > /dev/null
+      - name: Wait for any current Argo CD operation
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in {1..30}; do
+            operation=$(kubectl --context "$KUBE_CONTEXT" --request-timeout=20s -n argocd get application openclaw -o jsonpath='{.operation}')
+            if [[ -z "$operation" ]]; then exit 0; fi
+            sleep 10
+          done
+          echo 'Argo CD still has an active operation; no patches applied.' >&2
+          exit 1
+      - name: Apply patches and request Argo CD sync
+        run: ./patch-openclaw.sh
+      - name: Clean up Python environment
+        if: always()
+        shell: bash
+        run: rm -rf -- "$RUNNER_TEMP/openclaw-patch-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
