@@ -4,8 +4,8 @@ See [architecture, deployment and runbooks](../../docs/openclaw/README.md).
 
 - `base`: protected storage, gateway, existing-service operations adapter, telemetry
   packages, restricted egress, namespace Roles and network policies.
-- `overlays/mk4`: observed StorageClass/API endpoint; private staging by default.
-- `overlays/public`: opt-in existing Traefik/shared TLS routing, blocked example IP.
+- `overlays/mk4`: StorageClass, API endpoint, state-node placement and authenticated
+  Traefik ingress for `/openclaw`, managed together in one overlay.
 - `argocd`: isolated project/Application; no automatic prune or deletion finalizer.
 - `monitoring`: dashboard and opt-in values for the existing releases.
 

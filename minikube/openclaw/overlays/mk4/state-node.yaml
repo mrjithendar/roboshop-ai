@@ -1,0 +1,11 @@
+# The standard Minikube hostPath provisioner creates volumes on mk4.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openclaw
+  namespace: openclaw
+spec:
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: mk4

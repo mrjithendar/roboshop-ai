@@ -16,16 +16,29 @@ spec:
       - target:
           kind: Deployment
           name: openclaw
-        patch: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: openclaw\n  namespace:\
-          \ openclaw\nspec:\n  template:\n    spec:\n      initContainers:\n      - name:\
-          \ telemetry-plugins\n        command:\n        - python\n        - -c\n      \
-          \  - \"from pathlib import Path\\nimport shutil\\nsource = Path(\\\"/opt/openclaw-plugins\\\
-          \"\\\n          )\\ntarget = Path(\\\"/plugins\\\")\\n# The volume root is group-writable\
-          \ but\\\n          \\ owned by root; do not copy its metadata.\\nfor entry in\
-          \ source.iterdir():\\n\\\n          \\    destination = target / entry.name\\\
-          n    if entry.is_dir():\\n       \\\n          \\ shutil.copytree(entry, destination,\
-          \ dirs_exist_ok=True)\\n    else:\\n \\\n          \\       shutil.copy2(entry,\
-          \ destination)\\n\"\n"
+        patch: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: openclaw\n\
+          \  namespace: openclaw\nspec:\n  template:\n    spec:\n      initContainers:\n\
+          \      - name: telemetry-plugins\n        command:\n        - python\n \
+          \       - -c\n        - \"from pathlib import Path\\nimport shutil\\nsource\
+          \ = Path(\\\"/opt/openclaw-plugins\\\"\\\n          )\\ntarget = Path(\\\
+          \"/plugins\\\")\\n# The volume root is group-writable but\\\n          \\\
+          \ owned by root; do not copy its metadata.\\nfor entry in source.iterdir():\\\
+          n\\\n          \\    destination = target / entry.name\\n    if entry.is_dir():\\\
+          n       \\\n          \\ shutil.copytree(entry, destination, dirs_exist_ok=True)\\\
+          n    else:\\n \\\n          \\       shutil.copy2(entry, destination)\\\
+          n\"\n"
+      - target:
+          kind: Deployment
+          name: openclaw
+        patch: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: openclaw\n\
+          \  namespace: openclaw\nspec:\n  template:\n    spec:\n      nodeSelector:\n\
+          \        kubernetes.io/hostname: mk4\n"
+      - target:
+          kind: Ingress
+          name: openclaw
+        patch: "apiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name:\
+          \ openclaw\n  namespace: openclaw\n  annotations:\n    traefik.ingress.kubernetes.io/router.middlewares:\
+          \ openclaw-openclaw-auth@kubernetescrd,openclaw-openclaw-headers@kubernetescrd\n"
   destination:
     server: https://kubernetes.default.svc
     namespace: openclaw

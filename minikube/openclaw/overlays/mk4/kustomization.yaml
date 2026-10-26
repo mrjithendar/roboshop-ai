@@ -3,8 +3,10 @@ kind: Kustomization
 resources:
 - ../../base
 - api-egress.yaml
+- ingress.yaml
 patches:
 - target:
     kind: PersistentVolumeClaim
     name: openclaw-state
   patch: "- op: add\n  path: /spec/storageClassName\n  value: standard\n"
+- path: state-node.yaml

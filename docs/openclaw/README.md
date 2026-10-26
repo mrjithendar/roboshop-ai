@@ -2,8 +2,8 @@
 
 Status: implemented and locally exercised; **not deployed or live-verified**. See
 [the implementation report](implementation-report.md) for dated evidence and blockers.
-The default GitOps path is private. Never change it to the public overlay until
-the network, credentials, TLS, browser and ingress checks below pass.
+The GitOps path is `overlays/mk4`; it includes the deployment and authenticated
+ingress together. Verify network, credentials, TLS and browser behavior after sync.
 
 ## Discovered platform and reuse
 
@@ -189,10 +189,10 @@ Langfuse Cloud and RSS hosts must be reviewed and added explicitly. Metadata
 IP ranges are denied. This protection **requires a working policy engine**;
 Squid alone does not prevent a compromised pod from bypassing it.
 
-`overlays/mk4` has no Ingress. `overlays/public` preserves `/openclaw`, enables
-only `websecure`, references the shared TLSStore implicitly and adds IP allowlist,
-BasicAuth, cookie removal, CSP, frame denial and no-store headers. The example
-IP is TEST-NET and intentionally permits no real operator. There is no StripPrefix.
+`overlays/mk4/ingress.yaml` preserves `/openclaw`, enables only `websecure`,
+references the shared TLSStore implicitly and adds BasicAuth, cookie removal,
+CSP, frame denial and no-store headers. Any IP is allowed as requested.
+There is no StripPrefix or separate public overlay.
 WebSockets use the same route; BasicAuth is removed before forwarding because
 OpenClaw authenticates its own protocol with a separate token/device identity.
 No HTTP route is added, so the existing website's HTTP behavior is preserved.
@@ -217,7 +217,7 @@ through your approved secret workflow. The initial operator bootstrap requires:
 | openclaw / openclaw-gateway-secrets | `OPENAI_API_KEY`, `OPENCLAW_GATEWAY_TOKEN`, `OPS_ORCHESTRATOR_TOKEN`, `OPS_SRE_TOKEN`, `OPS_ARGOCD_TOKEN`, `OPS_GITHUB_TOKEN`, `OPS_AWS_TOKEN`, `OPS_OBSERVABILITY_TOKEN`, `OPS_ROBOSHOP_TOKEN`, `OPS_BLOG_TOKEN` |
 | openclaw / openclaw-operations-identities | `identities.json`: agent → corresponding distinct token; add `monitor` |
 | openclaw / openclaw-registry | `.dockerconfigjson` for existing ECR registry |
-| openclaw / openclaw-edge-auth | `users`: bcrypt htpasswd entry, public overlay only |
+| openclaw / openclaw-edge-auth | `users`: bcrypt htpasswd entry, required by the mk4 ingress |
 | openclaw / openclaw-integration-secrets | Optional `GITHUB_TOKEN`, `GRAFANA_TOKEN`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_URL`, approved AWS temporary credential settings |
 | monitoring / openclaw-metrics-auth | `token`: metrics-only operations token; `gateway-token`: OpenClaw gateway token |
 
@@ -272,9 +272,8 @@ exports go to the existing collector/Jaeger, not a new Langfuse installation.
 8. Add the monitoring ConfigMap through an existing monitoring GitOps owner.
    Merge the optional Prometheus/Grafana values into their existing releases.
    Avoid a second controller managing the same Helm resources.
-9. Replace the public IP allowlist with the reviewed operator/VPN range, confirm
-   edge-auth Secret, validate route/TLS and accept shared-origin risk. Request
-   explicit approval before switching the Application path to `overlays/public`.
+9. Create the edge-auth Secret before syncing `overlays/mk4`, then validate
+   the `/openclaw` route and TLS. Ingress and workloads use the same overlay.
 10. Verify with a dedicated browser: HTTPS certificate, BasicAuth, device pairing,
     WebSocket connection and a read-only investigation. Do not mark deployment
     complete until this passes with real evidence.
@@ -439,3 +438,23 @@ value uses the runner's default AWS credential chain.
 Argo CD Application and AppProject manifests are now centralized in
 `argocd/openclaw.yaml` and `argocd/project-openclaw.yaml`. The management script
 uses these paths; see `argocd/README.md` for the complete cluster application catalog.
+
+### Minikube persistent-state node placement
+
+The `mk4` overlay pins the gateway to node `mk4`, where the
+`k8s.io/minikube-hostpath` provisioner creates the `openclaw-state` directory.
+This storage is node-local: scheduling on another worker can create an empty,
+root-owned directory at the same path, causing `EACCES` during startup. The
+operations and egress deployments remain free to schedule on other nodes.
+Keep this placement until state is migrated to storage that supports multi-node
+scheduling; do not remove it merely to move the gateway to a different worker.
+
+### OpenClaw ingress
+
+The Argo CD Application selects the single `mk4` overlay and serves
+`https://jithendar.com/openclaw` through Traefik's existing TLS configuration.
+Access is allowed from any IP, with BasicAuth at the edge plus OpenClaw's
+existing gateway token/device authentication. The `openclaw-edge-auth` Secret
+must exist before syncing. The local initial credential is stored outside Git
+at `~/.local/state/openclaw/ingress-credentials.txt` with mode 0600.
+The route preserves `/openclaw` and does not expose the operations service.

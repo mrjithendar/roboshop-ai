@@ -9,8 +9,10 @@ class Manifests(unittest.TestCase):
  @classmethod
  def setUpClass(cls):
   cls.objects=list(yaml.safe_load_all(subprocess.check_output(['kubectl','kustomize',str(ROOT/'minikube/openclaw/overlays/mk4')],text=True)))
- def test_no_public_exposure_by_default(self):
-  self.assertFalse(any(d['kind']=='Ingress' for d in self.objects))
+ def test_single_gateway_ingress(self):
+  ingresses=[d for d in self.objects if d['kind']=='Ingress']
+  self.assertEqual(len(ingresses),1)
+  self.assertEqual(ingresses[0]['metadata']['name'],'openclaw')
  def test_container_security(self):
   for d in self.objects:
    if d['kind']!='Deployment':continue
@@ -35,7 +37,7 @@ class Manifests(unittest.TestCase):
   self.assertEqual(set(p['spec']['policyTypes']),{'Ingress','Egress'})
   self.assertNotIn('egress',p['spec'])
  def test_shared_tls_and_auth(self):
-  docs=list(yaml.safe_load_all(subprocess.check_output(['kubectl','kustomize',str(ROOT/'minikube/openclaw/overlays/public')],text=True)))
+  docs=self.objects
   ingress=next(d for d in docs if d['kind']=='Ingress')
   self.assertNotIn('secretName',ingress['spec']['tls'][0])
   self.assertIn('openclaw-auth',ingress['metadata']['annotations']['traefik.ingress.kubernetes.io/router.middlewares'])
