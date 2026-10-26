@@ -183,6 +183,31 @@ spec:
           mountPath: /runtime-config
         - name: state
           mountPath: /state-volume
+      - name: temp-permissions
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-mcp-server@sha256:0e02d68ab9371decb4248f855d483405f08d2b831001df3a3f551229ec4ba2bd
+        command:
+        - python
+        - -c
+        - import os; os.chmod("/scratch", 0o1777)
+        securityContext:
+          runAsNonRoot: false
+          runAsUser: 0
+          runAsGroup: 0
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /scratch
 ---
 apiVersion: v1
 kind: Service

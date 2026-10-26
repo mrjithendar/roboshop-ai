@@ -24,7 +24,7 @@ data:
 
     acl TLS port 443
 
-    acl approved_external dstdomain api.openai.com api.github.com registry.npmjs.org .blob.core.windows.net
+    acl HTTP port 80
 
     acl operations dstdomain openclaw-operations.openclaw.svc
 
@@ -43,7 +43,9 @@ data:
 
     http_access deny private_dst
 
-    http_access allow CONNECT approved_external TLS
+    http_access allow CONNECT TLS
+
+    http_access allow !CONNECT HTTP
 
     http_access deny all
 
@@ -240,4 +242,6 @@ spec:
         - 240.0.0.0/4
     ports:
     - port: 443
+      protocol: TCP
+    - port: 80
       protocol: TCP

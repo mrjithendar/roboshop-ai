@@ -517,7 +517,8 @@ alone does not certify application readiness. No patch runs on pull requests.
 ### Installing channel plugins
 
 The egress proxy permits HTTPS to `registry.npmjs.org` for official plugin
-metadata and package downloads. npm uses `/tmp/npm-cache` because the gateway
+metadata and package downloads, and `clawhub.ai` for plugin categories and
+catalog discovery. npm uses `/tmp/npm-cache` because the gateway
 root filesystem is read-only. `patch-openclaw.sh` includes the egress configuration
 and restarts Squid when its configuration checksum changes. Plugin versions
 should match the pinned gateway release; channel credentials remain separate.
