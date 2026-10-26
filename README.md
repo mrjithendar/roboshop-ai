@@ -163,3 +163,7 @@ read-only operations entry point to the MCP service and GitOps resources for
 It is not deployed: the discovered kindnet network needs policy enforcement and
 the credential/image/bootstrap gates must pass before public exposure. See the
 [verification report](docs/openclaw/implementation-report.md).
+
+### Create missing Minikube secrets
+
+Use `./create-secrets.sh --context mk4` to preview, then add `--apply` to create missing RoboShop, monitoring and WordPress credentials. Optional `--all` includes ELK/JFrog; `--ecr` refreshes image-pull tokens using existing AWS authentication. Existing credentials are preserved. See [secret setup and recovery safeguards](scripts/setup/SECRETS.md).
