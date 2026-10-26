@@ -11,7 +11,7 @@ jobs:
   test:
     runs-on: [self-hosted, linux, ARM64]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - run: docker build --platform linux/arm64 --target test services/kafka-bridge
