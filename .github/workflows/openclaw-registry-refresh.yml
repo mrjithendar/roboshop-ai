@@ -15,6 +15,6 @@ jobs:
       OPENCLAW_CONTEXT: ${{ vars.OPENCLAW_CONTEXT }}
       OPENCLAW_REGISTRY_REFRESH_ENABLED: ${{ vars.OPENCLAW_REGISTRY_REFRESH_ENABLED }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with: {persist-credentials: false}
       - run: python3 scripts/openclaw/refresh_registry.py --ci
