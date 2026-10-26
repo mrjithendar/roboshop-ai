@@ -10,9 +10,9 @@ module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 def test_catalog_has_unique_safe_ownership():
     apps,owners=module.validate()
     names={app['metadata']['name'] for app in apps}
-    assert {'coredns','kube-proxy','kindnet','shopping-agent','product-ingestion','openclaw'}<=names
-    assert not {'argocd','traefik'}&names
-    assert len(apps)==34
+    assert {'shopping-agent','product-ingestion','openclaw'}<=names
+    assert not {'argocd','traefik','coredns','kube-proxy','kindnet'}&names
+    assert len(apps)==31
     assert owners[('apps','Deployment','roboshop-ai','mongodb')]=='mongodb'
     assert ('apps','StatefulSet','roboshop-ai','mongodb') not in owners
     assert owners[('apps','StatefulSet','roboshop-ai','kafka')]=='kafka-bridge'
@@ -74,3 +74,11 @@ def test_imperative_guard_allows_unregistered_application(tmp_path):
     env={**os.environ,'PATH':str(tmp_path)+':'+os.environ['PATH']}
     result=subprocess.run(['bash',str(ROOT/'scripts/lib/check-argocd-ownership.sh'),'mk4','grafana'],env=env,text=True,capture_output=True)
     assert result.returncode==0
+
+
+def test_inventory_excludes_cluster_managed_networking():
+    import json
+    inventory=json.loads((ROOT/'minikube/gitops/workload-inventory.json').read_text())
+    assert not any(namespace=='kube-system' and name in {'coredns','kindnet','kube-proxy'}
+                   for kind,namespace,name in inventory)
+    assert ['Deployment','kube-system','metrics-server'] in inventory

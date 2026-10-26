@@ -70,7 +70,7 @@ def validate(external=False):
     assert len(apps)==len({d['metadata']['name'] for d in apps})
     for app in apps:
         name=app['metadata']['name'];spec=app['spec']
-        assert name not in ('argocd','traefik')
+        assert name not in ('argocd','traefik','coredns','kindnet','kube-proxy')
         assert not app['metadata'].get('finalizers'),name
         assert spec['project'] in projects
         project=projects[spec['project']]['spec']

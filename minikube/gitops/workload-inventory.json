@@ -1,15 +1,5 @@
 [
   [
-    "DaemonSet",
-    "kube-system",
-    "kindnet"
-  ],
-  [
-    "DaemonSet",
-    "kube-system",
-    "kube-proxy"
-  ],
-  [
     "Deployment",
     "cert-manager",
     "cert-manager"
@@ -38,11 +28,6 @@
     "Deployment",
     "jithendar",
     "wordpress-redis"
-  ],
-  [
-    "Deployment",
-    "kube-system",
-    "coredns"
   ],
   [
     "Deployment",

@@ -2,7 +2,7 @@
 
 All Application and AppProject YAML lives in this root directory. Workload
 sources remain in `services/` and `minikube/`. `kustomization.yaml` registers
-34 Applications and three projects; it does not include workload manifests.
+31 Applications and three projects; it does not include workload manifests.
 Argo CD and Traefik controllers are deliberately excluded. Their existing Helm
 releases, CRDs and installation scripts remain externally managed. OpenClaw's
 read-only observer Role/RoleBinding in `argocd` is still owned by OpenClaw.
@@ -30,7 +30,6 @@ Do not enable Force/Replace to resolve an immutable-field difference.
 | roboshop-config | Shared ConfigMap, namespace and shop ingress; one owner for shared configuration. |
 | mongodb | Existing Deployment, Service and PVC baseline; **not** the repo's newer StatefulSet. A controller conversion needs a separate data migration. |
 | shopping-agent, product-ingestion | Existing legacy Deployment and Service baselines; not deleted or silently replaced by moks. |
-| coredns, kube-proxy, kindnet | Current mk4 Deployment/DaemonSets, configuration and supporting RBAC. Cluster-specific baselines, not portable installers. Kubernetes' built-in system:node-proxier ClusterRole remains Kubernetes-owned. |
 | cert-manager, metrics-server, grafana | Pinned upstream Helm charts with Git-hosted values and existing release names. |
 | roboshop-letsencrypt, prometheus, wordpress | Existing local charts and release names. WordPress ingress remains enabled for the existing initialized site. |
 | shared-tls | The single existing TLSStore in jithendar; no duplicate certificate or Traefik controller. WordPress owns the canonical Certificate. |
@@ -39,8 +38,8 @@ Do not enable Force/Replace to resolve an immutable-field difference.
 
 Langfuse is a cloud integration and n8n has no deployment manifests, so neither
 has an empty/fictitious Application. The checked-in workload inventory records
-all observed Deployment/StatefulSet/DaemonSet identities except Argo CD and
-Traefik; full validation checks that every identity is covered.
+managed Deployment/StatefulSet/DaemonSet identities, excluding Argo CD,
+Traefik, CoreDNS, kube-proxy and kindnet; full validation checks that every identity is covered.
 
 ## First-sync review
 
@@ -55,10 +54,8 @@ Traefik; full validation checks that every identity is covered.
 3. Compare desired/live images, selectors, replicas, PVC names/sizes, endpoints
    and ConfigMaps. Repository service definitions may differ from running pods;
    first sync can roll workloads. Back up stateful data before such changes.
-4. For CoreDNS/kube-proxy/kindnet, use a cluster maintenance window and review
-   **every diff**. Minikube/kubeadm may also reconcile these resources. Keep
-   self-heal disabled until their ownership and upgrade process is coordinated;
-   do not use the legacy cluster installer to reapply them after adoption.
+4. CoreDNS, kube-proxy and kindnet remain cluster-managed. They are excluded
+   from this catalog and its managed-workload inventory.
 5. Stop imperative Helm upgrades and kubectl deployment scripts for adopted
    workloads. CI builds/pushes images; desired image changes go through Git.
    The legacy deploy workflow and service/Helm deployment scripts have been removed.
