@@ -9,6 +9,9 @@ spec:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: minikube/openclaw/overlays/mk4
+    kustomize:
+      images:
+      - 528804350166.dkr.ecr.us-east-1.amazonaws.com/roboshop-mcp-server=881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-mcp-server@sha256:0e02d68ab9371decb4248f855d483405f08d2b831001df3a3f551229ec4ba2bd
   destination:
     server: https://kubernetes.default.svc
     namespace: openclaw

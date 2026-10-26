@@ -140,7 +140,7 @@ spec:
           sizeLimit: 256Mi
       initContainers:
       - name: telemetry-plugins
-        image: 528804350166.dkr.ecr.us-east-1.amazonaws.com/roboshop-mcp-server@sha256:0e02d68ab9371decb4248f855d483405f08d2b831001df3a3f551229ec4ba2bd
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-mcp-server@sha256:0e02d68ab9371decb4248f855d483405f08d2b831001df3a3f551229ec4ba2bd
         command:
         - python
         - -c
@@ -202,7 +202,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: openclaw-operations
-        image: 528804350166.dkr.ecr.us-east-1.amazonaws.com/roboshop-mcp-server@sha256:0e02d68ab9371decb4248f855d483405f08d2b831001df3a3f551229ec4ba2bd
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-mcp-server@sha256:0e02d68ab9371decb4248f855d483405f08d2b831001df3a3f551229ec4ba2bd
         imagePullPolicy: IfNotPresent
         ports:
         - name: http

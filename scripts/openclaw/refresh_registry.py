@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent))
 from manage import context, confirm, kube, ROOT
 
-REGISTRY = '528804350166.dkr.ecr.us-east-1.amazonaws.com'
+REGISTRY = '881026659929.dkr.ecr.us-east-1.amazonaws.com'
 REGION = 'us-east-1'
 
 
@@ -39,7 +39,7 @@ def validate_access(profile=None):
             raise RuntimeError(
                 'ECR image access denied or unavailable; existing pull secret was preserved. '
                 'Use --profile for an authorized identity, or apply the repository pull policy '
-                'in account 528804350166 and grant the caller ECR pull permissions.'
+                'in account 881026659929 and grant the caller ECR pull permissions.'
             ) from exc
         if result.get('failures') or not result.get('images'):
             raise RuntimeError(f'ECR image unavailable: {repository}@{digest}; existing pull secret was preserved')
