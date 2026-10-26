@@ -12,11 +12,23 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: roboshop-ai
+  # Operational rollout timestamps do not change the desired database configuration.
+  ignoreDifferences:
+  - group: apps
+    kind: Deployment
+    name: mongodb
+    namespace: roboshop-ai
+    jsonPointers:
+    - /spec/template/metadata/annotations/kubectl.kubernetes.io~1restartedAt
+    # Normalize the empty map left after excluding the timestamp.
+    jqPathExpressions:
+    - .spec.template.metadata.annotations | select(. == {})
   syncPolicy:
     syncOptions:
     - FailOnSharedResource=true
     - PruneLast=true
     - CreateNamespace=true
+    - RespectIgnoreDifferences=true
   source:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
