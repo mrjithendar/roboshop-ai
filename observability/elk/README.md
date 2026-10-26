@@ -59,14 +59,14 @@ release is supported merely because the manifests render.
 | Component | Replicas | CPU request / limit | RAM request / limit | Heap/storage |
 | --- | --- | --- | --- | --- |
 | Elasticsearch | 1 | 500m / 2 | 4 GiB / 4 GiB | 1 GiB heap, 512 MiB direct; 40 GiB PVC |
-| Kibana | 1 | 250m / 1 | 1 GiB / 1.5 GiB | Node heap 768 MiB |
+| Kibana | 1 | 250m / 1 | 2 GiB / 3 GiB | Node heap 2 GiB |
 | Logstash | 1 | 250m / 1 | 1 GiB / 1.5 GiB | heap 512 MiB, direct 256 MiB; 2 GiB PVC, 1 GiB queue |
 | ECK | 1 | 100m / 500m | 256 MiB / 512 MiB | namespace scoped |
 | Filebeat | per node | 50m / 250m | 128 MiB / 256 MiB | 1024-event memory queue; persistent node registry |
 | Bootstrap | transient | 50m / 250m | 64 MiB / 128 MiB | no PVC |
 
-At 4 nodes: requests ~6.75 GiB/1.3 CPUs; limits ~8.5 GiB/5.5 CPUs.
-At 8 nodes: requests ~7.25 GiB/1.5 CPUs; limits ~9.5 GiB/6.5 CPUs.
+At 4 nodes: requests ~7.75 GiB/1.3 CPUs; limits ~10 GiB/5.5 CPUs.
+At 8 nodes: requests ~8.25 GiB/1.5 CPUs; limits ~11 GiB/6.5 CPUs.
 These are reservations/ceilings, **not measured free capacity**. The 16-vCPU/32-GB
 host is shared with builds and other apps; reserve host/page-cache headroom. A 2-GB
 Minikube node cannot schedule this Elasticsearch pod. Provide at least one node with
@@ -395,3 +395,9 @@ ownership through the storage administrator. Large retained volumes can make the
 recursive ownership pass slow. Preserve the volume and never delete node.lock as a
 workaround. If a pod changes Minikube nodes, check local storage placement before
 starting: this provisioner does not attach a replicated volume across nodes.
+
+Kibana startup can fail with exit 134 and `JavaScript heap out of memory` even
+without a Kubernetes `OOMKilled` reason. The former 768 MiB heap exhausted during
+plugin initialization. The lab now budgets a 2 GiB Node heap within a 3 GiB
+container limit, leaving room for native memory. Sync `elk-core` after publishing
+this change; do not delete Elasticsearch data or Kibana encryption keys.

@@ -28,6 +28,10 @@ class ElkTests(unittest.TestCase):
         kb=next(x for x in docs if x['kind']=='Kibana')
         self.assertEqual(kb['spec']['config']['server.basePath'],'/elk')
         self.assertTrue(kb['spec']['config']['server.rewriteBasePath'])
+        kibana_container=kb['spec']['podTemplate']['spec']['containers'][0]
+        self.assertEqual(kibana_container['resources']['requests']['memory'],'2Gi')
+        self.assertEqual(kibana_container['resources']['limits']['memory'],'3Gi')
+        self.assertEqual(next(e['value'] for e in kibana_container['env'] if e['name']=='NODE_OPTIONS'),'--max-old-space-size=2048')
         es=next(x for x in docs if x['kind']=='Elasticsearch')
         self.assertEqual(es['spec']['volumeClaimDeletePolicy'],'DeleteOnScaledownOnly')
         container=es['spec']['nodeSets'][0]['podTemplate']['spec']['containers'][0]
