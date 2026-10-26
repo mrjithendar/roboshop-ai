@@ -1,128 +1,158 @@
-# Maintain the active platform. legacy/ contains archived upstream source;
-# Add new ecosystems only when their manifests exist in the active project.
+# Maintain active manifests using explicit paths; archived legacy/ and reference-only sources are excluded.
+# OpenClaw plugin updates are grouped together; review them with the pinned gateway release.
 version: 2
 updates:
-  - package-ecosystem: npm
-    directories:
-      - /
-      - /services/frontend
-      - /services/catalogue-service
-      - /services/payment-service
-      - /services/sre-copilot
-    exclude-paths:
-      - legacy/**
-    schedule:
-      interval: weekly
-      day: monday
-      time: "09:00"
-      timezone: Asia/Kolkata
-    open-pull-requests-limit: 5
-    groups:
-      node-minor-patch:
-        patterns: ["*"]
-        update-types: [minor, patch]
-    commit-message:
-      prefix: "chore(deps)"
-
-  - package-ecosystem: docker
-    directories:
-      - /services/ai-gateway
-      - /services/user-service
-      - /services/catalogue-service
-      - /services/moks
-      - /services/cart-service
-      - /services/sre-copilot
-      - /services/payment-service
-      - /services/mcp-server
-    exclude-paths:
-      - legacy/**
-    schedule:
-      interval: weekly
-      day: monday
-      time: "09:00"
-      timezone: Asia/Kolkata
-    open-pull-requests-limit: 5
-    groups:
-      runtime-minor-patch:
-        patterns: ["*"]
-        update-types: [minor, patch]
-    commit-message:
-      prefix: "chore(deps)"
-
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: weekly
-      day: monday
-      time: "09:00"
-      timezone: Asia/Kolkata
-    open-pull-requests-limit: 5
-    groups:
-      actions-minor-patch:
-        patterns: ["*"]
-        update-types: [minor, patch]
-    commit-message:
-      prefix: "chore(ci)"
-
-  - package-ecosystem: terraform
-    # Current working-tree location; update this if VPC sources move again.
-    directory: /vpc
-    schedule:
-      interval: weekly
-      day: monday
-      time: "09:00"
-      timezone: Asia/Kolkata
-    open-pull-requests-limit: 5
-    groups:
-      terraform-minor-patch:
-        patterns: ["*"]
-        update-types: [minor, patch]
-    commit-message:
-      prefix: "chore(deps)"
-
-  - package-ecosystem: gradle
-    directory: /services/shipping-service
-    schedule:
-      interval: weekly
-      day: monday
-      time: "09:00"
-      timezone: Asia/Kolkata
-    groups:
-      java-minor-patch:
-        patterns: ["*"]
-        update-types: [minor, patch]
-    commit-message:
-      prefix: "chore(deps)"
-
-  - package-ecosystem: docker
-    directory: /services/shipping-service
-    schedule:
-      interval: weekly
-      day: monday
-      time: "09:00"
-      timezone: Asia/Kolkata
-    commit-message:
-      prefix: "chore(deps)"
-
-  - package-ecosystem: docker
-    directory: /services/nginx
-    schedule:
-      interval: weekly
-      day: monday
-      time: "09:00"
-      timezone: Asia/Kolkata
-    commit-message:
-      prefix: "chore(deps)"
-
-  - package-ecosystem: pip
-    directories:
-      - /services/ai-gateway
-      - /services/user-service
-      - /services/moks
-      - /services/cart-service
-    schedule:
-      interval: weekly
-    groups:
-      python-minor-patch:
-        patterns: ["*"]
-        update-types: [minor, patch]
+- package-ecosystem: npm
+  directories:
+  - /
+  - /services/frontend
+  - /services/catalogue-service
+  - /services/payment-service
+  - /services/sre-copilot
+  - /services/mcp-server/operations/plugins
+  schedule:
+    interval: weekly
+    day: monday
+    time: 09:00
+    timezone: Asia/Kolkata
+  open-pull-requests-limit: 5
+  groups:
+    openclaw-plugins:
+      patterns:
+      - '@openclaw/*'
+    node-minor-patch:
+      patterns:
+      - '*'
+      update-types:
+      - minor
+      - patch
+  commit-message:
+    prefix: chore(deps)
+- package-ecosystem: docker
+  directories:
+  - /services/ai-gateway
+  - /services/cart-service
+  - /services/catalogue-service
+  - /services/currency-service
+  - /services/frontend
+  - /services/kafka-bridge
+  - /services/mcp-server
+  - /services/moks
+  - /services/nginx
+  - /services/payment-service
+  - /services/shipping-service
+  - /services/sre-copilot
+  - /services/user-service
+  - /tests/load
+  schedule:
+    interval: weekly
+    day: monday
+    time: 09:00
+    timezone: Asia/Kolkata
+  open-pull-requests-limit: 5
+  groups:
+    runtime-minor-patch:
+      patterns:
+      - '*'
+      update-types:
+      - minor
+      - patch
+  commit-message:
+    prefix: chore(deps)
+- package-ecosystem: github-actions
+  directory: /
+  schedule:
+    interval: weekly
+    day: monday
+    time: 09:00
+    timezone: Asia/Kolkata
+  open-pull-requests-limit: 5
+  groups:
+    actions-minor-patch:
+      patterns:
+      - '*'
+      update-types:
+      - minor
+      - patch
+  commit-message:
+    prefix: chore(ci)
+- package-ecosystem: terraform
+  schedule:
+    interval: weekly
+    day: monday
+    time: 09:00
+    timezone: Asia/Kolkata
+  open-pull-requests-limit: 5
+  groups:
+    terraform-minor-patch:
+      patterns:
+      - '*'
+      update-types:
+      - minor
+      - patch
+  commit-message:
+    prefix: chore(deps)
+  directories:
+  - /infrastructure
+- package-ecosystem: gradle
+  directory: /services/shipping-service
+  schedule:
+    interval: weekly
+    day: monday
+    time: 09:00
+    timezone: Asia/Kolkata
+  groups:
+    java-minor-patch:
+      patterns:
+      - '*'
+      update-types:
+      - minor
+      - patch
+  commit-message:
+    prefix: chore(deps)
+  open-pull-requests-limit: 5
+- package-ecosystem: pip
+  directories:
+  - /services/ai-gateway
+  - /services/cart-service
+  - /services/catalogue-service
+  - /services/kafka-bridge
+  - /services/mcp-server
+  - /services/mcp-server/operations
+  - /services/moks
+  - /services/user-service
+  - /services/user-service/tests
+  - /tests/load
+  - /tests/python
+  schedule:
+    interval: weekly
+    day: monday
+    time: 09:00
+    timezone: Asia/Kolkata
+  groups:
+    python-minor-patch:
+      patterns:
+      - '*'
+      update-types:
+      - minor
+      - patch
+  open-pull-requests-limit: 5
+  commit-message:
+    prefix: chore(deps)
+- package-ecosystem: gomod
+  directory: /services/currency-service
+  groups:
+    go-minor-patch:
+      patterns:
+      - '*'
+      update-types:
+      - minor
+      - patch
+  schedule:
+    interval: weekly
+    day: monday
+    time: 09:00
+    timezone: Asia/Kolkata
+  open-pull-requests-limit: 5
+  commit-message:
+    prefix: chore(deps)
