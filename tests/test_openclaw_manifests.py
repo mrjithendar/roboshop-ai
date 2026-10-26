@@ -9,6 +9,16 @@ class Manifests(unittest.TestCase):
  @classmethod
  def setUpClass(cls):
   cls.objects=list(yaml.safe_load_all(subprocess.check_output(['kubectl','kustomize',str(ROOT/'minikube/openclaw/overlays/mk4')],text=True)))
+ def test_proxy_can_reach_internal_mcp(self):
+  config=next(d for d in self.objects if d['kind']=='ConfigMap' and d['metadata']['name']=='openclaw-egress')
+  self.assertIn('dns_defnames on',config['data']['squid.conf'])
+  policy=next(d for d in self.objects if d['kind']=='NetworkPolicy' and d['metadata']['name']=='openclaw-operations')
+  allowed=[rule for rule in policy['spec']['ingress'] if any(
+   peer.get('namespaceSelector',{}).get('matchLabels',{}).get('kubernetes.io/metadata.name')=='openclaw'
+   and peer.get('podSelector',{}).get('matchLabels',{}).get('app')=='openclaw-egress'
+   for peer in rule.get('from',[]))]
+  self.assertEqual(len(allowed),1)
+  self.assertEqual(allowed[0]['ports'],[{'protocol':'TCP','port':4180}])
  def test_single_gateway_ingress(self):
   ingresses=[d for d in self.objects if d['kind']=='Ingress']
   self.assertEqual(len(ingresses),1)

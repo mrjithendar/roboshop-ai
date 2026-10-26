@@ -27,6 +27,7 @@ base = root / 'minikube/openclaw/base'
 application = yaml.safe_load((root / 'argocd/openclaw.yaml').read_text())
 workloads = list(yaml.safe_load_all((base / 'workloads.yaml').read_text()))
 egress = list(yaml.safe_load_all((base / 'egress.yaml').read_text()))
+network_policies = list(yaml.safe_load_all((base / 'networkpolicies.yaml').read_text()))
 # Squid must restart when its mounted configuration changes.
 egress_config = next(d for d in egress if d['kind'] == 'ConfigMap')
 egress_deployment = next(d for d in egress if d['kind'] == 'Deployment')
@@ -50,7 +51,7 @@ source['kustomize'] = {
     'patches': [
         {'target': {'kind': d['kind'], 'name': d['metadata']['name']},
          'patch': yaml.safe_dump(d, sort_keys=False)}
-        for d in [gateway, operations, node, config, *ingress, *egress]
+        for d in [gateway, operations, node, config, *ingress, *egress, *network_policies]
     ],
 }
 patch = {'spec': {'source': source},

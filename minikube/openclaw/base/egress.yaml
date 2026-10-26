@@ -6,6 +6,8 @@ metadata:
 data:
   squid.conf: 'http_port 3128
 
+    dns_defnames on
+
     visible_hostname openclaw-egress
 
     pid_filename /tmp/squid.pid

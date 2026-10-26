@@ -535,3 +535,12 @@ Device setup codes advertise `wss://jithendar.com/openclaw` through
 this setting even with the optional slash-command plugin disabled.
 `gateway.publicOrigin` alone falls back to the pod LAN address for device pairing.
 After changing the address, generate a new setup code; existing codes retain their old URL.
+
+### Internal MCP through the egress proxy
+
+Squid uses `dns_defnames on` to resolve Kubernetes service names ending in `.svc`
+with the pod DNS search domains. The operations NetworkPolicy admits the
+`openclaw-egress` pods in the `openclaw` namespace on TCP 4180, in addition to
+direct gateway traffic. Both are required because the gateway uses CONNECT
+tunnels for its MCP HTTP requests. `ERR_DNS_FAIL` indicates DNS resolution;
+`ERR_CONNECT_FAIL` after resolution can indicate a missing destination ingress rule.
