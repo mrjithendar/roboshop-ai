@@ -56,4 +56,20 @@ class Manifests(unittest.TestCase):
   self.assertFalse(config['diagnostics']['otel']['captureContent'])
   for agent,entry in config['agents']['entries'].items():
    self.assertTrue(all(n.startswith('ops-'+agent+'__ops_') for n in entry['tools']['allow']))
+
+ def test_public_web_egress_and_safe_temp_volume(self):
+  config=next(d for d in self.objects if d['kind']=='ConfigMap' and d['metadata']['name']=='openclaw-egress')['data']['squid.conf']
+  self.assertNotIn('approved_external',config)
+  self.assertLess(config.index('http_access deny private_dst'),config.index('http_access allow CONNECT TLS'))
+  self.assertIn('http_access allow !CONNECT HTTP',config)
+  deployment=next(d for d in self.objects if d['kind']=='Deployment' and d['metadata']['name']=='openclaw')
+  init=next(c for c in deployment['spec']['template']['spec']['initContainers'] if c['name']=='temp-permissions')
+  self.assertIn('0o1777',init['command'][-1])
+  self.assertTrue(init['securityContext']['runAsNonRoot'])
+  self.assertEqual(init['securityContext']['runAsUser'],1000)
+  tmp=next(m for m in deployment['spec']['template']['spec']['containers'][0]['volumeMounts'] if m['name']=='tmp')
+  self.assertEqual(tmp['subPath'],'runtime')
+  self.assertEqual(init['volumeMounts'],[{'name':'tmp','mountPath':'/scratch'}])
+  self.assertFalse(init['securityContext']['allowPrivilegeEscalation'])
+  self.assertEqual(init['securityContext']['capabilities']['drop'],['ALL'])
 if __name__=='__main__':unittest.main()

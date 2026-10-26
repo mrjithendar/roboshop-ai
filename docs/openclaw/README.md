@@ -43,7 +43,7 @@ optional adapters do not install these services or fabricate observations.
 
 ```mermaid
 flowchart LR
-  Operator -->|HTTPS /openclaw + IP allowlist + BasicAuth| Traefik
+  Operator -->|HTTPS /openclaw + native gateway authentication| Traefik
   Certificate[Existing cert-manager Certificate / TLSStore] --> Traefik
   Traefik -->|Preserve path, WebSocket| OpenClaw
   OpenClaw -->|Token + device pairing| Agents[Eight agent tool policies]
@@ -55,7 +55,7 @@ flowchart LR
   Operations --> Observability[Prometheus / Grafana / Jaeger / optional backends]
   OpenClaw --> Proxy[Restricted egress proxy]
   Operations --> Proxy
-  Proxy --> Providers[OpenAI / GitHub / approved optional hosts]
+  Proxy --> Providers[Public HTTP and HTTPS destinations]
   OpenClaw --> Collector[Existing OTel collector]
   Operations --> Collector
   Collector --> Jaeger
@@ -171,7 +171,7 @@ credential rotation require external authorization. Add exact regional AWS
 endpoints to the proxy ACL before enabling them. No broad `ReadOnlyAccess`
 managed policy is attached by this implementation.
 
-RSS requires `RSS_URL` and an approved egress hostname. Entity-bearing XML is
+RSS requires `RSS_URL` pointing to a public HTTP or HTTPS endpoint. Entity-bearing XML is
 rejected, and returned links are never fetched automatically. Draft MDX escapes
 JSX/expression delimiters and has `draft: true`. The live site is WordPress; an
 MDX publication repository/path has not been identified. Do not send drafts to
@@ -388,7 +388,7 @@ and would conflict with automated reconciliation.
 - MCP unavailable: check per-agent token mapping, Service DNS, proxy and policy.
   Request bodies are at most 32 KiB and responses have bounded evidence size.
 - Empty metrics: check internal URL base path, scraping and actual metric names.
-- AWS/Langfuse/GitHub unavailable: check approved hostname and credentials without
+- AWS/Langfuse/GitHub unavailable: check endpoint reachability and credentials without
   logging them. No automatic fallback to broader access occurs.
 
 To add a tool, extend the closed `GROUPS` vocabulary, implement a fixed destination
@@ -516,9 +516,15 @@ alone does not certify application readiness. No patch runs on pull requests.
 
 ### Installing channel plugins
 
-The egress proxy permits HTTPS to `registry.npmjs.org` for official plugin
-metadata and package downloads, and `clawhub.ai` for plugin categories and
-catalog discovery. npm uses `/tmp/npm-cache` because the gateway
-root filesystem is read-only. `patch-openclaw.sh` includes the egress configuration
-and restarts Squid when its configuration checksum changes. Plugin versions
-should match the pinned gateway release; channel credentials remain separate.
+The proxy allows outbound HTTP (80) and HTTPS (443) to any public hostname.
+Private, loopback, link-local and cloud metadata addresses remain blocked, except
+for the explicitly configured in-cluster operations and collector endpoints.
+The proxy is internal-only; this does not expose an inbound public proxy.
+
+npm uses `/tmp/npm-cache`. The `temp-permissions` init container sets the shared
+owned emptyDir subdirectory to mode `1777`, then mounts that subdirectory at
+`/tmp`, restoring sticky protection before OpenClaw starts. All containers,
+including this init step, run as UID 1000 with all capabilities dropped. The
+gateway retains a read-only root filesystem.
+`patch-openclaw.sh` restarts Squid when its configuration checksum changes.
+Plugin versions should match the pinned gateway release.

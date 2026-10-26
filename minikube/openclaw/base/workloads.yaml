@@ -68,6 +68,7 @@ spec:
         volumeMounts:
         - name: tmp
           mountPath: /tmp
+          subPath: runtime
         - name: state
           mountPath: /home/node/.openclaw
           subPath: runtime
@@ -188,11 +189,12 @@ spec:
         command:
         - python
         - -c
-        - import os; os.chmod("/scratch", 0o1777)
+        - import os; os.makedirs("/scratch/runtime", mode=0o1777, exist_ok=True);
+          os.chmod("/scratch/runtime", 0o1777)
         securityContext:
-          runAsNonRoot: false
-          runAsUser: 0
-          runAsGroup: 0
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
           capabilities:
