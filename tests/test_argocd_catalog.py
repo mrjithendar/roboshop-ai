@@ -106,3 +106,18 @@ def test_external_validation_calls_required_inventory(monkeypatch):
     import pytest
     with pytest.raises(AssertionError,match='Unmanaged workloads'):
         module.validate(external=True)
+
+
+def test_retired_ingestion_has_no_deployable_or_runtime_references():
+    assert not (ROOT/'services/product-ingestion').exists()
+    assert not (ROOT/'minikube/gitops/adoption/product-ingestion').exists()
+    assert not (ROOT/'argocd/product-ingestion.yaml').exists()
+    for directory in ('services', 'scripts', 'argocd', '.github/workflows', 'infrastructure', 'minikube'):
+        for path in (ROOT/directory).rglob('*'):
+            if not path.is_file() or path.suffix not in ('.py','.mjs','.sh','.yaml','.yml','.tf'):
+                continue
+            if any(part in ('node_modules','.venv','__pycache__','.terraform','build') for part in path.parts):
+                continue
+            text=path.read_text()
+            assert 'product-ingestion' not in text,path
+            assert 'INGESTION_URL' not in text,path

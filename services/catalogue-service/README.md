@@ -18,7 +18,7 @@ The gateway exposes `/api/catalogue/categories`, `/api/catalogue/product/:sku`, 
 
 Archived products are excluded. Out-of-stock products remain visible. Prices retain their currencies; `checkoutCurrency` is null for an empty or mixed-currency catalogue. Search is literal rather than MongoDB's legacy text-index stemming. Queries do not become Mongo operators or regular expressions. Reads are bounded by the shared 10,000-product limit; this is suitable for the current 20-product catalogue, not an unbounded catalogue search engine.
 
-Configuration: `MONGODB_URL`, `MONGODB_DATABASE` (default `roboshop`), port 4108. Clients use `CATALOGUE_URL=http://catalogue-service:4108`. Native development defaults to localhost:4108; explicitly configured `INGESTION_URL` remains a compatibility fallback for older integrations. There is no separate ingestion listener on port 4101. Older integrations using `INGESTION_URL` must point it to this catalogue service, or switch to `CATALOGUE_URL`.
+Configuration: `MONGODB_URL`, `MONGODB_DATABASE` (default `roboshop`), port 4108. Clients use `CATALOGUE_URL=http://catalogue-service:4108`. Native development defaults to localhost:4108. `CATALOGUE_URL` is the only catalogue endpoint setting; the retired `INGESTION_URL` fallback has been removed.
 
 ## Build and deploy
 
@@ -77,8 +77,10 @@ ready and the catalogue is visible before removing the retired workload:
 kubectl --context=mk4 -n roboshop-ai delete deployment/product-ingestion service/product-ingestion --ignore-not-found
 ```
 
-The deployment scripts do not prune old resources automatically. Keep the retired
-ECR repository for rollback; Terraform retains it, but no workflow builds it.
+The deployment scripts do not prune old resources automatically. No adoption manifest, build workflow or runtime endpoint remains for the retired
+service. Existing ECR images are not deleted by repository changes. Remove any old
+Argo Application registration without cascading deletion before cleaning up its
+Deployment/Service, so GitOps cannot recreate them.
 
 ## Recommendations (merged)
 

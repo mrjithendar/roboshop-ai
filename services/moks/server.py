@@ -20,7 +20,7 @@ def handle(req):
         ctx.get()["attributes"]["langfuse.observation.type"] = "agent"
     if req.path == "/ready" and req.method == "GET":
         try:
-            service_url = os.getenv("CATALOGUE_URL", os.getenv("INGESTION_URL", "http://127.0.0.1:4108"))
+            service_url = os.getenv("CATALOGUE_URL", "http://127.0.0.1:4108")
             request(service_url + "/api/catalogue/ready", timeout=1)
             return {"status": "ready"}
         except HttpError:
@@ -69,7 +69,7 @@ def handle(req):
         return unconfigured()
     message, history = conversation(data.get("message"), data.get("history"))
     products = fetch(
-        os.getenv("CATALOGUE_URL", os.getenv("INGESTION_URL", "http://127.0.0.1:4108")) + "/api/products", deadline=deadline, timeout=2
+        os.getenv("CATALOGUE_URL", "http://127.0.0.1:4108") + "/api/products", deadline=deadline, timeout=2
     )["products"]
     unavailable = data.get("unavailableSkus", [])
     if (

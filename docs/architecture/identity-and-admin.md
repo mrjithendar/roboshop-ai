@@ -84,7 +84,7 @@ they manually open that URL. The HTML shell itself is public; server data is pro
 
 ## Products and settings
 
-Product-ingestion inserts missing seed SKUs at startup without overwriting admin
+Catalogue-service inserts missing seed SKUs at startup without overwriting admin
 edits. All catalogue consumers read MongoDB. New products use the placeholder image
 until an image with the matching SKU is deployed with the application assets.
 

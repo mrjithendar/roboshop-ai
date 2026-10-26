@@ -26,7 +26,7 @@ This is a code/configuration review, not a penetration test or production certif
 flowchart LR
   Browser --> NGINX[NGINX: compiled TypeScript frontend]
   NGINX --> Gateway[AI gateway: sessions and checkout]
-  Gateway --> Catalogue[Product ingestion]
+  Gateway --> Catalogue[Catalogue service]
   Gateway --> Recommendations
   Gateway --> Agent[Shopping agent]
   Gateway --> Payment[Razorpay payment service]
