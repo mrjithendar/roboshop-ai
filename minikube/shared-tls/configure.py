@@ -36,6 +36,14 @@ def main():
         return json.loads(subprocess.check_output(base + list(args) + ['-o','json']))
     def run(*args):
         subprocess.run(base + list(args), check=True)
+    # A fresh cluster has neither the site namespace nor its certificate yet.
+    # Empty --ignore-not-found results are expected; transport/RBAC failures
+    # still stop the command without any writes.
+    for resource, name, namespace in [('namespace', SOURCE, []),
+                                      ('certificate', 'jithendar-com', ['-n', SOURCE])]:
+        found = subprocess.check_output(base + namespace + ['get', resource, name, '--ignore-not-found', '-o', 'name'], text=True)
+        if not found.strip():
+            raise SystemExit('Shared TLS source is missing. No changes made. Run ./bootstrap-cluster.sh, then ./deploy-argocd.sh roboshop-letsencrypt and ./deploy-argocd.sh wordpress. Wait for certificate jithendar/jithendar-com to be Ready, then rerun this command.')
     source = read('-n', SOURCE, 'get', 'certificate', 'jithendar-com')
     if source['spec'].get('dnsNames') != [HOST] or source['spec'].get('secretName') != 'jithendar-com-tls' or not any(c['type']=='Ready' and c['status']=='True' for c in source.get('status',{}).get('conditions',[])):
         raise SystemExit('Source jithendar/jithendar-com must be Ready and cover only jithendar.com. No changes made. Install WordPress first or restore its certificate.')
@@ -64,4 +72,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except subprocess.CalledProcessError:
+        raise SystemExit('Shared TLS command failed; check the Kubernetes error above. No further actions performed.')

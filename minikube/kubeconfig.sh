@@ -37,7 +37,7 @@ if [[ -f "$state" ]]; then profile="$(cat "$state")"; fi
   echo "Minikube profile $profile does not exist for $(id -un). Check minikube profile list on Vultr." >&2; exit 1;
 }
 bindings="$(docker port "$profile" 8443/tcp)"
-port="$(printf '%s\n' "$bindings" | awk -F: '/^0[.]0[.]0[.]0:/ {print $NF; exit}')"
+port="$(printf '%s\n' "$bindings" | awk -F: '/^0[.]0[.]0[.]0:/ {if ($NF == 32811) {print $NF; found=1; exit}; if (!first) first=$NF} END {if (!found && first) print first}' )"
 [[ "$port" =~ ^[0-9]+$ ]] || {
   echo "Selected profile: $profile; actual API bindings: ${bindings:-none}" >&2
   echo "Profile $profile has no API port published on 0.0.0.0. Enable direct access with PUBLIC_HOST=jithendar.com using minikube/install.sh on Vultr." >&2

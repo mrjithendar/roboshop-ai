@@ -21,12 +21,13 @@ BASE_PROFILE="$PROFILE"
 PUBLIC_IP="${PUBLIC_IP:-}"
 PUBLIC_HOST="${PUBLIC_HOST:-}"
 API_HOST="${PUBLIC_HOST:-$PUBLIC_IP}"
+API_PORT="${API_PORT:-32811}" # Stable host port; the API inside the node stays on 8443.
 NETWORK_ARGS=()
 fail() { echo "ERROR: $*" >&2; exit 1; }
 usage() {
   echo 'Usage: bash minikube/install.sh [install|start|status|stop|diagnose|reset]'
   echo 'Overrides: PROFILE, NODES, CPUS, MEMORY (MiB/node), INSTALL_DIR'
-  echo 'Direct access: PUBLIC_HOST=jithendar.com (or PUBLIC_IP for an IPv4 endpoint).'
+  echo 'Direct access: PUBLIC_HOST=jithendar.com (or PUBLIC_IP); API_PORT defaults to 32811.'
   echo 'Runs as the current user; Linux root starts use --force.'
   echo 'Tool installation is centralized in ./init.sh --profile minikube; versions live in scripts/setup/versions.json.'
 }
@@ -148,6 +149,7 @@ config_matches() {
   jq -e --argjson nodes "$NODES" --argjson memory "$MEMORY" --argjson cpus "$CPUS" \
     '.Driver == "docker" and (.Nodes | length) == $nodes and .Memory == $memory and .CPUs == $cpus' "$1" >/dev/null
 }
+[[ "$API_PORT" =~ ^[1-9][0-9]{3,4}$ ]] && (( API_PORT >= 1024 && API_PORT <= 65535 )) || fail 'API_PORT must be between 1024 and 65535.'
 NETWORK_ID=local
 [[ -z "$PUBLIC_HOST" || -z "$PUBLIC_IP" ]] || fail 'Set PUBLIC_HOST or PUBLIC_IP, not both.'
 if [[ -n "$PUBLIC_HOST" ]]; then
@@ -167,6 +169,15 @@ network_matches() {
   if [[ -f "$STATE_DIR/$1.network" ]]; then saved="$(cat "$STATE_DIR/$1.network")"; fi
   [[ "$saved" == "$NETWORK_ID" ]]
 }
+# Existing Docker port bindings cannot be changed in place. Preserve populated
+# clusters and fail before host changes rather than silently choosing another port.
+if [[ -n "$API_HOST" ]]; then
+  existing_bindings="$(docker port "$PROFILE" 8443/tcp 2>/dev/null || true)"
+  if [[ -n "$existing_bindings" ]] && ! printf '%s\n' "$existing_bindings" | grep -Fxq "0.0.0.0:$API_PORT"; then
+    fail "Existing profile $PROFILE does not publish API_PORT=$API_PORT. No cluster changed. Use its current port or explicitly recreate the cluster after backing up data."
+  fi
+  NETWORK_ARGS+=("--ports=0.0.0.0:$API_PORT:8443")
+fi
 # Fix host limits before stopping/replacing or starting any cluster.
 if [[ "$OS" == linux ]]; then
   bash "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/host-limits.sh"
@@ -208,7 +219,7 @@ mkdir -p "$STATE_DIR"
 echo "Ready. Use: kubectl --context=$PROFILE get pods -A"
 
 if [[ -n "$API_HOST" ]]; then
-  published_port="$(docker port "$PROFILE" 8443/tcp | awk -F: '/^0[.]0[.]0[.]0:/ {print $NF; exit}')"
+  published_port="$(docker port "$PROFILE" 8443/tcp | awk -F: -v wanted="$API_PORT" '$0 == "0.0.0.0:" wanted {print $NF; exit}')"
   [[ "$published_port" =~ ^[0-9]+$ ]] || fail 'Could not find the public Docker API port; kubeconfig was not exported.'
   mkdir -p "$HOME/.kube"
   export_tmp="$(mktemp "$HOME/.kube/.direct.XXXXXX")"

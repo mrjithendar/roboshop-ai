@@ -1,3 +1,31 @@
+## Fresh-cluster sequence
+
+```bash
+./bootstrap-cluster.sh --dry-run
+./bootstrap-cluster.sh --context mk4
+./deploy-argocd.sh
+```
+
+Or run both stages with `./bootstrap-cluster.sh --deploy-apps`.
+Bootstrap installs **cert-manager → Traefik → Argo CD**, waits for controller
+readiness, then applies the Argo CD ingress. It uses pinned HTTPS Helm charts,
+works from a Mac client or Linux host, and preserves existing deployed releases.
+It does not install host tools or upgrade existing releases. Failures stop the
+sequence. Application secrets, images and storage remain prerequisites.
+
+Cert-manager is now Helm-bootstrap-owned and excluded from the default Argo
+catalog. On older clusters with a `cert-manager` Argo Application, bootstrap syncs that
+existing application instead of installing a competing Helm release. This also
+repairs partial installations while preserving their existing ownership.
+Do not use cascading deletion or delete cert-manager CRDs/certificates.
+
+On the Minikube Linux host, expose Traefik ports separately:
+`PROFILE=mk4 bash minikube/expose-ingress.sh`. Allow host ports 80/443 and point
+DNS at the host. Then deploy the issuer and certificate sources in order:
+`./deploy-argocd.sh roboshop-letsencrypt`, `./deploy-argocd.sh wordpress`,
+`./deploy-argocd.sh shared-tls`. The WordPress chart currently owns the canonical
+certificate; bootstrap does not claim that trusted public TLS is already ready.
+
 # mk4 Argo CD applications
 
 All Application and AppProject YAML lives in this root directory. Workload
@@ -8,6 +36,25 @@ releases, CRDs and installation scripts remain externally managed. OpenClaw's
 read-only observer Role/RoleBinding in `argocd` is still owned by OpenClaw.
 
 ## Simple deployment commands
+
+On a new cluster, `./deploy-argocd.sh` automatically installs the missing
+controller before deploying applications (requires Kubernetes Helm). No separate
+install command is needed. Controller-only installation remains available:
+
+```bash
+./deploy-argocd.sh install --dry-run
+./deploy-argocd.sh install --context mk4
+```
+
+This downloads pinned Argo CD chart 10.10.5 from the official HTTPS Helm
+repository (`https://argoproj.github.io/argo-helm`), avoiding OCI registry
+credential helpers and leaving Docker credentials unchanged. It uses `minikube/argocd/values.yaml`
+and waits for installation and CRDs. Repeat runs reuse a deployed Helm release
+without changing its version or values. Failed releases and unmanaged existing
+CRDs require inspection rather than automatic adoption. The explicit `install` command installs no catalog applications. Automatic
+installation continues with the selected applications. Neither installation path
+creates credentials, Traefik, certificates, or public ingress. `status`, `list`,
+`--help`, and `--dry-run` never install the controller.
 
 From the repository root (requires `kubectl`, Python 3 and PyYAML):
 
@@ -118,3 +165,23 @@ product-ingestion/shopping-agent deployments are excluded. Enabling optional app
 requires reviewing their project, ownership and inventory together. Validation still
 fails when any required active workload is absent; it never filters expected entries
 against whatever happened to render. This inventory change does not delete live pods.
+
+### Interrupted Argo CD Helm installation
+
+An interrupted Helm client can leave revision 1 in `pending-install` while the
+controllers run normally. Bootstrap accepts this state only after rollout checks
+for server, repository server, Redis and application controller, followed by CRD
+checks. It does not mark Helm deployed, delete Helm Secrets, or reinstall the
+controller. Pending upgrades/rollbacks and failed releases still stop bootstrap.
+Inspect `helm --kube-context mk4 -n argocd history argocd` before any later Helm
+upgrade; reuse of healthy workloads does not repair Helm release metadata.
+
+### Namespace creation before sync
+
+`deploy-argocd.sh` applies the selected applications' destination Namespace
+manifests from `minikube/namespaces/` before creating projects or requesting
+syncs. It deduplicates namespaces and uses minimal server-side manifests to
+preserve existing labels and annotations. It never deletes or prunes namespaces.
+Existing Application destination settings are respected; unknown or remote
+destinations stop before namespace changes. Preview/list/status remain read-only.
+`CreateNamespace=true` is also retained in Argo sync options as a second safeguard.

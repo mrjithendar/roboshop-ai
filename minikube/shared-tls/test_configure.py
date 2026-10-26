@@ -18,3 +18,13 @@ class RoutingTests(unittest.TestCase):
         del ingress['spec']['tls'][0]['secretName']
         self.assertEqual(tls_patch(ingress), [])
         self.assertEqual(ingress['spec']['tls'][0]['hosts'], ['jithendar.com'])
+
+class PrerequisiteTests(unittest.TestCase):
+    def test_missing_namespace_or_certificate_never_mutates(self):
+        from unittest.mock import patch
+        import configure
+        for responses in ([''], ['namespace/jithendar', '']):
+            with patch.object(configure.subprocess, 'check_output', side_effect=responses), patch.object(configure.subprocess, 'run') as mutate:
+                with self.assertRaisesRegex(SystemExit, 'Shared TLS source is missing'):
+                    configure.main()
+                mutate.assert_not_called()

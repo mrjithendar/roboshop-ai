@@ -377,3 +377,21 @@ Use `bash minikube/setup-shared-tls.sh` to reuse the ready WordPress certificate
 for Argo CD, monitoring and RoboShop without new ACME requests. See
 [shared TLS migration and renewal](shared-tls/README.md). This replaces the older
 per-namespace certificate instructions for this hostname.
+
+### Fixed public API port
+
+New direct-access clusters created by `install.sh` publish host TCP **32811** to
+the internal API port 8443. `API_PORT` can override this default. Keep inbound
+TCP 32811 allowed only from your administrator IPs in the Hetzner/host firewall.
+
+```bash
+PROFILE=mk4 NODES=4 MEMORY=4096 CPUS=2 PUBLIC_HOST=jithendar.com bash minikube/install.sh start
+docker port mk4 8443/tcp
+```
+
+The kubeconfig importer prefers 32811 when Docker lists multiple mappings; older
+clusters retain discovery of their existing port. Existing clusters on another
+port are not deleted or silently replaced to change their binding: the installer
+fails before host changes. Back up data before explicitly recreating them, or
+set API_PORT to their current port. Only one cluster can own a given host port.
+This does not change website ports 80/443 or automatically open firewall rules.

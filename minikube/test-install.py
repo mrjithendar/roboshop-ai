@@ -23,12 +23,12 @@ class InstallerTests(unittest.TestCase):
 *MemTotal*) echo 4093640704;;
 *NCPU*) echo 2;;
 *OSType*) echo linux;;
-port*) if [ "${NO_PUBLIC_PORT:-0}" != 1 ]; then echo 0.0.0.0:32769; fi;;
+port*) if [ "${NO_PUBLIC_PORT:-0}" != 1 ]; then echo 0.0.0.0:32811; fi;;
 esac''',
             'minikube': '''echo "$*" >> "$TEST_CALLS"
 case "$*" in start*) exit "${TEST_START_EXIT:-0}";; esac''',
             'kubectl': """case "$*" in
-*"config view"*) echo '{"clusters":[{"name":"test","cluster":{"server":"https://localhost:32769","certificate-authority-data":"test-ca"}}],"users":[{"name":"test","user":{"client-certificate-data":"test-cert","client-key-data":"test-key"}}]}' ;;
+*"config view"*) echo '{"clusters":[{"name":"test","cluster":{"server":"https://localhost:32811","certificate-authority-data":"test-ca"}}],"users":[{"name":"test","user":{"client-certificate-data":"test-cert","client-key-data":"test-key"}}]}' ;;
 *"-o name"*) echo node/test;; esac""",
         }
         for name, body in mocks.items():
@@ -90,10 +90,11 @@ case "$*" in start*) exit "${TEST_START_EXIT:-0}";; esac''',
         result = self.run_script(PUBLIC_IP='203.0.113.10')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('--listen-address=0.0.0.0', self.calls())
+        self.assertIn('--ports=0.0.0.0:32811:8443', self.calls())
         self.assertIn('--apiserver-ips=203.0.113.10', self.calls())
         output = self.root / '.kube/mk4-direct.json'
         config = json.loads(output.read_text())
-        self.assertEqual(config['clusters'][0]['cluster']['server'], 'https://203.0.113.10:32769')
+        self.assertEqual(config['clusters'][0]['cluster']['server'], 'https://203.0.113.10:32811')
         self.assertFalse(config['clusters'][0]['cluster']['insecure-skip-tls-verify'])
         self.assertEqual(output.stat().st_mode & 0o777, 0o600)
         self.assertNotIn('test-key', result.stdout)
@@ -105,7 +106,7 @@ case "$*" in start*) exit "${TEST_START_EXIT:-0}";; esac''',
         self.assertNotIn('--apiserver-ips=', self.calls())
         config = json.loads((self.root / '.kube/mk4-direct.json').read_text())
         cluster = config['clusters'][0]['cluster']
-        self.assertEqual(cluster['server'], 'https://jithendar.com:32769')
+        self.assertEqual(cluster['server'], 'https://jithendar.com:32811')
         self.assertFalse(cluster['insecure-skip-tls-verify'])
 
     def test_invalid_domain_and_conflicting_inputs(self):
@@ -125,6 +126,16 @@ case "$*" in start*) exit "${TEST_START_EXIT:-0}";; esac''',
         result = self.run_script(PUBLIC_HOST='jithendar.com', NO_PUBLIC_PORT='1')
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse((self.root / '.minikube/roboshop-installer/mk4.profile').exists())
+
+    def test_invalid_or_conflicting_fixed_port(self):
+        for port in ('0', '80', '65536', 'abc'):
+            result = self.run_script(PUBLIC_HOST='jithendar.com', API_PORT=port)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(self.calls(), '')
+        result = self.run_script(PUBLIC_HOST='jithendar.com', API_PORT='32812')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('No cluster changed', result.stderr)
+        self.assertEqual(self.calls(), '')
 
     def test_invalid_public_address(self):
         self.assertNotEqual(self.run_script(PUBLIC_IP='999.2.3.4').returncode, 0)

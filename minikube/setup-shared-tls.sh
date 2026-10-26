@@ -8,7 +8,7 @@ if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/scripts/lib/require-centos.sh"
 roboshop_require_centos "${1:-}" || exit 1
 # Usage: bash minikube/setup-shared-tls.sh --help
-case "${1:-}" in --help|-h) echo 'Purpose: Reuse the ready WordPress certificate for all jithendar.com Traefik routes.'; echo 'Usage: bash minikube/setup-shared-tls.sh; see docs/operations/script-audit.md for prerequisites, variables and effects.'; exit 0;; esac
+case "${1:-}" in --help|-h) echo 'Purpose: Reuse the ready letsencrypt certificate for all jithendar.com/*.'; echo 'Usage: bash minikube/setup-shared-tls.sh; see docs/operations/script-audit.md for prerequisites, variables and effects.'; exit 0;; esac
 # Reuse the ready WordPress certificate for all jithendar.com Traefik routes.
 set -euo pipefail
 script_dir=$(cd -- "$(dirname -- "$0")" && pwd -P)

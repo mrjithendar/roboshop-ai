@@ -13,7 +13,8 @@ def test_catalog_has_unique_safe_ownership():
     assert {'moks','catalogue-service'} <= names
     assert not {'shopping-agent','product-ingestion','openclaw','jfrog'} & names
     assert not {'argocd','traefik','coredns','kube-proxy','kindnet'}&names
-    assert len(apps)==26
+    assert len(apps)==25
+    assert 'cert-manager' not in names
     assert owners[('apps','Deployment','roboshop-ai','mongodb')]=='mongodb'
     assert ('apps','StatefulSet','roboshop-ai','mongodb') not in owners
     assert owners[('apps','StatefulSet','roboshop-ai','kafka')]=='kafka-bridge'
