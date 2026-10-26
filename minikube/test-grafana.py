@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from installer_test_helpers import prepare_source
 
 SCRIPT = Path(__file__).with_name('deploy-grafana.sh')
 
@@ -37,9 +38,9 @@ class GrafanaTests(unittest.TestCase):
             'PROFILE', 'KUBE_CONTEXT', 'MINIKUBE_HOME', 'GRAFANA_CHART_VERSION')}
         self.env.update(HOME=str(self.root), TEST_LOG=str(self.root / 'calls'))
         (self.root / 'monitoring').mkdir()
-        (self.root / 'monitoring/credentials.py').write_text((SCRIPT.parent / 'monitoring/credentials.py').read_text())
+        (self.root / 'monitoring/credentials.py').write_text((SCRIPT.parent / 'monitoring/credentials.py').read_text().replace("if _host_subprocess.call(['bash', str(_host_gate)]):", 'if False:  # host policy tested separately'))
         self.script = self.root / 'deploy.sh'
-        self.script.write_text(SCRIPT.read_text().replace(
+        self.script.write_text(prepare_source(SCRIPT.read_text()).replace(
             '/usr/local/bin:$HOME/.local/bin:$PATH', '$HOME/.local/bin:$PATH'))
 
     def run_script(self, **env):
@@ -54,8 +55,8 @@ class GrafanaTests(unittest.TestCase):
         self.assertIn('--version 14.0.1', calls)
         self.assertIn('--namespace monitoring', calls)
         self.assertIn('/monitoring/grafana/values.yaml', calls)
-        self.assertIn('monitoring/certificate.yaml', calls)
-        self.assertIn('-n monitoring wait', calls)
+        self.assertIn('shared-tls reconcile', calls)
+        self.assertIn('-n jithendar wait', calls)
         self.assertLess(calls.index('get ingressclass'), calls.index('apply -f'))
         self.assertLess(calls.index('upgrade --install'), calls.index('certificate/jithendar-com'))
         self.assertIn('https://jithendar.com/grafana/', result.stdout)

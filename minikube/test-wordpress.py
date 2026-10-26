@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from installer_test_helpers import prepare_source
 import yaml
 
 ROOT = Path(__file__).parent.resolve()
@@ -64,7 +65,7 @@ class WordPressTests(unittest.TestCase):
             source = (ROOT / 'deploy-wordpress.sh').read_text()
             source = source.replace('SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"',
                                     'SCRIPT_DIR=' + "'" + str(ROOT).replace("'", "'\\''") + "'")
-            script.write_text(source.replace('/usr/local/bin:$HOME/.local/bin:$PATH', '$HOME/.local/bin:$PATH'))
+            script.write_text(prepare_source(source).replace('/usr/local/bin:$HOME/.local/bin:$PATH', '$HOME/.local/bin:$PATH'))
             env = {**os.environ, 'HOME': tmp, 'KUBE_CONTEXT': 'test-cluster',
                    'TEST_LOG': str(home / 'calls'), 'BOOTSTRAP_EXIT': str(bootstrap_exit), 'LEGACY_DATA': 'yes' if legacy_data else 'no'}
             result = subprocess.run(['bash', str(script)], env=env, text=True, capture_output=True)

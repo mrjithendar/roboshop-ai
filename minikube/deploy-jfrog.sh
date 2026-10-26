@@ -41,6 +41,7 @@ KUBE_CONTEXT="${KUBE_CONTEXT:-$PROFILE}"
 [[ "$KUBE_CONTEXT" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || exit 2
 if [[ -z "${KUBECONFIG:-}" && -f "$HOME/.kube/vultr-minikube.json" ]]; then export KUBECONFIG="$HOME/.kube/vultr-minikube.json"; fi
 k() { kubectl --context="$KUBE_CONTEXT" "$@"; }
+if [[ "$mode" == install ]]; then bash "$SCRIPT_DIR/../scripts/lib/check-argocd-ownership.sh" "$KUBE_CONTEXT" jfrog; fi
 python3 "$SCRIPT_DIR/jfrog/preflight.py" --context "$KUBE_CONTEXT" --size "$JFROG_SIZE"
 k --request-timeout=15s get ingressclass traefik >/dev/null
 k --request-timeout=15s get crd middlewares.traefik.io >/dev/null

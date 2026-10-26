@@ -38,6 +38,7 @@ GRAFANA_CHART_VERSION="${GRAFANA_CHART_VERSION:-14.0.1}"
 k() { kubectl --context="$KUBE_CONTEXT" "$@"; }
 h() { helm --kube-context="$KUBE_CONTEXT" "$@"; }
 echo "Deploying Grafana into context $KUBE_CONTEXT, namespace monitoring."
+bash "$SCRIPT_DIR/../scripts/lib/check-argocd-ownership.sh" "$KUBE_CONTEXT" grafana
 k --request-timeout=15s get namespace kube-system >/dev/null
 k --request-timeout=15s get ingressclass traefik >/dev/null || fail 'Run bash minikube/deploy-traefik.sh, then on Vultr run bash minikube/expose-ingress.sh. See minikube/traefik/README.md.'
 k wait --for=condition=Ready clusterissuer/letsencrypt-prod --timeout=60s || fail 'Run minikube/deploy-cert-manager.sh first.'

@@ -46,6 +46,7 @@ fi
 for tool in kubectl aws python3; do
   command -v "$tool" >/dev/null || { echo "$tool is required." >&2; exit 1; }
 done
+bash scripts/lib/check-argocd-ownership.sh "$context" "${services[@]}"
 kube=(kubectl --context="$context" --request-timeout=60s -n roboshop-ai)
 # Initialize missing admin keys; preserve all existing passwords.
 python3 minikube/roboshop/deployment.py credentials --context="$context"

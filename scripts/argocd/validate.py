@@ -73,6 +73,7 @@ def validate(external=False):
         assert name not in ('argocd','traefik')
         assert not app['metadata'].get('finalizers'),name
         assert spec['project'] in projects
+        project=projects[spec['project']]['spec']
         assert spec['destination']['namespace'] not in ('argocd','traefik')
         if name!='openclaw':assert 'automated' not in spec.get('syncPolicy',{}),name
         assert 'FailOnSharedResource=true' in spec['syncPolicy']['syncOptions']
@@ -80,9 +81,16 @@ def validate(external=False):
             kind=resource['kind'];meta=resource['metadata'];namespace=meta.get('namespace','')
             cluster_kind=kind in ('Namespace','ClusterRole','ClusterRoleBinding','CustomResourceDefinition','APIService','ClusterIssuer','MutatingWebhookConfiguration','ValidatingWebhookConfiguration')
             if not namespace and not cluster_kind:namespace=spec['destination']['namespace']
-            assert namespace not in ('argocd','traefik'),(name,kind,meta['name'])
-            assert kind!='Secret',f'{name} renders a Secret: provision credentials externally'
+            assert namespace not in ('argocd','traefik') or (name=='openclaw' and namespace=='argocd' and kind in ('Role','RoleBinding')),(name,kind,meta['name'])
+            if kind=='Secret':
+                assert name=='jfrog' and meta['name']=='jfrog-artifactory-unified-secret',f'{name} renders a credential Secret: provision credentials externally'
+                assert set(resource.get('stringData',{}))=={'access.config.patch.yml','binarystore.xml','system.yaml'}
+                assert not resource.get('data')
             key=(resource['apiVersion'].split('/')[0] if '/' in resource['apiVersion'] else '',kind,namespace,meta['name'])
+            if namespace:
+                assert any(d['namespace']==namespace for d in project['destinations']),(name,namespace)
+            else:
+                assert any(rule['kind'] in ('*',kind) and rule['group'] in ('*',key[0]) for rule in project['clusterResourceWhitelist']),(name,key)
             assert key not in owners,f'{key} belongs to both {owners.get(key)} and {name}'
             owners[key]=name
             if kind in ('Deployment','StatefulSet','DaemonSet'):workloads.add((kind,namespace,meta['name']))

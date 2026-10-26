@@ -1,7 +1,6 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  LOG_FORMAT: text
   name: roboshop-ai
 ---
 apiVersion: v1
@@ -12,6 +11,7 @@ metadata:
   labels:
     app.kubernetes.io/part-of: roboshop-ai
 data:
+  LOG_FORMAT: text
   CHECKOUT_CURRENCIES: INR,USD,GBP,SGD,AUD
   CURRENCY_URL: http://currency-service:4111
   HOST: 0.0.0.0

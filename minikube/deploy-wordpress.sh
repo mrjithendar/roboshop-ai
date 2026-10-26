@@ -29,6 +29,7 @@ fi
 k() { kubectl --context="$KUBE_CONTEXT" "$@"; }
 h() { helm --kube-context="$KUBE_CONTEXT" "$@"; }
 echo "Deploying WordPress to https://jithendar.com in namespace jithendar using context $KUBE_CONTEXT."
+bash "$SCRIPT_DIR/../scripts/lib/check-argocd-ownership.sh" "$KUBE_CONTEXT" wordpress
 k --request-timeout=15s get namespace kube-system >/dev/null
 k get ingressclass traefik >/dev/null || fail 'Run deploy-traefik.sh and expose-ingress.sh first.'
 k wait --for=condition=Ready clusterissuer/letsencrypt-prod --timeout=60s || fail 'Run deploy-cert-manager.sh first.'

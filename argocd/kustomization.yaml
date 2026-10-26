@@ -24,6 +24,7 @@ resources:
 - payment-service.yaml
 - postgres.yaml
 - product-ingestion.yaml
+- project-jfrog.yaml
 - project-openclaw.yaml
 - project-platform.yaml
 - prometheus.yaml

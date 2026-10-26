@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from installer_test_helpers import prepare_source
 
 SCRIPT = Path(__file__).with_name('deploy-cert-manager.sh').resolve()
 
@@ -27,7 +28,7 @@ class CertManagerTests(unittest.TestCase):
         # Prevent real /usr/local/bin installations from taking precedence.
         self.script = self.root/'deploy.sh'
         source = SCRIPT.read_text().replace('/usr/local/bin:$HOME/.local/bin:$PATH', '$HOME/.local/bin:$PATH')
-        self.script.write_text(source)
+        self.script.write_text(prepare_source(source))
 
     def run_script(self, **env):
         return subprocess.run(['bash',str(self.script)],env={**self.env,**env},capture_output=True,text=True)

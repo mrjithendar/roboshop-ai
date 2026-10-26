@@ -45,6 +45,7 @@ fi
 k() { kubectl --context="$KUBE_CONTEXT" "$@"; }
 h() { helm --kube-context="$KUBE_CONTEXT" "$@"; }
 echo "Installing cert-manager $CERT_MANAGER_VERSION into context $KUBE_CONTEXT."
+bash "$SCRIPT_DIR/../scripts/lib/check-argocd-ownership.sh" "$KUBE_CONTEXT" cert-manager roboshop-letsencrypt
 k --request-timeout=15s get namespace kube-system >/dev/null
 if ! k --request-timeout=15s get ingressclass "$INGRESS_CLASS" >/dev/null 2>&1; then
   echo "NOTE: IngressClass $INGRESS_CLASS was not found. Install that ingress controller before requesting a website certificate."

@@ -54,6 +54,10 @@ jobs:
           kubectl --context="$KUBE_CONTEXT" get crd middlewares.traefik.io -o name
           kubectl --context="$KUBE_CONTEXT" get clusterissuer letsencrypt-prod -o name
 
+      - name: Refuse imperative deployment of Argo-managed workloads
+        run: |
+          bash scripts/lib/check-argocd-ownership.sh "$KUBE_CONTEXT" roboshop-config mongodb postgres redis rabbitmq jaeger otel-collector kafka-bridge catalogue-service moks sre-copilot payment-service shipping-service user-service ai-gateway frontend nginx mcp-server cart-service currency-service
+
       - name: Initialize application namespace, configuration and credentials
         run: |
           set -euo pipefail

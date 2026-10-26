@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from installer_test_helpers import prepare_source
 import yaml
 
 ROOT = Path(__file__).parent.resolve()
@@ -97,7 +98,7 @@ class PrometheusTests(unittest.TestCase):
             # Host gating and shared TLS reconciliation have independent suites.
             source=(ROOT / 'deploy-prometheus.sh').read_text()
             source='\n'.join('roboshop_require_centos() { return 0; }' if line.startswith('source ') else line for line in source.splitlines())
-            script.write_text(source.replace('/usr/local/bin:$HOME/.local/bin:$PATH', '$HOME/.local/bin:$PATH'))
+            script.write_text(prepare_source(source).replace('/usr/local/bin:$HOME/.local/bin:$PATH', '$HOME/.local/bin:$PATH'))
             (home/'setup-shared-tls.sh').write_text('#!/bin/sh\necho "shared-tls reconcile" >> "$TEST_LOG"\n')
             result = subprocess.run(['bash', str(script)], text=True, capture_output=True,
                 env={**os.environ, 'HOME': tmp, 'KUBE_CONTEXT': 'remote',

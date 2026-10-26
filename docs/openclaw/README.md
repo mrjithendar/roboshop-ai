@@ -446,3 +446,7 @@ before overwriting the existing secret. A successful login-token request alone
 does not establish repository access. For scheduled refresh, set the optional
 GitHub repository variable `OPENCLAW_ECR_PROFILE` to a profile present on the
 runner; leaving it empty uses the runner's default AWS credential chain.
+
+Argo CD Application and AppProject manifests are now centralized in
+`argocd/openclaw.yaml` and `argocd/project-openclaw.yaml`. The management script
+uses these paths; see `argocd/README.md` for the complete cluster application catalog.

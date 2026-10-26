@@ -31,6 +31,7 @@ fi
 [[ "$KUBE_CONTEXT" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || fail 'Invalid KUBE_CONTEXT.'
 k() { kubectl --context="$KUBE_CONTEXT" "$@"; }
 echo "Installing Metrics Server in kube-system, context $KUBE_CONTEXT."
+bash "$SCRIPT_DIR/../scripts/lib/check-argocd-ownership.sh" "$KUBE_CONTEXT" metrics-server
 k --request-timeout=15s get namespace kube-system >/dev/null
 helm --kube-context="$KUBE_CONTEXT" upgrade --install metrics-server metrics-server \
   --repo https://kubernetes-sigs.github.io/metrics-server/ --version 3.14.0 \

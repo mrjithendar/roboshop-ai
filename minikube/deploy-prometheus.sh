@@ -33,6 +33,7 @@ fi
 k() { kubectl --context="$KUBE_CONTEXT" "$@"; }
 h() { helm --kube-context="$KUBE_CONTEXT" "$@"; }
 echo "Deploying Prometheus into context $KUBE_CONTEXT, namespace monitoring."
+bash "$SCRIPT_DIR/../scripts/lib/check-argocd-ownership.sh" "$KUBE_CONTEXT" prometheus
 k --request-timeout=15s get namespace kube-system >/dev/null
 k get ingressclass traefik >/dev/null || fail 'Run deploy-traefik.sh and expose-ingress.sh first.'
 k get crd middlewares.traefik.io >/dev/null || fail 'Traefik Middleware CRDs are required. Run deploy-traefik.sh.'

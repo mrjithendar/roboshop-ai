@@ -8,7 +8,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
-  project: platform
+  project: jfrog
   destination:
     server: https://kubernetes.default.svc
     namespace: jfrog
