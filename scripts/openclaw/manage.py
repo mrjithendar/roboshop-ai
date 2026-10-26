@@ -88,8 +88,12 @@ def deployment_gate():
     if run(['git','status','--porcelain','--','minikube/openclaw','services/mcp-server/operations'],True,cwd=ROOT).strip():issues.append('Commit and publish reviewed OpenClaw source before GitOps bootstrap.')
     if issues:raise RuntimeError('\n'.join(issues))
     # Read Secret metadata/key names only. Never emit data.
+    missing=[]
     for name in ('openclaw-gateway-secrets','openclaw-operations-identities','openclaw-registry'):
-        kube('get','secret',name,'-n','openclaw','-o','name')
+        if not kube('get','secret',name,'-n','openclaw','--ignore-not-found','-o','name').strip():
+            missing.append(name)
+    if missing:
+        raise RuntimeError('Missing Secrets in openclaw: '+', '.join(missing)+'. See docs/openclaw/README.md; prepare_secrets.py prepares initial gateway/identity credentials, refresh_registry.py provisions registry credentials.')
 
 def backup(args):
     require('age');context()

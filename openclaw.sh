@@ -28,3 +28,9 @@ python3 scripts/openclaw/network_smoke.py --output "$HOME/.local/state/openclaw/
 export OPENCLAW_NETWORK_EVIDENCE="$HOME/.local/state/openclaw/network-evidence.json"
 ./scripts/openclaw.sh bootstrap
 ./scripts/openclaw.sh status
+
+python3 scripts/openclaw/prepare_secrets.py \
+  --output "$HOME/.local/state/openclaw/initial-secrets.json"
+
+kubectl --context "$OPENCLAW_CONTEXT" create -f "$HOME/.local/state/openclaw/initial-secrets.json" &&
+./scripts/openclaw.sh bootstrap && ./scripts/openclaw.sh status

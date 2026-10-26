@@ -221,6 +221,16 @@ through your approved secret workflow. The initial operator bootstrap requires:
 | openclaw / openclaw-integration-secrets | Optional `GITHUB_TOKEN`, `GRAFANA_TOKEN`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_URL`, approved AWS temporary credential settings |
 | monitoring / openclaw-metrics-auth | `token`: metrics-only operations token; `gateway-token`: OpenClaw gateway token |
 
+For initial provisioning, run `python3 scripts/openclaw/prepare_secrets.py
+--output "$HOME/.local/state/openclaw/initial-secrets.json"` on one line. It prompts
+privately for the OpenAI API key and writes a mode-0600 manifest outside Git with
+matching generated gateway, agent, and monitoring credentials. Then use
+`kubectl --context "$OPENCLAW_CONTEXT" create -f
+"$HOME/.local/state/openclaw/initial-secrets.json"` on one line. Both namespaces
+must already exist. Creation refuses to overwrite existing Secrets. If creation
+partially succeeds, retain the same file and investigate; do not generate new
+mismatched tokens or use this helper to rotate existing credentials.
+
 Operations identity tokens must be distinct and at least 32 characters. Rotate
 both ends together and restart the corresponding Deployments through GitOps.
 Secrets are read on startup; authentication does not keep a revocation cache.

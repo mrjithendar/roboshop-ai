@@ -149,3 +149,20 @@ def test_kindnet_detection_uses_evidence_gate():
   issues=m.doctor()
  assert len(issues)==1
  assert issues[0].startswith('NetworkPolicy enforcement requires')
+
+
+def test_initial_secrets_match_and_are_private(tmp_path):
+ import json,stat
+ spec=importlib.util.spec_from_file_location('prepare_secrets',ROOT/'scripts/openclaw/prepare_secrets.py')
+ module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+ data=module.manifest('test-key')
+ gateway,identities,metrics=[item['stringData'] for item in data['items']]
+ tokens=json.loads(identities['identities.json'])
+ for agent in module.AGENTS:assert gateway['OPS_'+agent.upper()+'_TOKEN']==tokens[agent]
+ assert len(set(tokens.values()))==9
+ assert all(len(token)>=32 for token in tokens.values())
+ assert metrics['token']==tokens['monitor']
+ assert metrics['gateway-token']==gateway['OPENCLAW_GATEWAY_TOKEN']
+ output=tmp_path/'secrets.json';module.write_manifest(output,data)
+ assert stat.S_IMODE(output.stat().st_mode)==0o600
+ with pytest.raises(FileExistsError):module.write_manifest(output,data)
