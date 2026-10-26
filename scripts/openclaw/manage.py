@@ -154,7 +154,7 @@ def main():
         print(redact(kube('logs','-n','openclaw','deployment/openclaw-operations','--tail=100')))
     elif args.command=='bootstrap':
         deployment_gate();confirm('bootstrap')
-        kube('apply','-f',str(ROOT/'minikube/openclaw/argocd/application.yaml'),capture=False)
+        kube('apply','-f',str(ROOT/'argocd/project-openclaw.yaml'),'-f',str(ROOT/'argocd/openclaw.yaml'),capture=False)
     elif args.command=='deploy':
         deployment_gate();confirm('deploy')
         # Request an Argo operation; never apply its managed workload resources.

@@ -416,3 +416,33 @@ python scripts/openclaw/verify_public.py
 The public checker verifies the real certificate chain, unauthenticated rejection,
 authenticated UI response and WSS challenge. It deliberately does not call an LLM
 or claim that browser pairing and incident investigation have been verified.
+
+### ECR 403 from the Minikube pull identity
+
+The MCP image belongs to account `528804350166`. A pull authenticated as
+`arn:aws:iam::881026659929:root` requires cross-account repository access.
+`infrastructure/vars/terraform.tfvars` now grants that account pull-only access
+to `roboshop-mcp-server`. Prefer replacing this account principal with the
+runner's dedicated IAM role ARN when one is available. The caller also needs
+IAM permissions for `ecr:GetAuthorizationToken` on `*` and the three pull
+actions in `infrastructure/ecr.tf` on the MCP repository ARN.
+
+Apply the Terraform configuration using the **repository-owner account**
+(`528804350166`), reviewing the plan for unrelated infrastructure changes:
+
+```bash
+AWS_PROFILE=<repository-owner-profile> terraform -chdir=infrastructure plan \
+  -var-file=vars/terraform.tfvars -out=ecr-access.tfplan
+AWS_PROFILE=<repository-owner-profile> terraform -chdir=infrastructure apply ecr-access.tfplan
+export OPENCLAW_CONTEXT=mk4
+python3 scripts/openclaw/refresh_registry.py --profile <authorized-pull-profile>
+kubectl --context "$OPENCLAW_CONTEXT" -n openclaw rollout restart deployment/openclaw deployment/openclaw-operations
+```
+
+Alternatively use a pull-authorized profile from the repository-owner account.
+`--profile` (or `OPENCLAW_ECR_PROFILE`) selects the same identity for both image
+validation and token generation. The refresh script checks the pinned images
+before overwriting the existing secret. A successful login-token request alone
+does not establish repository access. For scheduled refresh, set the optional
+GitHub repository variable `OPENCLAW_ECR_PROFILE` to a profile present on the
+runner; leaving it empty uses the runner's default AWS credential chain.

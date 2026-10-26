@@ -8,3 +8,9 @@ single_nat_gateway = false
 
 ses_enabled = true
 ses_domain  = "jithendar.com"
+
+# Minikube's current ECR caller; grant pull access only to the MCP repository.
+# Replace with a dedicated role ARN when the runner uses an IAM role.
+ecr_pull_principals = {
+  "roboshop-mcp-server" = ["arn:aws:iam::881026659929:root"]
+}

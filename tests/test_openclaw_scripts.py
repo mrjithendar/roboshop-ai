@@ -166,3 +166,37 @@ def test_initial_secrets_match_and_are_private(tmp_path):
  output=tmp_path/'secrets.json';module.write_manifest(output,data)
  assert stat.S_IMODE(output.stat().st_mode)==0o600
  with pytest.raises(FileExistsError):module.write_manifest(output,data)
+
+@pytest.fixture
+def registry():
+ import sys
+ spec=importlib.util.spec_from_file_location('openclaw_registry',ROOT/'scripts/openclaw/refresh_registry.py')
+ module=importlib.util.module_from_spec(spec)
+ with patch.dict(sys.modules,{'manage':m}):spec.loader.exec_module(module)
+ return module
+
+@pytest.mark.parametrize('result', [
+ {'failures':[{'failureCode':'ImageNotFound'}]},
+ {'images':[]},
+])
+def test_registry_missing_image_preserves_secret(registry,result):
+ import json
+ with patch.object(registry.sys,'argv',['refresh_registry.py','--profile','pull']),patch.object(registry,'context',return_value='mk4'),patch.object(registry,'kube',return_value='namespace/openclaw'),patch.object(registry,'aws',side_effect=[json.dumps({'Arn':'arn:aws:iam::881026659929:root'}),json.dumps(result)]),patch.object(registry.subprocess,'run') as run:
+  with pytest.raises(RuntimeError,match='preserved'):registry.main()
+  run.assert_not_called()
+
+def test_registry_denial_preserves_secret(registry):
+ import json,subprocess
+ with patch.object(registry.sys,'argv',['refresh_registry.py']),patch.object(registry,'context',return_value='mk4'),patch.object(registry,'kube',return_value='namespace/openclaw'),patch.object(registry,'aws',side_effect=[json.dumps({'Arn':'caller'}),subprocess.CalledProcessError(1,['aws'])]),patch.object(registry.subprocess,'run') as run:
+  with pytest.raises(RuntimeError,match='preserved'):registry.main()
+  run.assert_not_called()
+
+def test_registry_profile_used_for_validation_and_token(registry,capsys):
+ import json,base64
+ with patch.object(registry.sys,'argv',['refresh_registry.py','--profile','pull']),patch.object(registry,'context',return_value='mk4'),patch.object(registry,'kube',return_value='namespace/openclaw'),patch.object(registry,'confirm'),patch.object(registry,'aws',side_effect=[json.dumps({'Arn':'caller'}),json.dumps({'images':[{'imageId':{}}]}),'test-password']) as aws,patch.object(registry.subprocess,'run') as run:
+  assert registry.main()==0
+  assert all(call.args[1]=='pull' for call in aws.call_args_list)
+  secret=json.loads(run.call_args.kwargs['input'])
+  config=json.loads(base64.b64decode(secret['data']['.dockerconfigjson']))
+  assert base64.b64decode(config['auths'][registry.REGISTRY]['auth'])==b'AWS:test-password'
+  assert 'test-password' not in capsys.readouterr().out

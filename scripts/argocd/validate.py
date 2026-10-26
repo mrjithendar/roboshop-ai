@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+"""Render the Argo CD catalog and detect overlapping ownership before adoption."""
+import argparse
+import fnmatch
+import json
+from pathlib import Path
+import subprocess
+import tempfile
+import yaml
+ROOT = Path(__file__).resolve().parents[2]
+REPO = 'https://github.com/mrjithendar/roboshop-ai.git'
+
+
+def command(args):
+    return subprocess.check_output(args, text=True, cwd=ROOT)
+
+
+def objects(text):
+    return [d for d in yaml.safe_load_all(text) if d]
+
+
+def catalog():
+    return objects(command(['kubectl', 'kustomize', str(ROOT/'argocd')]))
+
+
+def render(app, external=False):
+    result=[]
+    spec=app['spec']
+    for source in spec.get('sources', [spec.get('source')]):
+        if not source:continue
+        if 'ref' in source:continue
+        if 'chart' in source:
+            if not external:continue
+            helm=source.get('helm', {})
+            url=source['repoURL']
+            args=['helm','template',helm.get('releaseName',app['metadata']['name'])]
+            if url.startswith('https://'):
+                args += [source['chart'],'--repo',url]
+            else:
+                args += ['oci://'+url+'/'+source['chart']]
+            args += ['--version',source['targetRevision'],'--namespace',spec['destination']['namespace'],'--include-crds']
+            for value in helm.get('valueFiles',[]):
+                assert value.startswith('$values/'),value
+                args += ['-f',str(ROOT/value.removeprefix('$values/'))]
+            result += objects(command(args));continue
+        assert source['repoURL']==REPO
+        path=ROOT/source['path']
+        assert path.is_dir(),path
+        if (path/'Chart.yaml').exists():
+            helm=source.get('helm',{})
+            args=['helm','template',helm.get('releaseName',app['metadata']['name']),str(path),'--namespace',spec['destination']['namespace']]
+            with tempfile.NamedTemporaryFile(mode='w',suffix='.yaml') as values:
+                yaml.safe_dump(helm.get('valuesObject',{}),values);values.flush()
+                result += objects(command(args+['-f',values.name]))
+        elif (path/'kustomization.yaml').exists():
+            result += objects(command(['kubectl','kustomize',str(path)]))
+        else:
+            pattern=source['directory']['include']
+            patterns=pattern.strip('{}').split(',')
+            files=[p for p in path.iterdir() if p.is_file() and any(fnmatch.fnmatch(p.name,pat) for pat in patterns)]
+            assert files,(path,pattern)
+            for file in sorted(files):result+=objects(file.read_text())
+    return result
+
+
+def validate(external=False):
+    docs=catalog();projects={d['metadata']['name']:d for d in docs if d['kind']=='AppProject'}
+    apps=[d for d in docs if d['kind']=='Application']
+    owners={};workloads=set()
+    assert len(apps)==len({d['metadata']['name'] for d in apps})
+    for app in apps:
+        name=app['metadata']['name'];spec=app['spec']
+        assert name not in ('argocd','traefik')
+        assert not app['metadata'].get('finalizers'),name
+        assert spec['project'] in projects
+        assert spec['destination']['namespace'] not in ('argocd','traefik')
+        if name!='openclaw':assert 'automated' not in spec.get('syncPolicy',{}),name
+        assert 'FailOnSharedResource=true' in spec['syncPolicy']['syncOptions']
+        for resource in render(app,external):
+            kind=resource['kind'];meta=resource['metadata'];namespace=meta.get('namespace','')
+            cluster_kind=kind in ('Namespace','ClusterRole','ClusterRoleBinding','CustomResourceDefinition','APIService','ClusterIssuer','MutatingWebhookConfiguration','ValidatingWebhookConfiguration')
+            if not namespace and not cluster_kind:namespace=spec['destination']['namespace']
+            assert namespace not in ('argocd','traefik'),(name,kind,meta['name'])
+            assert kind!='Secret',f'{name} renders a Secret: provision credentials externally'
+            key=(resource['apiVersion'].split('/')[0] if '/' in resource['apiVersion'] else '',kind,namespace,meta['name'])
+            assert key not in owners,f'{key} belongs to both {owners.get(key)} and {name}'
+            owners[key]=name
+            if kind in ('Deployment','StatefulSet','DaemonSet'):workloads.add((kind,namespace,meta['name']))
+    inventory=ROOT/'minikube/gitops/workload-inventory.json'
+    if external:
+        expected={tuple(row) for row in json.loads(inventory.read_text())}
+        assert expected<=workloads,f'Unmanaged workloads: {sorted(expected-workloads)}'
+    print(f'Validated {len(apps)} Applications, {len(owners)} unique resources; external charts {"included" if external else "not rendered"}.')
+    return apps,owners
+
+
+if __name__=='__main__':
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--external-charts',action='store_true')
+    args=parser.parse_args();validate(args.external_charts)

@@ -18,3 +18,22 @@ resource "aws_ecr_repository" "services" {
     Name = each.value
   })
 }
+
+# Cross-account grants are limited to explicitly configured repositories.
+resource "aws_ecr_repository_policy" "pull" {
+  for_each   = var.ecr_pull_principals
+  repository = aws_ecr_repository.services[each.key].name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowCrossAccountPull"
+      Effect    = "Allow"
+      Principal = { AWS = each.value }
+      Action = [
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchCheckLayerAvailability",
+      ]
+    }]
+  })
+}

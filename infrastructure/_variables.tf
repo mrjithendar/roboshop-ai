@@ -98,3 +98,20 @@ variable "ses_domain" {
     error_message = "Provide a lowercase DNS domain, without a scheme or path."
   }
 }
+
+variable "ecr_pull_principals" {
+  description = "Repository names mapped to IAM principal ARNs allowed to pull. Prefer role ARNs; account root ARNs delegate access to that account."
+  type        = map(list(string))
+  default     = {}
+  nullable    = false
+
+  validation {
+    condition = alltrue([
+      for name, principals in var.ecr_pull_principals :
+      contains(var.ecr_repository_names, name) && length(principals) > 0 && alltrue([
+        for principal in principals : can(regex("^arn:aws:iam::[0-9]{12}:(root|role/.+|user/.+)$", principal))
+      ])
+    ])
+    error_message = "Pull grants must name a managed repository and at least one explicit IAM account, role or user ARN."
+  }
+}

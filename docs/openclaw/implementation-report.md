@@ -165,7 +165,7 @@ Created files:
 - `docs/openclaw/implementation-report.md`
 - `minikube/monitoring/prometheus/files/openclaw-alerts.yml`
 - `minikube/openclaw/README.md`
-- `minikube/openclaw/argocd/application.yaml`
+- `argocd/project-openclaw.yaml` and `argocd/openclaw.yaml`
 - `minikube/openclaw/aws-policy.json`
 - `minikube/openclaw/base/agents.yaml`
 - `minikube/openclaw/base/egress.yaml`
