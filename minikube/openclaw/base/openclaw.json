@@ -329,6 +329,12 @@
       },
       "openai": {
         "enabled": true
+      },
+      "device-pair": {
+        "enabled": false,
+        "config": {
+          "publicUrl": "wss://jithendar.com/openclaw"
+        }
       }
     }
   }

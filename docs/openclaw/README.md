@@ -528,3 +528,11 @@ including this init step, run as UID 1000 with all capabilities dropped. The
 gateway retains a read-only root filesystem.
 `patch-openclaw.sh` restarts Squid when its configuration checksum changes.
 Plugin versions should match the pinned gateway release.
+
+### Public pairing address
+
+Device setup codes advertise `wss://jithendar.com/openclaw` through
+`plugins.entries.device-pair.config.publicUrl`. The core pairing resolver reads
+this setting even with the optional slash-command plugin disabled.
+`gateway.publicOrigin` alone falls back to the pod LAN address for device pairing.
+After changing the address, generate a new setup code; existing codes retain their old URL.
