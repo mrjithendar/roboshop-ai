@@ -7,6 +7,36 @@ Argo CD and Traefik controllers are deliberately excluded. Their existing Helm
 releases, CRDs and installation scripts remain externally managed. OpenClaw's
 read-only observer Role/RoleBinding in `argocd` is still owned by OpenClaw.
 
+## Simple deployment commands
+
+From the repository root (requires `kubectl`, Python 3 and PyYAML):
+
+```bash
+./deploy-argocd.sh                # Deploy every Application in the Argo CD catalog
+./deploy-argocd.sh list
+./deploy-argocd.sh roboshop --dry-run
+./deploy-argocd.sh roboshop
+./deploy-argocd.sh frontend nginx
+./deploy-argocd.sh status
+```
+
+The default context is `mk4`; use `--context NAME` or `KUBE_CONTEXT` to change it.
+The script creates missing projects and Applications, requests a sync without
+pruning, and waits up to 600 seconds for Synced/Healthy (`--timeout 900` overrides
+this). Existing Application settings, including OpenClaw patches, are preserved.
+Commit and push workload changes first: Argo CD deploys the configured Git
+revision, not uncommitted local workload files.
+
+With no arguments, or with `all`, the script selects every Application registered
+in `argocd/kustomization.yaml`, including infrastructure, OpenClaw, JFrog and
+legacy apps. Referenced AppProjects are created when missing. Existing Secrets,
+images and storage remain prerequisites; missing dependencies cause the health
+wait to fail rather than silently skipping an app.
+
+Use `roboshop` for just the current shop services and shared configuration,
+excluding legacy apps, optional `sre-copilot`, and data/messaging infrastructure.
+Use `./deploy-argocd.sh --dry-run` to preview the complete selection.
+
 ## Register the catalog
 
 Validate with `python3 scripts/argocd/validate.py --external-charts`.

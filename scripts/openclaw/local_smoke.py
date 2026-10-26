@@ -44,6 +44,12 @@ with tempfile.TemporaryDirectory(prefix='openclaw-smoke-') as tmp:
     config=json.loads((ROOT/'minikube/openclaw/base/openclaw.json').read_text())
     config['gateway'].update({'bind':'loopback','port':19189})
     config.pop('proxy');config['diagnostics']['otel']['enabled']=False
+    # The deployment mounts /opt/openclaw-plugins; CI installs plugins in the repo.
+    plugin_root=ROOT/'services/mcp-server/operations/plugins'
+    config['plugins']['load']['paths']=[str(plugin_root/'node_modules/@openclaw'/name)
+        for name in ('diagnostics-otel','diagnostics-prometheus')]
+    for path in config['plugins']['load']['paths']:
+        if not Path(path).is_dir():raise RuntimeError(f'Telemetry plugin not installed: {path}')
     for agent,entry in config['agents']['entries'].items():
         entry['workspace']=str(tmp/'workspaces'/agent)
         Path(entry['workspace']).mkdir(parents=True)
@@ -71,8 +77,17 @@ with tempfile.TemporaryDirectory(prefix='openclaw-smoke-') as tmp:
             assert response.status_code==200,(path,response.status_code)
         asyncio.run(websocket_check())
         metrics_url='http://127.0.0.1:19189/api/diagnostics/prometheus'
-        assert httpx.get(metrics_url,timeout=5).status_code==401
-        assert httpx.get(metrics_url,headers={'Authorization':'Bearer '+'g'*40},timeout=5).status_code==200
+        for label,headers,expected in (('unauthenticated',{},401),
+                ('authenticated',{'Authorization':'Bearer '+'g'*40},200)):
+            response=httpx.get(metrics_url,headers=headers,timeout=5)
+            if response.status_code!=expected:
+                print((tmp/'gateway.log').read_text()[-6000:])
+                raise AssertionError(f'{label} metrics: expected {expected}, got '
+                    f'{response.status_code}; body={response.text[:300]!r}')
+            if expected==200:
+                content_type=response.headers.get('content-type','')
+                assert content_type.startswith('text/plain; version=0.0.4'), (
+                    'Metrics endpoint did not return Prometheus exposition',content_type)
         print('PASS: official telemetry plugin authenticated metrics route')
         result=subprocess.run(command+['mcp','doctor','ops-sre','--probe'],env=env,capture_output=True,text=True,timeout=60)
         if result.returncode:print(result.stdout[-3000:]);print(result.stderr[-3000:])
