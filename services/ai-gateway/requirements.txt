@@ -1,4 +1,4 @@
-fastapi==0.156.3
+fastapi==0.159.1
 uvicorn==0.54.0
 pymongo==4.19.0
 pika==1.4.4
