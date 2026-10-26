@@ -378,3 +378,20 @@ correction, not proof of runtime recovery. Verify rollout and memory consumption
 If OOM continues, inspect the outer Minikube Docker memory limit too: Kubernetes
 node allocatable values may reflect shared host capacity. Do not increase limits
 without checking actual physical RAM and other workloads.
+
+
+### Data-volume permission failure after the OOM fix
+
+A subsequent live boot reached filesystem initialization but exited with
+`AccessDeniedException: /usr/share/elasticsearch/data/node.lock`. Minikube's
+hostPath PV did not honor the existing fsGroup sufficiently. Elasticsearch and
+Logstash now have a `data-permissions` init container: UID 0, no privileged mode,
+read-only root filesystem, only CHOWN/FOWNER/DAC_OVERRIDE capabilities and only the
+application data PVC mounted. It changes ownership to UID/GID 1000 and sets the
+volume root to mode 0770; it does not delete data or grant world-write access.
+This is a deliberate lab exception for hostPath, not a general host permission
+change. Admission policies that prohibit root init containers must instead arrange
+ownership through the storage administrator. Large retained volumes can make the
+recursive ownership pass slow. Preserve the volume and never delete node.lock as a
+workaround. If a pod changes Minikube nodes, check local storage placement before
+starting: this provisioner does not attach a replicated volume across nodes.

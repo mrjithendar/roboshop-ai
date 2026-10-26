@@ -242,3 +242,25 @@ class ElkCommandTests(unittest.TestCase):
         with patch.object(module.sys,'argv',['elk','sync','--app','elk-operator','--apply']),patch.object(module.subprocess,'check_output',side_effect=command):
             with self.assertRaisesRegex(RuntimeError,'Git still renders namespace els'):module.main()
         self.assertFalse(any('patch' in c for c in calls))
+
+
+class ElkVolumePermissionTests(unittest.TestCase):
+    def test_hostpath_ownership_init_is_limited_to_data_volume(self):
+        core=list(yaml.safe_load_all((BASE/'core/resources.yaml').read_text()))
+        pipeline=list(yaml.safe_load_all((BASE/'pipeline/resources.yaml').read_text()))
+        es=next(x for x in core if x['kind']=='Elasticsearch')
+        ls=next(x for x in pipeline if x['kind']=='Deployment')
+        specs=[es['spec']['nodeSets'][0]['podTemplate']['spec'],ls['spec']['template']['spec']]
+        for spec in specs:
+            init=next(c for c in spec['initContainers'] if c['name']=='data-permissions')
+            self.assertEqual(len(init['volumeMounts']),1)
+            self.assertTrue(init['volumeMounts'][0]['mountPath'].endswith('/data'))
+            security=init['securityContext']
+            self.assertEqual(security['runAsUser'],0)
+            self.assertFalse(security['privileged'])
+            self.assertFalse(security['allowPrivilegeEscalation'])
+            self.assertTrue(security['readOnlyRootFilesystem'])
+            self.assertEqual(security['capabilities']['drop'],['ALL'])
+            self.assertIn('chown -R --no-dereference 1000:1000',init['command'][-1])
+            self.assertNotIn('rm ',init['command'][-1])
+            self.assertNotIn('777',init['command'][-1])

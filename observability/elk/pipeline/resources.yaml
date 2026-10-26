@@ -197,6 +197,38 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: logstash-data
+      initContainers:
+      - name: data-permissions
+        image: docker.elastic.co/logstash/logstash:9.5.5
+        command:
+        - sh
+        - -ec
+        - 'chown -R --no-dereference 1000:1000 /usr/share/logstash/data
+
+          chmod 0770 /usr/share/logstash/data'
+        securityContext:
+          runAsUser: 0
+          runAsNonRoot: false
+          privileged: false
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - CHOWN
+            - FOWNER
+            - DAC_OVERRIDE
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        volumeMounts:
+        - name: data
+          mountPath: /usr/share/logstash/data
 ---
 apiVersion: apps/v1
 kind: DaemonSet

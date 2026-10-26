@@ -40,6 +40,38 @@ spec:
               port: 9200
             periodSeconds: 10
             failureThreshold: 60
+        initContainers:
+        - name: data-permissions
+          image: docker.elastic.co/elasticsearch/elasticsearch:9.5.5
+          command:
+          - sh
+          - -ec
+          - 'chown -R --no-dereference 1000:1000 /usr/share/elasticsearch/data
+
+            chmod 0770 /usr/share/elasticsearch/data'
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+            privileged: false
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+              - ALL
+              add:
+              - CHOWN
+              - FOWNER
+              - DAC_OVERRIDE
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          volumeMounts:
+          - name: elasticsearch-data
+            mountPath: /usr/share/elasticsearch/data
     volumeClaimTemplates:
     - metadata:
         name: elasticsearch-data
