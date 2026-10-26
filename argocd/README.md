@@ -185,3 +185,45 @@ preserve existing labels and annotations. It never deletes or prunes namespaces.
 Existing Application destination settings are respected; unknown or remote
 destinations stop before namespace changes. Preview/list/status remain read-only.
 `CreateNamespace=true` is also retained in Argo sync options as a second safeguard.
+
+### ECR pull credentials
+
+Bootstrap requires an authenticated AWS CLI and refreshes `ecr-pull` in the
+repository-managed namespaces (excluding kube-system). Defaults: region
+`us-east-1`, registry `881026659929.dkr.ecr.us-east-1.amazonaws.com`; override
+with `AWS_REGION` and `ECR_REGISTRY`. AWS credentials need
+`ecr:GetAuthorizationToken` and repository pull permissions. Tokens are sent to
+kubectl over stdin, never printed or stored in Git. App credentials in
+`roboshop-secrets` are not created or changed.
+
+Default ServiceAccounts receive the pull-secret reference, preserving other
+references. Existing explicit workload references continue to work. Custom
+ServiceAccounts must reference it themselves. There is no cluster-wide Secret;
+new unmanaged namespaces are not covered. Tokens expire after 12 hours; refresh:
+
+```bash
+./bootstrap-cluster.sh --pull-secrets-only --context mk4
+```
+
+Manual refresh does not restart existing pods. To install the optional six-hour
+CronJob, run `./bootstrap-cluster.sh --pull-secrets-only --schedule-pull-secrets`.
+See [scheduled ECR refresh](../minikube/ecr-refresh/README.md) for the required
+in-cluster AWS credentials, permissions, verification, and suspension commands.
+
+### Fresh application credentials
+
+Normal bootstrap now creates `roboshop-ai/roboshop-secrets` if absent, with
+random database passwords, service tokens, a Fernet encryption key, and the
+superadmin email `team@jithendar.com` plus a random password. Existing Secrets
+are preserved; partial Secrets require restoration rather than silent rotation.
+For an already deployed fresh cluster, run:
+
+```bash
+./bootstrap-cluster.sh --app-secrets-only
+```
+
+This requires only kubectl, not AWS. It never prints credentials or writes them
+to Git. Back up the Secret securely. Do not use newly generated passwords with
+restored databases: restore their original Secret/encryption key instead.
+External Razorpay, SES, Turnstile, AWS and Langfuse values are not fabricated;
+configure them separately. Scheduled ECR refresh still requires AWS credentials.

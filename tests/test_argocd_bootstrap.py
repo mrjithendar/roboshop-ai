@@ -8,6 +8,12 @@ bootstrap = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bootstrap)
 
 
+@pytest.fixture(autouse=True)
+def mock_credentials():
+    with patch.object(bootstrap, 'refresh_pull_secrets'), patch.object(bootstrap, 'ensure_app_secrets'):
+        yield
+
+
 def test_preview_is_offline():
     with patch('sys.argv', ['bootstrap', '--dry-run']), patch.object(bootstrap.subprocess, 'check_output') as read, patch.object(bootstrap.subprocess, 'check_call') as write:
         bootstrap.main()
@@ -43,3 +49,10 @@ def test_install_failure_stops_later_stages():
         with pytest.raises(bootstrap.subprocess.CalledProcessError):
             bootstrap.main()
     assert write.call_count == 1
+
+
+def test_pull_secret_refresh_only_skips_controllers():
+    with patch('sys.argv', ['bootstrap', '--pull-secrets-only']), patch.object(bootstrap.shutil, 'which', return_value='/bin/tool'), patch.object(bootstrap, 'refresh_pull_secrets') as refresh, patch.object(bootstrap.subprocess, 'check_output') as read:
+        bootstrap.main()
+    refresh.assert_called_once_with('mk4')
+    read.assert_not_called()

@@ -17,9 +17,8 @@ spec:
     - FailOnSharedResource=true
     - PruneLast=true
     - CreateNamespace=true
+    - ServerSideApply=true
   source:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: services/postgres
-    directory:
-      include: postgres-minikube.yaml

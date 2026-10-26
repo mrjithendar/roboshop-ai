@@ -4,7 +4,6 @@ resources:
 - ai-gateway.yaml
 - cart-service.yaml
 - catalogue-service.yaml
-# cert-manager is installed by bootstrap-cluster.sh (Helm ownership).
 - currency-service.yaml
 - frontend.yaml
 - grafana.yaml
