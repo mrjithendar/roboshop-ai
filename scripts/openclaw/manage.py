@@ -71,11 +71,16 @@ def deployment_gate():
     # This file is operator-produced after the actual isolated allow/deny network test.
     evidence=os.getenv('OPENCLAW_NETWORK_EVIDENCE')
     if evidence:
-        data=json.loads(Path(evidence).read_text())
-        import datetime
-        age=datetime.datetime.now(datetime.timezone.utc)-datetime.datetime.fromisoformat(data['checkedAt'])
-        if data.get('context')==context() and data.get('allowedConnection') is True and data.get('deniedConnection') is True and data.get('recoveredConnection') is True and 0 <= age.total_seconds() < 86400:
-            issues=[i for i in issues if i.startswith('NetworkPolicy enforcement requires')]
+        try:
+            data=json.loads(Path(evidence).read_text())
+            import datetime
+            age=datetime.datetime.now(datetime.timezone.utc)-datetime.datetime.fromisoformat(data['checkedAt'])
+            if data.get('context')==context() and data.get('allowedConnection') is True and data.get('deniedConnection') is True and data.get('recoveredConnection') is True and 0 <= age.total_seconds() < 86400:
+                issues=[i for i in issues if not i.startswith('NetworkPolicy enforcement requires')]
+            else:
+                issues.append('Network evidence must pass all controls, match the context, and be less than 24 hours old.')
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            issues.append(f'Cannot read valid network evidence from {evidence}. Run network_smoke.py after enabling policy enforcement; use its actual output path.')
     rendered=run(['kubectl','kustomize',str(ROOT/'minikube/openclaw/overlays/mk4')],True)
     if 'REPLACE_WITH_COMMIT_SHA' in rendered:issues.append('Publish the operations image and commit its immutable image reference.')
     if run(['git','status','--porcelain','--','minikube/openclaw','services/mcp-server/operations'],True,cwd=ROOT).strip():issues.append('Commit and publish reviewed OpenClaw source before GitOps bootstrap.')
@@ -131,7 +136,11 @@ def main():
     elif args.command=='test':
         validate();run([sys.executable,'-m','pytest','-q',str(ROOT/'services/mcp-server/tests/operations'),str(ROOT/'tests/test_openclaw_scripts.py')])
     elif args.command=='status':
-        print(kube('get','deploy,pod,pvc,svc,ingress','-n','openclaw'));print(kube('get','application','openclaw','-n','argocd'))
+        namespace=kube('get','namespace','openclaw','--ignore-not-found','-o','name').strip()
+        if namespace:print(kube('get','deploy,pod,pvc,svc,ingress','-n','openclaw'))
+        else:print('OpenClaw namespace has not been created; initial setup is incomplete.')
+        application=kube('get','application','openclaw','-n','argocd','--ignore-not-found').strip()
+        print(application or 'OpenClaw Argo CD Application has not been created; bootstrap has not completed.')
     elif args.command=='logs':
         # Logs can contain untrusted data; pipe through the same redaction boundary.
         sys.path.insert(0,str(ROOT/'services/mcp-server'))

@@ -3,8 +3,10 @@
 import base64,json,subprocess,sys,os
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).parent))
-from manage import context,confirm
+from manage import context,confirm,kube,ROOT
 ctx=context()
+if not kube('get','namespace','openclaw','--ignore-not-found','-o','name').strip():
+    raise SystemExit('OpenClaw namespace is missing. First run: kubectl --context '+ctx+' apply -f "'+str(ROOT/'minikube/openclaw/base/namespace.yaml')+'"')
 if '--ci' in sys.argv:
     if os.getenv('GITHUB_ACTIONS')!='true' or os.getenv('OPENCLAW_REGISTRY_REFRESH_ENABLED')!='true':raise SystemExit('CI credential refresh is not enabled')
 else:confirm('refresh-registry')

@@ -271,15 +271,18 @@ exports go to the existing collector/Jaeger, not a new Langfuse installation.
 
 ```bash
 export OPENCLAW_CONTEXT=mk4  # must already be the current context
-export PYTHON=/path/to/venv/bin/python
+export PYTHON="$(command -v python3)"  # activated environment with dependencies
 ./scripts/openclaw.sh doctor
 ./scripts/openclaw.sh validate
 ./scripts/openclaw.sh test
-python scripts/openclaw/network_smoke.py --output /secure/path/network-evidence.json
-export OPENCLAW_NETWORK_EVIDENCE=/secure/path/network-evidence.json
-python scripts/openclaw/refresh_registry.py
-./scripts/openclaw.sh bootstrap
-./scripts/openclaw.sh deploy
+# Only after NetworkPolicy enforcement is enabled:
+install -d -m 700 "$HOME/.local/state/openclaw"
+"$PYTHON" scripts/openclaw/network_smoke.py --output "$HOME/.local/state/openclaw/network-evidence.json"
+export OPENCLAW_NETWORK_EVIDENCE="$HOME/.local/state/openclaw/network-evidence.json"
+# Create the namespace before provisioning the external secrets described above.
+kubectl --context "$OPENCLAW_CONTEXT" apply -f minikube/openclaw/base/namespace.yaml
+"$PYTHON" scripts/openclaw/refresh_registry.py
+./scripts/openclaw.sh bootstrap  # Argo CD starts automatic synchronization
 ./scripts/openclaw.sh status
 ./scripts/openclaw.sh logs
 ```
