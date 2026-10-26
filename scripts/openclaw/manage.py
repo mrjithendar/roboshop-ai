@@ -36,8 +36,9 @@ def doctor():
     print('Namespaces:',', '.join(x['metadata']['name'] for x in ns['items']))
     ds=get('daemonsets','kube-system')
     images=[c['image'] for d in ds['items'] for c in d['spec']['template']['spec']['containers']]
-    if any('kindest/kindnetd' in i for i in images) and not any(any(engine in i for engine in ('kube-network-policies','cilium','calico')) for i in images):issues.append('kindest/kindnetd does not implement NetworkPolicy; deploy is blocked pending an approved policy-enforcement change and positive/negative connectivity tests.')
-    else:issues.append('NetworkPolicy enforcement requires recorded allow/deny smoke evidence; a CNI name alone is not proof.')
+    if any('kindest/kindnetd' in i for i in images) and not any(any(engine in i for engine in ('kube-network-policies','cilium','calico')) for i in images):
+        print('NOTE: kindest/kindnetd detected without a recognized policy engine. Engine-name detection is advisory; allow/deny/recovery evidence determines enforcement.')
+    issues.append('NetworkPolicy enforcement requires recorded allow/deny smoke evidence; a CNI name alone is not proof.')
     certs=get('certificates.cert-manager.io','jithendar')['items']
     ready=any(c['metadata']['name']=='jithendar-com' and any(s['type']=='Ready' and s['status']=='True' for s in c.get('status',{}).get('conditions',[])) for c in certs)
     if not ready:issues.append('Canonical jithendar/jithendar-com certificate is not Ready.')
@@ -77,6 +78,7 @@ def deployment_gate():
             age=datetime.datetime.now(datetime.timezone.utc)-datetime.datetime.fromisoformat(data['checkedAt'])
             if data.get('context')==context() and data.get('allowedConnection') is True and data.get('deniedConnection') is True and data.get('recoveredConnection') is True and 0 <= age.total_seconds() < 86400:
                 issues=[i for i in issues if not i.startswith('NetworkPolicy enforcement requires')]
+                print('NetworkPolicy gate passed: fresh allow/deny/recovery evidence matches the current context.')
             else:
                 issues.append('Network evidence must pass all controls, match the context, and be less than 24 hours old.')
         except (OSError, ValueError, KeyError, TypeError, AttributeError):

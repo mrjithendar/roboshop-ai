@@ -287,6 +287,14 @@ kubectl --context "$OPENCLAW_CONTEXT" apply -f minikube/openclaw/base/namespace.
 ./scripts/openclaw.sh logs
 ```
 
+The network test retries API/exec transport failures three times; these failures
+never count as denied connections. Evidence is written only after a successful
+positive control, three consecutive remote connection denials, and recovery.
+If the test fails, stop before bootstrap and resolve the reported issue. A
+cleanup request may leave its temporary namespace Terminating briefly. Use a
+new output filename when refreshing existing evidence; the script does not
+overwrite previous evidence.
+
 Changing commands require interactive confirmation. Evidence is valid for one day
 and must identify the current context. No script switches kube contexts. The
 `bootstrap` command assumes approved initial namespace/Secrets exist and applies
