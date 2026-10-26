@@ -222,7 +222,7 @@ through your approved secret workflow. The initial operator bootstrap requires:
 | openclaw / openclaw-gateway-secrets | `OPENAI_API_KEY`, `OPENCLAW_GATEWAY_TOKEN`, `OPS_ORCHESTRATOR_TOKEN`, `OPS_SRE_TOKEN`, `OPS_ARGOCD_TOKEN`, `OPS_GITHUB_TOKEN`, `OPS_AWS_TOKEN`, `OPS_OBSERVABILITY_TOKEN`, `OPS_ROBOSHOP_TOKEN`, `OPS_BLOG_TOKEN` |
 | openclaw / openclaw-operations-identities | `identities.json`: agent → corresponding distinct token; add `monitor` |
 | openclaw / openclaw-registry | `.dockerconfigjson` for existing ECR registry |
-| openclaw / openclaw-edge-auth | `users`: bcrypt htpasswd entry, required by the mk4 ingress |
+| openclaw / openclaw-edge-auth | `users`: legacy bcrypt htpasswd entry, retained only for rollback; not used by ingress |
 | openclaw / openclaw-integration-secrets | Optional `GITHUB_TOKEN`, `GRAFANA_TOKEN`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_URL`, approved AWS temporary credential settings |
 | monitoring / openclaw-metrics-auth | `token`: metrics-only operations token; `gateway-token`: OpenClaw gateway token |
 
@@ -277,9 +277,9 @@ exports go to the existing collector/Jaeger, not a new Langfuse installation.
 8. Add the monitoring ConfigMap through an existing monitoring GitOps owner.
    Merge the optional Prometheus/Grafana values into their existing releases.
    Avoid a second controller managing the same Helm resources.
-9. Create the edge-auth Secret before syncing `overlays/mk4`, then validate
+9. Ensure gateway token authentication is enabled before syncing `overlays/mk4`, then validate
    the `/openclaw` route and TLS. Ingress and workloads use the same overlay.
-10. Verify with a dedicated browser: HTTPS certificate, BasicAuth, device pairing,
+10. Verify with a dedicated browser: HTTPS certificate, gateway login, device pairing,
     WebSocket connection and a read-only investigation. Do not mark deployment
     complete until this passes with real evidence.
 
@@ -458,13 +458,20 @@ scheduling; do not remove it merely to move the gateway to a different worker.
 
 The Argo CD Application selects the single `mk4` overlay and serves
 `https://jithendar.com/openclaw` through Traefik's existing TLS configuration.
-Access is allowed from any IP, with BasicAuth at the edge plus OpenClaw's
-existing gateway token/device authentication. The `openclaw-edge-auth` Secret
-must exist before syncing. The local initial credential is stored outside Git
-at `~/.local/state/openclaw/ingress-credentials.txt` with mode 0600.
+Access is allowed from any IP. OpenClaw's native gateway token authentication
+and device pairing protect access. The UI shell is publicly reachable, but
+protected gateway operations still require authentication. Do not attach the
+legacy BasicAuth middleware: it conflicts with the UI's Bearer Authorization
+header and causes repeated browser password challenges. The unused middleware
+and edge Secret remain for rollback only; the old ingress username/password
+are no longer used. Enter the gateway token in OpenClaw and approve pairing
+for new devices as needed.
 The route preserves `/openclaw` and does not expose the operations service.
 
 ### Container startup and proxy attribution
+
+The gateway requests 1 GiB and has a 4 GiB memory limit. The previous 2 GiB
+limit caused OOM kills during gateway use and interrupted browser sessions.
 
 The init container stages a writable configuration under `/runtime-config/config`
 and copies any existing state into the UID-1000-owned `runtime` subdirectory of

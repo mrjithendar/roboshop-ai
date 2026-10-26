@@ -40,7 +40,10 @@ class Manifests(unittest.TestCase):
   docs=self.objects
   ingress=next(d for d in docs if d['kind']=='Ingress')
   self.assertNotIn('secretName',ingress['spec']['tls'][0])
-  self.assertIn('openclaw-auth',ingress['metadata']['annotations']['traefik.ingress.kubernetes.io/router.middlewares'])
+  self.assertEqual('openclaw-openclaw-headers@kubernetescrd',ingress['metadata']['annotations']['traefik.ingress.kubernetes.io/router.middlewares'])
+  config=json.loads((ROOT/'minikube/openclaw/base/openclaw.json').read_text())
+  self.assertEqual(config['gateway']['auth']['mode'],'token')
+  self.assertFalse(config['gateway']['controlUi'].get('dangerouslyDisableDeviceAuth',False))
   self.assertFalse(any('stripPrefix' in d.get('spec',{}) for d in docs))
   self.assertFalse(any(d['kind']=='Certificate' for d in docs))
  def test_pinned_official_image_and_agent_configuration(self):

@@ -6,7 +6,7 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: 'true'
-    traefik.ingress.kubernetes.io/router.middlewares: openclaw-openclaw-auth@kubernetescrd,openclaw-openclaw-headers@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: openclaw-openclaw-headers@kubernetescrd
 spec:
   ingressClassName: traefik
   tls:
@@ -30,6 +30,8 @@ metadata:
   name: openclaw-auth
   namespace: openclaw
 spec:
+  # Retained for rollback only; not attached to the ingress.
+  # Native gateway Bearer authentication must reach OpenClaw unchanged.
   basicAuth:
     # Separate credentials from other protected apps on jithendar.com.
     realm: OpenClaw
