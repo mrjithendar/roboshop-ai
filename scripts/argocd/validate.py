@@ -63,6 +63,14 @@ def render(app, external=False):
     return result
 
 
+def validate_inventory(workloads):
+    # This is the required active catalog, not a historical snapshot of live pods.
+    # Do not filter expected entries by rendered apps: that would hide omissions.
+    inventory = ROOT/'minikube/gitops/workload-inventory.json'
+    expected = {tuple(row) for row in json.loads(inventory.read_text())}
+    assert expected <= workloads, f'Unmanaged workloads: {sorted(expected-workloads)}'
+
+
 def validate(external=False):
     docs=catalog();projects={d['metadata']['name']:d for d in docs if d['kind']=='AppProject'}
     apps=[d for d in docs if d['kind']=='Application']
@@ -94,10 +102,8 @@ def validate(external=False):
             assert key not in owners,f'{key} belongs to both {owners.get(key)} and {name}'
             owners[key]=name
             if kind in ('Deployment','StatefulSet','DaemonSet'):workloads.add((kind,namespace,meta['name']))
-    inventory=ROOT/'minikube/gitops/workload-inventory.json'
     if external:
-        expected={tuple(row) for row in json.loads(inventory.read_text())}
-        assert expected<=workloads,f'Unmanaged workloads: {sorted(expected-workloads)}'
+        validate_inventory(workloads)
     print(f'Validated {len(apps)} Applications, {len(owners)} unique resources; external charts {"included" if external else "not rendered"}.')
     return apps,owners
 

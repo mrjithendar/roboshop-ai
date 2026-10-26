@@ -51,5 +51,8 @@ def test_default_and_all_include_entire_catalog(arguments, capsys):
     output = capsys.readouterr().out
     apps, _ = deploy.catalog()
     assert 'action: ' + ' '.join(sorted(apps)) in output
-    for name in ('openclaw', 'mongodb', 'jfrog', 'product-ingestion', 'shopping-agent'):
+    for name in ('mongodb', 'moks', 'catalogue-service'):
         assert name in output
+
+    for name in ('openclaw', 'jfrog', 'product-ingestion', 'shopping-agent'):
+        assert name not in output

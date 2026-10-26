@@ -10,9 +10,10 @@ module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 def test_catalog_has_unique_safe_ownership():
     apps,owners=module.validate()
     names={app['metadata']['name'] for app in apps}
-    assert {'shopping-agent','product-ingestion','openclaw'}<=names
+    assert {'moks','catalogue-service'} <= names
+    assert not {'shopping-agent','product-ingestion','openclaw','jfrog'} & names
     assert not {'argocd','traefik','coredns','kube-proxy','kindnet'}&names
-    assert len(apps)==31
+    assert len(apps)==26
     assert owners[('apps','Deployment','roboshop-ai','mongodb')]=='mongodb'
     assert ('apps','StatefulSet','roboshop-ai','mongodb') not in owners
     assert owners[('apps','StatefulSet','roboshop-ai','kafka')]=='kafka-bridge'
@@ -52,7 +53,7 @@ def test_helm_releases_keep_names_and_pinned_versions():
 def test_shared_namespace_has_valid_metadata():
     namespace,config=list(yaml.safe_load_all((ROOT/'minikube/roboshop/config.yaml').read_text()))
     assert 'LOG_FORMAT' not in namespace['metadata']
-    assert config['data']['LOG_FORMAT']=='text'
+    assert config['data']['LOG_FORMAT']=='json'
 
 
 def test_imperative_guard_refuses_existing_application(tmp_path):
@@ -82,3 +83,26 @@ def test_inventory_excludes_cluster_managed_networking():
     assert not any(namespace=='kube-system' and name in {'coredns','kindnet','kube-proxy'}
                    for kind,namespace,name in inventory)
     assert ['Deployment','kube-system','metrics-server'] in inventory
+
+
+def test_required_inventory_matches_active_catalog_and_rejects_missing_workloads():
+    import json
+    import pytest
+    expected={tuple(row) for row in json.loads((ROOT/'minikube/gitops/workload-inventory.json').read_text())}
+    assert not any(ns=='openclaw' or name in ('product-ingestion','shopping-agent') for _,ns,name in expected)
+    assert ('Deployment','roboshop-ai','moks') in expected
+    assert ('Deployment','roboshop-ai','catalogue-service') in expected
+    module.validate_inventory(expected)
+    # Every remaining entry stays mandatory, including chart-generated workloads.
+    for workload in expected:
+        with pytest.raises(AssertionError, match='Unmanaged workloads'):
+            module.validate_inventory(expected-{workload})
+
+
+def test_external_validation_calls_required_inventory(monkeypatch):
+    # Mock Helm rendering, not the coverage assertion. Missing chart workloads must fail.
+    original=module.render
+    monkeypatch.setattr(module,'render',lambda app,external=False: original(app,False))
+    import pytest
+    with pytest.raises(AssertionError,match='Unmanaged workloads'):
+        module.validate(external=True)

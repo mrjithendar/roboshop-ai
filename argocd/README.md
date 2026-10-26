@@ -59,11 +59,11 @@ Do not enable Force/Replace to resolve an immutable-field difference.
 | ai-gateway, cart-service, catalogue-service, currency-service, frontend, jaeger, kafka-bridge, mcp-server, moks, nginx, otel-collector, payment-service, postgres, rabbitmq, redis, shipping-service, user-service | Only the named `services/<service>/*-minikube.yaml` file is loaded. `postgres` owns shipping-db; `kafka-bridge` owns the Kafka StatefulSet and bridge sidecar. |
 | roboshop-config | Shared ConfigMap, namespace and shop ingress; one owner for shared configuration. |
 | mongodb | Existing Deployment, Service and PVC baseline; **not** the repo's newer StatefulSet. A controller conversion needs a separate data migration. |
-| shopping-agent, product-ingestion | Existing legacy Deployment and Service baselines; not deleted or silently replaced by moks. |
+| shopping-agent, product-ingestion | Retired from the active catalog; functionality resides in Moks/catalogue. Historical adoption files do not make these required workloads. |
 | cert-manager, metrics-server, grafana | Pinned upstream Helm charts with Git-hosted values and existing release names. |
 | roboshop-letsencrypt, prometheus, wordpress | Existing local charts and release names. WordPress ingress remains enabled for the existing initialized site. |
 | shared-tls | The single existing TLSStore in jithendar; no duplicate certificate or Traefik controller. WordPress owns the canonical Certificate. |
-| openclaw | Existing private overlay, unchanged workload identity and sync behavior. |
+| openclaw | Optional, currently disabled in the root catalog and excluded from its required workload inventory. |
 | jfrog | Optional, currently absent. Manual sync only, requires bootstrap credentials, storage and host-capacity checks first. Public ingress remains a separate explicit exposure step. |
 
 Langfuse is a cloud integration and n8n has no deployment manifests, so neither
@@ -110,3 +110,11 @@ Optional ELK logging is staged separately to preserve deployment ordering and av
 adding a collector during `deploy all`. See [ELK deployment](../observability/elk/README.md):
 `project-elk.yaml`, then (only if no existing ECK) `elk-operator.yaml`, then
 `elk-core.yaml`, then `elk-pipeline.yaml`. Namespace `els`, Kibana at `/elk`.
+
+
+The required workload inventory (`minikube/gitops/workload-inventory.json`) covers
+only the active default catalog. OpenClaw's three optional deployments and retired
+product-ingestion/shopping-agent deployments are excluded. Enabling optional apps
+requires reviewing their project, ownership and inventory together. Validation still
+fails when any required active workload is absent; it never filters expected entries
+against whatever happened to render. This inventory change does not delete live pods.

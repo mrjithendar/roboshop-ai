@@ -46,21 +46,6 @@
   ],
   [
     "Deployment",
-    "openclaw",
-    "openclaw"
-  ],
-  [
-    "Deployment",
-    "openclaw",
-    "openclaw-egress"
-  ],
-  [
-    "Deployment",
-    "openclaw",
-    "openclaw-operations"
-  ],
-  [
-    "Deployment",
     "roboshop-ai",
     "ai-gateway"
   ],
@@ -122,11 +107,6 @@
   [
     "Deployment",
     "roboshop-ai",
-    "product-ingestion"
-  ],
-  [
-    "Deployment",
-    "roboshop-ai",
     "redis"
   ],
   [
@@ -138,11 +118,6 @@
     "Deployment",
     "roboshop-ai",
     "shipping-service"
-  ],
-  [
-    "Deployment",
-    "roboshop-ai",
-    "shopping-agent"
   ],
   [
     "Deployment",
