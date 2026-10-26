@@ -13,16 +13,10 @@ from runtime import HttpError, request
 class QuoteError(HttpError):
     code = 'CHECKOUT_QUOTE_INVALID'
 
-# This checkout ledger uses hundredths. Zero/three-decimal currencies need a
-# separate minor-unit migration and cannot be enabled through configuration.
-SUPPORTED = frozenset('INR USD EUR GBP SGD AUD CAD NZD CHF CNY HKD CZK DKK HUF PLN RON NOK SEK TRY BRL MXN ZAR MYR PHP THB IDR ILS'.split())
-
-
 def currencies():
-    selected = [x.strip().upper() for x in os.getenv('CHECKOUT_CURRENCIES', 'INR,USD,GBP,SGD,AUD').split(',') if x.strip()]
-    if not selected or not set(selected) <= SUPPORTED:
-        raise HttpError(503, 'Checkout currency configuration is invalid.')
-    return list(dict.fromkeys(selected))
+    # Settlement is INR-only, regardless of storefront display preferences or
+    # an older deployment's CHECKOUT_CURRENCIES environment setting.
+    return ['INR']
 
 
 def secret():
@@ -98,7 +92,7 @@ def issue(session, cart, revision, currency, payment_mode="test"):
     if payment_mode not in ("test", "live"):
         raise HttpError(503, "Payment mode unavailable.")
     if currency not in currencies():
-        raise QuoteError(400, 'This currency is not enabled for checkout. Choose an available payment currency.')
+        raise QuoteError(400, 'Payments are accepted only in INR. Refresh your checkout total.')
     if not cart['items'] or any(item.get('unavailable') for item in cart['items']):
         raise HttpError(409, 'Remove unavailable items and add a purchasable product before requesting a quote.')
     origin = cart['currency']
@@ -116,7 +110,7 @@ def issue(session, cart, revision, currency, payment_mode="test"):
             rate = right / left
             source = 'ECB reference rate; merchant checkout quote'
         except (KeyError, ValueError, ArithmeticError, TypeError):
-            raise HttpError(503, 'Currency quote unavailable. Please retry later or select the original currency.')
+            raise HttpError(503, 'Currency quote unavailable. Please retry later. Payments require a valid INR quote.')
     payload = {'paymentMode': payment_mode, 'session': session, 'revision': revision, 'fingerprint': fingerprint(cart),
                'currency': currency, 'sourceCurrency': origin, 'rate': str(rate),
                'rateDate': as_of, 'source': source, 'expiresAt': int(time.time()) + 300}

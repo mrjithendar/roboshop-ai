@@ -1,4 +1,4 @@
-import { appPath, productImage, loadCurrencyRates, storefrontCurrencies } from './paths.js';
+import { appPath, productImage, loadCurrencyRates } from './paths.js';
 import { currentUser, initAccount, showLogin } from './account.js';
 export {};
 
@@ -69,14 +69,6 @@ async function quoteCheckout() {
   const notice = document.querySelector('#currency-status');
   if (notice) notice.textContent = currencyNoticePrefix + `You will pay in ${result.cart.currency}. Total is fixed for five minutes; bank fees may apply.`;
 }
-currencySelect?.addEventListener('change', async () => {
-  if (pendingOrder || cartBusy) return;
-  checkoutCurrency = currencySelect.value; currencyNoticePrefix = ''; checkoutKey = null;
-  try { localStorage.setItem('roboshop.displayCurrency', checkoutCurrency); } catch { /* Optional storage */ }
-  cartBusy = true; invalidateQuote(); renderCart();
-  try { await quoteCheckout(); } catch (error) { $('#order-result').textContent = errorMessage(error); }
-  finally { cartBusy = false; renderCart(); }
-});
 let toastTimer: ReturnType<typeof setTimeout> | undefined, citySearchTimer: ReturnType<typeof setTimeout> | undefined;
 let shippingDirty = false, citySearchVersion = 0;
 let paymentConfig: PaymentConfig = { enabled: false };
@@ -90,7 +82,7 @@ async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   try { result = await response.json(); } catch { throw new Error('The service is unavailable. Please try again.'); }
   if (!response.ok && result.code === 'CHECKOUT_QUOTE_INVALID') {
     invalidateQuote();
-    throw new ApiError('Refresh your checkout total and choose an enabled payment currency before paying.', response.status);
+    throw new ApiError('Refresh your checkout total in INR before paying.', response.status);
   }
   if (!response.ok) throw new ApiError(result.error || 'The request could not be completed.', response.status);
   return result;
@@ -114,7 +106,7 @@ async function updateCart(sku: string, quantity: number) {
 }
 function renderCart() {
   const displayCart = pendingOrder?.items ? pendingOrder : checkoutQuote?.cart || cartPreview || cart;
-  if (currencySelect) currencySelect.disabled = cartBusy || Boolean(pendingOrder) || !paymentConfig.currencies?.length;
+  if (currencySelect) currencySelect.disabled = true;
   if (pendingOrder && currencySelect && pendingOrder.currency) {
     if (![...currencySelect.options].some(o => o.value === pendingOrder!.currency)) currencySelect.add(new Option(pendingOrder.currency, pendingOrder.currency));
     currencySelect.value = pendingOrder.currency;
@@ -198,24 +190,23 @@ async function checkPayment() {
 }
 async function loadPaymentConfig() {
   try { paymentConfig = await api<PaymentConfig>('/api/payments/config');
-    if (paymentConfig.currencies) paymentConfig.currencies = paymentConfig.currencies.filter(code => storefrontCurrencies.includes(code)); $('#payment-notice').textContent = paymentConfig.message || '';
-    if (paymentConfig.currencies?.length && currencySelect) {
+    paymentConfig.currencies = paymentConfig.currencies?.filter(code => code === 'INR');
+    $('#payment-notice').textContent = paymentConfig.message || '';
+    checkoutCurrency = 'INR';
+    currencyNoticePrefix = 'Payments are accepted only in INR. ';
+    if (!paymentConfig.currencies?.length) paymentConfig.enabled = false;
+    if (currencySelect) {
       document.querySelector<HTMLElement>('#currency-control')!.hidden = false;
-      let preferred = ''; try { preferred = localStorage.getItem('roboshop.displayCurrency') || ''; } catch { /* Optional storage */ }
-      if (!storefrontCurrencies.includes(preferred)) preferred = '';
-      const savedPreference = preferred;
-      displayRates = null;
-      if (!preferred || !currentUser) {
-        try { displayRates = await loadCurrencyRates(); } catch { /* Original currency remains usable. */ }
-      }
-      if (!preferred && displayRates?.suggestedCurrency) preferred = displayRates.suggestedCurrency;
-      checkoutCurrency = paymentConfig.currencies.includes(preferred) ? preferred : paymentConfig.currencies.includes(cart.currency || '') ? cart.currency! : paymentConfig.currencies[0];
-      currencySelect.replaceChildren(...storefrontCurrencies.map(code => { const option = new Option(code, code); option.disabled = !paymentConfig.currencies!.includes(code); return option; })); currencySelect.value = checkoutCurrency;
-      if (!savedPreference) { try { localStorage.setItem('roboshop.displayCurrency', checkoutCurrency); } catch { /* Optional storage */ } }
-      const notice = document.querySelector('#currency-status');
-      currencyNoticePrefix = preferred && preferred !== 'original' && !paymentConfig.currencies.includes(preferred) ? `${preferred} is not available for payment. Review your total in ${checkoutCurrency} before paying. ` : '';
-      if (notice) notice.textContent = currencyNoticePrefix + 'Change your currency in the header. Final totals are confirmed before payment.';
+      currencySelect.replaceChildren(new Option('INR — payment currency', 'INR'));
+      currencySelect.value = 'INR';
+      currencySelect.disabled = true;
     }
+    displayRates = null;
+    if (!currentUser) {
+      try { displayRates = await loadCurrencyRates(); } catch { /* A server quote is required before payment. */ }
+    }
+    const notice = document.querySelector('#currency-status');
+    if (notice) notice.textContent = currencyNoticePrefix + 'Your items and shipping are converted before payment. Review the final INR total below.';
   }
   catch { paymentConfig = { enabled: false }; $('#payment-notice').textContent = 'Payments are unavailable. Please try again later.'; }
   renderCart();

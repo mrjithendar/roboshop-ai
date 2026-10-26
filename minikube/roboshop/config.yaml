@@ -11,8 +11,8 @@ metadata:
   labels:
     app.kubernetes.io/part-of: roboshop-ai
 data:
-  LOG_FORMAT: text
-  CHECKOUT_CURRENCIES: INR,USD,GBP,SGD,AUD
+  LOG_FORMAT: json
+  CHECKOUT_CURRENCIES: INR
   CURRENCY_URL: http://currency-service:4111
   HOST: 0.0.0.0
   APP_ENV: development

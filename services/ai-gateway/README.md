@@ -238,10 +238,10 @@ or to demonstrate the not-configured response.
 All accepted checkout keys are session-scoped durable aliases, including keys accepted
 while another order is pending. They survive payment, cart refill and restart, and the
 JSON importer preserves them when moving to PostgreSQL. They never change order money.
-New unquoted checkouts are permitted only in an enabled source currency; conversion
+New payments are accepted only in INR. Unquoted INR carts are allowed; conversion
 requires a current, signed, session/revision/mode-bound quote. Existing orders keep their
-original currency even after `CHECKOUT_CURRENCIES` changes. The frontend invalidates a
-rejected quote and asks the customer to refresh/select an enabled currency.
+original currency for reconciliation. The frontend converts checkout to INR independently
+of the storefront display preference and requires a refreshed quote when rates are unavailable.
 
 Archiving changes catalogue visibility, not capacity. Pending reservations block archive.
 Unarchiving preserves sold/reserved balances. PostgreSQL capacity edits require the

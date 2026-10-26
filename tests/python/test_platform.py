@@ -44,25 +44,26 @@ class AgentTests(unittest.TestCase):
 class StoreTests(unittest.TestCase):
     @patch.dict(os.environ, {"CHECKOUT_CURRENCIES": "INR,USD,EUR"})
     def test_cart_ownership_and_payment(self):
+        products = [dict(p, currency='INR') for p in PRODUCTS]
         with tempfile.TemporaryDirectory() as directory:
             store = Store(directory)
             guest = store.session(None)
-            store.update(guest, "RMC", 2, PRODUCTS)
+            store.update(guest, "RMC", 2, products)
             account = store.session(guest, "alice")
             self.assertNotEqual(account, guest)
             other = store.session(account, "bob")
-            self.assertEqual(store.cart(other, PRODUCTS)["items"], [])
+            self.assertEqual(store.cart(other, products)["items"], [])
             from runtime import iso
 
-            store.set_shipping(account, {"cost": 5, "quotedAt": iso()}, PRODUCTS)
-            order = store.begin_payment(account, "a" * 20, PRODUCTS)
+            store.set_shipping(account, {"cost": 5, "currency":"INR", "quotedAt": iso()}, products)
+            order = store.begin_payment(account, "a" * 20, products)
             self.assertEqual(
-                store.begin_payment(account, "a" * 20, PRODUCTS)["id"], order["id"]
+                store.begin_payment(account, "a" * 20, products)["id"], order["id"]
             )
             provider = {
                 "orderId": "provider-1",
                 "amount": cents(order["total"]),
-                "currency": "EUR",
+                "currency": "INR",
             }
             store.attach_payment(order["id"], provider)
             with self.assertRaises(HttpError):

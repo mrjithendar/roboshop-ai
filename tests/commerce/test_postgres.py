@@ -151,10 +151,10 @@ class CommerceTests(unittest.TestCase):
         self.assertTrue(complete.is_set());self.assertEqual(errors,[409])
         self.assertFalse(db.products.find_one()['archived'])
 
-    def test_disabled_currency_rolls_back_inventory_initialization(self):
+    def test_invalid_quote_rolls_back_inventory_initialization(self):
         session=self.cart('buyer')
-        with patch.dict(os.environ,CHECKOUT_CURRENCIES='USD'):
-            with self.assertRaises(HttpError):self.reserve(session)
+        with self.assertRaises(HttpError):
+            self.store.reserve_payment(session,'checkout-key-123456',[P],'test','rzp_test_mock',quote_token='malformed')
         with self.store.connect() as c:
             self.assertEqual(c.execute('SELECT count(*) n FROM commerce_reservations').fetchone()['n'],0)
             self.assertEqual(c.execute('SELECT count(*) n FROM commerce_orders').fetchone()['n'],0)

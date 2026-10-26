@@ -376,7 +376,7 @@ class Store:
         if quote_token is not None:
             cart = currency_quote.apply(cart, quote_token, id, self.cart_version(id), payment_mode)
         elif cart["currency"] not in currency_quote.currencies():
-            raise currency_quote.QuoteError(400, "This currency is not enabled for checkout. Refresh your total and choose an enabled currency.")
+            raise currency_quote.QuoteError(400, "Payments are accepted only in INR. Refresh your total to convert your cart.")
         order = {
             "id": str(uuid.uuid4()),
             "session": id,

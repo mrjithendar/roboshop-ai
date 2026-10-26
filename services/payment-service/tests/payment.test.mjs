@@ -35,14 +35,17 @@ test('Razorpay order is server-priced and never permits partial payment', async 
     const data = JSON.parse(options.body); assert.equal(data.partial_payment, false); assert.equal(data.amount, 4200);
     return { ok: true, json: async () => ({ id: 'order_UNIT', status: 'created', ...data }) };
   });
-  assert.equal((await provider.create({ amount: 4200, currency: 'EUR', receipt: '11111111-1111-1111-1111-111111111111' })).orderId, 'order_UNIT');
+  assert.equal((await provider.create({ amount: 4200, currency: 'INR', receipt: '11111111-1111-1111-1111-111111111111' })).orderId, 'order_UNIT');
   await assert.rejects(provider.create({ amount: -1, currency: 'EUR', receipt: 'bad' }), /Invalid/);
 });
 
-test('USD orders retain their currency and cents through provider creation',async()=>{
- const provider=new Razorpay(config,async(url,options)=>({ok:true,json:async()=>({id:'order_USD',...JSON.parse(options.body),status:'created'})}));
- const order=await provider.create({amount:19900,currency:'USD',receipt:'12345678-1234-1234-1234-123456789abc'});
- assert.equal(order.currency,'USD');assert.equal(order.amount,19900);
+test('new non-INR orders are rejected before calling Razorpay',async()=>{
+ let calls=0;
+ const provider=new Razorpay(config,async()=>{calls++;throw Error('Unexpected provider request');});
+ for(const currency of ['USD','EUR','GBP','SGD','AUD']) {
+  await assert.rejects(provider.create({amount:19900,currency,receipt:'12345678-1234-1234-1234-123456789abc'}), /Invalid payment order/);
+ }
+ assert.equal(calls,0);
 });
 
 test('INR prices are passed to Razorpay as paise without another conversion',async()=>{
@@ -150,8 +153,8 @@ test('test mode never accepts authorized-only, refunded, wrong-order or replayed
   }
 });
 
-test('enabled local currency amounts reach Razorpay unchanged and captures retain currency checks', async () => {
- for (const currency of ['INR','USD','GBP','SGD','AUD']) {
+test('INR amounts reach Razorpay unchanged and captures retain currency checks', async () => {
+ for (const currency of ['INR']) {
   const provider = new Razorpay(config, async (url, options) => {
    const data=JSON.parse(options.body); assert.equal(data.currency,currency); assert.equal(data.amount,12345);
    return {ok:true,json:async()=>({id:'order_FX',status:'created',...data})};

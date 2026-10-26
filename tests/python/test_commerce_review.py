@@ -33,8 +33,6 @@ class CheckoutAliases(unittest.TestCase):
         self.assertEqual(self.store.cart(self.alice,fixture.PRODUCTS)['items'][0]['quantity'],2)
 
     def test_disabled_currency_and_malformed_quote_never_reserve(self):
-        with patch.dict(os.environ, CHECKOUT_CURRENCIES='USD'):
-            with self.assertRaises(HttpError):self.gateway.checkout(self.alice,fixture.KEY)
         for token in ('', 'malformed'):
             with self.assertRaises(HttpError):self.gateway.checkout(self.alice,fixture.KEY,token)
         self.assertEqual(self.store.orders(),[])
