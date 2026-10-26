@@ -28,13 +28,13 @@ spec:
           resources:
             requests:
               cpu: 500m
-              memory: 3Gi
+              memory: 4Gi
             limits:
               cpu: '2'
-              memory: 3Gi
+              memory: 4Gi
           env:
           - name: ES_JAVA_OPTS
-            value: -Xms1536m -Xmx1536m
+            value: -Xms1g -Xmx1g -XX:MaxDirectMemorySize=512m
           startupProbe:
             tcpSocket:
               port: 9200

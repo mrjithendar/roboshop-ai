@@ -45,11 +45,49 @@ def main():
                 raise RuntimeError('Existing Application uses another namespace; review migration before changing its destination')
             if live.get('operation'):
                 raise RuntimeError('An Argo sync is already running; wait for it before retrying')
+        # Stop before mutations when an earlier deployment stage is not ready.
+        if args.app=='elk-core':
+            operators=get('pods')['items']
+            ready=any(any('eck-operator' in c.get('image','') for c in pod['spec'].get('containers',[]))
+                      and any(c.get('type')=='Ready' and c.get('status')=='True' for c in pod.get('status',{}).get('conditions',[]))
+                      for pod in operators)
+            if not ready:
+                raise RuntimeError('ECK operator is not Ready; sync elk-operator and wait for its pod first')
+        if args.app=='elk-pipeline':
+            es=json.loads(run(kube+['get','elasticsearch','logs','-n','elk','-o','json']))
+            if es.get('status',{}).get('health') not in ('green','yellow'):
+                raise RuntimeError('Elasticsearch is not ready; finish elk-core before syncing elk-pipeline')
+            for name in ('logstash-server','filebeat-client'):
+                cert=json.loads(run(kube+['get','certificate',name,'-n','elk','-o','json']))
+                if not any(c.get('type')=='Ready' and c.get('status')=='True' for c in cert.get('status',{}).get('conditions',[])):
+                    raise RuntimeError(name+' certificate is not Ready; finish elk-core first')
         run(command+['apply','-f',str(ROOT/'argocd/project-elk.yaml')])
         run(command+['apply','-f',str(ROOT/'argocd'/f'{args.app}.yaml')])
+        # API-triggered operations do not automatically inherit the Application's
+        # sync options. In particular, omitting CreateNamespace breaks ECK setup.
+        configured=json.loads(run(command+['get','application',args.app,'-o','json']))
+        options=configured.get('spec',{}).get('syncPolicy',{}).get('syncOptions',[])
+        if 'CreateNamespace=true' not in options or 'FailOnSharedResource=true' not in options:
+            raise RuntimeError('Application lacks required namespace/ownership sync options')
+        # Invalidate old Git render cache when a namespace change was just pushed.
+        run(command+['annotate','application',args.app,'argocd.argoproj.io/refresh=hard','--overwrite'])
+        # Refresh is asynchronous. Do not submit a sync against a cached old render.
+        refresh_deadline=time.monotonic()+args.timeout
+        while True:
+            refreshed=json.loads(run(command+['get','application',args.app,'-o','json']))
+            if 'argocd.argoproj.io/refresh' not in refreshed.get('metadata',{}).get('annotations',{}):
+                status=refreshed.get('status',{})
+                if any(c.get('type') in ('ComparisonError','InvalidSpecError') for c in status.get('conditions',[])):
+                    raise RuntimeError('Argo cannot render '+args.app+'; inspect its Application conditions')
+                if any(r.get('namespace')=='els' for r in status.get('resources',[])):
+                    raise RuntimeError('Git still renders namespace els; push the elk namespace changes before syncing')
+                break
+            if time.monotonic()>=refresh_deadline:
+                raise RuntimeError('Argo hard refresh timed out; no sync requested')
+            time.sleep(3)
         marker='elk-setup-'+secrets.token_hex(8)
         run(command+['patch','application',args.app,'--type=merge','--patch-file=/dev/stdin'],
-            json.dumps({'operation':{'initiatedBy':{'username':marker},'sync':{'prune':False}}}))
+            json.dumps({'operation':{'initiatedBy':{'username':marker},'sync':{'prune':False,'syncOptions':options}}}))
         deadline=time.monotonic()+args.timeout
         while time.monotonic()<deadline:
             app=json.loads(run(command+['get','application',args.app,'-o','json']))
@@ -77,8 +115,8 @@ def main():
             for suffix,scale in [('Ki',1/1024),('Mi',1),('Gi',1024)]:
                 if value.endswith(suffix):return float(value[:-len(suffix)])*scale
             return float(value)/(1024*1024)
-        if not any(mib(n['status']['allocatable']['memory'])>=4096 for n in nodes):
-            raise RuntimeError('No node has 4 GiB allocatable; Elasticsearch requests 3 GiB plus node overhead. Resize a node first.')
+        if not any(mib(n['status']['allocatable']['memory'])>=5120 for n in nodes):
+            raise RuntimeError('No node has 5 GiB allocatable; Elasticsearch requests 4 GiB plus node overhead. Resize a node first.')
         pods=get('pods')['items']
         operators=[];collectors=[]
         for pod in pods:

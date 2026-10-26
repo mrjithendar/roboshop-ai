@@ -58,19 +58,19 @@ release is supported merely because the manifests render.
 
 | Component | Replicas | CPU request / limit | RAM request / limit | Heap/storage |
 | --- | --- | --- | --- | --- |
-| Elasticsearch | 1 | 500m / 2 | 3 GiB / 3 GiB | 1536 MiB heap; 40 GiB PVC |
+| Elasticsearch | 1 | 500m / 2 | 4 GiB / 4 GiB | 1 GiB heap, 512 MiB direct; 40 GiB PVC |
 | Kibana | 1 | 250m / 1 | 1 GiB / 1.5 GiB | Node heap 768 MiB |
 | Logstash | 1 | 250m / 1 | 1 GiB / 1.5 GiB | heap 512 MiB, direct 256 MiB; 2 GiB PVC, 1 GiB queue |
 | ECK | 1 | 100m / 500m | 256 MiB / 512 MiB | namespace scoped |
 | Filebeat | per node | 50m / 250m | 128 MiB / 256 MiB | 1024-event memory queue; persistent node registry |
 | Bootstrap | transient | 50m / 250m | 64 MiB / 128 MiB | no PVC |
 
-At 4 nodes: requests ~5.75 GiB/1.3 CPUs; limits ~7.5 GiB/5.5 CPUs.
-At 8 nodes: requests ~6.25 GiB/1.5 CPUs; limits ~8.5 GiB/6.5 CPUs.
+At 4 nodes: requests ~6.75 GiB/1.3 CPUs; limits ~8.5 GiB/5.5 CPUs.
+At 8 nodes: requests ~7.25 GiB/1.5 CPUs; limits ~9.5 GiB/6.5 CPUs.
 These are reservations/ceilings, **not measured free capacity**. The 16-vCPU/32-GB
 host is shared with builds and other apps; reserve host/page-cache headroom. A 2-GB
 Minikube node cannot schedule this Elasticsearch pod. Provide at least one node with
-4 GiB allocatable and enough *unrequested* RAM; 6–8 GiB for that node is preferable.
+5 GiB allocatable and enough *unrequested* RAM; 6–8 GiB for that node is preferable.
 Adding nodes does not add physical RAM. Do not recreate an existing profile casually.
 
 `standard` is assumed to be the existing Minikube RWO hostPath provisioner. Confirm
@@ -346,3 +346,35 @@ An absent `logs-kb` Deployment is therefore expected until core sync and ECK
 reconciliation complete. In interactive zsh, enable pasted comments with
 `setopt interactivecomments`, or run multi-step blocks in `bash` with `set -e` so a
 failed prerequisite stops subsequent changes.
+
+
+### Failed operator sync: namespace not found
+
+The kubectl sync helper explicitly copies `spec.syncPolicy.syncOptions` into the
+requested `operation.sync.syncOptions`; API-triggered operations cannot rely on
+implicit inheritance. This preserves CreateNamespace and shared-resource checks.
+It also requests a hard refresh before syncing after a Git update. If Argo reports
+`namespace els is not permitted`, inspect the compared Git revision: the old
+revision targeted els. Publish the elk manifests and refresh; do not permit els in
+the project just to conceal the mismatch. Sync operator, core, then pipeline again.
+A successful sync is not a capacity or ingestion verification.
+
+The sync helper now waits for hard-refresh completion and rejects manifests still
+rendering `els` before requesting sync. It also checks for a Ready ECK operator
+before core sync, and healthy Elasticsearch plus Ready mTLS certificates before
+pipeline sync. Failed prerequisites stop the command; they do not trigger a
+second operator install, namespace migration, credential rotation or pruning.
+Regression coverage: `python3 -m pytest tests/test_elk.py -q` (11 tests).
+
+
+### Elasticsearch OOM prevents Kibana access
+
+Observed in the lab: Elasticsearch exited 137/OOMKilled with a 3-GiB container
+limit and 1536-MiB heap. Kibana then had no Elasticsearch connection, its service
+had no Ready endpoints, and Traefik returned 503. The host mmap setting was already
+1048576. The lab profile now reserves/limits 4 GiB, with a 1-GiB heap and 512-MiB
+direct-memory ceiling to leave more native/page-cache headroom. This is a sizing
+correction, not proof of runtime recovery. Verify rollout and memory consumption.
+If OOM continues, inspect the outer Minikube Docker memory limit too: Kubernetes
+node allocatable values may reflect shared host capacity. Do not increase limits
+without checking actual physical RAM and other workloads.

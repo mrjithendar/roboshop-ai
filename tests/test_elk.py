@@ -30,6 +30,10 @@ class ElkTests(unittest.TestCase):
         self.assertTrue(kb['spec']['config']['server.rewriteBasePath'])
         es=next(x for x in docs if x['kind']=='Elasticsearch')
         self.assertEqual(es['spec']['volumeClaimDeletePolicy'],'DeleteOnScaledownOnly')
+        container=es['spec']['nodeSets'][0]['podTemplate']['spec']['containers'][0]
+        self.assertEqual(container['resources']['requests']['memory'],'4Gi')
+        self.assertEqual(container['resources']['limits']['memory'],'4Gi')
+        self.assertEqual(next(e['value'] for e in container['env'] if e['name']=='ES_JAVA_OPTS'),'-Xms1g -Xmx1g -XX:MaxDirectMemorySize=512m')
         for role in (x for x in docs if x['kind']=='Role'):
             self.assertEqual(role['rules'][0]['resources'],['pods'])
             self.assertEqual(role['rules'][0]['verbs'],['get','list','watch'])
@@ -197,9 +201,14 @@ class ElkCommandTests(unittest.TestCase):
             self.assertEqual(args[0],'kubectl')
             if 'patch' in args:
                 body=json.loads(input);self.assertFalse(body['operation']['sync']['prune'])
+                self.assertEqual(body['operation']['sync']['syncOptions'],['CreateNamespace=true','FailOnSharedResource=true','PruneLast=true'])
                 marker=body['operation']['initiatedBy']['username'];return ''
             if 'get' in args:
-                if marker is None:return ''
+                if 'pods' in args:
+                    return json.dumps({'items':[{'spec':{'containers':[{'image':'docker.elastic.co/eck/eck-operator:3.5.0'}]},'status':{'conditions':[{'type':'Ready','status':'True'}]}}]})
+                if marker is None:
+                    if '--ignore-not-found' in args:return ''
+                    return json.dumps({'spec':{'syncPolicy':{'syncOptions':['CreateNamespace=true','FailOnSharedResource=true','PruneLast=true']}}})
                 polls+=1
                 user='old-sync' if polls==1 else marker
                 return json.dumps({'status':{'operationState':{'phase':'Succeeded','operation':{'initiatedBy':{'username':user}}}}})
@@ -207,3 +216,29 @@ class ElkCommandTests(unittest.TestCase):
         with patch.object(module.sys,'argv',['elk','sync','--app','elk-core','--apply']),patch.object(module.subprocess,'check_output',side_effect=command),patch.object(module.time,'sleep') as sleep:
             module.main()
         self.assertEqual(polls,2);sleep.assert_called_once()
+
+
+    def test_core_sync_blocks_before_apply_when_operator_not_ready(self):
+        from unittest.mock import patch
+        module=self.load();calls=[]
+        def command(args,**kwargs):
+            calls.append(args)
+            return '{"items":[]}' if 'pods' in args else ''
+        with patch.object(module.sys,'argv',['elk','sync','--app','elk-core','--apply']),patch.object(module.subprocess,'check_output',side_effect=command):
+            with self.assertRaisesRegex(RuntimeError,'operator is not Ready'):module.main()
+        self.assertFalse(any('apply' in c or 'patch' in c for c in calls))
+
+    def test_sync_refuses_stale_namespace_after_refresh(self):
+        from unittest.mock import patch
+        module=self.load();calls=[];refreshed=False
+        def command(args,**kwargs):
+            nonlocal refreshed
+            calls.append(args)
+            if 'annotate' in args:refreshed=True;return ''
+            if 'get' in args:
+                if '--ignore-not-found' in args:return ''
+                return json.dumps({'spec':{'syncPolicy':{'syncOptions':['CreateNamespace=true','FailOnSharedResource=true']}},'status':{'resources':[{'namespace':'els'}] if refreshed else []}})
+            return ''
+        with patch.object(module.sys,'argv',['elk','sync','--app','elk-operator','--apply']),patch.object(module.subprocess,'check_output',side_effect=command):
+            with self.assertRaisesRegex(RuntimeError,'Git still renders namespace els'):module.main()
+        self.assertFalse(any('patch' in c for c in calls))
