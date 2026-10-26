@@ -44,11 +44,10 @@ spec:
     frameDeny: true
     contentTypeNosniff: true
     referrerPolicy: no-referrer
-    contentSecurityPolicy: default-src 'self'; script-src 'self'; style-src 'self'
-      'unsafe-inline'; img-src 'self' data:; connect-src 'self' wss://jithendar.com;
-      frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+    # Preserve the gateway CSP, including hashes for its access-check script.
+    contentSecurityPolicy: null
     customResponseHeaders:
       Cache-Control: no-store
       Permissions-Policy: camera=(), microphone=(), geolocation=()
-    customRequestHeaders:
-      Cookie: ''
+    # Preserve gateway session cookies across page loads.
+    customRequestHeaders: null
