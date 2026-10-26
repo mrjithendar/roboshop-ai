@@ -200,3 +200,24 @@ def test_registry_profile_used_for_validation_and_token(registry,capsys):
   config=json.loads(base64.b64decode(secret['data']['.dockerconfigjson']))
   assert base64.b64decode(config['auths'][registry.REGISTRY]['auth'])==b'AWS:test-password'
   assert 'test-password' not in capsys.readouterr().out
+
+
+def test_plugin_copy_does_not_change_volume_root_metadata(tmp_path):
+ import shutil,yaml
+ source=tmp_path/'source';source.mkdir()
+ (source/'plugin').mkdir();(source/'plugin'/'index.js').write_text('plugin')
+ (source/'manifest.json').write_text('{}')
+ target=tmp_path/'volume';target.mkdir()
+ workloads=list(yaml.safe_load_all((ROOT/'minikube/openclaw/base/workloads.yaml').read_text()))
+ deployment=next(x for x in workloads if x['kind']=='Deployment' and x['metadata']['name']=='openclaw')
+ command=deployment['spec']['template']['spec']['initContainers'][0]['command'][2]
+ command=command.replace('/opt/openclaw-plugins',str(source)).replace('/plugins',str(target))
+ original=shutil.copystat
+ def copystat(src,dst,**kwargs):
+  if Path(dst)==target:raise PermissionError('volume root belongs to root')
+  return original(src,dst,**kwargs)
+ with patch.object(shutil,'copystat',side_effect=copystat):
+  exec(command,{})
+  exec(command,{})
+ assert (target/'plugin'/'index.js').read_text()=='plugin'
+ assert (target/'manifest.json').read_text()=='{}'

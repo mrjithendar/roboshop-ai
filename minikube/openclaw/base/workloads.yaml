@@ -144,7 +144,18 @@ spec:
         command:
         - python
         - -c
-        - import shutil; shutil.copytree("/opt/openclaw-plugins", "/plugins", dirs_exist_ok=True)
+        - |
+          from pathlib import Path
+          import shutil
+          source = Path("/opt/openclaw-plugins")
+          target = Path("/plugins")
+          # The volume root is group-writable but owned by root; do not copy its metadata.
+          for entry in source.iterdir():
+              destination = target / entry.name
+              if entry.is_dir():
+                  shutil.copytree(entry, destination, dirs_exist_ok=True)
+              else:
+                  shutil.copy2(entry, destination)
         securityContext: *id001
         resources:
           requests:
