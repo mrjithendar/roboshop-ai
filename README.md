@@ -190,3 +190,12 @@ Order events now have a separate Kafka subscription alongside RabbitMQ shipping.
 See [Kafka setup](services/kafka-bridge/README.md) for deployment, event topics, replay,
 resource sizing and development-only security limits. Build/deploy `kafka-bridge`
 and `ai-gateway` to enable the integration; no checkout dependency on Kafka is added.
+
+### OpenClaw Unified Operations (staged)
+
+The [OpenClaw implementation](docs/openclaw/README.md) adds a separate authenticated,
+read-only operations entry point to the MCP service and GitOps resources for
+`/openclaw`. It reuses the existing gateway, telemetry, Argo CD and shared TLS.
+It is not deployed: the discovered kindnet network needs policy enforcement and
+the credential/image/bootstrap gates must pass before public exposure. See the
+[verification report](docs/openclaw/implementation-report.md).

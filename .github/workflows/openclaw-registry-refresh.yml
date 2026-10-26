@@ -1,0 +1,20 @@
+name: Refresh OpenClaw ECR pull credential
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+permissions:
+  contents: read
+jobs:
+  refresh:
+    if: vars.OPENCLAW_REGISTRY_REFRESH_ENABLED == 'true'
+    runs-on: [self-hosted, linux, ARM64]
+    timeout-minutes: 5
+    concurrency: openclaw-registry-refresh
+    env:
+      OPENCLAW_CONTEXT: ${{ vars.OPENCLAW_CONTEXT }}
+      OPENCLAW_REGISTRY_REFRESH_ENABLED: ${{ vars.OPENCLAW_REGISTRY_REFRESH_ENABLED }}
+    steps:
+      - uses: actions/checkout@v7
+        with: {persist-credentials: false}
+      - run: python3 scripts/openclaw/refresh_registry.py --ci

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-operations-config
+  namespace: openclaw
+data:
+  AWS_EC2_METADATA_DISABLED: 'true'
+  OPS_NAMESPACE: roboshop-ai
+  ARGOCD_NAMESPACE: argocd
+  KUBERNETES_URL: https://kubernetes.default.svc
+  GATEWAY_URL: http://ai-gateway.roboshop-ai.svc:3000
+  PROMETHEUS_URL: http://prometheus.monitoring.svc:9090/prometheus
+  GRAFANA_URL: http://grafana.monitoring.svc:80/grafana
+  JAEGER_URL: http://jaeger.roboshop-ai.svc:16686
+  GITHUB_URL: https://api.github.com
+  GITHUB_REPOSITORY: mrjithendar/roboshop-ai
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector.roboshop-ai.svc:4318
+  OPS_IDENTITIES_FILE: /var/run/ops-identities/identities.json
+  OPS_HTTPS_PROXY: http://openclaw-egress.openclaw.svc:3128

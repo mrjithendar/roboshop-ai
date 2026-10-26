@@ -15,3 +15,8 @@ extraScrapeConfigs: []
 # - job_name: roboshop
 #   static_configs:
 #     - targets: ["ai-gateway.roboshop-ai.svc.cluster.local:3000"]
+
+# Opt-in OpenClaw monitoring; existing installations render identically when disabled.
+openclaw:
+  enabled: false
+  credentialsSecret: openclaw-metrics-auth

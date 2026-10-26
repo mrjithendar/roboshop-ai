@@ -103,8 +103,18 @@ spec:
           volumeMounts:
             - {name: config, mountPath: /etc/prometheus, readOnly: true}
             - {name: data, mountPath: /prometheus-data}
+            {{- if .Values.openclaw.enabled }}
+            - {name: openclaw-metrics-auth, mountPath: /var/run/openclaw-metrics, readOnly: true}
+            {{- end }}
       volumes:
         - name: config
           configMap: {name: prometheus-config}
         - name: data
           persistentVolumeClaim: {claimName: prometheus-data}
+
+        {{- if .Values.openclaw.enabled }}
+        - name: openclaw-metrics-auth
+          secret:
+            secretName: {{ .Values.openclaw.credentialsSecret | quote }}
+            defaultMode: 0440
+        {{- end }}

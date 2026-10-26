@@ -65,6 +65,8 @@ def create_app(gateway=None):
     slots = threading.BoundedSemaphore(8)
     counts = Counter()
     durations = [0.0]
+    latency_bounds = (0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10)
+    latency_buckets = Counter()
     configure_telemetry('ai-gateway')
 
     async def dispatch(request: ASGIRequest):
@@ -90,6 +92,11 @@ def create_app(gateway=None):
                 rows = ['# TYPE roboshop_http_requests_total counter']
                 rows += [f'roboshop_http_requests_total{{service="ai-gateway",route="{r}",status="{s}"}} {n}' for (r,s),n in counts.items()]
                 rows += ['# TYPE roboshop_http_duration_seconds summary', f'roboshop_http_duration_seconds_sum{{service="ai-gateway"}} {durations[0]}', f'roboshop_http_duration_seconds_count{{service="ai-gateway"}} {sum(counts.values())}']
+                rows += ['# TYPE http_server_request_duration_seconds histogram']
+                rows += [f'http_server_request_duration_seconds_bucket{{service="ai-gateway",le="{bound}"}} {latency_buckets[bound]}' for bound in latency_bounds]
+                rows += [f'http_server_request_duration_seconds_bucket{{service="ai-gateway",le="+Inf"}} {sum(counts.values())}',
+                         f'http_server_request_duration_seconds_sum{{service="ai-gateway"}} {durations[0]}',
+                         f'http_server_request_duration_seconds_count{{service="ai-gateway"}} {sum(counts.values())}']
                 result, extra = ('\n'.join(rows)+'\n').encode(), [('Content-Type','text/plain; version=0.0.4')]
             else:
                 if sum(len(k)+len(v) for k,v in request.scope['headers']) > 16384:
@@ -144,6 +151,8 @@ def create_app(gateway=None):
             if not quiet_route(route) or status >= 400:
                 counts[(route,status)] += 1
                 durations[0] += elapsed
+                for bound in latency_bounds:
+                    if elapsed <= bound: latency_buckets[bound] += 1
                 probe = request.url.path in ('/health/ready', '/api/ready')
                 log_event('request_completed', 'WARN' if status >= 400 else 'DEBUG' if probe else 'INFO', route=route, operation=operation_name(request.url.path), method=request.method, outcome="failure" if status >= 400 else "success", status=status, durationMs=round(elapsed*1000))
                 telemetry('ai-gateway', context, start, (http_name(request.method, '') + ' ' + route).rstrip(), status)

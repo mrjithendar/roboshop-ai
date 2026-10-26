@@ -1,0 +1,9 @@
+{
+  "name": "roboshop-openclaw-telemetry",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@openclaw/diagnostics-otel": "2026.10.7",
+    "@openclaw/diagnostics-prometheus": "2026.10.7"
+  }
+}

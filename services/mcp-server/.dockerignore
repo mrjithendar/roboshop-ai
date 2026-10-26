@@ -12,3 +12,4 @@ dist
 build
 *.log
 artifacts
+**/node_modules

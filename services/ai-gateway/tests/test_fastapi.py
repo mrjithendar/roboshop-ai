@@ -139,3 +139,16 @@ class FastAPIContract(unittest.TestCase):
             self.assertEqual(call.call_args.kwargs['timeout'],1)
         with patch('llm.request',side_effect=HttpError(503,'secret')):
             self.assertEqual(self.client.get('/api/admin/llm/status').json()['providers'],{})
+
+class OperationsHistogramTests(unittest.TestCase):
+    def test_histogram_is_cumulative_and_matches_request_count(self):
+        gateway=Mock()
+        gateway.handle.return_value={'ok':True}
+        client=TestClient(create_app(gateway))
+        for _ in range(3): self.assertEqual(client.get('/api/ops').status_code,200)
+        lines=client.get('/metrics').text.splitlines()
+        buckets=[float(line.rsplit(' ',1)[1]) for line in lines if line.startswith('http_server_request_duration_seconds_bucket{')]
+        self.assertEqual(buckets,sorted(buckets))
+        self.assertEqual(buckets[-1],3)
+        count=next(float(line.rsplit(' ',1)[1]) for line in lines if line.startswith('http_server_request_duration_seconds_count{'))
+        self.assertEqual(count,3)

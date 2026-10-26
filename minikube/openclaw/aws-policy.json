@@ -1,0 +1,7 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {"Sid": "RegionalReadOnlyInventory", "Effect": "Allow", "Action": ["ec2:DescribeInstances", "eks:ListClusters", "cloudwatch:DescribeAlarms", "cloudwatch:GetMetricData", "inspector2:ListFindings"], "Resource": "*", "Condition": {"StringEquals": {"aws:RequestedRegion": "us-east-1"}}},
+    {"Sid": "OptionalGlobalInventory", "Effect": "Allow", "Action": ["iam:ListRoles", "ce:GetCostAndUsage"], "Resource": "*"}
+  ]
+}

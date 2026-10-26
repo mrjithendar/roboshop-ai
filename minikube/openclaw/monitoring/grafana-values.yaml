@@ -1,0 +1,16 @@
+# Apply alongside existing Grafana values; mounts the GitOps-managed dashboard.
+# This does not install another Grafana instance.
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: openclaw
+        orgId: 1
+        folder: OpenClaw
+        type: file
+        disableDeletion: true
+        editable: false
+        options:
+          path: /var/lib/grafana/dashboards/openclaw
+dashboardsConfigMaps:
+  openclaw: openclaw-dashboard

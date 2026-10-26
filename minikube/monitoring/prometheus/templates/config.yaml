@@ -8,6 +8,9 @@ data:
     global:
       scrape_interval: 30s
       evaluation_interval: 30s
+    {{- if .Values.openclaw.enabled }}
+    rule_files: [/etc/prometheus/openclaw-alerts.yml]
+    {{- end }}
     scrape_configs:
       - job_name: prometheus
         metrics_path: /prometheus/metrics
@@ -35,6 +38,27 @@ data:
             replacement: /api/v1/nodes/$1/proxy/{{ $path }}
       {{- end }}
       {{- end }}
+      {{- if .Values.openclaw.enabled }}
+      - job_name: openclaw-operations
+        authorization:
+          credentials_file: /var/run/openclaw-metrics/token
+        static_configs:
+          - targets: ["openclaw-operations.openclaw.svc:4180"]
+      - job_name: openclaw-gateway-telemetry
+        metrics_path: /api/diagnostics/prometheus
+        authorization:
+          credentials_file: /var/run/openclaw-metrics/gateway-token
+        static_configs:
+          - targets: ["openclaw.openclaw.svc:18789"]
+      - job_name: roboshop-ai-gateway
+        static_configs:
+          - targets: ["ai-gateway.roboshop-ai.svc:3000"]
+      {{- end }}
       {{- with .Values.extraScrapeConfigs }}
       {{- toYaml . | nindent 6 }}
       {{- end }}
+
+  {{- if .Values.openclaw.enabled }}
+  openclaw-alerts.yml: |
+    {{- .Files.Get "files/openclaw-alerts.yml" | nindent 4 }}
+  {{- end }}
