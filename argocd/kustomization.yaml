@@ -9,20 +9,20 @@ resources:
 - frontend.yaml
 - grafana.yaml
 - jaeger.yaml
-- jfrog.yaml
+# - jfrog.yaml
 - kafka-bridge.yaml
 - mcp-server.yaml
 - metrics-server.yaml
 - moks.yaml
 - mongodb.yaml
 - nginx.yaml
-- openclaw.yaml
+# - openclaw.yaml
 - otel-collector.yaml
 - payment-service.yaml
 - postgres.yaml
-- product-ingestion.yaml
-- project-jfrog.yaml
-- project-openclaw.yaml
+# - product-ingestion.yaml
+# - project-jfrog.yaml
+# - project-openclaw.yaml
 - project-platform.yaml
 - prometheus.yaml
 - rabbitmq.yaml
@@ -31,6 +31,5 @@ resources:
 - roboshop-letsencrypt.yaml
 - shared-tls.yaml
 - shipping-service.yaml
-- shopping-agent.yaml
 - user-service.yaml
 - wordpress.yaml
