@@ -1,5 +1,5 @@
 managedNamespaces:
-- els
+- elk
 resources:
   requests:
     cpu: 100m

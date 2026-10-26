@@ -7,22 +7,22 @@ generatorOptions:
   disableNameSuffixHash: true
 configMapGenerator:
 - name: filebeat-config
-  namespace: els
+  namespace: elk
   files:
   - filebeat.yml
 - name: logstash-settings
-  namespace: els
+  namespace: elk
   files:
   - logstash.yml
 - name: logstash-pipeline
-  namespace: els
+  namespace: elk
   files:
   - pipeline.conf
 - name: elk-parser
-  namespace: els
+  namespace: elk
   files:
   - normalize.rb
 - name: elk-bootstrap
-  namespace: els
+  namespace: elk
   files:
   - bootstrap.py

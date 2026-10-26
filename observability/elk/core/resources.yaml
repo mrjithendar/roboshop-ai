@@ -2,7 +2,7 @@ apiVersion: elasticsearch.k8s.elastic.co/v1
 kind: Elasticsearch
 metadata:
   name: logs
-  namespace: els
+  namespace: elk
   annotations:
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
@@ -55,7 +55,7 @@ apiVersion: kibana.k8s.elastic.co/v1
 kind: Kibana
 metadata:
   name: logs
-  namespace: els
+  namespace: elk
 spec:
   version: 9.5.5
   count: 1
@@ -86,17 +86,17 @@ spec:
         - name: SECURITY_KEY
           valueFrom:
             secretKeyRef:
-              name: els-credentials
+              name: elk-credentials
               key: securityKey
         - name: OBJECTS_KEY
           valueFrom:
             secretKeyRef:
-              name: els-credentials
+              name: elk-credentials
               key: objectsKey
         - name: REPORTING_KEY
           valueFrom:
             secretKeyRef:
-              name: els-credentials
+              name: elk-credentials
               key: reportingKey
         - name: NODE_OPTIONS
           value: --max-old-space-size=768
@@ -110,9 +110,9 @@ apiVersion: traefik.io/v1alpha1
 kind: ServersTransport
 metadata:
   name: elk-kibana
-  namespace: els
+  namespace: elk
 spec:
-  serverName: logs-kb-http.els.svc
+  serverName: logs-kb-http.elk.svc
   rootCAsSecrets:
   - logs-kb-http-certs-public
 ---
@@ -120,7 +120,7 @@ apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: elk
-  namespace: els
+  namespace: elk
 spec:
   entryPoints:
   - websecure
@@ -138,7 +138,7 @@ apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: elk-selfsigned
-  namespace: els
+  namespace: elk
 spec:
   selfSigned: {}
 ---
@@ -146,7 +146,7 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: elk-ca
-  namespace: els
+  namespace: elk
 spec:
   isCA: true
   commonName: elk-internal-ca
@@ -162,7 +162,7 @@ apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: elk-ca
-  namespace: els
+  namespace: elk
 spec:
   ca:
     secretName: elk-ca
@@ -171,7 +171,7 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: logstash-server
-  namespace: els
+  namespace: elk
 spec:
   secretName: logstash-server-tls
   duration: 2160h
@@ -179,8 +179,8 @@ spec:
   commonName: logstash-server
   dnsNames:
   - logstash
-  - logstash.els.svc
-  - logstash.els.svc.cluster.local
+  - logstash.elk.svc
+  - logstash.elk.svc.cluster.local
   privateKey:
     algorithm: RSA
     size: 2048
@@ -195,14 +195,14 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: filebeat-client
-  namespace: els
+  namespace: elk
 spec:
   secretName: filebeat-client-tls
   duration: 2160h
   renewBefore: 360h
   commonName: filebeat-client
   dnsNames:
-  - filebeat.els.svc
+  - filebeat.elk.svc
   privateKey:
     algorithm: RSA
     size: 2048

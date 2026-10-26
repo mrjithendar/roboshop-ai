@@ -11,7 +11,7 @@ import time
 import urllib.request
 import urllib.error
 
-URL = 'https://logs-es-http.els.svc:9200'
+URL = 'https://logs-es-http.elk.svc:9200'
 
 
 def definitions():

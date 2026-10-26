@@ -1,4 +1,4 @@
-# ELK lab: Argo CD → namespace `els` → https://jithendar.com/elk
+# ELK lab: Argo CD → namespace `elk` → https://jithendar.com/elk
 
 This is an **optional, single-node, non-HA lab**, not a production logging service.
 No command in this change has been run against the cluster. Files are prepared for
@@ -78,6 +78,14 @@ multi-node placement/local-volume behavior before syncing; it is not replicated
 storage. 42 GiB requested PVC capacity plus container logs/registry overhead must fit
 the host disk. Minikube hostPath PVC sizes may not enforce a disk quota.
 
+## Namespace change
+
+The target namespace is now `elk` (previously `els`), with Secret `elk-credentials`.
+This is a fresh-install configuration, not a data migration. If `els` was already
+installed, do not switch destinations or run a second collector blindly: preserve
+its PVCs/credentials, stop collection, and plan snapshot/restore before transitioning.
+An existing ECK operator must watch `elk`; do not install another operator.
+
 ## Ordered deployment (explicit operator commands)
 
 Run from the repository root with the correct kubeconfig. These steps **do change**
@@ -115,27 +123,29 @@ kubectl --context=mk4 apply -f argocd/project-elk.yaml
 
 # ONLY if preflight found no existing ECK operator/CRDs:
 kubectl --context=mk4 apply -f argocd/elk-operator.yaml
-argocd app sync elk-operator
-argocd app wait elk-operator --health --timeout 600
+python3 scripts/observability/elk.py sync --app elk-operator --context mk4 --apply
+
 kubectl --context=mk4 wait --for=condition=Established crd/elasticsearches.elasticsearch.k8s.elastic.co --timeout=120s
 
 # If ECK already exists: skip the preceding operator install; its owner must add
-# els to its watched namespaces and confirm compatibility. Never install a second.
+# elk to its watched namespaces and confirm compatibility. Never install a second.
 kubectl --context=mk4 apply -f argocd/elk-core.yaml
-argocd app sync elk-core
-kubectl --context=mk4 -n els wait elasticsearch/logs --for=jsonpath='{.status.health}'=green --timeout=600s
-kubectl --context=mk4 -n els rollout status deployment/logs-kb --timeout=600s
-kubectl --context=mk4 -n els wait certificate/logstash-server certificate/filebeat-client --for=condition=Ready --timeout=180s
+python3 scripts/observability/elk.py sync --app elk-core --context mk4 --apply
+kubectl --context=mk4 -n elk wait elasticsearch/logs --for=jsonpath='{.status.health}'=green --timeout=600s
+kubectl --context=mk4 -n elk rollout status deployment/logs-kb --timeout=600s
+kubectl --context=mk4 -n elk wait certificate/logstash-server certificate/filebeat-client --for=condition=Ready --timeout=180s
 
 kubectl --context=mk4 apply -f argocd/elk-pipeline.yaml
-argocd app sync elk-pipeline
-argocd app wait elk-pipeline --health --timeout 600
+python3 scripts/observability/elk.py sync --app elk-pipeline --context mk4 --apply
+
 python3 scripts/observability/elk.py dashboards --context mk4 --apply
 ```
 
-Use the existing Argo UI at `/argocd/` to Sync each Application in the same order if
-the CLI is not installed. CLI subpath connections may require `--grpc-web
---grpc-web-root-path /argocd`; use your existing Argo login. The bootstrap Sync Job
+The sync helper uses the Kubernetes Application API, so it needs only your working
+kubectl context—not an Argo CD CLI server/login. It waits for its own sync operation,
+without accepting an earlier success. Workload readiness is checked separately.
+The Argo UI at `/argocd/` remains an alternative for syncing in the same order.
+The bootstrap Sync Job
 has a bounded deadline and runs before the collector/workload wave. It uses admin
 rights only to install ILM/templates/aliases/restricted users. Regular ingestion
 has cluster monitor and `create_doc` for two fixed index families, not superuser.
@@ -145,8 +155,8 @@ CRDs remain a shared cluster installation: never delete them as routine stack cl
 
 ## Credentials and dashboard access
 
-ECK generates `els/logs-es-elastic-user` for emergency/bootstrap administration.
-`els/els-credentials` holds the separate ingestion password, viewer password and
+ECK generates `elk/logs-es-elastic-user` for emergency/bootstrap administration.
+`elk/elk-credentials` holds the separate ingestion password, viewer password and
 three Kibana encryption keys. No real credentials or private certificates are in Git.
 The default login is **elk_viewer**; it can read logs but not manage the cluster.
 Do not use `elastic` for everyday browsing or ingestion.
@@ -154,7 +164,7 @@ Do not use `elastic` for everyday browsing or ingestion.
 On your Mac, copy the viewer password directly to the clipboard (not terminal/logs):
 
 ```bash
-kubectl --context=mk4 -n els get secret els-credentials \
+kubectl --context=mk4 -n elk get secret elk-credentials \
   -o jsonpath='{.data.viewerPassword}' | base64 --decode | pbcopy
 ```
 
@@ -218,7 +228,7 @@ loss or replay can produce duplicates. If node admission/SELinux blocks host mou
 review a narrow policy; do not disable SELinux or grant blanket privileged access.
 
 Collector/ELK routine logs are excluded from ingestion; inspect them with `kubectl
-logs -n els` and normal node rotation, rather than creating a feedback loop. A node
+logs -n elk` and normal node rotation, rather than creating a feedback loop. A node
 can briefly lag during Filebeat restarts. Persistent queues/backpressure are bounded;
 long outages plus container rotation can lose logs. Delivery is **not exactly once
 or guaranteed lossless**. Elastic rejects malformed mapping documents without a
@@ -257,9 +267,9 @@ checks do not execute the Logstash JVM, ES date processor or real ingestion.
 Optional after deployment:
 
 ```bash
-kubectl --context=mk4 -n els get pods,pvc,certificate
-kubectl --context=mk4 -n els logs deployment/logstash --tail=80
-kubectl --context=mk4 -n els logs daemonset/filebeat --tail=80
+kubectl --context=mk4 -n elk get pods,pvc,certificate
+kubectl --context=mk4 -n elk logs deployment/logstash --tail=80
+kubectl --context=mk4 -n elk logs daemonset/filebeat --tail=80
 curl --fail --location --max-time 20 https://jithendar.com/elk/login -o /dev/null
 # Synthetic stdout in a collected namespace. This DOES create a short-lived pod.
 kubectl --context=mk4 -n roboshop-ai run elk-smoke --restart=Never \
@@ -291,17 +301,17 @@ collection/UI workloads you intend to stop:
 ```bash
 argocd app delete elk-pipeline --cascade=false
 argocd app delete elk-core --cascade=false
-kubectl --context=mk4 -n els delete daemonset/filebeat deployment/logstash kibana/logs ingressroute/elk
+kubectl --context=mk4 -n elk delete daemonset/filebeat deployment/logstash kibana/logs ingressroute/elk
 # Optional: remove ES CR; DeleteOnScaledownOnly retains its PVC on CR deletion.
-kubectl --context=mk4 -n els delete elasticsearch/logs
+kubectl --context=mk4 -n elk delete elasticsearch/logs
 ```
 
-Retain `els` namespace, credentials, CA Secrets, ES PVC and Logstash PVC. Re-adoption
+Retain `elk` namespace, credentials, CA Secrets, ES PVC and Logstash PVC. Re-adoption
 with the same CR/nodeSet names and credentials requires checking retained PVCs first.
 Leave a shared ECK operator and cert-manager alone. The pipeline RBAC can be removed
-separately after collectors stop. **Deleting namespace els deletes data/credentials.**
+separately after collectors stop. **Deleting namespace elk deletes data/credentials.**
 For deliberate destruction, first export snapshots and enumerate PVCs; then explicitly
-name the PVCs in `kubectl delete pvc -n els <reviewed-names>`. There is no default wipe
+name the PVCs in `kubectl delete pvc -n elk <reviewed-names>`. There is no default wipe
 script or wildcard PVC deletion. Node registry deletion also requires deliberate host
 maintenance; do not remove checkpoints while collectors are active.
 
@@ -323,3 +333,16 @@ maintenance; do not remove checkpoints while collectors are active.
   disposable ingestion, real ES timestamp processing, live certificate/RBAC checks
   or Kibana browser/dashboard verification performed. No host packages installed,
   live resources changed, data deleted, commits or pushes made.
+
+
+### macOS command troubleshooting
+
+`flags cannot be placed before plugin name: --context` was caused by the preflight
+placing `-A` before `get`. The helper now puts namespaced flags after `get` and omits
+`-A` for nodes/CRDs. `Argo CD server address unspecified` means the standalone Argo
+CLI lacks a server/login; use the kubectl-based sync helper above instead. Applying
+an Application alone does not sync it because automatic sync is intentionally off.
+An absent `logs-kb` Deployment is therefore expected until core sync and ECK
+reconciliation complete. In interactive zsh, enable pasted comments with
+`setopt interactivecomments`, or run multi-step blocks in `bash` with `set -e` so a
+failed prerequisite stops subsequent changes.

@@ -9,7 +9,7 @@ spec:
   project: elk
   destination:
     server: https://kubernetes.default.svc
-    namespace: els
+    namespace: elk
   syncPolicy:
     syncOptions:
     - CreateNamespace=true

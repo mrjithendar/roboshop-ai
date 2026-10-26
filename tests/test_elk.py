@@ -101,7 +101,7 @@ JSON.parse(STDIN.read).each { |input| puts JSON.generate(filter(Event.new(input)
           [],
         ]
         fixtures=[{'@timestamp':'2026-10-26T00:00:00Z','message':r if isinstance(r,str) else json.dumps(r),'kubernetes':{'namespace':'roboshop-ai','container':{'name':'nginx' if i==2 else 'test-service'}}} for i,r in enumerate(records)]
-        fixtures.append({'message':'ignore','kubernetes':{'namespace':'els'}})
+        fixtures.append({'message':'ignore','kubernetes':{'namespace':'elk'}})
         with tempfile.TemporaryDirectory() as temp:
             path=Path(temp)/'harness.rb';path.write_text(harness)
             out=subprocess.check_output(['ruby',str(path),str(BASE/'pipeline/normalize.rb')],input=json.dumps(fixtures),text=True)
@@ -140,7 +140,7 @@ class ElkOwnershipTests(unittest.TestCase):
     def test_optional_applications_have_unique_ownership_and_safe_defaults(self):
         docs=render('core')+render('pipeline')
         seen=set()
-        external_secrets={'els-credentials','logs-es-http-certs-public','logs-es-elastic-user'}
+        external_secrets={'elk-credentials','logs-es-http-certs-public','logs-es-elastic-user'}
         generated={x['spec']['secretName'] for x in docs if x['kind']=='Certificate'}
         configmaps={x['metadata']['name'] for x in docs if x['kind']=='ConfigMap'}
         for obj in docs:
@@ -162,3 +162,48 @@ class ElkOwnershipTests(unittest.TestCase):
             self.assertIn('FailOnSharedResource=true',app['spec']['syncPolicy']['syncOptions'])
         active=yaml.safe_load((ROOT/'argocd/kustomization.yaml').read_text())['resources']
         self.assertNotIn('elk-operator.yaml',active)
+
+class ElkCommandTests(unittest.TestCase):
+    def load(self):
+        spec=importlib.util.spec_from_file_location('elk_commands',ROOT/'scripts/observability/elk.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        return module
+
+    def test_preflight_places_namespace_flags_after_get(self):
+        from unittest.mock import patch
+        module=self.load();calls=[]
+        def command(args,**kwargs):
+            calls.append(args)
+            if '-A' in args:self.assertGreater(args.index('-A'),args.index('get'))
+            kind=args[args.index('get')+1]
+            if kind in ('nodes','crds'):self.assertNotIn('-A',args)
+            if kind=='nodes':return json.dumps({'items':[{'status':{'allocatable':{'memory':'8Gi'}}}]})
+            return json.dumps({'items':[]})
+        with patch.object(module.sys,'argv',['elk','preflight']),patch.object(module.subprocess,'check_output',side_effect=command):module.main()
+        self.assertTrue(calls)
+        self.assertTrue(all('get' in c for c in calls))
+
+    def test_sync_preview_no_cluster_access(self):
+        from unittest.mock import patch
+        module=self.load()
+        with patch.object(module.sys,'argv',['elk','sync','--app','elk-core']),patch.object(module.subprocess,'check_output') as run:
+            module.main();run.assert_not_called()
+
+    def test_sync_uses_kubectl_and_ignores_old_success(self):
+        from unittest.mock import patch
+        module=self.load();marker=None;polls=0
+        def command(args,input=None,**kwargs):
+            nonlocal marker,polls
+            self.assertEqual(args[0],'kubectl')
+            if 'patch' in args:
+                body=json.loads(input);self.assertFalse(body['operation']['sync']['prune'])
+                marker=body['operation']['initiatedBy']['username'];return ''
+            if 'get' in args:
+                if marker is None:return ''
+                polls+=1
+                user='old-sync' if polls==1 else marker
+                return json.dumps({'status':{'operationState':{'phase':'Succeeded','operation':{'initiatedBy':{'username':user}}}}})
+            return ''
+        with patch.object(module.sys,'argv',['elk','sync','--app','elk-core','--apply']),patch.object(module.subprocess,'check_output',side_effect=command),patch.object(module.time,'sleep') as sleep:
+            module.main()
+        self.assertEqual(polls,2);sleep.assert_called_once()

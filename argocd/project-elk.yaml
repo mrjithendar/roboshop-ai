@@ -9,7 +9,7 @@ spec:
   - https://github.com/mrjithendar/roboshop-ai.git
   - https://helm.elastic.co
   destinations:
-  - namespace: els
+  - namespace: elk
     server: https://kubernetes.default.svc
   - namespace: elastic-system
     server: https://kubernetes.default.svc

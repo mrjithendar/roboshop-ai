@@ -70,7 +70,7 @@ queue.mem:
   flush.min_events: 128
 output.logstash:
   hosts:
-  - logstash.els.svc:5044
+  - logstash.elk.svc:5044
   ssl.certificate_authorities:
   - /tls/ca.crt
   ssl.certificate: /tls/tls.crt

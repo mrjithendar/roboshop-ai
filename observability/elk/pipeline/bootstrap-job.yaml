@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: elk-bootstrap
-  namespace: els
+  namespace: elk
   annotations:
     argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
@@ -60,4 +60,4 @@ spec:
           secretName: logs-es-elastic-user
       - name: credentials
         secret:
-          secretName: els-credentials
+          secretName: elk-credentials
