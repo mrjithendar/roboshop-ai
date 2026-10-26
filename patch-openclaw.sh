@@ -15,6 +15,7 @@ esac
 [[ $# -le 1 ]] || { echo 'Expected at most one option.' >&2; exit 2; }
 exec "${PYTHON:-python3}" - "$ROOT" "${KUBE_CONTEXT:-${OPENCLAW_CONTEXT:-mk4}}" "${1:-}" <<'PY'
 import copy
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -25,6 +26,11 @@ root, context, option = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
 base = root / 'minikube/openclaw/base'
 application = yaml.safe_load((root / 'argocd/openclaw.yaml').read_text())
 workloads = list(yaml.safe_load_all((base / 'workloads.yaml').read_text()))
+egress = list(yaml.safe_load_all((base / 'egress.yaml').read_text()))
+# Squid must restart when its mounted configuration changes.
+egress_config = next(d for d in egress if d['kind'] == 'ConfigMap')
+egress_deployment = next(d for d in egress if d['kind'] == 'Deployment')
+egress_deployment['spec']['template']['metadata'].setdefault('annotations', {})['checksum/squid-config'] = hashlib.sha256(egress_config['data']['squid.conf'].encode()).hexdigest()
 gateway = next(d for d in workloads if d['kind'] == 'Deployment' and d['metadata']['name'] == 'openclaw')
 operations = next(d for d in workloads if d['kind'] == 'Deployment' and d['metadata']['name'] == 'openclaw-operations')
 node = yaml.safe_load((root / 'minikube/openclaw/overlays/mk4/state-node.yaml').read_text())
@@ -44,7 +50,7 @@ source['kustomize'] = {
     'patches': [
         {'target': {'kind': d['kind'], 'name': d['metadata']['name']},
          'patch': yaml.safe_dump(d, sort_keys=False)}
-        for d in [gateway, operations, node, config, *ingress]
+        for d in [gateway, operations, node, config, *ingress, *egress]
     ],
 }
 patch = {'spec': {'source': source},

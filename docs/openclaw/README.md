@@ -513,3 +513,11 @@ Linux ARM64 runner with its Kubernetes credentials, using `OPENCLAW_CONTEXT`
 The workflow validates/render-checks first, waits for any active Argo operation,
 and serializes patch runs. It requests sync; successful workflow completion
 alone does not certify application readiness. No patch runs on pull requests.
+
+### Installing channel plugins
+
+The egress proxy permits HTTPS to `registry.npmjs.org` for official plugin
+metadata and package downloads. npm uses `/tmp/npm-cache` because the gateway
+root filesystem is read-only. `patch-openclaw.sh` includes the egress configuration
+and restarts Squid when its configuration checksum changes. Plugin versions
+should match the pinned gateway release; channel credentials remain separate.

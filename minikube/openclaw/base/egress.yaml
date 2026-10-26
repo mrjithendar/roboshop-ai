@@ -24,7 +24,7 @@ data:
 
     acl TLS port 443
 
-    acl approved_external dstdomain api.openai.com api.github.com .blob.core.windows.net
+    acl approved_external dstdomain api.openai.com api.github.com registry.npmjs.org .blob.core.windows.net
 
     acl operations dstdomain openclaw-operations.openclaw.svc
 
