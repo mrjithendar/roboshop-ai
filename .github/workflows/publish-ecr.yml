@@ -34,7 +34,7 @@ jobs:
             *) echo 'ARM64 Docker engine required.' >&2; exit 1 ;;
           esac
           case "$SERVICE" in
-            user-service|cart-service|ai-gateway|catalogue-service|moks|sre-copilot|payment-service|mcp-server|shipping-service|frontend|nginx|currency-service|kafka-bridge) ;;
+            user-service|cart-service|ai-gateway|catalogue-service|moks|payment-service|mcp-server|shipping-service|frontend|nginx|currency-service|kafka-bridge) ;;
             *) echo 'Unsupported service' >&2; exit 1 ;;
           esac
           [[ "$REPOSITORY_PREFIX" =~ ^[a-z0-9]+([._/-][a-z0-9]+)*$ ]] || { echo 'Invalid ECR_REPOSITORY_PREFIX' >&2; exit 1; }

@@ -34,7 +34,7 @@ images and storage remain prerequisites; missing dependencies cause the health
 wait to fail rather than silently skipping an app.
 
 Use `roboshop` for just the current shop services and shared configuration,
-excluding legacy apps, optional `sre-copilot`, and data/messaging infrastructure.
+excluding legacy apps and data/messaging infrastructure.
 Use `./deploy-argocd.sh --dry-run` to preview the complete selection.
 
 ## Register the catalog
@@ -56,7 +56,7 @@ Do not enable Force/Replace to resolve an immutable-field difference.
 
 | Applications | Sources and migration notes |
 | --- | --- |
-| ai-gateway, cart-service, catalogue-service, currency-service, frontend, jaeger, kafka-bridge, mcp-server, moks, nginx, otel-collector, payment-service, postgres, rabbitmq, redis, shipping-service, sre-copilot, user-service | Only the named `services/<service>/*-minikube.yaml` file is loaded. `postgres` owns shipping-db; `kafka-bridge` owns the Kafka StatefulSet and bridge sidecar. |
+| ai-gateway, cart-service, catalogue-service, currency-service, frontend, jaeger, kafka-bridge, mcp-server, moks, nginx, otel-collector, payment-service, postgres, rabbitmq, redis, shipping-service, user-service | Only the named `services/<service>/*-minikube.yaml` file is loaded. `postgres` owns shipping-db; `kafka-bridge` owns the Kafka StatefulSet and bridge sidecar. |
 | roboshop-config | Shared ConfigMap, namespace and shop ingress; one owner for shared configuration. |
 | mongodb | Existing Deployment, Service and PVC baseline; **not** the repo's newer StatefulSet. A controller conversion needs a separate data migration. |
 | shopping-agent, product-ingestion | Existing legacy Deployment and Service baselines; not deleted or silently replaced by moks. |

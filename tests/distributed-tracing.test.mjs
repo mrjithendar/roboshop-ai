@@ -32,7 +32,7 @@ test('all local clients export actual response status without changing caller er
  const savedFetch=global.fetch, savedEnv={...process.env};
  process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT='http://collector';
  try {
-  for(const service of ['catalogue-service','payment-service','sre-copilot']) {
+  for(const service of ['catalogue-service','payment-service']) {
    const runtime=await import(`../services/${service}/lib/runtime.mjs`);
    for(const outcome of [429,400,503,200,'connection','timeout','retry-connection']) {
     let attempts=0;const spans=[];
@@ -60,7 +60,7 @@ test('all local clients export actual response status without changing caller er
 test('Node and Python vocabulary parity, including all added admin routes',async()=>{
  const {execFileSync}=await import('node:child_process');
  const vocabulary=JSON.parse(execFileSync('python3',['-c',"import sys,json;sys.path.insert(0,'services/ai-gateway/lib');import trace_routes as r;print(json.dumps(sorted(r.STATIC)))"],{encoding:'utf8'}));
- for(const service of ['catalogue-service','payment-service','sre-copilot']){
+ for(const service of ['catalogue-service','payment-service']){
   const routes=await import(`../services/${service}/lib/trace-routes.mjs`);
   for(const route of vocabulary){assert.equal(routes.httpName('GET',route),'GET '+route);assert.equal(routes.httpName('POST','/roboshop'+route),'POST /roboshop'+route);}
   assert.equal(routes.quietRoute('/roboshop/health'),true);

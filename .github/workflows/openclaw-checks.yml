@@ -42,7 +42,6 @@ jobs:
       - run: '"$RUNNER_TEMP/openclaw-regression/bin/python" -m unittest discover -s services/mcp-server/tests -v'
       - run: '"$RUNNER_TEMP/openclaw-regression/bin/python" -m unittest discover -s services/ai-gateway/tests -v'
       - run: '"$RUNNER_TEMP/openclaw-regression/bin/python" -m unittest discover -s tests/python -v'
-      - run: node --test services/sre-copilot/tests/*.test.mjs
       - run: helm template prometheus minikube/monitoring/prometheus -n monitoring -f minikube/openclaw/monitoring/prometheus-values.yaml > /tmp/prometheus.yaml
       - name: Validate image build (never publish from a PR)
         run: docker build -f services/mcp-server/Dockerfile.operations -t openclaw-operations:test services/mcp-server

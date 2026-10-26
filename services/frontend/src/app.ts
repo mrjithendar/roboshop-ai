@@ -17,7 +17,6 @@ type CartItem = (Product & { quantity: number; lineTotal: number; unavailable?: 
   | { sku: string; quantity: number; unavailable: true };
 interface Shipping { address: { recipient: string; line1: string }; city: { name: string; country: string }; cost: number; distanceKm: number; quotedAt: string }
 interface Cart { currency?: string; items: CartItem[]; total: number; subtotal?: number; shipping?: Shipping | null }
-interface Ops { summary: string; services: { name: string; status: string; latencyMs: number }[]; nextSteps: string[]; checkedAt: string }
 class ApiError extends Error { constructor(message: string, readonly status: number) { super(message); } }
 const errorMessage = (error: unknown): string => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 const money = (value: number, currency = cart.currency || 'INR') => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
@@ -86,16 +85,7 @@ async function updateCart(sku: string, quantity: number) {
   finally { cartBusy = false; renderCart(); }
 }
 function renderCart() { $('#bag-count').textContent = String(cart.items.reduce((n, item) => n + item.quantity, 0)); }
-async function loadOps() {
-  $('#ops-content').replaceChildren(el('p', '', 'Checking services…'));
-  try {
-    const result = await api<Ops>('/api/ops');
-    const nodes: HTMLElement[] = [el('p', '', result.summary)];
-    for (const service of result.services) { const row = el('div', 'health-row'); row.append(el('span', '', service.name), el('span', service.status === 'healthy' ? 'healthy' : 'unavailable', `${service.status} · ${service.latencyMs} ms`)); nodes.push(row); }
-    const steps = el('ul'); for (const step of result.nextSteps) steps.append(el('li', '', step)); nodes.push(steps, el('p', '', `Checked ${new Date(result.checkedAt).toLocaleTimeString()}. No infrastructure actions executed.`)); $('#ops-content').replaceChildren(...nodes);
-  } catch (error) { $('#ops-content').replaceChildren(el('p', '', errorMessage(error))); }
-}
-$('#refresh-ops').addEventListener('click', loadOps);
+
 
 await initAccount(async () => { cart = await api<Cart>('/api/cart'); renderCart(); });
 await api<{ storeName: string; announcement: string; supportEmail: string; checkoutEnabled: boolean }>('/api/settings').then(settings => {

@@ -8,7 +8,7 @@ import { randomBytes } from 'node:crypto';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 if (process.argv.includes('--help')) { console.log('Usage: node scripts/dev/start.mjs; requires Node, .venv, built frontend/Java jar and configured backing services. Starts local application processes using .env.'); process.exit(0); }
-const names = ['catalogue-service', 'moks', 'payment-service', 'shipping-service', 'sre-copilot', 'user-service', 'ai-gateway'];
+const names = ['catalogue-service', 'moks', 'payment-service', 'shipping-service', 'user-service', 'ai-gateway'];
 const llmToken = process.env.LLM_SERVICE_TOKEN || randomBytes(32).toString('hex');
 const paymentToken = process.env.PAYMENT_SERVICE_TOKEN || randomBytes(32).toString('hex');
 const userToken = process.env.USER_SERVICE_TOKEN || randomBytes(32).toString('hex');

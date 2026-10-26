@@ -132,10 +132,10 @@ accepting a new cart write, so retrying an old capture cannot erase a later cart
 lookup and probes only MongoDB, catalogue readiness, user-service readiness, the
 local ledger writer and cart readiness (when Redis cart service is configured).
 It returns 200 or 503 with named dependency states, within a 1.5-second response
-budget and bounded probe concurrency. It never calls SRE, AI/model, Finder,
+budget and bounded probe concurrency. It never calls AI/model, Finder,
 recommendations, payment, shipping or telemetry for storefront readiness.
 
-`/api/ops` is the separate SRE aggregate dependency report. Optional feature calls
+Optional feature calls
 return HTTP 503 with `code: feature-unavailable` and a feature name on failure;
 catalogue/cart routes remain independently usable. Direct-provider LLM saves and disconnect only validate
 and persist settings. Enabling automatic Ollama-to-Bedrock failover requires both

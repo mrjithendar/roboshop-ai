@@ -27,7 +27,7 @@ The default StorageClass is `standard` (`k8s.io/minikube-hostpath`, Delete recla
 policy). Protect both the claim and its off-host backup; Minikube is not HA.
 
 Existing application manifests live with services. The FastAPI gateway, MCP
-service and SRE copilot remain the public/customer boundaries. Operations code
+service remains the public/customer boundary. Operations code
 lives in the existing `services/mcp-server` build context, with a separate
 `Dockerfile.operations`, runtime and identity. Reuse is through the gateway's
 existing `/api/ops` endpoint, which reaches SRE diagnostics. Customer MCP tools
@@ -51,7 +51,6 @@ flowchart LR
   Operations -->|Namespace read-only Roles| Kubernetes
   Operations -->|Read-only Application CRs| ArgoCD
   Operations --> Gateway[Existing FastAPI AI Gateway]
-  Gateway --> SRE[Existing SRE copilot]
   Operations --> Observability[Prometheus / Grafana / Jaeger / optional backends]
   OpenClaw --> Proxy[Restricted egress proxy]
   Operations --> Proxy

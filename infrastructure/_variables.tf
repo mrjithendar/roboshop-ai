@@ -65,7 +65,6 @@ variable "ecr_repository_names" {
     "roboshop-moks",
     "roboshop-shopping-agent",
     "roboshop-user-service",
-    "roboshop-sre-copilot",
     "roboshop-kafka-bridge",
   ]
 

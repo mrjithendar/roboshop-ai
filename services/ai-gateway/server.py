@@ -78,7 +78,6 @@ class Gateway:
                 ("catalogue", "CATALOGUE_URL", os.getenv("INGESTION_URL", "http://127.0.0.1:4108")),
                 ("recommendations", "RECOMMENDATION_URL", os.getenv("CATALOGUE_URL", "http://127.0.0.1:4108")),
                 ("agent", "AGENT_URL", "http://127.0.0.1:4103"),
-                ("sre", "SRE_URL", "http://127.0.0.1:4104"),
                 ("payment", "PAYMENT_URL", "http://127.0.0.1:4105"),
                 ("shipping", "SHIPPING_URL", "http://127.0.0.1:4106"),
             ]
@@ -617,11 +616,6 @@ class Gateway:
                 ]
             self.chat_history.save(user["id"], message, result)
             return result
-        if path == "/api/ops" and method == "GET":
-            try:
-                return request(self.urls["sre"] + "/api/ops", timeout=3)
-            except HttpError:
-                return self.feature_unavailable("diagnostics")
         if path == "/api/cart" and method in ("GET", "POST"):
             id = self.session(req)
             products = self.catalogue()

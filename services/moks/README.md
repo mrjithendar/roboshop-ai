@@ -20,7 +20,7 @@ and user service, never Moks itself. Credentials and provider settings are uncha
 Create the `roboshop-moks` ECR repository with the infrastructure Terraform before
 building. Build/push `moks`, `nginx`, and `frontend`; deploy Moks before switching
 the gateway configuration and proxy. Apply `minikube/roboshop/config.yaml` and
-restart `ai-gateway` and `sre-copilot` to read `AGENT_URL=http://moks:4103`.
+restart `ai-gateway` to read `AGENT_URL=http://moks:4103`.
 Once Moks and the new proxy/widget work, remove the obsolete Deployments and
 Services with `kubectl -n roboshop-ai delete deployment,service finder shopping-agent --ignore-not-found`.
 This is a deliberate operator step: deploying the new YAML does not delete old

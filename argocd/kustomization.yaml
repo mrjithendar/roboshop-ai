@@ -32,6 +32,5 @@ resources:
 - shared-tls.yaml
 - shipping-service.yaml
 - shopping-agent.yaml
-- sre-copilot.yaml
 - user-service.yaml
 - wordpress.yaml

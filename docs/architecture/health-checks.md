@@ -11,7 +11,6 @@ whether a workload is suitable for traffic without restarting it.
 | NGINX | `/ready` | Gateway core readiness; no cookies, model checks, or aggregate SRE calls |
 | Frontend | `/health` | Local static HTTP server; no API/model dependencies |
 | Moks | `/ready` | Catalogue readiness; configuration and models are selected per request |
-| SRE copilot | `/ready` | Diagnostic process only; target failures never make the diagnostic service unready |
 | Catalogue | `/api/catalogue/ready` | Its MongoDB connection |
 | Cart | `/ready` | Its Redis connection |
 | User service | `/api/users/ready` | Its MongoDB connection |

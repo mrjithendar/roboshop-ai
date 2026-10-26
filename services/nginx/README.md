@@ -68,5 +68,5 @@ Run `docker build -t roboshop-nginx:local .` from this directory. The Docker con
 one-second connect and two-second read timeout, without credentials or retries.
 It is also available on the HTTP listener in TLS mode instead of redirecting the
 Kubernetes probe. An AI/Finder/recommendation/telemetry failure never changes this
-result. `/api/ops` remains a separate diagnostic route, not an ingress health gate.
+result.
 See [health contracts](../../docs/architecture/health-checks.md).

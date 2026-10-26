@@ -78,7 +78,6 @@ The workflow checks that its repository exists; it does not provision AWS resour
 | cart-service | roboshop-cart-service |
 | catalogue-service | roboshop-catalogue-service |
 | moks | roboshop-moks |
-| sre-copilot | roboshop-sre-copilot |
 | payment-service | roboshop-payment-service |
 | mcp-server | roboshop-mcp-server |
 | shipping-service | roboshop-shipping |

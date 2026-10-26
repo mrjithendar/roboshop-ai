@@ -10,6 +10,5 @@ scrape_configs:
           - user-service:4109
           - catalogue-service:4108
           - moks:4103
-          - sre-copilot:4104
           - payment-service:4105
           - shipping-service:4106

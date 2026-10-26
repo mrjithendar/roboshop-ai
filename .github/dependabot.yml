@@ -8,7 +8,6 @@ updates:
   - /services/frontend
   - /services/catalogue-service
   - /services/payment-service
-  - /services/sre-copilot
   - /services/mcp-server/operations/plugins
   schedule:
     interval: weekly
@@ -41,7 +40,6 @@ updates:
   - /services/nginx
   - /services/payment-service
   - /services/shipping-service
-  - /services/sre-copilot
   - /services/user-service
   - /tests/load
   schedule:

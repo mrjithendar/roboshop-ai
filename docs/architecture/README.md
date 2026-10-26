@@ -8,7 +8,6 @@ flowchart LR
   Gateway --> Agent[Shopping agent :4103]
   Gateway --> Payment[Payment service :4105]
   Payment --> Razorpay[Razorpay Orders and Payments API]
-  Gateway --> Ops[Read-only SRE copilot :4104]
   Gateway --> Ledger[(Single-writer order ledger)]
   Agent --> Catalog
   Agent -. selected by superadmin .-> LLM[Bedrock Converse or approved Ollama]

@@ -24,6 +24,11 @@ class FastAPIContract(unittest.TestCase):
         self.gateway=Gateway(mongomock.MongoClient().db,self.store)
         self.gateway.auth.current=Mock(return_value=None)
         self.client=TestClient(create_app(self.gateway));self.client.__enter__();self.addCleanup(lambda:self.client.__exit__(None,None,None))
+    def test_removed_sre_route_does_not_call_dependencies(self):
+        with patch('server.request') as downstream:
+            self.assertEqual(self.client.get('/api/ops').status_code, 404)
+            downstream.assert_not_called()
+
     def test_admin_server_span_names(self):
         captured=[]
         with patch('asgi_app.telemetry',side_effect=lambda service,ctx,start,name,status:captured.append((name,ctx['attributes']['http.route'],status))),patch.object(self.gateway,'handle',return_value={}):
@@ -145,7 +150,7 @@ class OperationsHistogramTests(unittest.TestCase):
         gateway=Mock()
         gateway.handle.return_value={'ok':True}
         client=TestClient(create_app(gateway))
-        for _ in range(3): self.assertEqual(client.get('/api/ops').status_code,200)
+        for _ in range(3): self.assertEqual(client.get('/api/products').status_code,200)
         lines=client.get('/metrics').text.splitlines()
         buckets=[float(line.rsplit(' ',1)[1]) for line in lines if line.startswith('http_server_request_duration_seconds_bucket{')]
         self.assertEqual(buckets,sorted(buckets))

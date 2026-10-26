@@ -45,7 +45,7 @@ class ReadinessTests(unittest.TestCase):
             self.gateway.auth.current.return_value = {'id':'customer','role':'customer'}
             self.gateway.llm.current = lambda: {'config': {'provider':'bedrock'}, 'revision':1}
             self.assertEqual(self.gateway.handle(self.req('/api/chat', 'POST', b'{"message":"Help"}'))[0]['code'], 'feature-unavailable')
-            self.assertEqual(self.gateway.handle(self.req('/api/ops'))[1], 503)
+            self.assertIsNone(self.gateway.handle(self.req('/api/ops')))
         urls = [call.args[0] for call in self.probes.call_args_list]
         self.assertTrue(all(url.endswith(('/api/catalogue/ready','/api/users/ready')) for url in urls))
     def test_required_failure_recovery_and_liveness(self):
@@ -96,7 +96,7 @@ class ReadinessTests(unittest.TestCase):
     def test_manifests_use_local_liveness_and_scoped_readiness(self):
         import yaml
         paths = {'ai-gateway':'/health/ready', 'nginx':'/ready',
-                 'moks':'/ready', 'catalogue-service':'/api/catalogue/ready', 'sre-copilot':'/ready'}
+                 'moks':'/ready', 'catalogue-service':'/api/catalogue/ready'}
         for name, path in paths.items():
             with self.subTest(service=name):
                 manifests = yaml.safe_load_all((ROOT / f'services/{name}/{name}-minikube.yaml').read_text())

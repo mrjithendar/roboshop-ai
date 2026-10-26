@@ -26,7 +26,6 @@ data:
   CATALOGUE_URL: http://catalogue-service:4108
   RECOMMENDATION_URL: http://catalogue-service:4108
   AGENT_URL: http://moks:4103
-  SRE_URL: http://sre-copilot:4104
   PAYMENT_URL: http://payment-service:4105
   SHIPPING_URL: http://shipping-service:4106
   OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces

@@ -23,14 +23,14 @@ account="${AWS_ACCOUNT_ID:-881026659929}"
 registry="$account.dkr.ecr.$region.amazonaws.com"
 services=(ai-gateway cart-service catalogue-service currency-service
   frontend kafka-bridge mcp-server nginx payment-service
-  shipping-service moks sre-copilot user-service)
+  shipping-service moks user-service)
 if (( $# )); then services=("$@"); fi
 
 # Validate service names before any remote write; shipping keeps its legacy ECR name.
 repositories=()
 for service in "${services[@]}"; do
   case "$service" in
-    ai-gateway|cart-service|catalogue-service|currency-service|frontend|kafka-bridge|mcp-server|nginx|payment-service|shipping-service|moks|sre-copilot|user-service) ;;
+    ai-gateway|cart-service|catalogue-service|currency-service|frontend|kafka-bridge|mcp-server|nginx|payment-service|shipping-service|moks|user-service) ;;
     *) echo "Unknown service: $service" >&2; exit 1 ;;
   esac
   test -f "services/$service/Dockerfile"
