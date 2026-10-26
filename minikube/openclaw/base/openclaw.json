@@ -30,7 +30,7 @@
       "enabled": false
     },
     "trustedProxies": [
-      "10.244.2.2/32"
+      "10.244.9.16/32"
     ]
   },
   "browser": {

@@ -9,6 +9,11 @@ providers:
   kubernetesIngress:
     enabled: true
     ingressClass: traefik
+    # NodePort has no load-balancer status to copy. Publish the host entrypoint.
+    publishedService:
+      enabled: false
+    ingressEndpoint:
+      hostname: jithendar.com
 service:
   spec:
     type: NodePort

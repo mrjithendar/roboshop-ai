@@ -31,6 +31,8 @@ metadata:
   namespace: openclaw
 spec:
   basicAuth:
+    # Separate credentials from other protected apps on jithendar.com.
+    realm: OpenClaw
     secret: openclaw-edge-auth
     removeHeader: true
 ---

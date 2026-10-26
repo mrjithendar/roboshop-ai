@@ -72,3 +72,5 @@ bash minikube/expose-ingress.sh
 ```
 
 See [Grafana](../monitoring/grafana/README.md) and [cert-manager](../cert-manager/README.md) for certificate and login troubleshooting. Chart reference: [official Traefik Helm chart](https://github.com/traefik/traefik-helm-chart).
+
+Traefik publishes `jithendar.com` as the ingress status hostname. The NodePort service has no load-balancer address, so copying its status would leave ingresses permanently Progressing in Argo CD. If the public hostname changes, update `providers.kubernetesIngress.ingressEndpoint.hostname` in `values.yaml`.
