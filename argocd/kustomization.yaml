@@ -33,3 +33,9 @@ resources:
 - shipping-service.yaml
 - user-service.yaml
 - wordpress.yaml
+
+# Optional ELK: register these explicitly after observability/elk/README.md preflight.
+# - project-elk.yaml
+# - elk-operator.yaml
+# - elk-core.yaml
+# - elk-pipeline.yaml

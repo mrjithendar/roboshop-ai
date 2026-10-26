@@ -1,0 +1,63 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: elk-bootstrap
+  namespace: els
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 600
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: bootstrap
+        image: python:3.13.9-slim
+        command:
+        - python
+        - /bootstrap/bootstrap.py
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: script
+          mountPath: /bootstrap
+          readOnly: true
+        - name: es-ca
+          mountPath: /es-ca
+          readOnly: true
+        - name: admin
+          mountPath: /admin
+          readOnly: true
+        - name: credentials
+          mountPath: /credentials
+          readOnly: true
+      volumes:
+      - name: script
+        configMap:
+          name: elk-bootstrap
+      - name: es-ca
+        secret:
+          secretName: logs-es-http-certs-public
+      - name: admin
+        secret:
+          secretName: logs-es-elastic-user
+      - name: credentials
+        secret:
+          secretName: els-credentials

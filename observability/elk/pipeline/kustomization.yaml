@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- resources.yaml
+- bootstrap-job.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+configMapGenerator:
+- name: filebeat-config
+  namespace: els
+  files:
+  - filebeat.yml
+- name: logstash-settings
+  namespace: els
+  files:
+  - logstash.yml
+- name: logstash-pipeline
+  namespace: els
+  files:
+  - pipeline.conf
+- name: elk-parser
+  namespace: els
+  files:
+  - normalize.rb
+- name: elk-bootstrap
+  namespace: els
+  files:
+  - bootstrap.py

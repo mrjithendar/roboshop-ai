@@ -1,0 +1,214 @@
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: logs
+  namespace: els
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  version: 9.5.5
+  volumeClaimDeletePolicy: DeleteOnScaledownOnly
+  nodeSets:
+  - name: lab
+    count: 1
+    config:
+      node.roles:
+      - master
+      - data
+      - ingest
+      cluster.max_shards_per_node: 100
+      cluster.routing.allocation.disk.watermark.low: 80%
+      cluster.routing.allocation.disk.watermark.high: 85%
+      cluster.routing.allocation.disk.watermark.flood_stage: 90%
+    podTemplate:
+      spec:
+        terminationGracePeriodSeconds: 120
+        containers:
+        - name: elasticsearch
+          resources:
+            requests:
+              cpu: 500m
+              memory: 3Gi
+            limits:
+              cpu: '2'
+              memory: 3Gi
+          env:
+          - name: ES_JAVA_OPTS
+            value: -Xms1536m -Xmx1536m
+          startupProbe:
+            tcpSocket:
+              port: 9200
+            periodSeconds: 10
+            failureThreshold: 60
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        storageClassName: standard
+        resources:
+          requests:
+            storage: 40Gi
+---
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: logs
+  namespace: els
+spec:
+  version: 9.5.5
+  count: 1
+  elasticsearchRef:
+    name: logs
+  config:
+    server.basePath: /elk
+    server.rewriteBasePath: true
+    server.publicBaseUrl: https://jithendar.com/elk
+    xpack.security.secureCookies: true
+    xpack.security.encryptionKey: ${SECURITY_KEY}
+    xpack.encryptedSavedObjects.encryptionKey: ${OBJECTS_KEY}
+    xpack.reporting.encryptionKey: ${REPORTING_KEY}
+    telemetry.enabled: false
+  podTemplate:
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: kibana
+        resources:
+          requests:
+            cpu: 250m
+            memory: 1Gi
+          limits:
+            cpu: '1'
+            memory: 1536Mi
+        env:
+        - name: SECURITY_KEY
+          valueFrom:
+            secretKeyRef:
+              name: els-credentials
+              key: securityKey
+        - name: OBJECTS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: els-credentials
+              key: objectsKey
+        - name: REPORTING_KEY
+          valueFrom:
+            secretKeyRef:
+              name: els-credentials
+              key: reportingKey
+        - name: NODE_OPTIONS
+          value: --max-old-space-size=768
+        startupProbe:
+          tcpSocket:
+            port: 5601
+          periodSeconds: 10
+          failureThreshold: 60
+---
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: elk-kibana
+  namespace: els
+spec:
+  serverName: logs-kb-http.els.svc
+  rootCAsSecrets:
+  - logs-kb-http-certs-public
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: elk
+  namespace: els
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`jithendar.com`) && (Path(`/elk`) || PathPrefix(`/elk/`))
+    kind: Rule
+    services:
+    - name: logs-kb-http
+      port: 5601
+      scheme: https
+      serversTransport: elk-kibana
+  tls: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: elk-selfsigned
+  namespace: els
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: elk-ca
+  namespace: els
+spec:
+  isCA: true
+  commonName: elk-internal-ca
+  secretName: elk-ca
+  duration: 8760h
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  issuerRef:
+    name: elk-selfsigned
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: elk-ca
+  namespace: els
+spec:
+  ca:
+    secretName: elk-ca
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: logstash-server
+  namespace: els
+spec:
+  secretName: logstash-server-tls
+  duration: 2160h
+  renewBefore: 360h
+  commonName: logstash-server
+  dnsNames:
+  - logstash
+  - logstash.els.svc
+  - logstash.els.svc.cluster.local
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    encoding: PKCS8
+    rotationPolicy: Always
+  usages:
+  - server auth
+  issuerRef:
+    name: elk-ca
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: filebeat-client
+  namespace: els
+spec:
+  secretName: filebeat-client-tls
+  duration: 2160h
+  renewBefore: 360h
+  commonName: filebeat-client
+  dnsNames:
+  - filebeat.els.svc
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    encoding: PKCS8
+    rotationPolicy: Always
+  usages:
+  - client auth
+  issuerRef:
+    name: elk-ca

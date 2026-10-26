@@ -1,0 +1,11 @@
+api.enabled: true
+api.http.host: 0.0.0.0
+api.http.port: 9600
+dead_letter_queue.enable: false
+log.level: warn
+path.queue: /usr/share/logstash/data/queue
+pipeline.batch.size: 125
+pipeline.workers: 1
+queue.checkpoint.writes: 1024
+queue.max_bytes: 1gb
+queue.type: persisted

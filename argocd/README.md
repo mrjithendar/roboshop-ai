@@ -105,3 +105,8 @@ Removing an Application from this catalog does not delete it from the cluster;
 review removal explicitly. Without cascading finalizers, deleting an Application
 leaves its workloads running. To return a workload to imperative management,
 remove its Argo ownership first and verify no Application still reconciles it.
+
+Optional ELK logging is staged separately to preserve deployment ordering and avoid
+adding a collector during `deploy all`. See [ELK deployment](../observability/elk/README.md):
+`project-elk.yaml`, then (only if no existing ECK) `elk-operator.yaml`, then
+`elk-core.yaml`, then `elk-pipeline.yaml`. Namespace `els`, Kibana at `/elk`.
