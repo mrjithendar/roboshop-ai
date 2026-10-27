@@ -17,6 +17,7 @@ from user_client import UserClient
 from purchase_sync import PurchaseSync
 from auth import connect_mongo, require_role
 from admin import routes as admin_routes, settings
+import admin_console
 from store import Store, cents
 import currency_quote
 from cart_repository import CartRepository
@@ -63,6 +64,7 @@ class Gateway:
             self.demo_client = MongoClient(os.environ['DEMO_MONGODB_URL'], serverSelectionTimeoutMS=3000, socketTimeoutMS=5000)
             demo_db = self.demo_client[name]
         self.reviews = Reviews(db, demo_db, verification=self.auth.verified_purchase)
+        admin_console.ensure_indexes(db)
         configure_telemetry("ai-gateway")
         self.customers = PurchaseSync(self.auth, store)
         self.limits = {}
@@ -231,6 +233,32 @@ class Gateway:
         }, "mode": order["paymentMode"]}, 201, []
 
     def handle(self, req):
+        """Route a request; administrative changes and refusals are written to the audit trail."""
+        audited = req.method in ("POST", "PUT", "PATCH", "DELETE") and req.path.startswith("/api/admin/")
+        try:
+            result = self.route(req)
+        except HttpError as error:
+            if audited:
+                self.audit(req, error.status)
+            raise
+        if audited:
+            self.audit(req, result[1] if isinstance(result, tuple) else 200)
+        return result
+
+    def audit(self, req, status):
+        actor = getattr(req, "user", None)
+        if actor is None:  # User-access changes are forwarded before the session is resolved.
+            try:
+                actor = self.auth.current(req.cookie('rs_auth', r'[a-f0-9]{64}'))
+            except Exception:
+                actor = None
+        try:
+            body = req.body() if req.method != "DELETE" else None
+        except HttpError:
+            body = None
+        admin_console.record(self.db, req, actor, status, body)
+
+    def route(self, req):
         path, method = req.path, req.method
         if path == "/internal/llm/config" and method == "GET":
             authenticate_service(req.headers)
@@ -347,6 +375,12 @@ class Gateway:
                 and req.headers.get("origin") != self.origin
             ):
                 raise HttpError(403, "Origin not allowed.")
+            if method == "GET" and path == "/api/admin/overview":
+                return admin_console.overview(req.user, self.db, self.store)
+            if method == "GET" and path == "/api/admin/orders":
+                return admin_console.orders(req.user, self.store, req.query)
+            if method == "GET" and path == "/api/admin/audit":
+                return admin_console.audit_listing(req.user, self.db, req.query)
             match = re.fullmatch(r"/api/admin/test-orders/([a-f0-9-]{36})/reconcile", path)
             if match and method == "POST":
                 actor = require_role(req.user, ["superadmin"])

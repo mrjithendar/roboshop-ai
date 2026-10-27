@@ -169,3 +169,48 @@ test('product image path previews and is included in revision-protected update',
   assert.equal(body.image,'/product-media/updated.webp'); assert.equal(body.revision,1);
   assert.equal(ui.$('#panel-products').hidden,false);
 });
+test('product overview counts stock states and filters the table', async t => {
+  const ui = setup(t, 'admin');
+  const original = ui.w.fetch;
+  const products = [{ ...product, available: 10, instock: 10 }, { ...product, sku: 'LOW', name: 'Low robot', available: 2 }, { ...product, sku: 'OUT', name: 'Gone robot', available: 0 }, { ...product, sku: 'OLD', name: 'Old robot', archived: true }];
+  ui.w.fetch = async (path, options) => path === '/api/admin/products' ? { ok: true, json: async () => ({ products }) } : original(path, options);
+  await ui.boot();
+  assert.deepEqual(['total', 'active', 'low', 'out', 'archived'].map(key => ui.$(`#stat-${key}`).textContent), ['4', '3', '1', '1', '1']);
+  assert.match(ui.$('#admin-products').textContent, /Low stock/);
+  ui.$('#product-filter').value = 'out'; ui.$('#product-filter').dispatchEvent(new ui.w.Event('change'));
+  assert.equal(ui.w.document.querySelectorAll('#admin-products tr').length, 1);
+  assert.match(ui.$('#admin-products').textContent, /OUT/);
+  ui.$('#product-filter').value = ''; ui.$('#product-search').value = 'nothing here'; ui.$('#product-search').dispatchEvent(new ui.w.Event('input'));
+  assert.match(ui.$('#admin-products').textContent, /No products match/);
+  assert.match(ui.$('#product-count').textContent, /Showing 0 of 4/);
+});
+test('leaving the editor with unsaved changes asks before discarding them', async t => {
+  const ui = setup(t, 'admin'); await ui.boot();
+  ui.$('#admin-products button').click();
+  ui.$('#product-name').value = 'Changed'; ui.$('#product-form').dispatchEvent(new ui.w.Event('input'));
+  assert.equal(ui.$('#product-dirty').hidden, false);
+  ui.w.confirm = () => false; ui.$('#cancel-product').click();
+  assert.equal(ui.$('#panel-editor').hidden, false);
+  ui.w.confirm = () => true; ui.$('#cancel-product').click();
+  assert.equal(ui.$('#panel-products').hidden, false);
+});
+test('reviews load when the tab first opens and show status badges', async t => {
+  const ui = setup(t, 'admin');
+  const original = ui.w.fetch;
+  ui.w.fetch = async (path, options) => path.startsWith('/api/admin/reviews?') ? (ui.calls.push({ path, options }), { ok: true, json: async () => ({ reviews: [{ id: 'r1', productId: 'TEST', title: 'Great', body: '<b>ok</b>', status: 'pending', synthetic: false }], next: null }) }) : original(path, options);
+  await ui.boot();
+  ui.$('#tab-reviews').click(); await new Promise(resolve => setTimeout(resolve, 10));
+  assert.equal(ui.calls.filter(call => call.path.startsWith('/api/admin/reviews?')).length, 1);
+  assert.equal(ui.$('#moderation-list b'), null);
+  const buttons = [...ui.w.document.querySelectorAll('.admin-review-actions button')];
+  assert.equal(buttons.find(button => button.textContent === 'Set pending').disabled, true);
+  ui.$('#tab-products').click(); ui.$('#tab-reviews').click(); await new Promise(resolve => setTimeout(resolve, 10));
+  assert.equal(ui.calls.filter(call => call.path.startsWith('/api/admin/reviews?')).length, 1);
+});
+test('super admin can search loaded users', async t => {
+  const ui = setup(t, 'superadmin'); await ui.boot();
+  ui.$('#user-search').value = 'buyer'; ui.$('#user-search').dispatchEvent(new ui.w.Event('input'));
+  const rows = [...ui.w.document.querySelectorAll('#admin-users .admin-user')];
+  assert.deepEqual(rows.map(row => row.hidden), [true, false]);
+  assert.match(ui.$('#user-count').textContent, /Showing 1 of 2/);
+});

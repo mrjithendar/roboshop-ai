@@ -294,3 +294,90 @@ footer.store-footer .store-footer-bottom p{font-size:11px;margin:0;max-width:non
 .admin-image-preview{width:180px;height:180px;object-fit:contain;background:#f5f7f3;border:1px solid #dce5dd;border-radius:8px}
 .admin-form fieldset{min-width:0;border:1px solid #dce5dd;border-radius:8px;padding:16px}
 @media(max-width:600px){.admin-page [role=tabpanel]{padding:16px}.admin-tabs [role=tab]{padding:12px}.admin-table{min-width:680px}}
+
+/* Catalogue loading, filtering and empty states. */
+.product-card{display:flex;flex-direction:column;border-radius:10px;transition:transform .2s,box-shadow .2s}
+.product-card .product-image-button{transition:box-shadow .2s}
+.product-card:hover .product-image-button,.product-card:focus-within .product-image-button{box-shadow:0 10px 26px -14px #24241f66}
+.product-card .product-bottom{margin-top:auto}
+.product-skeleton{display:grid;gap:12px}
+.product-skeleton span{display:block;border-radius:7px;background:linear-gradient(90deg,#eceae3 0%,#f6f5f0 50%,#eceae3 100%);background-size:200% 100%;animation:skeleton 1.3s ease-in-out infinite}
+.product-skeleton span:first-child{height:240px}.product-skeleton span:nth-child(2){height:14px;width:70%}.product-skeleton span:nth-child(3){height:12px;width:45%}
+.compact-grid .product-skeleton span:first-child{height:200px}
+@keyframes skeleton{from{background-position:100% 0}to{background-position:-100% 0}}
+@media(prefers-reduced-motion:reduce){.product-skeleton span{animation:none}.product-card,.product-image-button img{transition:none}}
+.results-summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.clear-filters{border:0;background:none;padding:0;font-size:inherit;font-weight:600;color:#286b53;text-decoration:underline;text-underline-offset:3px;min-height:32px}
+.search-box{position:relative}
+.search-shortcut{font:600 10px/1 inherit;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:3px 6px;margin-left:auto;background:#fff}
+.search-box:focus-within .search-shortcut{display:none}
+.empty-state h3{color:var(--ink);font-size:18px;margin:0 0 8px}.empty-state p{margin:0 0 20px}
+@media(max-width:700px){.search-shortcut{display:none}.product-skeleton span:first-child{height:auto;aspect-ratio:1}}
+
+/* Administration dashboard. */
+.admin-page{background:#f3f5f4}
+.admin-main{max-width:1240px;margin:auto;padding:36px 24px 72px}
+.admin-header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.admin-header .admin-heading{font-size:clamp(28px,4vw,40px);letter-spacing:-1px;margin:6px 0 0}
+.admin-identity{margin:0;font-size:13px;color:#4c6259;background:#fff;border:1px solid #dce5dd;border-radius:999px;padding:8px 14px}
+.admin-notice{font-size:13px;line-height:1.6;margin:12px 0;padding:0;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere}
+.admin-notice:empty{display:none}
+[data-tone=success]:is(p),[data-tone=error]:is(p){padding:10px 14px;border:1px solid}
+p[data-tone=success]{background:#e8f5ed;border-color:#b9dcca;color:#1c4f3c}
+p[data-tone=error]{background:#fff1ec;border-color:#efc3b3;color:#7a2d14}
+.admin-page [role=tabpanel]{margin:20px 0 0;padding:28px;border-bottom:1px solid #e0e7e1;box-shadow:0 1px 2px #1a2e2608}
+.admin-page [role=tabpanel] h2{font-size:22px;letter-spacing:-.4px;margin:0 0 6px}
+.admin-panel-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.admin-panel-heading h3{margin:0;font-size:20px}
+.admin-help{font-size:13px;line-height:1.7;color:#5b6e66;max-width:760px;margin:0 0 8px}
+.admin-page .button.primary{background:#185d48;color:#fff}
+.admin-page .button.secondary{background:#fff;border-color:#c9d6cf;color:#173b33}
+.admin-page .button{min-height:40px;padding:10px 16px;gap:8px}
+.admin-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:20px 0}
+.admin-stats>div{background:#f7faf8;border:1px solid #e0e8e3;border-radius:10px;padding:14px 16px}
+.admin-stats dt{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:#5f7169;font-weight:700}
+.admin-stats dd{margin:6px 0 0;font-size:26px;font-weight:700;letter-spacing:-.5px;color:#173b33}
+.admin-stats [data-tone=warning] dd{color:#8a5a00}.admin-stats [data-tone=danger] dd{color:#a3361b}
+.admin-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0}
+.admin-toolbar input,.admin-toolbar select{min-height:42px;padding:8px 12px;border:1px solid #c5d2cb;border-radius:8px;background:#fff;font:inherit;font-size:14px}
+.admin-search{flex:1 1 280px;max-width:420px}.admin-search input{width:100%}
+.admin-count{font-size:12px;color:#5f7169;margin-left:auto}
+.admin-table-wrap{border:1px solid #e0e8e3;border-radius:10px;background:#fff}
+.admin-table{font-size:14px}
+.admin-table thead th{position:sticky;top:0;background:#f7faf8;font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:#5f7169;border-bottom:1px solid #dce5dd}
+.admin-table td{border-bottom:1px solid #eef2ef}
+.admin-table tbody tr:last-child td{border-bottom:0}
+.admin-table tbody tr:hover{background:#f8fbf9}
+.admin-table tr[data-state=archived] td{color:#7d8a84}
+.admin-table td strong{display:block;font-weight:600}.admin-table td small{display:block;color:#6b7c74;font-size:12px;margin-top:2px}
+.admin-table .numeric{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.admin-table td:last-child{text-align:right}
+.admin-empty{text-align:center!important;color:#6b7c74;padding:32px!important}
+.admin-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.3px;padding:4px 9px;border-radius:999px;background:#eef1ef;color:#4c5c55;white-space:nowrap}
+.admin-badge[data-tone=success]{background:#e3f3ea;color:#1c5a42}
+.admin-badge[data-tone=warning]{background:#fff3d6;color:#7a5000}
+.admin-badge[data-tone=danger]{background:#fde9e3;color:#8e2f15}
+.admin-badge[data-tone=info]{background:#e6eefb;color:#234a87}
+.product-form{grid-template-columns:1fr 1fr;max-width:920px;column-gap:20px}
+.product-form>.admin-panel-heading,.product-form>label:has(textarea),.product-form>label:has(#product-categories),.product-form>label:has(#product-archived),.product-form>fieldset,.product-form>.admin-form-actions{grid-column:1/-1}
+.product-form>label:has(#product-archived){display:flex;align-items:center;gap:8px}
+.admin-form input:not([type=checkbox]):focus,.admin-form select:focus,.admin-form textarea:focus{border-color:#185d48}
+.admin-form input[readonly]{background:#f2f4f3;color:#5b6e66}
+.admin-form-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.admin-form-actions p{margin:0;flex-basis:100%}
+.admin-user{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;padding:16px 0}
+.admin-user-identity{flex:1 1 240px}
+.admin-user>span:not(.admin-badge){font-size:13px;color:#5f7169}
+.admin-user .customer-details{order:1;flex-basis:100%}
+.admin-user-identity{display:grid;gap:2px;min-width:0}.admin-user-identity span{font-size:13px;color:#5b6e66}
+.admin-user label{display:flex;align-items:center;gap:6px;font-size:13px}
+.admin-user select{min-height:40px;padding:6px 10px;border-radius:8px;font-size:14px}
+.customer-details{background:#f7faf8;border:1px solid #e0e8e3;border-radius:8px;padding:8px 16px}
+.moderation-list{display:grid;gap:12px}
+.admin-review{border:1px solid #e0e8e3;border-radius:10px;padding:16px 18px}
+.admin-review h3{margin:10px 0 6px;font-size:16px}.admin-review p{margin:0;font-size:14px;line-height:1.7;color:#3c4f47}
+.admin-review-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#5f7169}
+.admin-review-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+#panel-llm .admin-form,#panel-settings .admin-form{max-width:720px}
+@media(max-width:900px){.admin-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.admin-user-identity{flex-basis:100%}}
+@media(max-width:600px){.admin-main{padding:24px 16px 48px}.admin-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-page [role=tabpanel]{padding:18px}.product-form{grid-template-columns:minmax(0,1fr)}.admin-count{margin-left:0;flex-basis:100%}.admin-search{max-width:none}.admin-toolbar input,.admin-toolbar select{font-size:16px}}

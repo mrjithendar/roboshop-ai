@@ -4,7 +4,7 @@ export {};
 
 // ID selectors carry their actual DOM type; a missing element fails at startup.
 type Controls = {
-  '#search': HTMLInputElement; '#in-stock': HTMLInputElement; '#sort': HTMLSelectElement; '#collection': HTMLSelectElement;
+  '#search': HTMLInputElement; '#in-stock': HTMLInputElement; '#sort': HTMLSelectElement; '#collection-filter': HTMLSelectElement;
   '#send-message': HTMLButtonElement; '#message': HTMLTextAreaElement;
 };
 function $<K extends string>(selector: K): K extends keyof Controls ? Controls[K] : HTMLElement {
@@ -51,29 +51,61 @@ function card(p: Product) {
   article.append(visual, el('p', 'product-category', [p.productType, ...p.categories].filter(Boolean).join(' / ')), title, el('p', 'product-description', p.description), bottom);
   return article;
 }
+// Filters live in the URL so a filtered view can be shared, bookmarked and restored on reload.
+function selectCategory(value: string) { category = value; document.querySelectorAll<HTMLElement>('[data-category]').forEach(tab => { const active = (tab.dataset.category || '') === value; tab.classList.toggle('selected', active); tab.setAttribute('aria-pressed', String(active)); }); }
+function filtersActive() { return Boolean($('#search').value.trim() || category || $('#collection-filter').value || $('#in-stock').checked); }
+function saveFilters() {
+  const params = new URLSearchParams(location.search);
+  const values: Record<string, string> = { q: $('#search').value.trim(), category, collection: $('#collection-filter').value, sort: $('#sort').value === 'featured' ? '' : $('#sort').value, stock: $('#in-stock').checked ? '1' : '' };
+  for (const [key, value] of Object.entries(values)) { if (value) params.set(key, value); else params.delete(key); }
+  const search = params.toString();
+  history.replaceState(history.state, '', `${location.pathname}${search ? `?${search}` : ''}${location.hash}`);
+}
+function restoreFilters() {
+  const params = new URLSearchParams(location.search);
+  $('#search').value = params.get('q') || '';
+  for (const [key, control] of [['collection', $('#collection-filter')], ['sort', $('#sort')]] as const) { const value = params.get(key); if (value && [...control.options].some(option => option.value === value)) control.value = value; }
+  $('#in-stock').checked = params.get('stock') === '1';
+  const wanted = params.get('category') || '';
+  if ([...document.querySelectorAll<HTMLElement>('[data-category]')].some(tab => tab.dataset.category === wanted)) selectCategory(wanted);
+}
+function clearFilters() { $('#search').value = ''; $('#collection-filter').value = ''; $('#in-stock').checked = false; selectCategory(''); renderProducts(); }
 function renderProducts() {
   const query = $('#search').value.toLowerCase().trim();
-  let visible = products.filter(p => (!$('#collection').value || (p.collection || (p.demo ? 'demo' : 'merchant')) === $('#collection').value) && (!category || p.categories.includes(category)) && (!$('#in-stock').checked || p.instock > 0) && `${p.name} ${p.manufacturer || ''} ${p.model || ''} ${p.description} ${p.categories.join(' ')}`.toLowerCase().includes(query));
+  let visible = products.filter(p => (!$('#collection-filter').value || (p.collection || (p.demo ? 'demo' : 'merchant')) === $('#collection-filter').value) && (!category || p.categories.includes(category)) && (!$('#in-stock').checked || p.instock > 0) && `${p.name} ${p.manufacturer || ''} ${p.model || ''} ${p.description} ${p.categories.join(' ')}`.toLowerCase().includes(query));
   const sort = $('#sort').value;
   visible.sort(sort === 'price-low' ? (a, b) => (a.currency || 'EUR').localeCompare(b.currency || 'EUR') || Number(a.priceType === 'on-request') - Number(b.priceType === 'on-request') || (a.priceType || 'sale').localeCompare(b.priceType || 'sale') || a.price - b.price : sort === 'price-high' ? (a, b) => (a.currency || 'EUR').localeCompare(b.currency || 'EUR') || Number(a.priceType === 'on-request') - Number(b.priceType === 'on-request') || (a.priceType || 'sale').localeCompare(b.priceType || 'sale') || b.price - a.price : sort === 'name' ? (a, b) => a.name.localeCompare(b.name) : (a, b) => Number(b.image.startsWith('/product-media/')) - Number(a.image.startsWith('/product-media/')));
-  $('#products').replaceChildren(...visible.map(card));
-  if (!visible.length) $('#products').append(el('p', 'empty-state', 'No robots match just yet. Try another search or category.'));
-  $('#result-count').textContent = `${visible.length} robotics product${visible.length === 1 ? '' : 's'}`;
+  $('#products').replaceChildren(...visible.map(card)); $('#products').removeAttribute('aria-busy');
+  if (!visible.length) {
+    const empty = el('div', 'empty-state'); empty.append(el('h3', '', 'No robots match just yet.'), el('p', '', 'Try another search or category.'));
+    if (filtersActive()) { const reset = el('button', 'button secondary', 'Clear filters'); reset.type = 'button'; reset.addEventListener('click', clearFilters); empty.append(reset); }
+    $('#products').append(empty);
+  }
+  $('#result-count').textContent = `${visible.length} ${filtersActive() ? `of ${products.length} ` : ''}robotics product${visible.length === 1 ? '' : 's'}`;
   $('#product-count').textContent = String(products.length);
+  $('#clear-filters').hidden = !filtersActive();
+  saveFilters();
 }
 async function loadProducts() {
   $('#catalogue-error').hidden = true;
   try { products = (await api<{ products: Product[] }>('/api/products')).products; renderProducts(); }
-  catch { $('#products').replaceChildren(); $('#catalogue-error').hidden = false; $('#result-count').textContent = 'Collection unavailable'; }
+  catch { $('#products').replaceChildren(); $('#products').removeAttribute('aria-busy'); $('#catalogue-error').hidden = false; $('#result-count').textContent = 'Collection unavailable'; }
 }
 async function loadRecommendations() {
   try { $('#recommendations').replaceChildren(...(await api<{ products: Product[] }>('/api/recommendations')).products.map(card)); }
   catch { $('#recommendations').replaceChildren(el('p', 'empty-state', 'Recommendations are unavailable right now. Explore the collection above.')); }
+  finally { $('#recommendations').removeAttribute('aria-busy'); }
 }
 $('#retry-products').addEventListener('click', loadProducts);
-$('#collection').addEventListener('change', renderProducts);
+$('#collection-filter').addEventListener('change', renderProducts); $('#clear-filters').addEventListener('click', clearFilters);
+document.addEventListener('keydown', event => {
+  const target = event.target as HTMLElement | null;
+  if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey || target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+  event.preventDefault(); $('#search').focus();
+});
 $('#search').addEventListener('input', renderProducts); $('#sort').addEventListener('change', renderProducts); $('#in-stock').addEventListener('change', renderProducts);
-document.querySelectorAll<HTMLElement>('[data-category]').forEach(button => button.addEventListener('click', () => { category = button.dataset.category || ''; document.querySelectorAll<HTMLElement>('[data-category]').forEach(tab => { const active = tab === button; tab.classList.toggle('selected', active); tab.setAttribute('aria-pressed', String(active)); }); renderProducts(); }));
+document.querySelectorAll<HTMLElement>('[data-category]').forEach(button => button.addEventListener('click', () => { selectCategory(button.dataset.category || ''); renderProducts(); }));
+restoreFilters();
 function detail(p: Product) { location.href = appPath(`/products/${encodeURIComponent(p.slug || p.sku.toLowerCase())}`); }
 
 async function add(p: Product) { const quantity = (cart.items.find(item => item.sku === p.sku)?.quantity || 0) + 1; if (await updateCart(p.sku, quantity)) toast(`${p.name} is in your bag.`); }

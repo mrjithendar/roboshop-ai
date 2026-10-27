@@ -55,6 +55,19 @@ test('compiled storefront renders safe product text and filters the catalogue', 
   assert.equal(ui.$('#cart-dialog'), null);
 });
 
+test('storefront filters persist in the URL and can be cleared', async t => {
+  const ui = setup(t, undefined, true); await ui.boot();
+  assert.equal(ui.$('#products').hasAttribute('aria-busy'), false);
+  assert.equal(ui.$('#clear-filters').hidden, true);
+  ui.$('#search').value = 'nothing'; ui.$('#search').dispatchEvent(new ui.w.Event('input'));
+  assert.equal(new URL(ui.w.location.href).searchParams.get('q'), 'nothing');
+  assert.equal(ui.$('#clear-filters').hidden, false);
+  ui.$('#products .empty-state button').click();
+  assert.equal(ui.$('#search').value, '');
+  assert.equal(new URL(ui.w.location.href).searchParams.has('q'), false);
+  assert.equal(ui.$('.product-title').textContent, product.name);
+});
+
 test('shipping listeners register before startup requests complete', async t => {
   let release;
   const gate = new Promise(resolve => { release = resolve; });
@@ -307,11 +320,11 @@ test('storefront separates reference and demo collections and keeps provenance l
  const reference={...product,sku:'REF-TEST',collection:'reference',manufacturer:'Pololu',currency:'USD',priceType:'reference',showcase:true,instock:0,image:'/images/placeholder.png'};
  const demo={...product,sku:'DEMO',collection:'demo',demo:true};
  const ui=setup(t,async path=>path==='/api/products'?{ok:true,json:async()=>({products:[reference,demo]})}:undefined,true);await ui.boot();
- ui.$('#collection').value='reference';ui.$('#collection').dispatchEvent(new ui.w.Event('change'));
+ ui.$('#collection-filter').value='reference';ui.$('#collection-filter').dispatchEvent(new ui.w.Event('change'));
  assert.equal(ui.w.document.querySelectorAll('#products .product-card').length,1);
  assert.match(ui.$('#products').textContent,/reference price, not a store offer/);
  assert.match(ui.$('#products').textContent,/not a product photo/);
- ui.$('#collection').value='demo';ui.$('#collection').dispatchEvent(new ui.w.Event('change'));
+ ui.$('#collection-filter').value='demo';ui.$('#collection-filter').dispatchEvent(new ui.w.Event('change'));
  assert.match(ui.$('#products').textContent,/demo price/);assert.match(ui.$('#products').textContent,/SIMULATED/);
 });
 
