@@ -28,9 +28,12 @@ if tonumber(ARGV[2]) >= 0 and cart.revision ~= tonumber(ARGV[2]) then return -2 
 if ARGV[3] == '1' and next(cart.items) ~= nil then return -2 end
 cart.items = cjson.decode('{}'); cart.revision = cart.revision + 1
 redis.call('SET', KEYS[1], cjson.encode(cart), 'EX', ARGV[1]) end
-redis.call('SET', KEYS[2], '1')
+redis.call('SET', KEYS[2], '1', 'EX', ARGV[4])
 return 1
 '''
+# Per-order "already cleared" markers only need to outlive payment retries and
+# reconciliation; without an expiry Redis keeps one key per paid order forever.
+CLEARED_TTL = 30 * 86400
 
 def validate_items(items):
     if not isinstance(items, dict) or len(items) > 100 or any(not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', key) or type(value) is not int or not 1 <= value <= 20 for key, value in items.items()):
@@ -68,7 +71,7 @@ class CartService:
                 revision=data.get('expectedRevision',-1);empty=data.get('requireEmpty',False)
                 if type(revision) is not int or revision < -1 or type(empty) is not bool or (revision < 0 and not empty):
                     raise HttpError(400,'Expected checkout revision or an empty cart is required.')
-            result=self.redis.eval(CLEAR, 2, key, 'roboshop:cart-cleared:' + order, TTL, revision, '1' if empty else '0')
+            result=self.redis.eval(CLEAR, 2, key, 'roboshop:cart-cleared:' + order, TTL, revision, '1' if empty else '0', CLEARED_TTL)
             if result == -2: raise HttpError(409,'Cart revision differs from the paid checkout. Reconciliation required; cart preserved.')
             log_event('cart_cleared_after_payment', orderId=order, outcome='success', reason='already_applied' if result == 0 else 'cleared')
             return {'ok': True}

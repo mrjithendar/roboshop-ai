@@ -227,8 +227,14 @@ def trace_span(name, kind=1, attributes=None, parent=None, service=None, tracest
         status = getattr(error, "status", 500)
         raise
     finally:
-        telemetry(context["service"], context, start, name, status)
-        ctx.reset(token)
+        try:
+            telemetry(context["service"], context, start, name, status)
+        except Exception:
+            # Telemetry is optional; it must not change authentication or other
+            # request outcomes, including when an exporter is shutting down.
+            pass
+        finally:
+            ctx.reset(token)
 
 
 def database_operation(name):

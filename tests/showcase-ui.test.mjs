@@ -25,7 +25,9 @@ test('curated metadata survives normalization without changing currency or sourc
 test('shareable product page renders safe source-backed details and no showcase cart button', async t => {
   const ui = await setup(t);
   assert.match(ui.document.title, /TurtleBot3/); assert.equal(ui.document.querySelector('h1').textContent, ui.p.name);
-  assert.doesNotMatch(ui.document.body.textContent, /Price on request/); assert.match(ui.document.body.textContent, /simulated/);
+  // The fixture product has no published price; it must say so rather than show an amount.
+  assert.equal(ui.p.priceType, 'on-request'); assert.equal(ui.document.querySelector('.detail-price').textContent, 'Price on request');
+  assert.match(ui.document.body.textContent, /simulated/);
   assert.match(ui.document.body.textContent, /Generated test reviews/);
   assert.equal(ui.document.querySelector('#review-list script'), null); assert.equal(ui.document.querySelector('#review-list img'), null);
   assert.ok(ui.document.querySelector('#related-products a').href.includes('/products/'));

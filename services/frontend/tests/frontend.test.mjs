@@ -29,11 +29,13 @@ function setup(t, handler = () => undefined, storefront = false, auth = false, r
     const custom = await handler(path, options);
     const defaults = {
       '/api/products': { products: [product] }, '/api/recommendations': { products: [product] },
-      '/api/cart': cart, '/api/payments/config': { enabled: true, message: 'Test payments' },
+      '/api/cart': cart, '/api/payments/config': { enabled: true, message: 'Test payments', currencies: ['INR'] },
       '/api/auth/me': { user: { id: 'customer', name: 'Customer', email: 'customer@example.com', role: 'customer' } },
       '/api/settings': { storeName: 'RoboShop', announcement: 'Hello', supportEmail: '', checkoutEnabled: true },
       '/api/status': { assistantMode: 'catalogue-search' }, '/api/payments/current': { order: null },
       '/api/shipping/countries': { countries: [{ code: 'IN', name: 'India', cityCount: 10 }] },
+      // Checkout pays only a server-signed INR quote.
+      '/api/payments/quote': { cart: { ...cart, currency: 'INR' }, quoteToken: 'signed-quote', expiresAt: Math.floor(Date.now() / 1000) + 300 },
     };
     if (custom) return custom;
     assert.ok(Object.hasOwn(defaults, path), `Unexpected request: ${path}`);
@@ -313,20 +315,23 @@ test('storefront separates reference and demo collections and keeps provenance l
  assert.match(ui.$('#products').textContent,/demo price/);assert.match(ui.$('#products').textContent,/SIMULATED/);
 });
 
-test('converted checkout shows server total and sends only signed quote to provider order route', async t => {
-  let requestBody, providerOptions;
-  const converted = {...cart,currency:'GBP',subtotal:12,total:13,shipping:{...cart.shipping,cost:1},items:cart.items.map(p=>({...p,currency:'GBP',price:12,lineTotal:12}))};
+test('checkout quotes and pays only in INR, sending just the signed quote to the provider order route', async t => {
+  let requestBody, providerOptions, quoted;
+  const inr = {...cart,currency:'INR',subtotal:1200,total:1300,shipping:{...cart.shipping,cost:100},items:cart.items.map(p=>({...p,currency:'INR',price:1200,lineTotal:1200}))};
   const ui=setup(t,(path,options)=>{
     const reply=body=>({ok:true,json:async()=>body});
+    // Another currency offered by the server or saved by the shopper is never used for payment.
     if(path==='/api/payments/config')return reply({enabled:true,currencies:['INR','GBP']});
-    if(path==='/api/payments/quote') {assert.equal(JSON.parse(options.body).currency,'GBP');return reply({cart:converted,quoteToken:'server-signed-quote',expiresAt:Math.floor(Date.now()/1000)+300});}
-    if(path==='/api/payments/orders') {requestBody=JSON.parse(options.body);return reply({order:{...converted,id:'fx-order',status:'payment_pending'},checkout:{currency:'GBP',amount:1300}});}
+    if(path==='/api/payments/quote') {quoted=JSON.parse(options.body).currency;return reply({cart:inr,quoteToken:'server-signed-quote',expiresAt:Math.floor(Date.now()/1000)+300});}
+    if(path==='/api/payments/orders') {requestBody=JSON.parse(options.body);return reply({order:{...inr,id:'inr-order',status:'payment_pending'},checkout:{currency:'INR',amount:130000}});}
   });
   ui.w.localStorage.setItem('roboshop.displayCurrency','GBP');
   ui.w.Razorpay=class {constructor(options){providerOptions=options;}open(){}on(){}};
-  await ui.boot();assert.match(ui.$('#cart-total').textContent,/13\.00/);assert.equal(ui.$('#display-currency').value,'GBP');
+  await ui.boot();
+  assert.equal(quoted,'INR');assert.match(ui.$('#cart-total').textContent,/₹1,300\.00/);
+  assert.equal(ui.$('#display-currency').value,'INR');assert.equal(ui.$('#display-currency').disabled,true);
   ui.$('#checkout').click();await waitFor(()=>providerOptions);
-  assert.deepEqual(requestBody,{quoteToken:'server-signed-quote'});assert.equal(providerOptions.currency,'GBP');assert.equal(providerOptions.amount,1300);
+  assert.deepEqual(requestBody,{quoteToken:'server-signed-quote'});assert.equal(providerOptions.currency,'INR');assert.equal(providerOptions.amount,130000);
 });
 
 test('expired currency quote refreshes for review without creating a provider order', async t => {
@@ -341,38 +346,34 @@ test('expired currency quote refreshes for review without creating a provider or
  assert.equal(quotes,2);assert.equal(orders,0);
 });
 
-test('guest cart converts INR to saved currency without requesting a payment quote',async t=>{
+test('guest cart shows an INR estimate despite a saved USD preference and requests no payment quote',async t=>{
  const original={...cart,currency:'INR',subtotal:1200,total:1500,shipping:{...cart.shipping,cost:300},items:[{...product,currency:'INR',price:1200,lineTotal:1200,quantity:1}]};
  const ui=setup(t,path=>{
    const reply=body=>({ok:true,json:async()=>body});
    if(path==='/api/auth/me')return reply({user:null});
    if(path==='/api/cart')return reply(original);
    if(path==='/api/payments/config')return reply({enabled:true,currencies:['INR','USD','GBP']});
-   if(path.startsWith('/api/currency/rates'))return reply({displayOnly:true,asOf:new Date().toISOString().slice(0,10),suggestedCurrency:'INR',rates:{INR:100,USD:1,GBP:0.8}});
+   if(path.startsWith('/api/currency/rates'))return reply({displayOnly:true,asOf:new Date().toISOString().slice(0,10),suggestedCurrency:'USD',rates:{INR:100,USD:1,GBP:0.8}});
  },false,false,'cart');
  ui.w.localStorage.setItem('roboshop.displayCurrency','USD');
  await ui.boot();
- assert.equal(ui.$('#display-currency').value,'USD');
- assert.match(ui.$('#cart-total').textContent,/\$15\.00/);
- assert.match(ui.$('#cart-subtotal').textContent,/\$12\.00/);
- assert.match(ui.$('#currency-status').textContent,/Estimated cart total in USD/);
- ui.$('#display-currency').value='GBP';ui.$('#display-currency').dispatchEvent(new ui.w.Event('change'));
- await waitFor(()=>ui.$('#cart-total').textContent.includes('£12.00'));
- assert.equal(original.total,1500);
+ assert.equal(ui.$('#display-currency').value,'INR');
+ assert.equal(ui.$('#display-currency').disabled,true);
+ assert.match(ui.$('#cart-total').textContent,/₹1,500\.00/);
+ assert.match(ui.$('#currency-status').textContent,/only in INR.*Estimated cart total in INR/);
  assert.ok(!ui.calls.includes('/api/payments/quote'));
- assert.equal(ui.w.localStorage.getItem('roboshop.displayCurrency'),'GBP');
 });
 
-test('direct cart entry uses regional currency then obtains an authoritative quote',async t=>{
+test('signed-in cart obtains an authoritative INR quote even when the region suggests USD',async t=>{
  let requested;
  const ui=setup(t,(path,options)=>{
    const reply=body=>({ok:true,json:async()=>body});
    if(path==='/api/cart')return reply({...cart,currency:'INR'});
    if(path==='/api/payments/config')return reply({enabled:true,currencies:['INR','USD']});
    if(path.startsWith('/api/currency/rates'))return reply({displayOnly:true,asOf:new Date().toISOString().slice(0,10),suggestedCurrency:'USD',rates:{INR:100,USD:1}});
-   if(path==='/api/payments/quote'){requested=JSON.parse(options.body).currency;return reply({cart:{...cart,currency:'USD',total:8},quoteToken:'signed',expiresAt:Math.floor(Date.now()/1000)+300});}
+   if(path==='/api/payments/quote'){requested=JSON.parse(options.body).currency;return reply({cart:{...cart,currency:'INR',total:16},quoteToken:'signed',expiresAt:Math.floor(Date.now()/1000)+300});}
  },false,false,'cart');
- await ui.boot();assert.equal(requested,'USD');assert.match(ui.$('#cart-total').textContent,/\$8\.00/);
+ await ui.boot();assert.equal(requested,'INR');assert.match(ui.$('#cart-total').textContent,/₹16\.00/);
 });
 
 test('guest FX failure keeps original amount and explains why conversion is unavailable',async t=>{
