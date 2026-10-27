@@ -4,6 +4,7 @@ import type { MDXContent } from "mdx/types";
 import * as runtime from "react/jsx-runtime";
 import rehypeSlug from "rehype-slug";
 import remarkDirective from "remark-directive";
+import remarkGfm from "remark-gfm";
 import { collectHeadings, demoteH1, type Heading } from "./headings";
 import { remarkShortcodes } from "./shortcodes";
 
@@ -25,7 +26,8 @@ export async function compileMdx(source: string): Promise<CompiledMdx> {
     ...runtime,
     format: "md",
     development: false,
-    remarkPlugins: [remarkDirective, remarkShortcodes],
+    // GFM: tables, strikethrough, task lists, autolinks.
+    remarkPlugins: [remarkGfm, remarkDirective, remarkShortcodes],
     rehypePlugins: [
       demoteH1,
       rehypeSlug,

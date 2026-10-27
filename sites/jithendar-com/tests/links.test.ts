@@ -8,7 +8,7 @@ import { NOW, REAL_CONTENT } from "./helpers";
 describe("internal link extraction", () => {
   it("finds markdown and href links, ignoring external, protocol-relative, query and fragment", async () => {
     const body = `See [a](/blog/x#part), [b](/about/), [c](https://example.com/y), [d](//cdn.example.com/z),
-<a href="/news?page=2">n</a> and [top](/).`;
+<a href="/news?page=2">n</a> and [top](/). ![diagram](/images/x.png) is an image, not a link.`;
     expect(internalLinks(body).sort()).toEqual(["/", "/about", "/blog/x", "/news"]);
   });
 });

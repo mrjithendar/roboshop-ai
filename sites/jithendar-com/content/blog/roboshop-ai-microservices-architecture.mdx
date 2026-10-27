@@ -1,0 +1,239 @@
+---
+title: "Inside RoboShop AI: microservices on Kubernetes, from Minikube today to an EKS-ready design"
+slug: roboshop-ai-microservices-architecture
+description: How RoboShop AI's storefront, gateway, AI assistant and data services fit together, how it ships to Kubernetes today, and how its EKS stack is designed.
+author: jithendar-dharmapuri
+category: kubernetes
+tags: [Kubernetes, Microservices, Amazon EKS, Terraform, Argo CD, MCP, Observability]
+contentType: analysis
+status: review
+related: [projects/roboshop-ai, blog/deploy-nextjs-kubernetes-github-actions]
+---
+<Todo>Review every section against the current repository, add your own commentary (why you built it this way, what surprised you, what you would change), then set status to published with a publishedAt time.</Todo>
+
+RoboShop AI is a robot store built from independently deployable services: a TypeScript storefront, a Python API gateway, a LangGraph shopping assistant, Go and Java services, and MongoDB, PostgreSQL, Redis, RabbitMQ and Kafka behind them. It runs live at [jithendar.com/roboshop](https://jithendar.com/roboshop), and the code is public on [GitHub](https://github.com/mrjithendar/roboshop-ai).
+
+This article walks through how it works, how it is deployed today, and how its Amazon EKS stack is designed.
+
+::toc
+
+:::callout{type="info" title="Where it runs today"}
+RoboShop AI currently runs on a self-managed **Minikube** cluster and is delivered with **Argo CD**. The **EKS** stack described later exists as Terraform but is switched off (`eks_enabled = false`, and the file is parked as `eks.tfbk`). Its add-ons were removed from the repository in a cleanup. Treat that section as a reviewed design, not a running cluster.
+:::
+
+## At a glance
+
+- **One public entry point.** Only the edge proxy and gateway receive browser traffic; every other service is internal.
+- **Polyglot by design.** TypeScript, Python, Go and Java services, each with its own Dockerfile and Kubernetes manifest.
+- **AI that cannot act on its own.** The shopping assistant's model output is guidance only; it cannot execute tools, and no model is connected until an administrator chooses one.
+- **Events without coupling.** Orders flow to shipping over RabbitMQ; Kafka receives a replayable copy for analytics without adding a dependency to checkout.
+- **Observable end to end.** OpenTelemetry traces, Prometheus metrics and Loki logs across the services.
+
+## What RoboShop AI looks like
+
+The storefront is a catalogue of twenty robots with search, filters, product pages, a cart and checkout.
+
+:::figure{caption="The RoboShop AI storefront. Product images are labelled in the app as AI-generated concept renders."}
+![RoboShop AI storefront hero with the headline "A little more extraordinary" and a humanoid robot render](/images/roboshop-ai/hero.jpg)
+:::
+
+:::figure{caption="The collection view with category filters, search and sorting. Prices are marked as demo prices."}
+![Grid of RoboShop robot products such as AeroInspect A9, AgroBot A200 and Atlas X1 with prices and Add to cart buttons](/images/roboshop-ai/collection.jpg)
+:::
+
+:::figure{caption="A product page: specifications, a clear note that hardware details are pending supplier confirmation, and the Moks assistant button in the corner."}
+![RoboShop product page for the AeroInspect A9 drone with price, quantity, Add to cart and technical specifications](/images/roboshop-ai/product-top.jpg)
+:::
+
+:::figure{caption="Checkout is a three-step flow (cart, delivery and payment, confirmation), shown here in test mode."}
+![RoboShop cart page in test mode showing the three checkout steps and an empty cart](/images/roboshop-ai/cart.jpg)
+:::
+
+## Architecture overview
+
+The browser talks to one origin. The edge proxy serves the storefront and forwards API calls to the AI gateway, which routes to the internal services.
+
+```text
+Browser ──► nginx (edge) ──► frontend (storefront assets)
+                │
+                └──► ai-gateway :3000 ── public API, auth, order ledger
+                        ├──► catalogue-service :4108 ──► MongoDB (products)
+                        ├──► user-service ─────────────► MongoDB (accounts, sessions)
+                        ├──► cart-service ─────────────► Redis
+                        ├──► payment-service :4105 ────► Razorpay Orders & Payments API
+                        ├──► moks (shopping agent) :4103 ──► LLM selected by a super admin
+                        ├──► currency-service ─────────► ECB reference rates (hourly, cached)
+                        └──► outbox ──► RabbitMQ ──► shipping-service ──► PostgreSQL
+                                          └──► kafka-bridge ──► Kafka (analytics events)
+
+mcp-server (internal) ──► gateway tools        OpenTelemetry ──► collector ──► Jaeger
+```
+
+Two rules shape everything else:
+
+1. **Only the gateway is exposed for application traffic.** Requests are same-origin, so the browser never talks to a backend directly.
+2. **Each service owns its data.** The catalogue owns product reads, the user service owns accounts, the cart service owns Redis, the gateway owns the order ledger, and shipping owns its PostgreSQL database.
+
+## The services
+
+| Service | Stack | Responsibility |
+| --- | --- | --- |
+| `frontend` | TypeScript | Storefront, product pages, cart and admin UI |
+| `nginx` | nginx | Edge proxy, asset routing and security headers |
+| `ai-gateway` | Python | Public API routing, authorization and the order ledger |
+| `user-service` | Python + MongoDB | Accounts, sessions, profiles, MFA, email recovery and purchase history |
+| `catalogue-service` | Node.js + MongoDB | Catalogue reads, validated imports and publication |
+| `cart-service` | Python + Redis | Carts |
+| `payment-service` | Node.js + Razorpay | Payment orders and captured-payment verification |
+| `shipping-service` | Java/Gradle + PostgreSQL | Locations, quotes and shipment requests |
+| `currency-service` | Go (standard library) | Estimated local-currency prices from the ECB reference feed |
+| `moks` | Python, LangGraph/LangChain | The shopping assistant (widget and AI engine) |
+| `mcp-server` | Python, FastMCP | Diagnostics and Model Context Protocol tools, internal only |
+| `kafka-bridge` | — | Copies order events from RabbitMQ to Kafka |
+
+Supporting infrastructure: MongoDB, PostgreSQL, Redis, RabbitMQ and Kafka, plus Prometheus, Grafana, Loki/Alloy, the OpenTelemetry Collector and Jaeger.
+
+## How a purchase flows through the system
+
+### 1. Browsing and search
+
+The catalogue service reads products from MongoDB. Recommendations and the assistant's retrieval work from that same catalogue snapshot, and the gateway supplies the sold-out exclusions so nobody is recommended something they cannot buy.
+
+### 2. Prices in your currency
+
+`currency-service` downloads the European Central Bank's reference feed once an hour, with a five-second deadline and a 64 KiB response limit. Requests only ever read the cache, so a slow upstream can never slow the storefront. After two hours without a successful refresh, rates are labelled stale; after seven days they are withdrawn rather than guessed. The rates are informational: country is a display hint and cannot affect payment.
+
+### 3. Cart and checkout
+
+Carts live in Redis behind `cart-service`. Orders, stock reservations and payment orders are recorded in the gateway's **commerce ledger**, which has a single writer so stock can never be double-counted. Today that ledger is a JSON store on one gateway replica; a transactional PostgreSQL ledger is built and tested as an opt-in migration (`COMMERCE_BACKEND=postgres`) but not yet switched on.
+
+Checkout uses **stock reservations**: stock is held for the order before payment, so two buyers cannot both pay for the last unit.
+
+### 4. Payment
+
+`payment-service` integrates Razorpay's Orders and Payments API. The design does not trust the browser's word that a payment succeeded:
+
+- payment **signatures are validated** on the server,
+- the payment is checked as **captured** before the order is confirmed,
+- **signed webhooks** and status recovery reconcile anything the browser never reported back.
+
+### 5. Shipping and analytics events
+
+Confirmed orders are written to a durable **outbox** and published to RabbitMQ with publisher confirms, which feeds `shipping-service`. Separately, an independent quorum queue feeds `kafka-bridge`, which publishes to Kafka and only acknowledges RabbitMQ after Kafka confirms delivery. The result is a replayable event stream for analytics, with **no Kafka calls or readiness dependencies added to checkout**.
+
+## The AI shopping assistant
+
+The **Moks** button on every page opens the shopping assistant: one Python process serving both the widget and a LangGraph/LangChain engine.
+
+:::callout{type="tip" title="Safe by default"}
+A fresh installation has **no model connected**. Chat answers "Please connect an LLM to get AI recommendations" instead of pretending, while browsing, search, recommendations, cart and checkout keep working.
+:::
+
+- **Who chooses the model.** Only a super admin can connect a provider (Amazon Bedrock Converse or an approved Ollama endpoint), test it, and activate it. Configuration changes are revisioned and audited.
+- **No database access for the agent.** The agent owns inference but has no MongoDB credentials. Before every generation it reads the active configuration from the gateway; a changed revision or a disconnect stops new attempts.
+- **Guidance, not actions.** Model output cannot execute tools.
+
+The **MCP server** exposes 15 tools with strict schemas and mutation annotations through FastMCP. Every call goes through the gateway, it is reachable only on the internal Kubernetes Service, and it has no public ingress.
+
+## Security and hardening
+
+- Containers run **non-root**, with a **read-only root filesystem** and dropped Linux capabilities.
+- Secrets are never baked into images; they are provided at runtime.
+- The gateway checks **Origin and CSRF** protections on authenticated actions.
+- There is **no default administrator password**. Customers, admins and a single super admin have separate roles.
+- Payment safety relies on server-side signature and capture checks, not the client.
+
+## Observability
+
+Every service exposes liveness and metrics endpoints. The gateway's readiness check includes its dependencies, so Kubernetes stops sending traffic to it when something it relies on is down.
+
+| Signal | Path |
+| --- | --- |
+| Traces | Services → OpenTelemetry Collector → Jaeger (context propagates across internal HTTP calls) |
+| Metrics | Prometheus scrapes each service; dashboards in Grafana |
+| Logs | Loki, collected with Alloy |
+| LLM traces | Optional Langfuse endpoint for the assistant |
+
+## How it is deployed today
+
+:::figure{caption="Delivery today: GitHub Actions builds, ECR stores, Argo CD applies."}
+```text
+git push ──► GitHub Actions (self-hosted ARM64 runner)
+               └─ docker build (linux/arm64) ──► Amazon ECR  roboshop-<service>:latest
+                                                     │
+Argo CD catalog (manual sync) ──► Minikube cluster ◄─┘  pulls with an ecr-pull secret
+                                    └─ Traefik  /roboshop ─► strip prefix ─► nginx ─► services
+```
+:::
+
+- **Cluster.** A four-node Minikube cluster (arm64 nodes) on a single server, shared with other workloads.
+- **Images.** Each service has its own GitHub Actions workflow that builds an `arm64` image on a self-hosted runner and pushes it to a private ECR repository.
+- **Delivery.** An Argo CD catalog describes every workload. New applications start with **manual sync** and no automatic pruning, so each change is reviewed in Argo CD before it reaches the cluster.
+- **Registry credentials.** ECR tokens expire, so a CronJob refreshes the `ecr-pull` image-pull secret every six hours.
+- **Routing.** Traefik serves the app under `/roboshop` and strips that prefix before forwarding to the edge proxy. TLS comes from cert-manager and Let's Encrypt.
+
+:::callout{type="warning" title="A trade-off worth knowing"}
+Services are tagged `:latest` and pulled with `imagePullPolicy: Always`. That keeps the demo simple, but a restart can silently pick up a newer image. Pinning images by digest would make every rollout explicit and reversible.
+:::
+
+## The EKS design
+
+The `infrastructure/` Terraform describes how RoboShop AI would run on Amazon EKS. It is **opt-in**: nothing changes unless `eks_enabled = true` is supplied, and today the file is parked as `eks.tfbk`.
+
+### Network
+
+| Layer | CIDRs (first two AZs) | Purpose |
+| --- | --- | --- |
+| Private | `10.0.0.0/20`, `10.0.16.0/20` | EKS nodes, pod addresses and control-plane network interfaces |
+| Public | `10.0.240.0/24`, `10.0.241.0/24` | Internet-facing load balancers and NAT gateways |
+
+- Private subnets reach the internet through a **NAT gateway in the same AZ** (a single shared NAT is an optional cost saving with a resilience trade-off).
+- An **S3 gateway endpoint** carries S3 traffic, including ECR image layers, without NAT.
+- Neither subnet type assigns public IPs to instances automatically.
+
+### Cluster
+
+- **Kubernetes 1.36**, deliberately chosen over the newer 1.37 to stay inside cert-manager 1.21's tested range.
+- **API access is locked down**: the private endpoint is always on; the public endpoint is enabled only for listed admin/CI CIDRs, and `0.0.0.0/0` is rejected by validation.
+- **Access entries** (authentication mode `API`) grant cluster-admin only to listed IAM roles or users. **No cluster creator gets implicit admin access.**
+- Control-plane **audit, API and authenticator logs** go to CloudWatch.
+- A **managed node group** of two `t3.large` on-demand workers (configurable from 2 to 6) runs in the private subnets on Amazon Linux 2023.
+- Core add-ons: `vpc-cni`, `coredns`, `kube-proxy` and `eks-pod-identity-agent`, versions resolved against the selected Kubernetes version.
+
+### Add-ons (designed, later removed from the repository)
+
+A second Terraform state installed the platform layer once the cluster existed:
+
+| Component | Version | Role |
+| --- | --- | --- |
+| Traefik | chart 42.1.0 | Ingress and TLS termination |
+| AWS Load Balancer Controller | chart 3.6.0 | Provisions Traefik's public NLB, using pod identity |
+| EBS CSI driver | — | Encrypted `gp3` storage class (WaitForFirstConsumer, Retain), using pod identity |
+| cert-manager | v1.21.2 | Let's Encrypt staging and production issuers (HTTP-01 through Traefik) |
+| KEDA | 2.21.0 | Event-driven autoscaling |
+
+The whole stack is applied by a manual **Create infrastructure** GitHub Actions workflow on the self-hosted runner: format check, validate, test, then plan and apply in order. There is no plan-only option, so every run applies.
+
+## Minikube today versus the EKS design
+
+| Concern | Minikube (today) | EKS (design) |
+| --- | --- | --- |
+| Nodes | 4 × arm64, single server | 2–6 × `t3.large` (x86_64), private subnets, multiple AZs |
+| Ingress | Traefik on the host | Traefik behind an AWS NLB |
+| Storage | `standard` host-path volumes tied to one node | Encrypted `gp3` EBS volumes |
+| Delivery | Argo CD catalog, manual sync | New cluster; application delivery not yet defined |
+| Cost | One server | EKS control plane, EC2, NAT, load balancer, logs and volumes |
+
+:::callout{type="danger" title="One thing to fix before moving"}
+RoboShop's images are built for **arm64**, while the EKS design uses **x86_64** nodes (`AL2023_x86_64_STANDARD`). Moving as designed would need either multi-architecture images (`linux/amd64,linux/arm64`) or Graviton (arm64) node groups. Storage also cannot be carried over by changing a field: the guide calls for a planned data migration from Minikube's `standard` class to `gp3`.
+:::
+
+## What I would do next
+
+<Todo>Your view: priorities (digest pinning, multi-arch images, enabling EKS, autoscaling with KEDA), lessons learned, and what you would do differently.</Todo>
+
+## Explore the code
+
+- Live app: [jithendar.com/roboshop](https://jithendar.com/roboshop)
+- Source: [github.com/mrjithendar/roboshop-ai](https://github.com/mrjithendar/roboshop-ai)
+- How this publication itself is deployed: [Deploying a Next.js site to Kubernetes](/blog/deploy-nextjs-kubernetes-github-actions)

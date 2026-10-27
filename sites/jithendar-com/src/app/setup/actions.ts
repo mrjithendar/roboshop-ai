@@ -2,10 +2,10 @@
 
 import { timingSafeEqual } from "node:crypto";
 import path from "node:path";
-import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDb, schema } from "@/db";
+import { adminExists, createOrPromoteAdmin } from "@/lib/setup";
 import { audit } from "@/lib/audit";
 import { getAuth } from "@/lib/auth";
 import { invalidateContent } from "@/lib/content";
@@ -19,12 +19,6 @@ const input = z.object({
 });
 
 export type SetupState = { error?: string };
-
-export async function adminExists(): Promise<boolean> {
-  const db = await getDb();
-  const rows = await db.select({ id: schema.user.id }).from(schema.user).where(eq(schema.user.role, "admin")).limit(1);
-  return rows.length > 0;
-}
 
 function tokenMatches(given: string): boolean {
   const expected = process.env.ADMIN_BOOTSTRAP_TOKEN;
@@ -45,13 +39,8 @@ export async function setupAction(_prev: SetupState, form: FormData): Promise<Se
   const auth = await getAuth();
   const ctx = await auth.$context;
   const db = await getDb();
-  const userId = crypto.randomUUID();
   const hash = await ctx.password.hash(password);
-
-  await db.transaction(async (tx) => {
-    await tx.insert(schema.user).values({ id: userId, name, email, emailVerified: true, role: "admin" });
-    await tx.insert(schema.account).values({ id: crypto.randomUUID(), accountId: userId, providerId: "credential", userId, password: hash });
-  });
+  const userId = await createOrPromoteAdmin(db, { name, email, hash });
 
   const root = process.env.CONTENT_SEED_DIR ?? path.join(/*turbopackIgnore: true*/ process.cwd(), "content");
   const authorSlug = "jithendar-dharmapuri";

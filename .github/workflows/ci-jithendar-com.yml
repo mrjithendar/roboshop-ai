@@ -49,7 +49,9 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      - run: npm run build
+      # On master the publish job builds the same code moments later; PRs still verify the build here.
+      - if: github.event_name == 'pull_request'
+        run: npm run build
         env:
           APP_ENV: production
       - name: Render production manifests
@@ -73,22 +75,25 @@ jobs:
       - name: Log in to Amazon ECR
         id: ecr
         uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
-        id: buildx
+      # The runner's own Docker engine (default "docker" driver): image layers and BuildKit cache mounts
+      # stay on the runner's disk between builds, instead of round-tripping through the GitHub cache
+      # service (that transfer was ~2 of the 3 minutes).
       - name: Build and push
         id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          builder: ${{ steps.buildx.outputs.name }}
           context: sites/jithendar-com
           platforms: linux/arm64
           push: true
+          provenance: false
+          sbom: false
           build-args: |
             APP_ENV=production
             GIT_SHA=${{ github.sha }}
           tags: ${{ steps.ecr.outputs.registry }}/${{ env.REPOSITORY }}:${{ github.sha }}
-          cache-from: type=gha,scope=jithendar-com
-          cache-to: type=gha,mode=max,scope=jithendar-com
+      - name: Keep the runner's build cache bounded
+        if: always()
+        run: docker builder prune --force --keep-storage 10GB >/dev/null || true
       - name: Record image
         env:
           IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.REPOSITORY }}

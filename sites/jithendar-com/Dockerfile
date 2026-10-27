@@ -4,7 +4,8 @@
 FROM node:26-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+# npm download cache persists between builds on the runner (BuildKit cache mount).
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund --prefer-offline
 
 FROM node:26-alpine AS build
 WORKDIR /app
@@ -13,7 +14,8 @@ ARG APP_ENV=production
 ENV APP_ENV=$APP_ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+# Next.js build cache persists between builds (incremental compilation).
+RUN --mount=type=cache,target=/app/.next/cache npm run build
 
 FROM node:26-alpine AS runtime
 WORKDIR /app

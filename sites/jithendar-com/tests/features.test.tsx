@@ -210,3 +210,14 @@ describe("shortcodes", () => {
     expect(out).not.toContain("<evil");
   });
 });
+
+describe("GitHub-flavoured Markdown", () => {
+  it("renders tables, strikethrough and task lists", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { Content } = await compileMdx("| A | B |\n| - | - |\n| 1 | 2 |\n\n~~old~~\n\n- [x] done");
+    const html = renderToStaticMarkup(<Content />);
+    expect(html).toContain("<table>");
+    expect(html).toContain("<del>old</del>");
+    expect(html).toContain('type="checkbox"');
+  });
+});

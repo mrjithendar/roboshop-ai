@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LogoMark } from "@/components/Logo";
 import { Alert } from "@/components/ui/form";
-import { adminExists } from "./actions";
+import { adminExists } from "@/lib/setup";
 import { SetupForm } from "./SetupForm";
 
 export const metadata: Metadata = { title: "Setup", robots: { index: false, follow: false } };

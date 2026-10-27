@@ -6,10 +6,10 @@ import { contentRoot, loadContent } from "./load";
 
 const STATIC_ROUTES = ["/", "/search", "/feed.xml", "/sitemap.xml", "/news-sitemap.xml", "/robots.txt", ...collections.map((c) => `/${c}`)];
 
-/** Internal links in an MDX body: markdown `](/path)` and JSX/HTML `href="/path"`, without query or fragment. */
+/** Internal links in a body: markdown `[text](/path)` (not images: `![alt](…)` is checked by the image checker) and `href="/path"`, without query or fragment. */
 export function internalLinks(body: string): string[] {
   const found = new Set<string>();
-  const patterns = [/\]\((\/[^)\s]*)/g, /href=["'](\/[^"']*)["']/g];
+  const patterns = [/(?<!!)\[[^\]]*\]\((\/[^)\s]*)/g, /href=["'](\/[^"']*)["']/g];
   for (const pattern of patterns) {
     for (const match of body.matchAll(pattern)) {
       const raw = match[1] ?? "";
