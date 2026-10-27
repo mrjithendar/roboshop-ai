@@ -10,3 +10,8 @@ configMapGenerator:
 - name: shipping-location-seed
   files:
   - shipping.sql.gz
+  # The seed exceeds the 256 KiB last-applied annotation used by client-side
+  # apply; require server-side apply on the object, whatever the app's options.
+  options:
+    annotations:
+      argocd.argoproj.io/sync-options: ServerSideApply=true

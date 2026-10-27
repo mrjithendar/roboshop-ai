@@ -43,7 +43,7 @@ def healthy(app):
 def test_existing_settings_preserved_and_no_pruning():
     # Matches Git except a live-only setting, which must survive untouched.
     app = deploy.catalog()[0]['frontend']
-    app['spec']['syncPolicy'] = {'syncOptions': ['FailOnSharedResource=true', 'RespectIgnoreDifferences=true']}
+    app['spec']['syncPolicy']['syncOptions'] = app['spec']['syncPolicy']['syncOptions'] + ['RespectIgnoreDifferences=true']
     listing = json.dumps({'items': [healthy(app)]})
     with patch('sys.argv', ['deploy', 'frontend']), patch.object(deploy.subprocess, 'check_output',
             side_effect=['crd/applications', 'crd/appprojects', listing, 'appproject/platform', 'patched\n', listing]) as run:
@@ -86,6 +86,25 @@ def test_destination_moves_are_aligned_and_use_git_namespace():
     assert apply.call_args.args[0][-1].endswith('/minikube/namespaces/observability.yaml')
     ops = json.loads(next(c for c in run.call_args_list if '--type=json' in c.args[0]).kwargs['input'])
     assert ops == [{'op': 'add', 'path': '/spec/destination', 'value': git['spec']['destination']}]
+
+
+def test_missing_git_sync_options_added_and_live_extras_kept():
+    # Large ConfigMaps need ServerSideApply; a stale live policy must not drop it.
+    git = deploy.catalog()[0]['postgres']
+    stale = json.loads(json.dumps(git))
+    stale['spec']['syncPolicy'] = {'syncOptions': ['FailOnSharedResource=true', 'RespectIgnoreDifferences=true'],
+                                   'retry': {'limit': 2}}
+    responses = ['crd', 'crd', json.dumps({'items': [stale]}), 'appproject/platform',
+                 'patched', 'patched', json.dumps({'items': [healthy(git)]})]
+    with patch('sys.argv', ['deploy', 'postgres']), patch.object(deploy.subprocess, 'check_output', side_effect=responses) as run:
+        deploy.main()
+    patches = [c for c in run.call_args_list if 'patch' in c.args[0]]
+    policy = json.loads(patches[0].kwargs['input'])[-1]
+    assert policy['path'] == '/spec/syncPolicy' and policy['value']['retry'] == {'limit': 2}
+    assert policy['value']['syncOptions'][:2] == ['FailOnSharedResource=true', 'RespectIgnoreDifferences=true']
+    assert 'ServerSideApply=true' in policy['value']['syncOptions']
+    sync = json.loads(patches[1].kwargs['input'])['operation']['sync']
+    assert sync['syncOptions'] == policy['value']['syncOptions']
 
 
 def test_synced_app_tracking_no_resources_fails():

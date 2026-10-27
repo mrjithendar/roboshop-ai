@@ -32,7 +32,8 @@ def source_drift(live, desired):
 
     Git owns what an Application deploys and where. Stale include patterns render
     nothing, and a later prune sync would then delete every tracked resource.
-    Other live settings (sync policy, ignoreDifferences, ...) remain untouched.
+    Sync options Git requires (e.g. ServerSideApply for large objects) are added;
+    live-only options and other live settings (ignoreDifferences, ...) remain.
     """
     live_spec, spec = live.get('spec', {}), desired['spec']
     ops = []
@@ -43,6 +44,10 @@ def source_drift(live, desired):
             ops.append({'op': 'remove', 'path': f'/spec/{key}'})
     if live_spec.get('destination') != spec['destination']:
         ops.append({'op': 'add', 'path': '/spec/destination', 'value': spec['destination']})
+    live_options = live_spec.get('syncPolicy', {}).get('syncOptions', [])
+    if missing := [o for o in spec.get('syncPolicy', {}).get('syncOptions', []) if o not in live_options]:
+        ops.append({'op': 'add', 'path': '/spec/syncPolicy',
+                    'value': {**live_spec.get('syncPolicy', {}), 'syncOptions': live_options + missing}})
     return ops
 
 
@@ -183,6 +188,8 @@ def main():
         # In particular, fresh namespaces and server-side CRD application depend
         # on these; use live policy when present rather than overriding it.
         sync_options = live.get(name, apps[name]).get('spec', {}).get('syncPolicy', {}).get('syncOptions', [])
+        sync_options = sync_options + [o for o in apps[name]['spec'].get('syncPolicy', {}).get('syncOptions', [])
+                                       if o not in sync_options]
         print(run('patch', 'application', name, '--type=merge', '--patch-file=/dev/stdin',
                   body={'operation': {'initiatedBy': {'username': 'deploy-argocd'},
                                       'sync': {'prune': False, 'syncOptions': sync_options}}}), end='')
