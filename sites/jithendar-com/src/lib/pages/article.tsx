@@ -161,14 +161,17 @@ export async function ArticlePage({ collection, params }: { collection: Collecti
             )}
 
             {fm.featuredImage && (
-              <Image
-                src={fm.featuredImage.src}
-                alt={fm.featuredImage.alt}
-                width={fm.featuredImage.width}
-                height={fm.featuredImage.height}
-                priority
-                className="mb-10 h-auto w-full rounded-2xl border border-slate-200 dark:border-white/10"
-              />
+              <figure className="mb-10">
+                <Image
+                  src={fm.featuredImage.src}
+                  alt={fm.featuredImage.alt}
+                  width={fm.featuredImage.width}
+                  height={fm.featuredImage.height}
+                  sizes="(min-width: 1024px) 768px, 100vw"
+                  priority
+                  className="h-auto w-full rounded-2xl border border-slate-200 dark:border-white/10"
+                />
+              </figure>
             )}
 
             {hasToc && (

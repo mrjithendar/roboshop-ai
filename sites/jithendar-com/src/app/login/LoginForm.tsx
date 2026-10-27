@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Turnstile } from "@/components/Turnstile";
 import { Alert, Button, Field, Input } from "@/components/ui/form";
 import { authClient, safeNext } from "@/lib/auth-client";
+import { PASSWORD_HINT, PASSWORD_MIN, passwordProblem } from "@/lib/password-policy";
 
 export function LoginForm({ siteKey, registrationOpen }: { siteKey: string | undefined; registrationOpen: boolean }) {
   const router = useRouter();
@@ -25,6 +26,11 @@ export function LoginForm({ siteKey, registrationOpen }: { siteKey: string | und
     const form = new FormData(e.currentTarget);
     const email = String(form.get("email") ?? "");
     const password = String(form.get("password") ?? "");
+    const problem = mode === "signup" ? passwordProblem(password) : null;
+    if (problem) {
+      setError(problem);
+      return;
+    }
     const fetchOptions = { headers: { "x-captcha-response": token } };
     setBusy(true);
     const result =
@@ -76,8 +82,8 @@ export function LoginForm({ siteKey, registrationOpen }: { siteKey: string | und
         <Field label="Email" htmlFor="email">
           <Input id="email" name="email" type="email" autoComplete="email" required />
         </Field>
-        <Field label="Password" htmlFor="password" hint={mode === "signup" ? "At least 12 characters. Breached passwords are rejected." : undefined}>
-          <Input id="password" name="password" type="password" autoComplete={mode === "signin" ? "current-password" : "new-password"} required minLength={mode === "signup" ? 12 : 1} />
+        <Field label="Password" htmlFor="password" hint={mode === "signup" ? PASSWORD_HINT : undefined}>
+          <Input id="password" name="password" type="password" autoComplete={mode === "signin" ? "current-password" : "new-password"} required minLength={mode === "signup" ? PASSWORD_MIN : 1} />
         </Field>
         <Turnstile siteKey={siteKey} onToken={setToken} resetKey={resetKey} />
         {error && <Alert>{error}</Alert>}

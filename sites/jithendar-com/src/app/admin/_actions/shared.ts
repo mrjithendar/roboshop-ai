@@ -1,25 +1,35 @@
 "use server";
 
+import fs from "node:fs";
+import path from "node:path";
 import { desc } from "drizzle-orm";
-import { renderToStaticMarkup } from "react-dom/server";
-import { createElement } from "react";
-import { mdxComponents } from "@/components/Mdx";
 import { getDb, schema } from "@/db";
 import { staffActor } from "@/lib/admin";
-import { compileMdx } from "@/lib/mdx/compile";
+import { publicRoot, readLocalImage } from "@/lib/images";
 import { storeUpload } from "@/lib/media";
 import { storageReady } from "@/lib/storage";
 
-/** Editor preview: the same safe Markdown pipeline as the public site (shortcodes, highlighting). */
-export async function previewMarkdown(body: string): Promise<string> {
-  await staffActor();
-  const { Content } = await compileMdx(body.slice(0, 200_000));
-  // Images in preview render as plain <img> (next/image needs the request pipeline).
-  const components = { ...mdxComponents, img: (p: { src?: string; alt?: string }) => createElement("img", { src: p.src, alt: p.alt, loading: "lazy", style: { maxWidth: "100%" } }) };
-  return renderToStaticMarkup(createElement(Content, { components }));
-}
-
 export type MediaItem = { id: string; src: string; alt: string; width: number; height: number; context: string };
+
+/** Images shipped with the site under public/images (usable as covers even before S3 is configured). */
+function bundledImages(): MediaItem[] {
+  const root = path.join(/*turbopackIgnore: true*/ publicRoot(), "images");
+  if (!fs.existsSync(root)) return [];
+  const found: MediaItem[] = [];
+  const walk = (dir: string) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(/*turbopackIgnore: true*/ dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (/\.(jpe?g|png|webp|avif)$/i.test(entry.name)) {
+        const src = "/" + path.relative(publicRoot(), full).split(path.sep).join("/");
+        const img = readLocalImage(src);
+        if (img) found.push({ id: `bundled:${src}`, src, alt: "", width: img.width, height: img.height, context: "bundled" });
+      }
+    }
+  };
+  walk(root);
+  return found;
+}
 
 export async function listMedia(limit = 60): Promise<MediaItem[]> {
   await staffActor();
@@ -29,7 +39,8 @@ export async function listMedia(limit = 60): Promise<MediaItem[]> {
     .from(schema.media)
     .orderBy(desc(schema.media.createdAt))
     .limit(limit);
-  return rows.map((r) => ({ id: r.id, src: `/media/${r.id}/${r.filename}`, alt: r.alt, width: r.width, height: r.height, context: r.context }));
+  const uploads = rows.map((r) => ({ id: r.id, src: `/media/${r.id}/${r.filename}`, alt: r.alt, width: r.width, height: r.height, context: r.context }));
+  return [...uploads, ...bundledImages()];
 }
 
 export async function mediaUploadsEnabled(): Promise<boolean> {

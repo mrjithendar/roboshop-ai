@@ -1,7 +1,8 @@
 name: jithendar.com
 
-# check   → lint, typecheck, test, build, render manifests (every push and PR)
-# publish → build the arm64 image and push it to ECR as jithendar-com:<commit-sha> (default branch only)
+# check   → pull requests: lint, typecheck, test, build, render manifests
+# release → default branch: npm ci once; lint, tests and the production build in parallel; package the
+#           build into an arm64 image, smoke-test the image, push jithendar-com:<commit-sha> to ECR
 #
 # CI does not deploy and has no cluster access. sites/deploy.sh resolves the image digest
 # from ECR, pins it in deploy/production and applies it.
@@ -31,6 +32,7 @@ defaults:
 
 jobs:
   check:
+    if: github.event_name == 'pull_request'
     runs-on: self-hosted
     timeout-minutes: 15
     steps:
@@ -49,19 +51,16 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      # On master the publish job builds the same code moments later; PRs still verify the build here.
-      - if: github.event_name == 'pull_request'
-        run: npm run build
+      - run: npm run build
         env:
           APP_ENV: production
       - name: Render production manifests
         run: kubectl kustomize deploy/production > /dev/null
 
-  publish:
-    needs: check
+  release:
     if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: [self-hosted, linux, ARM64]
-    timeout-minutes: 30
+    timeout-minutes: 20
     env:
       AWS_REGION: us-east-1
       REPOSITORY: jithendar-com
@@ -69,41 +68,77 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # Concurrent runners share HOME; isolate Docker login and buildx settings.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: sites/jithendar-com/.nvmrc
+          cache: npm
+          cache-dependency-path: sites/jithendar-com/package-lock.json
+      - uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4
+        with:
+          version: v1.35.0
+      - run: npm ci --no-audit --no-fund
+      # The production build type-checks the whole project, so no separate typecheck is needed here.
+      - name: Lint, test and build (in parallel)
+        env:
+          APP_ENV: production
+        run: |
+          set -uo pipefail
+          npm run lint > lint.log 2>&1 & lint=$!
+          npm test > test.log 2>&1 & tests=$!
+          npm run build > build.log 2>&1 & build=$!
+          rc=0
+          for job in "lint:$lint" "test:$tests" "build:$build"; do
+            if ! wait "${job#*:}"; then echo "::error::${job%%:*} failed"; rc=1; fi
+          done
+          for log in lint test build; do echo "::group::$log"; cat "$log.log"; echo "::endgroup::"; done
+          exit "$rc"
+      - name: Render production manifests
+        run: kubectl kustomize deploy/production > /dev/null
+      # Concurrent runners share HOME; isolate Docker login settings.
       - name: Isolate Docker configuration for this job
         run: echo "DOCKER_CONFIG=$(mktemp -d "$RUNNER_TEMP/docker-config.XXXXXX")" >> "$GITHUB_ENV"
       - name: Log in to Amazon ECR
         id: ecr
         uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2
-      # The runner's own Docker engine (default "docker" driver): image layers and BuildKit cache mounts
-      # stay on the runner's disk between builds, instead of round-tripping through the GitHub cache
-      # service (that transfer was ~2 of the 3 minutes).
-      - name: Build and push
-        id: build
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
-        with:
-          context: sites/jithendar-com
-          platforms: linux/arm64
-          push: true
-          provenance: false
-          sbom: false
-          build-args: |
-            APP_ENV=production
-            GIT_SHA=${{ github.sha }}
-          tags: ${{ steps.ecr.outputs.registry }}/${{ env.REPOSITORY }}:${{ github.sha }}
-      - name: Keep the runner's build cache bounded
-        if: always()
-        run: docker builder prune --force --keep-storage 10GB >/dev/null || true
+      - name: Package image
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.REPOSITORY }}:${{ github.sha }}
+        run: docker build --platform linux/arm64 --provenance=false -f Dockerfile.ci --build-arg "GIT_SHA=$GITHUB_SHA" -t "$IMAGE" .
+      # Never push an image that cannot start or optimise images.
+      - name: Smoke-test the image
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.REPOSITORY }}:${{ github.sha }}
+        run: |
+          set -euo pipefail
+          name="jithendar-smoke-$GITHUB_RUN_ID"
+          docker run -d --rm --name "$name" -p 127.0.0.1::3000 "$IMAGE" >/dev/null
+          trap 'docker logs "$name" | tail -50; docker rm -f "$name" >/dev/null 2>&1 || true' EXIT
+          port="$(docker port "$name" 3000/tcp | head -1 | sed 's/.*://')"
+          for _ in $(seq 1 30); do curl -fsS "http://127.0.0.1:$port/api/health" >/dev/null 2>&1 && break; sleep 1; done
+          curl -fsS "http://127.0.0.1:$port/api/health" | grep -q "\"version\":\"$GITHUB_SHA\""
+          type="$(curl -fsS -o /dev/null -w '%{content_type}' -H 'Accept: image/avif,image/webp' \
+            "http://127.0.0.1:$port/_next/image?url=%2Fimages%2Froboshop-ai%2Fcart.jpg&w=640&q=75")"
+          [[ "$type" == image/avif* || "$type" == image/webp* ]] || { echo "Image optimiser returned: $type" >&2; exit 1; }
+          echo "Image healthy; optimiser served $type"
+      - name: Push
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.REPOSITORY }}:${{ github.sha }}
+        run: docker push --quiet "$IMAGE"
       - name: Record image
         env:
-          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.REPOSITORY }}
-          DIGEST: ${{ steps.build.outputs.digest }}
+          REGISTRY_IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.REPOSITORY }}
         run: |
+          digest="$(docker inspect --format '{{index .RepoDigests 0}}' "$REGISTRY_IMAGE:$GITHUB_SHA")"
           {
             echo '### jithendar.com image'
             echo
-            echo "- Tag: \`$IMAGE:$GITHUB_SHA\`"
-            echo "- Digest: \`$IMAGE@$DIGEST\`"
+            echo "- Tag: \`$REGISTRY_IMAGE:$GITHUB_SHA\`"
+            echo "- Digest: \`$digest\`"
             echo
-            echo "Deploy: \`sites/deploy.sh $GITHUB_SHA\`"
+            echo "Deploy: \`sh sites/deploy.sh\` (latest) or \`sh sites/deploy.sh $GITHUB_SHA\`"
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep the runner's Docker storage bounded
+        if: always()
+        run: |
+          docker image prune --force --filter "until=72h" --filter "label!=keep" >/dev/null || true
+          docker builder prune --force --keep-storage 10GB >/dev/null || true

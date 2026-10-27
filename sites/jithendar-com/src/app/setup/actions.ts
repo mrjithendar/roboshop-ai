@@ -4,10 +4,11 @@ import { timingSafeEqual } from "node:crypto";
 import path from "node:path";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { passwordProblem } from "@/lib/password-policy";
 import { getDb, schema } from "@/db";
 import { adminExists, createOrPromoteAdmin } from "@/lib/setup";
 import { audit } from "@/lib/audit";
-import { getAuth } from "@/lib/auth";
+import { hashPassword } from "better-auth/crypto";
 import { invalidateContent } from "@/lib/content";
 import { importFromFiles } from "@/lib/content/import";
 
@@ -15,7 +16,10 @@ const input = z.object({
   token: z.string().min(1),
   name: z.string().trim().min(2).max(80),
   email: z.email().trim().toLowerCase(),
-  password: z.string().min(12).max(128),
+  password: z.string().superRefine((v, ctx) => {
+    const problem = passwordProblem(v);
+    if (problem) ctx.addIssue({ code: "custom", message: problem });
+  }),
 });
 
 export type SetupState = { error?: string };
@@ -32,14 +36,14 @@ function tokenMatches(given: string): boolean {
 export async function setupAction(_prev: SetupState, form: FormData): Promise<SetupState> {
   if (await adminExists()) return { error: "Setup is already complete." };
   const parsed = input.safeParse(Object.fromEntries(form));
-  if (!parsed.success) return { error: "Check the fields: name, a valid email and a password of at least 12 characters." };
+  if (!parsed.success) return { error: parsed.error.issues.find((i) => i.path[0] === "password")?.message ?? "Check the fields: name and a valid email." };
   if (!tokenMatches(parsed.data.token)) return { error: "Invalid setup token." };
 
   const { name, email, password } = parsed.data;
-  const auth = await getAuth();
-  const ctx = await auth.$context;
   const db = await getDb();
-  const hash = await ctx.password.hash(password);
+  // Better Auth's default hasher (what its email/password sign-in verifies). The context-bound
+  // ctx.password.hash() only works inside Better Auth's own endpoints.
+  const hash = await hashPassword(password);
   const userId = await createOrPromoteAdmin(db, { name, email, hash });
 
   const root = process.env.CONTENT_SEED_DIR ?? path.join(/*turbopackIgnore: true*/ process.cwd(), "content");

@@ -35,3 +35,15 @@ describe("setup: first admin", () => {
     expect(await db.select().from(schema.user)).toHaveLength(1);
   });
 });
+
+describe("setup: real password hashing", () => {
+  it("stores a hash that Better Auth's sign-in verifier accepts", async () => {
+    const { hashPassword, verifyPassword } = await import("better-auth/crypto");
+    const db = await freshDb();
+    const { createOrPromoteAdmin } = await import("@/lib/setup");
+    const id = await createOrPromoteAdmin(db, { name: "Owner", email: "owner@example.com", hash: await hashPassword("Rocket#2026") });
+    const [acc] = await db.select().from(schema.account).where(eq(schema.account.userId, id));
+    expect(await verifyPassword({ hash: acc!.password!, password: "Rocket#2026" })).toBe(true);
+    expect(await verifyPassword({ hash: acc!.password!, password: "wrong#2026" })).toBe(false);
+  });
+});

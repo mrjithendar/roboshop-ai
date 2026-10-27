@@ -81,6 +81,12 @@ echo "→ Smoke test"
 
 echo "✓ Deployed $SHA. Commit $SITE/deploy/production/kustomization.yaml to record it."
 
-kubectl --context mk4 -n jithendar get secret jithendar-com-env \
-  -o jsonpath='{.data.ADMIN_BOOTSTRAP_TOKEN}' | base64 -d; echo
+# Until the first admin exists, show how to finish setup (the token is useless afterwards, so it is not printed again).
+if [[ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 https://jithendar.com/setup)" == "200" ]]; then
+  echo
+  echo "Setup is pending: open https://jithendar.com/setup and create the admin account."
+  echo "One-time setup token (not a password; you choose the admin password on that page):"
+  kubectl --context "$CONTEXT" -n jithendar get secret jithendar-com-env -o jsonpath='{.data.ADMIN_BOOTSTRAP_TOKEN}' | base64 -d
+  echo
+fi
 

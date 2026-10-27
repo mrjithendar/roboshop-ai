@@ -66,3 +66,15 @@ describe("Postgres content source", () => {
     expect((await getPage("about"))?.path).toBe("/about");
   });
 });
+
+describe("fresh installation", () => {
+  it("serves the bundled content while the database is still empty", async () => {
+    await freshDb();
+    invalidateContent();
+    vi.stubEnv("CONTENT_DIR", "");
+    delete process.env.CONTENT_DIR;
+    const page = await getPage("about");
+    expect(page?.file).not.toMatch(/^db:/);
+    expect(page?.frontmatter.title).toBeTruthy();
+  });
+});

@@ -1,0 +1,5 @@
+# Build context for Dockerfile.ci: only the prebuilt output.
+*
+!.next/standalone
+!.next/static
+!public

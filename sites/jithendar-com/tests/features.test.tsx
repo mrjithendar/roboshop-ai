@@ -221,3 +221,15 @@ describe("GitHub-flavoured Markdown", () => {
     expect(html).toContain('type="checkbox"');
   });
 });
+
+describe("editor preview HTML", () => {
+  it("renders the site's Markdown features and drops raw HTML", async () => {
+    const { markdownToHtml } = await import("@/lib/mdx/html");
+    const html = await markdownToHtml("# Title\n\n| A |\n| - |\n| 1 |\n\n:::callout{type=\"tip\"}\nHi\n:::\n\n<script>alert(1)</script>\n\n```bash\nls\n```");
+    expect(html).toContain('<h2 id="title">Title</h2>');
+    expect(html).toContain("<table>");
+    expect(html).toContain('class="callout callout-tip"');
+    expect(html).toContain('class="shiki');
+    expect(html).not.toContain("<script");
+  });
+});

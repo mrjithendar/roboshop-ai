@@ -9,6 +9,7 @@ import { isProductionEnv, siteUrl } from "@/config/site";
 import { getDb, schema } from "@/db";
 import { mailConfigured, sendMail } from "./mail";
 import { getSettings } from "./settings";
+import { passwordProblem, PASSWORD_MAX, PASSWORD_MIN } from "./password-policy";
 import { getRedis } from "./redis";
 import { turnstileSecret } from "./turnstile";
 
@@ -16,6 +17,15 @@ export const ROLES = ["admin", "author", "user"] as const;
 export type Role = (typeof ROLES)[number];
 
 const INCREMENT_WITH_TTL = "local c = redis.call('INCR', KEYS[1]) if c == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end return c";
+
+/** Endpoints that set a password, and the body field that holds it. */
+const PASSWORD_ENDPOINTS: Record<string, "password" | "newPassword"> = {
+  "/sign-up/email": "password",
+  "/reset-password": "newPassword",
+  "/change-password": "newPassword",
+  "/admin/set-user-password": "newPassword",
+  "/admin/create-user": "password",
+};
 
 const ac = createAccessControl(defaultStatements);
 const roles = { admin: adminAc, author: userAc, user: userAc };
@@ -51,8 +61,8 @@ async function createAuth() {
       : undefined,
     emailAndPassword: {
       enabled: true,
-      minPasswordLength: 12,
-      maxPasswordLength: 128,
+      minPasswordLength: PASSWORD_MIN,
+      maxPasswordLength: PASSWORD_MAX,
       autoSignIn: true,
       requireEmailVerification: false,
       sendResetPassword: mailConfigured()
@@ -90,6 +100,13 @@ async function createAuth() {
       before: createAuthMiddleware(async (ctx) => {
         if (ctx.path === "/sign-up/email" && !(await getSettings()).features.registration) {
           throw new APIError("FORBIDDEN", { message: "Registration is currently closed." });
+        }
+        // Password composition rule on every endpoint that sets a password.
+        const body = (ctx.body ?? {}) as { password?: unknown; newPassword?: unknown };
+        const candidate = PASSWORD_ENDPOINTS[ctx.path] === "newPassword" ? body.newPassword : PASSWORD_ENDPOINTS[ctx.path] ? body.password : undefined;
+        if (typeof candidate === "string") {
+          const problem = passwordProblem(candidate);
+          if (problem) throw new APIError("BAD_REQUEST", { message: problem });
         }
       }),
     },

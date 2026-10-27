@@ -29,7 +29,11 @@ async function store(root?: string): Promise<ContentStore> {
   const hit = cache.get(key);
   const fresh = hit && (fileRoot ? process.env.NODE_ENV !== "development" : Date.now() - hit.at < DB_TTL_MS);
   if (hit && fresh) return hit.store;
-  const loaded = fileRoot ? loadContent(fileRoot ?? contentRoot()) : await loadContentFromDb();
+  let loaded = fileRoot ? loadContent(fileRoot) : await loadContentFromDb();
+  // Fresh installation (nothing imported yet): serve the bundled content so pages work before /setup.
+  if (!fileRoot && loaded.articles.length === 0 && loaded.pages.size === 0 && loaded.authors.size === 0) {
+    loaded = loadContent(contentRoot());
+  }
   cache.set(key, { store: loaded, at: Date.now() });
   return loaded;
 }

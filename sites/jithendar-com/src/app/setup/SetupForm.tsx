@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Alert, Button, Field, Input } from "@/components/ui/form";
+import { PASSWORD_HINT, PASSWORD_MIN } from "@/lib/password-policy";
 import { setupAction, type SetupState } from "./actions";
 
 export function SetupForm() {
@@ -17,8 +18,8 @@ export function SetupForm() {
       <Field label="Admin email" htmlFor="email">
         <Input id="email" name="email" type="email" autoComplete="email" required />
       </Field>
-      <Field label="Password" htmlFor="password" hint="At least 12 characters.">
-        <Input id="password" name="password" type="password" autoComplete="new-password" minLength={12} required />
+      <Field label="Password" htmlFor="password" hint={PASSWORD_HINT}>
+        <Input id="password" name="password" type="password" autoComplete="new-password" minLength={PASSWORD_MIN} required />
       </Field>
       {state.error && <Alert>{state.error}</Alert>}
       <Button type="submit" disabled={pending} className="w-full">

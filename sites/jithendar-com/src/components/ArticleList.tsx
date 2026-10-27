@@ -3,6 +3,7 @@ import { readingTimeMinutes, type Article } from "@/lib/content";
 import { formatDate } from "@/lib/dates";
 import { getCategoryMap, labelOf, type CategoryInfo } from "@/lib/categories";
 import { toneFor } from "./categoryStyle";
+import { CoverImage } from "./CoverImage";
 import { ContentTypeBadge, PreviewBadge, SponsoredBadge } from "./ContentTypeBadge";
 import { ArrowRight, CategoryIcon } from "./icons";
 
@@ -40,7 +41,9 @@ export function ArticleCard({ article, cats, headingLevel = 2 }: { article: Arti
   const fm = article.frontmatter;
   const Heading = headingLevel === 2 ? "h2" : "h3";
   return (
-    <article className="group relative flex h-full flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-surface-dark-raised dark:hover:border-white/20">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-surface-dark-raised dark:hover:border-white/20">
+      <CoverImage article={article} category={cats.get(fm.category)} sizes="(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw" />
+      <div className="flex flex-1 flex-col gap-4 p-6">
       <Badges article={article} cats={cats} />
       <div className="flex-1">
         <Heading className="text-lg font-semibold leading-snug tracking-tight text-ink dark:text-white">
@@ -54,6 +57,7 @@ export function ArticleCard({ article, cats, headingLevel = 2 }: { article: Arti
         <Meta article={article} />
         <ArrowRight className="h-4 w-4 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-600 dark:group-hover:text-brand-300" />
       </div>
+      </div>
     </article>
   );
 }
@@ -62,7 +66,9 @@ export function ArticleCard({ article, cats, headingLevel = 2 }: { article: Arti
 export function FeaturedArticle({ article, cats }: { article: Article; cats: Cats }) {
   const fm = article.frontmatter;
   return (
-    <article className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-brand-50 via-white to-white p-8 shadow-sm transition-shadow hover:shadow-md sm:p-10 dark:border-white/10 dark:from-brand-900/40 dark:via-surface-dark-raised dark:to-surface-dark-raised">
+    <article className="group relative grid overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-brand-50 via-white to-white shadow-sm transition-shadow hover:shadow-md lg:grid-cols-2 dark:border-white/10 dark:from-brand-900/40 dark:via-surface-dark-raised dark:to-surface-dark-raised">
+      <CoverImage article={article} category={cats.get(fm.category)} sizes="(min-width: 1024px) 560px, 100vw" priority className="lg:aspect-auto lg:h-full lg:min-h-[320px]" />
+      <div className="p-8 sm:p-10">
       <Badges article={article} cats={cats} />
       <h3 className="mt-6 max-w-3xl text-2xl font-semibold leading-tight tracking-tight text-ink sm:text-3xl dark:text-white">
         <Link href={article.path} className="after:absolute after:inset-0 focus-visible:outline-none group-focus-within:underline">
@@ -75,6 +81,7 @@ export function FeaturedArticle({ article, cats }: { article: Article; cats: Cat
         <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 dark:text-brand-300">
           Read article <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </span>
+      </div>
       </div>
     </article>
   );
