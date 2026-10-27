@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jithendar-com
+  labels:
+    app: jithendar-com
+    app.kubernetes.io/part-of: jithendar-com
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: jithendar-com
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: jithendar-com
+        app.kubernetes.io/part-of: jithendar-com
+    spec:
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      imagePullSecrets:
+      - name: ecr-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: jithendar-com
+      containers:
+      - name: web
+        image: jithendar-com
+        ports:
+        - name: http
+          containerPort: 3000
+        env:
+        - name: APP_ENV
+          value: production
+        - name: SITE_URL
+          value: https://jithendar.com
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: "1"
+            memory: 384Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        startupProbe:
+          httpGet: &health
+            path: /api/health
+            port: http
+          periodSeconds: 2
+          failureThreshold: 30
+        readinessProbe:
+          httpGet: *health
+          periodSeconds: 10
+          timeoutSeconds: 3
+        livenessProbe:
+          httpGet: *health
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 3
+        lifecycle:
+          # Let Traefik drop the endpoint before the server stops accepting connections.
+          preStop:
+            exec:
+              command: ["sleep", "5"]
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: next-cache
+          mountPath: /app/.next/cache
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 64Mi
+      - name: next-cache
+        emptyDir:
+          sizeLimit: 256Mi

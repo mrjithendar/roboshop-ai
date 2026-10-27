@@ -1,0 +1,19 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: https-redirect
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+---
+# www and http://www go straight to https://jithendar.com in one hop.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: www-redirect
+spec:
+  redirectRegex:
+    regex: ^https?://www\.jithendar\.com/(.*)
+    replacement: https://jithendar.com/${1}
+    permanent: true

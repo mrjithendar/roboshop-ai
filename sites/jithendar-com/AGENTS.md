@@ -21,8 +21,8 @@ See `docs/SEO_AUDIT.md`.
 
 | Layer | Decided / verified | Notes |
 |---|---|---|
-| Frontend | Next.js App Router, TypeScript, Tailwind CSS | To be scaffolded in Phase 2 |
-| Content | Git-based MDX in `content/` | — |
+| Frontend | Next.js 16 App Router, React 19, TypeScript 5.9, Tailwind CSS 4 | Scaffolded in Phase 2; `output: standalone` |
+| Content | Git-based MDX in `content/`, Zod-validated | See `docs/CONTENT_MODEL.md`; read only through `getPublishedContent()` |
 | Host | Single server `46.224.38.14` running Minikube profile `mk4` | Shared with RoboShop AI, Argo CD, Grafana, Loki, JFrog |
 | Ingress | **Traefik + cert-manager (Let's Encrypt)** — not Cloudflare Tunnel | Owner decision 2026-10-27 |
 | TLS | Shared `jithendar.com` cert via Traefik `TLSStore` (`minikube/shared-tls`) | Source cert was created by the WordPress chart — see AUD-003 |
@@ -36,7 +36,8 @@ See `docs/SEO_AUDIT.md`.
 - Site language `en`. Editorial timezone `Asia/Kolkata`. Store/emit timestamps as ISO 8601 with offset; compare in UTC.
 - Publication name `Jithendar.com` — **confirm with owner before use in News sitemap/JSON-LD**.
 - Primary author slug: `jithendar-dharmapuri`.
-- Node.js ≥ 24 (matches repo root `package.json` `engines`).
+- Node.js ≥ 24 (matches repo root `package.json` `engines`). On the owner's Mac use `export PATH=/opt/homebrew/bin:$PATH` (Node 26); `/usr/local/bin/node` is v20.
+- Commands (run inside this folder): `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
 
 ### Shared-repo boundaries
 

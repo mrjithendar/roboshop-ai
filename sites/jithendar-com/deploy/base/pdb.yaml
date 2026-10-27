@@ -1,0 +1,9 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: jithendar-com
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: jithendar-com

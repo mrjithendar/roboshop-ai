@@ -26,7 +26,7 @@ nothing on it is worth keeping.
 - **AUD-015:** install Node ≥ 24 locally.
 - Confirm the publication name `Jithendar.com` and the host provider and spec (AUD-009).
 
-### Phase 2 — Scaffold, content model & SEO foundation
+### Phase 2 — Scaffold, content model & SEO foundation ✅ (2026-10-27, see PROGRESS.md)
 Depends on: Node 24.
 - Scaffold Next.js (App Router, TS, Tailwind, ESLint) in this folder, with its own `package.json`. Do **not** join the root `npm test` (avoids coupling with RoboShop CI).
 - Zod content schema + `getPublishedContent()` single source of truth; build fails on invalid frontmatter.
@@ -40,6 +40,7 @@ As in the prompt. Personal and legal facts stay as `TODO(owner)` placeholders.
 
 ### Phase 4 — Content platform features
 As in the prompt. Lighthouse runs locally against `next start`.
+- `/feed` and `/comments/feed` are on the 410 list (old WordPress feeds). Serve RSS at `/feed.xml` (and per-category `/<collection>/feed.xml`), or remove `/feed` from `src/config/gone.ts` deliberately.
 
 ### Phase 5 — n8n + OpenAI drafting
 Risk: the largest phase, and it adds n8n + Postgres to a shared host.
@@ -48,7 +49,9 @@ Risk: the largest phase, and it adds n8n + Postgres to a shared host.
 - Could be split: 5a schema + discovery, 5b drafting + PR creation.
 
 ### Phase 6 — Infrastructure, CI/CD & GitOps
-- Kustomize `base/staging/production` under `sites/jithendar-com/deploy/`. The Argo `Application` in `argocd/jithendar-com.yaml` is added to `argocd/kustomization.yaml` (shared file, called out in the report).
+- Kustomize `base/staging/production` under `sites/jithendar-com/deploy/`.
+- Image: standalone output; mount a writable `emptyDir` at `.next/cache` (ISR) and `/tmp`; set `APP_ENV` at build **and** run time (one image per environment, or accept build-time meta robots from the staging build).
+- `www.jithendar.com` → apex redirect: previously done by the WordPress chart's Traefik middleware, now absent. Recreate it in the Ingress/Middleware. The Argo `Application` in `argocd/jithendar-com.yaml` is added to `argocd/kustomization.yaml` (shared file, called out in the report).
 - **Launch gate (A3.5):** the production overlay's Ingress is added in a separate, reviewed change after smoke tests pass against an in-cluster Service.
 - TLS: own the `jithendar-com` Certificate (resolves AUD-003 permanently) and keep it compatible with `minikube/shared-tls`.
 - CI: new `ci-jithendar-com.yml`. Reuse `publish-ecr.yml` only if it can be extended without changing RoboShop behavior; otherwise a dedicated workflow. Digest pinning, SHA-pinned actions, arm64 build (AUD-010/011/012).
