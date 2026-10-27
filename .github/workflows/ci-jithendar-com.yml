@@ -1,0 +1,88 @@
+name: jithendar.com
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'sites/jithendar-com/**'
+      - '.github/workflows/ci-jithendar-com.yml'
+  push:
+    paths:
+      - 'sites/jithendar-com/**'
+      - '.github/workflows/ci-jithendar-com.yml'
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: sites/jithendar-com
+
+jobs:
+  check:
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: sites/jithendar-com/.nvmrc
+          cache: npm
+          cache-dependency-path: sites/jithendar-com/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+        env:
+          APP_ENV: production
+      - name: Render production manifests
+        run: kubectl kustomize deploy/production > /dev/null
+
+  # Publishes an immutable image; deployment stays a reviewed change to deploy/production (Argo CD syncs it).
+  publish:
+    needs: check
+    if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: [self-hosted, linux, ARM64]
+    timeout-minutes: 30
+    env:
+      AWS_REGION: us-east-1
+      REPOSITORY: jithendar-com
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Concurrent runners share HOME; isolate Docker login and buildx settings.
+      - name: Isolate Docker configuration for this job
+        run: echo "DOCKER_CONFIG=$(mktemp -d "$RUNNER_TEMP/docker-config.XXXXXX")" >> "$GITHUB_ENV"
+      - name: Log in to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+        id: buildx
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          context: sites/jithendar-com
+          platforms: linux/arm64
+          push: true
+          build-args: APP_ENV=production
+          tags: ${{ steps.ecr.outputs.registry }}/${{ env.REPOSITORY }}:${{ github.sha }}
+          cache-from: type=gha,scope=jithendar-com
+          cache-to: type=gha,mode=max,scope=jithendar-com
+      - name: Record digest
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.REPOSITORY }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          {
+            echo '### jithendar.com image'
+            echo
+            echo "\`$IMAGE@$DIGEST\`"
+            echo
+            echo 'Pin it with: `cd sites/jithendar-com/deploy/production && kustomize edit set image jithendar-com='"$IMAGE@$DIGEST"'`'
+          } >> "$GITHUB_STEP_SUMMARY"
