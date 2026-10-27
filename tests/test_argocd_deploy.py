@@ -34,19 +34,83 @@ def test_unknown_app_fails_before_cluster_access():
     run.assert_not_called()
 
 
+def healthy(app):
+    return {**app, 'status': {'operationState': {'phase': 'Succeeded'},
+                              'sync': {'status': 'Synced'}, 'health': {'status': 'Healthy'},
+                              'resources': [{'kind': 'Deployment', 'name': app['metadata']['name']}]}}
+
+
 def test_existing_settings_preserved_and_no_pruning():
-    app = {'metadata': {'name': 'frontend'}, 'spec': {'project': 'platform'},
-           'status': {'operationState': {'phase': 'Succeeded'},
-                      'sync': {'status': 'Synced'}, 'health': {'status': 'Healthy'}}}
-    listing = json.dumps({'items': [app]})
+    # Matches Git except a live-only setting, which must survive untouched.
+    app = deploy.catalog()[0]['frontend']
+    app['spec']['syncPolicy'] = {'syncOptions': ['FailOnSharedResource=true', 'RespectIgnoreDifferences=true']}
+    listing = json.dumps({'items': [healthy(app)]})
     with patch('sys.argv', ['deploy', 'frontend']), patch.object(deploy.subprocess, 'check_output',
             side_effect=['crd/applications', 'crd/appprojects', listing, 'appproject/platform', 'patched\n', listing]) as run:
         deploy.main()
     commands = [call.args[0] for call in run.call_args_list]
-    assert all('create' not in c and 'apply' not in c for c in commands)
+    assert all('create' not in c and 'apply' not in c and '--type=json' not in c for c in commands)
     body = json.loads(run.call_args_list[4].kwargs['input'])
     assert set(body) == {'operation'}
     assert body['operation']['sync']['prune'] is False
+    assert body['operation']['sync']['syncOptions'] == app['spec']['syncPolicy']['syncOptions']
+
+
+def test_stale_live_source_aligned_with_git_before_sync():
+    # A pre-split include renders nothing; a prune sync would delete everything.
+    git = deploy.catalog()[0]['ai-gateway']
+    stale = json.loads(json.dumps(git))
+    stale['spec']['source']['directory']['include'] = 'ai-gateway-minikube.yaml'
+    stale['spec']['sources'] = [{'repoURL': 'https://example.invalid'}]
+    responses = ['crd', 'crd', json.dumps({'items': [stale]}), 'appproject/platform',
+                 'patched', 'patched', json.dumps({'items': [healthy(git)]})]
+    with patch('sys.argv', ['deploy', 'ai-gateway']), patch.object(deploy.subprocess, 'check_output', side_effect=responses) as run:
+        deploy.main()
+    patches = [c for c in run.call_args_list if 'patch' in c.args[0]]
+    assert '--type=json' in patches[0].args[0]
+    assert json.loads(patches[0].kwargs['input']) == [
+        {'op': 'add', 'path': '/spec/source', 'value': git['spec']['source']},
+        {'op': 'remove', 'path': '/spec/sources'}]
+    assert 'operation' in json.loads(patches[1].kwargs['input'])
+
+
+def test_destination_moves_are_aligned_and_use_git_namespace():
+    git = deploy.catalog()[0]['jaeger']
+    stale = json.loads(json.dumps(git))
+    stale['spec']['destination']['namespace'] = 'roboshop-ai'
+    responses = ['crd', 'crd', json.dumps({'items': [stale]}), 'appproject/platform',
+                 'patched', 'patched', json.dumps({'items': [healthy(git)]})]
+    with patch('sys.argv', ['deploy', 'jaeger']), patch.object(deploy.subprocess, 'check_output', side_effect=responses) as run, \
+            patch.object(deploy.subprocess, 'check_call') as apply:
+        deploy.main()
+    assert apply.call_args.args[0][-1].endswith('/minikube/namespaces/observability.yaml')
+    ops = json.loads(next(c for c in run.call_args_list if '--type=json' in c.args[0]).kwargs['input'])
+    assert ops == [{'op': 'add', 'path': '/spec/destination', 'value': git['spec']['destination']}]
+
+
+def test_synced_app_tracking_no_resources_fails():
+    app = deploy.catalog()[0]['frontend']
+    empty = healthy(app); empty['status']['resources'] = []
+    listing = json.dumps({'items': [empty]})
+    with patch('sys.argv', ['deploy', 'frontend']), patch.object(deploy.subprocess, 'check_output',
+            side_effect=['crd', 'crd', listing, 'appproject/platform', 'patched', listing]):
+        with pytest.raises(RuntimeError, match='tracks no resources'):
+            deploy.main()
+
+
+def test_status_warns_about_drift_and_empty_apps(capsys):
+    git = deploy.catalog()[0]['ai-gateway']
+    stale = json.loads(json.dumps(git))
+    stale['spec']['source']['directory']['include'] = 'ai-gateway-minikube.yaml'
+    good = healthy(deploy.catalog()[0]['frontend'])
+    with patch('sys.argv', ['deploy', 'status']), patch.object(deploy.subprocess, 'check_output',
+            side_effect=['crd', 'crd', 'NAME SYNC\n', json.dumps({'items': [stale, good]})]) as run:
+        deploy.main()
+    out = capsys.readouterr().out
+    assert 'ai-gateway: live source/destination differs from Git' in out
+    assert 'ai-gateway: tracks no resources' in out
+    assert 'frontend' not in out.replace('NAME SYNC', '')
+    assert not any('patch' in c.args[0] for c in run.call_args_list)
 
 
 @pytest.mark.parametrize('arguments', [[], ['all']])
@@ -123,7 +187,8 @@ def test_helm_list_version_compatibility_and_pending_release(help_text, uses_all
 def test_missing_controller_installed_before_application_sync():
     healthy = {'metadata': {'name': 'frontend'}, 'spec': {'project': 'platform'},
                'status': {'operationState': {'phase': 'Succeeded'},
-                          'sync': {'status': 'Synced'}, 'health': {'status': 'Healthy'}}}
+                          'sync': {'status': 'Synced'}, 'health': {'status': 'Healthy'},
+                          'resources': [{'kind': 'Deployment', 'name': 'frontend'}]}}
     responses = ['', '--all-namespaces', '[]', '', 'established', 'established',
                  '{"items":[]}', 'appproject/platform', 'created', 'patched',
                  json.dumps({'items': [healthy]})]
@@ -148,7 +213,8 @@ def test_cert_manager_sync_carries_namespace_and_ssa_options(existing):
     if existing:
         options.append('RespectIgnoreDifferences=true')
     app['status'] = {'operationState': {'phase': 'Succeeded'},
-                     'sync': {'status': 'Synced'}, 'health': {'status': 'Healthy'}}
+                     'sync': {'status': 'Synced'}, 'health': {'status': 'Healthy'},
+                     'resources': [{'kind': 'Deployment', 'name': 'frontend'}]}
     responses = ['crd/applications', 'crd/appprojects', json.dumps({'items': [app] if existing else []}), 'appproject/platform']
     if not existing:
         responses.append('created')
@@ -181,7 +247,8 @@ def test_unhealthy_pending_install_stops_without_release_mutation():
 
 def test_namespace_applied_before_sync_and_deduplicated():
     app = deploy.catalog()[0]['frontend']
-    app['status'] = {'operationState': {'phase': 'Succeeded'}, 'sync': {'status': 'Synced'}, 'health': {'status': 'Healthy'}}
+    app['status'] = {'operationState': {'phase': 'Succeeded'}, 'sync': {'status': 'Synced'}, 'health': {'status': 'Healthy'},
+                     'resources': [{'kind': 'Deployment', 'name': 'frontend'}]}
     events = []
     responses = iter(['crd', 'crd', json.dumps({'items':[app]}), 'project', 'patched', json.dumps({'items':[app]})])
     def read(command, **kwargs):

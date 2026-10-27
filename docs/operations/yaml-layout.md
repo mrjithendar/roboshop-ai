@@ -25,5 +25,7 @@ The load-test manifests are under `tests/load/kubernetes/`.
 Run `python3 -m pytest -q tests/test_yaml_layout.py` to check the convention and
 local references. Deployment metadata, object names, ports, selectors and storage
 settings are unchanged by this reorganization. Publish the new paths together
-with their updated Argo Applications; filename changes alone do not update live
-Application specs that your deployment tooling deliberately preserves.
+with their updated Argo Applications. `./deploy-argocd.sh <app>` aligns the live
+Application's source and destination with Git before syncing; until then a
+renamed file leaves the live Application rendering nothing. Never sync such an
+Application with prune: `./deploy-argocd.sh status` lists them.

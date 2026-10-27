@@ -27,6 +27,25 @@ def catalog():
             {d['metadata']['name']: d for d in docs if d['kind'] == 'AppProject'})
 
 
+def source_drift(live, desired):
+    """JSON-patch operations that align a live Application's source and destination with Git.
+
+    Git owns what an Application deploys and where. Stale include patterns render
+    nothing, and a later prune sync would then delete every tracked resource.
+    Other live settings (sync policy, ignoreDifferences, ...) remain untouched.
+    """
+    live_spec, spec = live.get('spec', {}), desired['spec']
+    ops = []
+    for key in ('source', 'sources'):
+        if key in spec and live_spec.get(key) != spec[key]:
+            ops.append({'op': 'add', 'path': f'/spec/{key}', 'value': spec[key]})
+        elif key not in spec and key in live_spec:
+            ops.append({'op': 'remove', 'path': f'/spec/{key}'})
+    if live_spec.get('destination') != spec['destination']:
+        ops.append({'op': 'add', 'path': '/spec/destination', 'value': spec['destination']})
+    return ops
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, epilog=
         'Examples: ./deploy-argocd.sh roboshop | ./deploy-argocd.sh frontend nginx | '
@@ -64,7 +83,8 @@ def main():
         if args.apps == ['install']:
             print(f'Install Argo CD chart {ARGOCD_CHART_VERSION} if absent; reuse existing Helm release. No applications or ingress deployed.')
         else:
-            print('Install Argo CD if missing, create missing projects/apps, preserve existing app settings, sync without pruning, wait for health.')
+            print('Install Argo CD if missing, create missing projects/apps, align existing app source/destination with Git '
+                  '(other settings preserved), sync without pruning, wait for health; apps tracking no resources fail.')
         return
     kube = ['kubectl', '--context', args.context, '--request-timeout=20s', '-n', 'argocd']
 
@@ -120,6 +140,14 @@ def main():
             break
     if args.apps == ['status']:
         print(run('get', 'applications'), end='')
+        for app in json.loads(run('get', 'applications', '-o', 'json'))['items']:
+            name = app['metadata']['name']
+            if name in apps and source_drift(app, apps[name]):
+                print(f'WARNING: {name}: live source/destination differs from Git; '
+                      f'./deploy-argocd.sh {name} aligns it before syncing')
+            if not app.get('status', {}).get('resources'):
+                print(f'WARNING: {name}: tracks no resources; its source renders nothing. '
+                      'Do not sync it with prune.')
         return
     live = {d['metadata']['name']: d for d in json.loads(run('get', 'applications', '-o', 'json'))['items']}
     # Check all selections before making any change.
@@ -130,7 +158,8 @@ def main():
     # server-side manifests preserve existing labels/annotations and never prune.
     namespace_files = set()
     for name in selected:
-        destination = live.get(name, apps[name])['spec'].get('destination', apps[name]['spec']['destination'])
+        # Existing apps are aligned with Git below, so Git's destination is the one synced.
+        destination = apps[name]['spec']['destination']
         if destination.get('server') != 'https://kubernetes.default.svc':
             raise RuntimeError(f'{name}: remote destination requires namespace setup on its own cluster')
         namespace = destination['namespace']
@@ -147,6 +176,9 @@ def main():
     for name in selected:
         if name not in live:
             print(run('create', '-f', '-', body=apps[name]), end='')
+        elif ops := source_drift(live[name], apps[name]):
+            print(f'{name}: aligning live source/destination with Git', flush=True)
+            print(run('patch', 'application', name, '--type=json', '--patch-file=/dev/stdin', body=ops), end='')
         # Explicit operation requests must carry the Application's sync options.
         # In particular, fresh namespaces and server-side CRD application depend
         # on these; use live policy when present rather than overriding it.
@@ -167,6 +199,10 @@ def main():
             if (not app.get('operation') and operation.get('phase') == 'Succeeded'
                     and status.get('sync', {}).get('status') == 'Synced'
                     and status.get('health', {}).get('status') == 'Healthy'):
+                # An empty desired state compared with an empty cluster also reads
+                # Synced/Healthy; that hides a source that matches no manifests.
+                if not status.get('resources'):
+                    raise RuntimeError(f'{name}: synced but tracks no resources; check its source path/include in argocd/{name}.yaml')
                 print(f'{name}: Synced / Healthy', flush=True)
                 pending.remove(name)
         if pending:

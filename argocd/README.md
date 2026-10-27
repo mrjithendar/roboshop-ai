@@ -69,7 +69,11 @@ From the repository root (requires `kubectl`, Python 3 and PyYAML):
 The default context is `mk4`; use `--context NAME` or `KUBE_CONTEXT` to change it.
 The script creates missing projects and Applications, requests a sync without
 pruning, and waits up to 600 seconds for Synced/Healthy (`--timeout 900` overrides
-this). Existing Application settings, are preserved.
+this). For existing Applications it first aligns `source`/`sources` and
+`destination` with the Git file (a stale path or include would otherwise render
+nothing); other live settings such as sync policy are preserved. An app that
+syncs while tracking no resources is reported as an error, not success.
+`./deploy-argocd.sh status` warns about both conditions without changing anything.
 Commit and push workload changes first: Argo CD deploys the configured Git
 revision, not uncommitted local workload files.
 
@@ -173,8 +177,8 @@ upgrade; reuse of healthy workloads does not repair Helm release metadata.
 manifests from `minikube/namespaces/` before creating projects or requesting
 syncs. It deduplicates namespaces and uses minimal server-side manifests to
 preserve existing labels and annotations. It never deletes or prunes namespaces.
-Existing Application destination settings are respected; unknown or remote
-destinations stop before namespace changes. Preview/list/status remain read-only.
+The destination comes from the Application's Git file; remote destinations
+stop before namespace changes. Preview/list/status remain read-only.
 `CreateNamespace=true` is also retained in Argo sync options as a second safeguard.
 
 ### ECR pull credentials
