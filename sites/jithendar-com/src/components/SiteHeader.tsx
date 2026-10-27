@@ -1,32 +1,12 @@
-import Link from "next/link";
-import { site } from "@/config/site";
-
-const nav = [
-  { href: "/blog", label: "Blog" },
-  { href: "/news", label: "News" },
-  { href: "/projects", label: "Projects" },
-  { href: "/about", label: "About" },
-  { href: "/search", label: "Search" },
-];
+import { Logo } from "./Logo";
+import { NavLinks } from "./NavLinks";
 
 export function SiteHeader() {
   return (
-    <header className="border-b border-zinc-200 dark:border-zinc-800">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-4">
-        <Link href="/" className="text-lg font-bold tracking-tight">
-          {site.name}
-        </Link>
-        <nav aria-label="Main">
-          <ul className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
-            {nav.map((item) => (
-              <li key={item.href}>
-                <Link href={item.href} className="hover:underline">
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/70 dark:border-white/10 dark:bg-surface-dark/80">
+      <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-5 sm:px-8">
+        <Logo />
+        <NavLinks />
       </div>
     </header>
   );

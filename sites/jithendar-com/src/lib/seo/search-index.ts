@@ -1,4 +1,4 @@
-import { categories, contentTypes } from "@/config/taxonomy";
+import { contentTypes } from "@/config/taxonomy";
 import type { Article } from "@/lib/content";
 
 export type SearchEntry = {
@@ -12,13 +12,13 @@ export type SearchEntry = {
 };
 
 /** Search index entries; callers pass getPublishedContent output, so drafts never reach the client. */
-export function buildSearchIndex(articles: Article[]): SearchEntry[] {
+export function buildSearchIndex(articles: Article[], categoryLabel: (slug: string) => string = (s) => s): SearchEntry[] {
   return articles.map((a) => ({
     title: a.frontmatter.title,
     description: a.frontmatter.description,
     path: a.path,
     type: contentTypes[a.frontmatter.contentType],
-    category: categories[a.frontmatter.category],
+    category: categoryLabel(a.frontmatter.category),
     tags: a.frontmatter.tags,
     publishedAt: a.frontmatter.publishedAt!,
   }));

@@ -33,7 +33,7 @@ export function SearchBox() {
   return (
     <div>
       <form role="search" onSubmit={(e) => e.preventDefault()}>
-        <label htmlFor={id} className="block text-sm font-medium">
+        <label htmlFor={id} className="block text-sm font-medium text-ink dark:text-white">
           Search articles
         </label>
         <input
@@ -47,22 +47,22 @@ export function SearchBox() {
           }}
           placeholder="e.g. argo cd, terraform, mcp"
           autoComplete="off"
-          className="mt-2 w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base dark:border-zinc-700 dark:bg-zinc-900"
+          className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-base text-ink shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15 dark:border-white/15 dark:bg-surface-dark-raised dark:text-white"
         />
       </form>
-      <p role="status" aria-live="polite" className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+      <p role="status" aria-live="polite" className="mt-3 text-sm text-slate-500 dark:text-slate-400">
         {status}
       </p>
-      <ul className="mt-4 space-y-4">
+      <ul className="mt-6 space-y-3">
         {results.map((r) => (
-          <li key={r.path}>
-            <Link href={r.path} className="font-semibold hover:underline">
-              {r.title}
-            </Link>
-            <p className="text-sm text-zinc-700 dark:text-zinc-300">{r.description}</p>
-            <p className="text-xs text-zinc-600 dark:text-zinc-400">
+          <li key={r.path} className="rounded-xl border border-slate-200 p-5 transition-colors hover:border-slate-300 dark:border-white/10 dark:hover:border-white/20">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
               {r.type} · {r.category}
             </p>
+            <Link href={r.path} className="mt-1 block font-semibold text-ink hover:underline dark:text-white">
+              {r.title}
+            </Link>
+            <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">{r.description}</p>
           </li>
         ))}
       </ul>

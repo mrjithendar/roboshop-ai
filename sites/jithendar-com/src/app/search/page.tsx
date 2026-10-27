@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Container } from "@/components/Container";
+import { PageHeader } from "@/components/PageHeader";
 import { absoluteUrl } from "@/config/site";
 import { SearchBox } from "./SearchBox";
 
@@ -12,11 +14,11 @@ export const metadata: Metadata = {
 
 export default function SearchPage() {
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="text-3xl font-bold tracking-tight">Search</h1>
-      <div className="mt-6">
+    <>
+      <PageHeader title="Search" description="Find articles, news and projects by title, topic or tag." eyebrow="Archive" narrow />
+      <Container narrow className="py-12">
         <SearchBox />
-      </div>
-    </div>
+      </Container>
+    </>
   );
 }

@@ -4,7 +4,36 @@ import { isIndexableHost } from "@/config/site";
 
 const NOINDEX = "noindex, nofollow";
 
+/** One JSON access-log line per request (static assets excluded by the matcher). */
+function accessLog(request: NextRequest, response: NextResponse, requestId: string) {
+  // NextResponse.next() means the app renders it; only proxy-decided responses have a final status here.
+  const decided = response.headers.has("x-middleware-next") ? {} : { status: response.status };
+  // Plain stdout write: the proxy must stay dependency-free and fast.
+  process.stdout.write(
+    `${JSON.stringify({
+      time: new Date().toISOString(),
+      level: "info",
+      msg: "request",
+      service: "jithendar-com",
+      requestId,
+      method: request.method,
+      path: request.nextUrl.pathname,
+      ...decided,
+      ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+      userAgent: request.headers.get("user-agent")?.slice(0, 200) ?? null,
+    })}\n`,
+  );
+}
+
 export function proxy(request: NextRequest) {
+  const response = route(request);
+  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  response.headers.set("x-request-id", requestId);
+  if (process.env.ACCESS_LOG !== "false" && process.env.NODE_ENV !== "test") accessLog(request, response, requestId);
+  return response;
+}
+
+function route(request: NextRequest): NextResponse {
   const indexable = isIndexableHost(request.headers.get("host"));
 
   if (isGone(request.nextUrl.pathname)) {

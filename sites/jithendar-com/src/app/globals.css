@@ -2,8 +2,27 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Self-hosted by next/font in layout.tsx; no third-party font requests. */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Brand: indigo → cyan. 600/700 meet WCAG AA on white; 300/400 on the dark surface. */
+  --color-brand-50: oklch(0.97 0.02 270);
+  --color-brand-100: oklch(0.93 0.04 270);
+  --color-brand-200: oklch(0.87 0.07 272);
+  --color-brand-300: oklch(0.78 0.11 274);
+  --color-brand-400: oklch(0.68 0.16 276);
+  --color-brand-500: oklch(0.58 0.2 277);
+  --color-brand-600: oklch(0.51 0.21 277);
+  --color-brand-700: oklch(0.45 0.19 277);
+  --color-brand-800: oklch(0.38 0.15 277);
+  --color-brand-900: oklch(0.3 0.11 277);
+  --color-accent-400: oklch(0.79 0.13 210);
+  --color-accent-500: oklch(0.7 0.14 220);
+
+  --color-ink: oklch(0.18 0.02 265);
+  --color-surface-dark: oklch(0.16 0.015 265);
+  --color-surface-dark-raised: oklch(0.21 0.018 265);
 }
 
 :root {
@@ -11,7 +30,66 @@
 }
 
 body {
-  @apply bg-white text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
+  @apply bg-white text-slate-800 antialiased dark:bg-surface-dark dark:text-slate-200;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+::selection {
+  @apply bg-brand-200 text-ink;
+}
+
+:focus-visible {
+  @apply outline-2 outline-offset-2 outline-brand-500;
+}
+
+/* Brand gradient text for hero accents. */
+.text-gradient {
+  @apply bg-gradient-to-r from-brand-600 to-accent-500 bg-clip-text text-transparent dark:from-brand-300 dark:to-accent-400;
+}
+
+/* Subtle engineering grid behind hero bands, faded towards the edges. */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklch, var(--color-slate-400) 18%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklch, var(--color-slate-400) 18%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, black 40%, transparent 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, color-mix(in oklch, var(--color-slate-500) 14%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklch, var(--color-slate-500) 14%, transparent) 1px, transparent 1px);
+  }
+}
+
+/* --- Article typography ---------------------------------------------------- */
+
+/* Explicit per-theme colours: an unlayered --tw-prose-links override would beat the layered
+   dark:prose-invert and leave dark-mode links at 2.4:1 contrast. */
+.prose a {
+  @apply font-medium text-brand-700 dark:text-brand-300 underline decoration-brand-300 decoration-1 underline-offset-[3px] transition-colors hover:decoration-brand-600 dark:decoration-brand-700 dark:hover:decoration-brand-300;
+}
+
+.prose h2,
+.prose h3 {
+  @apply scroll-mt-24 tracking-tight;
+}
+
+/* Inline code: explicit colours in both themes (the typography plugin's lab() fallbacks
+   otherwise leave it dark-on-dark in dark mode), shown as a pill instead of backticks. */
+.prose :not(pre) > code {
+  @apply rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[0.85em] font-medium text-slate-900 dark:border-slate-700 dark:bg-surface-dark-raised dark:text-slate-100;
+}
+
+.prose :not(pre) > code::before,
+.prose :not(pre) > code::after {
+  content: none;
+}
+
+.prose pre.shiki {
+  @apply overflow-x-auto rounded-xl border border-slate-200 p-5 font-mono text-[0.85rem] leading-relaxed shadow-sm dark:border-slate-700/70;
 }
 
 /* Shiki emits light colours inline and dark ones as CSS variables. */
@@ -23,21 +101,35 @@ body {
   }
 }
 
-/* Inline code: explicit colours in both themes (the typography plugin's lab() fallbacks
-   otherwise leave it dark-on-dark in dark mode), shown as a pill instead of backticks. */
-.prose :not(pre) > code {
-  @apply rounded bg-zinc-100 px-1.5 py-0.5 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100;
+.prose table {
+  @apply text-sm;
 }
 
-.prose :not(pre) > code::before,
-.prose :not(pre) > code::after {
-  content: none;
+.prose blockquote {
+  @apply border-l-brand-500 font-normal not-italic;
 }
 
-.prose pre.shiki {
-  @apply overflow-x-auto rounded-lg border border-zinc-200 p-4 text-sm leading-relaxed dark:border-zinc-800;
+/* --- Shortcodes ---------------------------------------------------------------- */
+
+.prose .callout {
+  @apply my-6 rounded-xl border-l-4 px-5 py-4 text-[0.95em];
+}
+.prose .callout > :first-child { @apply mt-0; }
+.prose .callout > :last-child { @apply mb-0; }
+.prose .callout-title { @apply font-semibold; }
+.prose .callout-info { @apply border-sky-500 bg-sky-50 dark:bg-sky-500/10; }
+.prose .callout-tip { @apply border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10; }
+.prose .callout-warning { @apply border-amber-500 bg-amber-50 dark:bg-amber-500/10; }
+.prose .callout-danger { @apply border-red-500 bg-red-50 dark:bg-red-500/10; }
+
+.prose a.shortcode-button {
+  @apply inline-flex items-center rounded-xl bg-ink px-5 py-2.5 text-sm font-semibold text-white no-underline shadow-sm hover:bg-slate-800 dark:bg-white dark:text-ink dark:hover:bg-slate-200;
 }
 
-:focus-visible {
-  @apply outline-2 outline-offset-2 outline-sky-600;
+.prose .shortcode-figure { @apply my-8; }
+.prose .shortcode-figure figcaption { @apply mt-2 text-center text-sm text-slate-500 dark:text-slate-400; }
+
+.prose details.shortcode-details {
+  @apply my-6 rounded-xl border border-slate-200 px-5 py-3 dark:border-white/10;
 }
+.prose details.shortcode-details summary { @apply cursor-pointer font-semibold; }

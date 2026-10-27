@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { ArticleList } from "@/components/ArticleList";
-import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { Container } from "@/components/Container";
+import { RssIcon } from "@/components/icons";
 import { JsonLd } from "@/components/JsonLd";
+import { PageHeader } from "@/components/PageHeader";
 import { pageHref, Pagination } from "@/components/Pagination";
 import { absoluteUrl, site } from "@/config/site";
 import { paginate, parsePageParam, type Article, type Paged } from "@/lib/content";
@@ -17,7 +20,10 @@ export type Listing = {
   articles: Article[];
   /** False → noindex, follow (thin or intro-less taxonomy). */
   indexable: boolean;
-  intro?: ReactNode;
+  eyebrow?: string;
+  icon?: ReactNode;
+  /** Optional chips under the header (e.g. topic filters). */
+  chips?: { href: string; label: string }[];
   feedHref?: string;
   emptyText?: string;
 };
@@ -56,23 +62,40 @@ export function listingMetadata(listing: Listing, page = 1): Metadata {
 
 export function ListingPage({ listing, paged }: { listing: Listing; paged: Paged<Article> }) {
   const crumbs = paged.page > 1 ? [...listing.crumbs, { name: `Page ${paged.page}`, path: pageHref(listing.basePath, paged.page) }] : listing.crumbs;
+  const count = listing.articles.length;
   return (
-    <div className="mx-auto max-w-5xl">
+    <>
       <JsonLd data={breadcrumbLd(crumbs)} />
-      <Breadcrumbs crumbs={crumbs} />
-      <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">{listing.title}</h1>
-      <div className="mt-3 max-w-3xl text-zinc-700 dark:text-zinc-300">{listing.intro ?? <p>{listing.description}</p>}</div>
-      {listing.feedHref && (
-        <p className="mt-2 text-sm">
-          <a href={listing.feedHref} className="underline">
-            RSS feed
-          </a>
-        </p>
-      )}
-      <div className="mt-10">
-        <ArticleList articles={paged.items} emptyText={listing.emptyText ?? "Nothing published here yet."} />
-      </div>
-      <Pagination basePath={listing.basePath} page={paged.page} totalPages={paged.totalPages} />
-    </div>
+      <PageHeader title={listing.title} description={listing.description} eyebrow={listing.eyebrow} crumbs={crumbs} icon={listing.icon}>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-500 dark:text-slate-400">
+          <span>
+            {count} {count === 1 ? "article" : "articles"}
+          </span>
+          {listing.feedHref && (
+            <a href={listing.feedHref} className="inline-flex items-center gap-1.5 font-medium text-slate-700 hover:text-ink dark:text-slate-300 dark:hover:text-white">
+              <RssIcon className="h-4 w-4 text-orange-500" /> RSS
+            </a>
+          )}
+        </div>
+        {listing.chips && listing.chips.length > 0 && (
+          <ul aria-label="Topics" className="mt-6 flex flex-wrap gap-2">
+            {listing.chips.map((chip) => (
+              <li key={chip.href}>
+                <Link
+                  href={chip.href}
+                  className="inline-flex rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-ink dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:border-white/20 dark:hover:text-white"
+                >
+                  {chip.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </PageHeader>
+      <Container className="py-14">
+        <ArticleList articles={paged.items} emptyText={listing.emptyText ?? "Nothing published here yet"} />
+        <Pagination basePath={listing.basePath} page={paged.page} totalPages={paged.totalPages} />
+      </Container>
+    </>
   );
 }

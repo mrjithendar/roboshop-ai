@@ -1,6 +1,7 @@
 import { isContentPreview } from "@/config/site";
+import { broadcastInvalidate, onInvalidate } from "@/lib/cache-bus";
+import { getCategoryMap } from "@/lib/categories";
 import {
-  categoryIntros,
   MIN_INDEXABLE_TAXONOMY_ITEMS,
   PAGE_SIZE,
   relatedCategories,
@@ -8,21 +9,36 @@ import {
   type Category,
   type Collection,
 } from "@/config/taxonomy";
+import { loadContentFromDb } from "./db-source";
 import { contentRoot, loadContent, type Article, type Author, type ContentStore, type Page } from "./load";
 
 export type { Article, Author, Page } from "./load";
 
-const cache = new Map<string, ContentStore>();
+type Cached = { store: ContentStore; at: number };
+const cache = new Map<string, Cached>();
+const DB_TTL_MS = 30_000;
 
-/** Content is immutable per build, so it is read once per process (re-read on every call in dev). */
-function store(root: string = contentRoot()): ContentStore {
-  if (process.env.NODE_ENV === "development") return loadContent(root);
-  let cached = cache.get(root);
-  if (!cached) {
-    cached = loadContent(root);
-    cache.set(root, cached);
-  }
-  return cached;
+/**
+ * Content comes from Postgres, or from MDX files when a root is given / CONTENT_DIR is set
+ * (tests, and the one-time import). The DB copy is cached briefly per process; writes call
+ * invalidateContent() so the editing replica sees changes immediately.
+ */
+async function store(root?: string): Promise<ContentStore> {
+  const fileRoot = root ?? process.env.CONTENT_DIR;
+  const key = fileRoot ? `files:${fileRoot}` : "db";
+  const hit = cache.get(key);
+  const fresh = hit && (fileRoot ? process.env.NODE_ENV !== "development" : Date.now() - hit.at < DB_TTL_MS);
+  if (hit && fresh) return hit.store;
+  const loaded = fileRoot ? loadContent(fileRoot ?? contentRoot()) : await loadContentFromDb();
+  cache.set(key, { store: loaded, at: Date.now() });
+  return loaded;
+}
+
+onInvalidate("content", () => cache.delete("db"));
+
+/** Clear the content cache here and on every other replica (via Redis when configured). */
+export function invalidateContent() {
+  broadcastInvalidate("content");
 }
 
 export type PublishedQuery = { collection?: Collection; now?: Date; root?: string; preview?: boolean };
@@ -37,10 +53,9 @@ function previewCopy(article: Article, now: Date): Article {
  * The only way pages, sitemaps, feeds, search and related lists may read articles.
  * Returns status "published" items whose publishedAt is not in the future, newest first.
  */
-export function getPublishedContent({ collection, now = new Date(), root, preview = isContentPreview() }: PublishedQuery = {}): Article[] {
+export async function getPublishedContent({ collection, now = new Date(), root, preview = isContentPreview() }: PublishedQuery = {}): Promise<Article[]> {
   const cutoff = now.getTime();
-  return store(root)
-    .articles.filter((a) => collection === undefined || a.collection === collection)
+  return (await store(root)).articles.filter((a) => collection === undefined || a.collection === collection)
     .flatMap((a) => {
       const fm = a.frontmatter;
       if (fm.status === "published" && fm.publishedAt !== undefined && Date.parse(fm.publishedAt) <= cutoff) return [a];
@@ -50,24 +65,24 @@ export function getPublishedContent({ collection, now = new Date(), root, previe
     .sort((a, b) => Date.parse(b.frontmatter.publishedAt!) - Date.parse(a.frontmatter.publishedAt!) || a.slug.localeCompare(b.slug));
 }
 
-export function getPublishedArticle(collection: Collection, slug: string, query: Omit<PublishedQuery, "collection"> = {}) {
-  return getPublishedContent({ ...query, collection }).find((a) => a.slug === slug);
+export async function getPublishedArticle(collection: Collection, slug: string, query: Omit<PublishedQuery, "collection"> = {}) {
+  return (await getPublishedContent({ ...query, collection })).find((a) => a.slug === slug);
 }
 
-export function getAuthor(slug: string, root?: string): Author | undefined {
-  return store(root).authors.get(slug);
+export async function getAuthor(slug: string, root?: string): Promise<Author | undefined> {
+  return (await store(root)).authors.get(slug);
 }
 
-export function getAuthors(root?: string): Author[] {
-  return [...store(root).authors.values()];
+export async function getAuthors(root?: string): Promise<Author[]> {
+  return [...(await store(root)).authors.values()];
 }
 
-export function getPage(slug: string, root?: string): Page | undefined {
-  return store(root).pages.get(slug);
+export async function getPage(slug: string, root?: string): Promise<Page | undefined> {
+  return (await store(root)).pages.get(slug);
 }
 
-export function getPages(root?: string): Page[] {
-  return [...store(root).pages.values()];
+export async function getPages(root?: string): Promise<Page[]> {
+  return [...(await store(root)).pages.values()];
 }
 
 /** Last substantive change of an article (updatedAt, else publishedAt). */
@@ -77,14 +92,14 @@ export function lastModified(article: Article): string {
 
 // --- Taxonomy -------------------------------------------------------------
 
-export function articlesInCategory(category: Category, query: PublishedQuery = {}): Article[] {
-  return getPublishedContent(query).filter((a) => a.frontmatter.category === category);
+export async function articlesInCategory(category: Category, query: PublishedQuery = {}): Promise<Article[]> {
+  return (await getPublishedContent(query)).filter((a) => a.frontmatter.category === category);
 }
 
 /** Published tags as { slug, label, count }, most used first. */
-export function publishedTags(query: PublishedQuery = {}) {
+export async function publishedTags(query: PublishedQuery = {}) {
   const tags = new Map<string, { slug: string; label: string; count: number }>();
-  for (const a of getPublishedContent(query)) {
+  for (const a of await getPublishedContent(query)) {
     for (const label of a.frontmatter.tags) {
       const slug = tagSlug(label);
       const entry = tags.get(slug) ?? { slug, label, count: 0 };
@@ -95,8 +110,8 @@ export function publishedTags(query: PublishedQuery = {}) {
   return [...tags.values()].sort((a, b) => b.count - a.count || a.slug.localeCompare(b.slug));
 }
 
-export function articlesWithTag(slug: string, query: PublishedQuery = {}): Article[] {
-  return getPublishedContent(query).filter((a) => a.frontmatter.tags.some((t) => tagSlug(t) === slug));
+export async function articlesWithTag(slug: string, query: PublishedQuery = {}): Promise<Article[]> {
+  return (await getPublishedContent(query)).filter((a) => a.frontmatter.tags.some((t) => tagSlug(t) === slug));
 }
 
 /** Thin-content rule: a taxonomy page is indexable only with enough items and its own intro text. */
@@ -104,8 +119,9 @@ export function isTaxonomyIndexable(itemCount: number, intro: string | undefined
   return itemCount >= MIN_INDEXABLE_TAXONOMY_ITEMS && Boolean(intro?.trim());
 }
 
-export function isCategoryIndexable(category: Category, query: PublishedQuery = {}): boolean {
-  return isTaxonomyIndexable(articlesInCategory(category, query).length, categoryIntros[category]);
+export async function isCategoryIndexable(category: Category, query: PublishedQuery = {}): Promise<boolean> {
+  const intro = (await getCategoryMap()).get(category)?.intro;
+  return isTaxonomyIndexable((await articlesInCategory(category, query)).length, intro);
 }
 
 // --- Pagination -----------------------------------------------------------
@@ -134,9 +150,9 @@ const relatedPairs = new Set(relatedCategories.flatMap(([a, b]) => [`${a}|${b}`,
  * Deterministic related list: explicit `related` refs first, then a score of
  * shared category (3), related category (1) and shared tags (2 each). Ties: newest, then slug.
  */
-export function relatedArticles(article: Article, limit = 3, query: PublishedQuery = {}): Article[] {
+export async function relatedArticles(article: Article, limit = 3, query: PublishedQuery = {}): Promise<Article[]> {
   const fm = article.frontmatter;
-  const candidates = getPublishedContent(query).filter((a) => a.path !== article.path);
+  const candidates = (await getPublishedContent(query)).filter((a) => a.path !== article.path);
   const explicit = fm.related.flatMap((ref) => candidates.filter((a) => `${a.collection}/${a.slug}` === ref));
   const tags = new Set(fm.tags);
 

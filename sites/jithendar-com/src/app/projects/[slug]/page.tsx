@@ -1,9 +1,7 @@
-import { articleMetadata, ArticlePage, articleStaticParams, type SlugParams } from "@/lib/pages/article";
+import { articleMetadata, ArticlePage, type SlugParams } from "@/lib/pages/article";
 
-// Scheduled items appear on their first request after publishedAt; drafts never render.
-export const revalidate = 300;
-
-export const generateStaticParams = () => articleStaticParams("projects");
+// Rendered per request from Postgres; drafts and future items never render (getPublishedContent).
+export const dynamic = "force-dynamic";
 
 export const generateMetadata = (props: SlugParams) => articleMetadata("projects", props);
 

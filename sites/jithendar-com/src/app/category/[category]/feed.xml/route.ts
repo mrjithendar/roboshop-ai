@@ -1,27 +1,26 @@
 import { notFound } from "next/navigation";
 import { site } from "@/config/site";
-import { categories, categoryIntros, categoryKeys } from "@/config/taxonomy";
+import { getCategoryMap, labelOf } from "@/lib/categories";
 import { articlesInCategory } from "@/lib/content";
-import { isCategory } from "@/lib/pages/listings";
 import { buildRss, rssResponse } from "@/lib/seo/feed";
 
 type Props = { params: Promise<{ category: string }> };
 
-export const revalidate = 300;
-export const dynamicParams = false;
-
-export const generateStaticParams = () => categoryKeys.map((category) => ({ category }));
+export const dynamic = "force-dynamic";
 
 export async function GET(_request: Request, { params }: Props) {
   const { category } = await params;
-  if (!isCategory(category)) notFound();
+  const cats = await getCategoryMap();
+  const info = cats.get(category);
+  if (!info) notFound();
   return rssResponse(
     buildRss({
-      title: `${categories[category]} | ${site.name}`,
-      description: categoryIntros[category],
+      title: `${info.label} | ${site.name}`,
+      description: info.intro,
       path: `/category/${category}`,
       selfPath: `/category/${category}/feed.xml`,
-      articles: articlesInCategory(category),
+      articles: await articlesInCategory(category),
+      categoryLabel: (s) => labelOf(cats, s),
     }),
   );
 }

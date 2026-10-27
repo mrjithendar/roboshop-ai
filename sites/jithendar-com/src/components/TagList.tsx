@@ -9,7 +9,7 @@ export function TagList({ tags }: { tags: string[] }) {
         <li key={tag}>
           <Link
             href={`/tag/${tagSlug(tag)}`}
-            className="rounded-full border border-zinc-300 px-3 py-1 text-xs hover:border-zinc-500 dark:border-zinc-700"
+            className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-ink dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:text-white"
           >
             #{tag}
           </Link>

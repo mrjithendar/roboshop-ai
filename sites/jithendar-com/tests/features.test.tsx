@@ -49,8 +49,8 @@ describe("taxonomy indexability", () => {
     expect(isTaxonomyIndexable(10, "")).toBe(false);
     expect(isTaxonomyIndexable(10, undefined)).toBe(false);
   });
-  it("lists only tags of published content, with slugs", () => {
-    const tags = publishedTags(q).map((t) => t.slug);
+  it("lists only tags of published content, with slugs", async () => {
+    const tags = (await publishedTags(q)).map((t) => t.slug);
     expect(tags).toEqual(expect.arrayContaining(["kubernetes", "release", "gitops", "argocd"]));
     expect(tagSlug("Argo CD")).toBe("argo-cd");
     expect(tagSlug("Next.js")).toBe("nextjs");
@@ -58,12 +58,12 @@ describe("taxonomy indexability", () => {
 });
 
 describe("related articles", () => {
-  it("scores by category, related category and tags, deterministically, without drafts", () => {
-    const tutorial = getPublishedArticle("blog", "published-tutorial", q)!;
-    const first = relatedArticles(tutorial, 3, q).map((a) => a.path);
+  it("scores by category, related category and tags, deterministically, without drafts", async () => {
+    const tutorial = (await getPublishedArticle("blog", "published-tutorial", q))!;
+    const first = (await relatedArticles(tutorial, 3, q)).map((a) => a.path);
     expect(first).toEqual(["/news/fresh-news", "/projects/sample-project"]);
-    expect(relatedArticles(tutorial, 3, q).map((a) => a.path)).toEqual(first);
-    const all = getPublishedContent(q).flatMap((a) => relatedArticles(a, 10, q)).map((a) => a.slug);
+    expect((await relatedArticles(tutorial, 3, q)).map((a) => a.path)).toEqual(first);
+    const all = (await Promise.all((await getPublishedContent(q)).map((a) => relatedArticles(a, 10, q)))).flat().map((a) => a.slug);
     for (const hidden of ["draft-post", "review-news", "future-post", "archived-post"]) expect(all).not.toContain(hidden);
   });
 });
@@ -77,8 +77,8 @@ describe("reading time", () => {
 });
 
 describe("RSS", () => {
-  it("is valid RSS 2.0 with published items only and RFC 822 dates", () => {
-    const xml = buildRss({ title: "T & co", description: "D", path: "/", selfPath: "/feed.xml", articles: getPublishedContent(q) });
+  it("is valid RSS 2.0 with published items only and RFC 822 dates", async () => {
+    const xml = buildRss({ title: "T & co", description: "D", path: "/", selfPath: "/feed.xml", articles: await getPublishedContent(q) });
     expect(XMLValidator.validate(xml)).toBe(true);
     const items = new XMLParser().parse(xml).rss.channel.item as { link: string; pubDate: string }[];
     const links = items.map((i) => i.link);
@@ -92,7 +92,10 @@ describe("RSS", () => {
 });
 
 describe("search", () => {
-  const index = buildSearchIndex(getPublishedContent(q));
+  let index: ReturnType<typeof buildSearchIndex> = [];
+  beforeAll(async () => {
+    index = buildSearchIndex(await getPublishedContent(q));
+  });
   it("indexes published content only", () => {
     const paths = index.map((e) => e.path);
     expect(paths).toContain("/blog/published-tutorial");
@@ -108,18 +111,18 @@ describe("search", () => {
 });
 
 describe("content preview", () => {
-  it("shows review items locally when CONTENT_PREVIEW=true", () => {
+  it("shows review items locally when CONTENT_PREVIEW=true", async () => {
     vi.stubEnv("CONTENT_PREVIEW", "true");
     vi.stubEnv("APP_ENV", "development");
-    const preview = getPublishedContent({ now: NOW, root: FIXTURES });
+    const preview = await getPublishedContent({ now: NOW, root: FIXTURES });
     const review = preview.find((a) => a.slug === "review-news");
     expect(review?.preview).toBe(true);
     expect(preview.some((a) => a.slug === "draft-post")).toBe(false);
   });
-  it("can never show review items in production", () => {
+  it("can never show review items in production", async () => {
     vi.stubEnv("CONTENT_PREVIEW", "true");
     vi.stubEnv("APP_ENV", "production");
-    expect(getPublishedContent({ now: NOW, root: FIXTURES }).some((a) => a.slug === "review-news")).toBe(false);
+    expect((await getPublishedContent({ now: NOW, root: FIXTURES })).some((a) => a.slug === "review-news")).toBe(false);
   });
 });
 
@@ -169,5 +172,41 @@ describe("MDX pipeline", () => {
     const html = renderToStaticMarkup(<Content />);
     expect(html).toContain('class="shiki');
     expect(html).toContain("--shiki-dark");
+  });
+});
+
+describe("Markdown safety", () => {
+  it("never executes JSX or expressions from content bodies", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    (globalThis as Record<string, unknown>).__pwned = false;
+    const { Content } = await compileMdx("Hello {globalThis.__pwned = true}\n\n<script>alert(1)</script>\n\n<Todo>x</Todo>");
+    const html = renderToStaticMarkup(<Content />);
+    expect((globalThis as Record<string, unknown>).__pwned).toBe(false);
+    expect(html).not.toContain("<script");
+    expect(html).toContain("{globalThis.__pwned = true}");
+  });
+});
+
+describe("shortcodes", () => {
+  const html = async (md: string) => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { Content } = await compileMdx(md);
+    return renderToStaticMarkup(<Content />);
+  };
+
+  it("renders callouts, buttons, figures and details", async () => {
+    const out = await html(
+      ':::callout{type="warning" title="Heads up"}\nCareful.\n:::\n\n::button[Docs]{href="/about"}\n\n:::details{summary="More"}\nHidden\n:::',
+    );
+    expect(out).toContain('<aside class="callout callout-warning" role="note"><p class="callout-title">Heads up</p><p>Careful.</p></aside>');
+    expect(out).toContain('<a href="/about" class="shortcode-button">Docs</a>');
+    expect(out).toContain('<details class="shortcode-details"><summary>More</summary><p>Hidden</p></details>');
+  });
+
+  it("refuses unsafe button links and unknown shortcodes", async () => {
+    const out = await html('::button[Click]{href="javascript:alert(1)"}\n\n::evil{onload="x"}');
+    expect(out).not.toContain("javascript:");
+    expect(out).not.toContain("onload");
+    expect(out).not.toContain("<evil");
   });
 });

@@ -1,5 +1,4 @@
 import { absoluteUrl, site } from "@/config/site";
-import { categories } from "@/config/taxonomy";
 import type { Article } from "@/lib/content";
 import { rfc822 } from "@/lib/dates";
 import { canonicalFor } from "./canonical";
@@ -8,7 +7,8 @@ import { escapeXml } from "./xml";
 export const FEED_ITEMS = 30;
 
 /** RSS 2.0 feed of already-published articles (callers pass getPublishedContent output). */
-export function buildRss({ title, description, path, selfPath, articles }: {
+export function buildRss({ title, description, path, selfPath, articles, categoryLabel = (s) => s }: {
+  categoryLabel?: (slug: string) => string;
   title: string;
   description: string;
   path: string;
@@ -24,7 +24,7 @@ export function buildRss({ title, description, path, selfPath, articles }: {
       <guid isPermaLink="true">${escapeXml(link)}</guid>
       <pubDate>${rfc822(fm.publishedAt!)}</pubDate>
       <description>${escapeXml(fm.description)}</description>
-      <category>${escapeXml(categories[fm.category])}</category>
+      <category>${escapeXml(categoryLabel(fm.category))}</category>
     </item>`;
   });
   const lastBuild = articles[0] ? `\n    <lastBuildDate>${rfc822(articles[0].frontmatter.updatedAt ?? articles[0].frontmatter.publishedAt!)}</lastBuildDate>` : "";

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { z } from "zod";
-import { collections, type Collection } from "@/config/taxonomy";
+import { collections, defaultCategories, type Collection } from "@/config/taxonomy";
 import { splitFrontmatter } from "./frontmatter";
 import {
   authorFrontmatter,
@@ -22,6 +22,8 @@ export type Article = {
   file: string;
   /** Set only in local preview, for review items shown as if published. */
   preview?: boolean;
+  /** Database id (absent for file-based content). */
+  id?: string;
 };
 
 export type Author = { slug: string; path: string; frontmatter: AuthorFrontmatter; body: string; file: string };
@@ -86,6 +88,7 @@ export function loadContent(root: string = contentRoot()): ContentStore {
         if (path.basename(file, ".mdx") !== fm.slug) errors.push(`${rel(file)}: slug must match the file name`);
         if (seen.has(fm.slug)) errors.push(`${rel(file)}: duplicate slug "${fm.slug}" in ${collection}`);
         if (!authors.has(fm.author)) errors.push(`${rel(file)}: author "${fm.author}" not found in authors/`);
+        if (!defaultCategories.some((c) => c.slug === fm.category)) errors.push(`${rel(file)}: unknown category "${fm.category}"`);
         seen.add(fm.slug);
         articles.push({ collection, slug: fm.slug, path: `/${collection}/${fm.slug}`, frontmatter: fm, body, file });
       } catch (error) {

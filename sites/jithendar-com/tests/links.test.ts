@@ -6,7 +6,7 @@ import { findBrokenLinks, internalLinks } from "@/lib/content/links";
 import { NOW, REAL_CONTENT } from "./helpers";
 
 describe("internal link extraction", () => {
-  it("finds markdown and href links, ignoring external, protocol-relative, query and fragment", () => {
+  it("finds markdown and href links, ignoring external, protocol-relative, query and fragment", async () => {
     const body = `See [a](/blog/x#part), [b](/about/), [c](https://example.com/y), [d](//cdn.example.com/z),
 <a href="/news?page=2">n</a> and [top](/).`;
     expect(internalLinks(body).sort()).toEqual(["/", "/about", "/blog/x", "/news"]);
@@ -29,28 +29,28 @@ describe("broken internal links", () => {
     return dir;
   }
 
-  it("flags a published article linking to a draft or a missing page", () => {
+  it("flags a published article linking to a draft or a missing page", async () => {
     const root = site({
       "blog/live.mdx": article("live", "published", "[draft](/blog/wip) [missing](/nowhere) [ok](/blog)"),
       "blog/wip.mdx": article("wip", "draft", "[live](/blog/live)"),
     });
-    expect(findBrokenLinks({ root, now: NOW })).toEqual([
+    expect(await findBrokenLinks({ root, now: NOW })).toEqual([
       { file: path.join(root, "blog/live.mdx"), link: "/blog/wip" },
       { file: path.join(root, "blog/live.mdx"), link: "/nowhere" },
     ]);
   });
 
-  it("lets drafts link to other unpublished content", () => {
+  it("lets drafts link to other unpublished content", async () => {
     const root = site({
       "blog/one.mdx": article("one", "review", "[two](/blog/two)"),
       "blog/two.mdx": article("two", "draft", "[one](/blog/one)"),
     });
-    expect(findBrokenLinks({ root, now: NOW })).toEqual([]);
+    expect(await findBrokenLinks({ root, now: NOW })).toEqual([]);
   });
 });
 
 describe("repository content", () => {
-  it("has no broken internal links", () => {
-    expect(findBrokenLinks({ root: REAL_CONTENT })).toEqual([]);
+  it("has no broken internal links", async () => {
+    expect(await findBrokenLinks({ root: REAL_CONTENT })).toEqual([]);
   });
 });

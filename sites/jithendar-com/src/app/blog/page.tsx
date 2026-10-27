@@ -1,11 +1,11 @@
 import { listingMetadata, ListingPage, resolvePage } from "@/lib/pages/listing";
 import { collectionListing } from "@/lib/pages/listings";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
-export const generateMetadata = () => listingMetadata(collectionListing("blog"));
+export const generateMetadata = async () => listingMetadata(await collectionListing("blog"));
 
-export default function Page() {
-  const listing = collectionListing("blog");
+export default async function Page() {
+  const listing = await collectionListing("blog");
   return <ListingPage listing={listing} paged={resolvePage(listing)} />;
 }

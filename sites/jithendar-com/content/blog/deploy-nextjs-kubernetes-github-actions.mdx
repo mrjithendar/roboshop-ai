@@ -1,17 +1,17 @@
 ---
-title: Deploying a Next.js site to Kubernetes with Traefik, cert-manager and Argo CD
-slug: deploy-nextjs-kubernetes-argo-cd
-description: How this site ships - a standalone Next.js image, hardened pods, HTTPS with cert-manager, and CI that releases by committing an image digest for Argo CD.
+title: Deploying a Next.js site to Kubernetes with GitHub Actions, Traefik and cert-manager
+slug: deploy-nextjs-kubernetes-github-actions
+description: How this site ships - a standalone Next.js image, hardened pods, HTTPS with cert-manager, and a CI pipeline that deploys a pinned image digest.
 author: jithendar-dharmapuri
 category: devops-sre
-tags: [Kubernetes, Argo CD, Next.js, cert-manager, Traefik, GitOps]
+tags: [Kubernetes, GitHub Actions, Next.js, cert-manager, Traefik, Kustomize]
 contentType: tutorial
 status: review
 related: [projects/roboshop-ai]
 ---
 <Todo>Review, add your own commentary and context, then set status to published with a publishedAt time.</Todo>
 
-This site runs on a small self-managed Kubernetes cluster. Every release is a Git commit, and Argo CD is the only thing that changes the cluster. Here is the whole path from `git push` to a page served over HTTPS.
+This site runs on a small self-managed Kubernetes cluster. Every release starts with a Git push and ends with a smoke test against the live site. Here is the whole path from `git push` to a page served over HTTPS.
 
 ## 1. Build a small, read-only image
 
@@ -70,12 +70,12 @@ spec:
 
 Other tools on the same hostname live under paths such as `/argocd` and `/grafana`. The site claims `/`, and Traefik gives longer rules priority by default, so the more specific routes keep working. Two small middlewares redirect `http` to `https` and `www` to the apex, each in a single hop.
 
-## 5. Release by commit
+## 5. Release from CI
 
 The GitHub Actions workflow has three jobs:
 
 1. **check**: lint, type check, tests, production build and a manifest render.
-2. **publish**: builds an `arm64` image, pushes it to Amazon ECR, then commits the image **digest** into the production Kustomize overlay.
-3. **deploy**: waits until `/api/health` reports the new commit, then runs a smoke test against the live site.
+2. **publish**: builds an `arm64` image, pushes it to Amazon ECR, and commits the image **digest** into the production Kustomize overlay, so Git always records what is live.
+3. **deploy**: runs `kubectl apply -k` against the overlay, waits for the rollout (and runs `kubectl rollout undo` if it fails), waits until `/api/health` reports the new commit, then smoke-tests the live site.
 
-Argo CD watches the overlay and syncs the new digest. CI never holds cluster credentials, and pinning by digest means the exact image that passed CI is the one that runs. Rolling back is a `git revert` of the digest commit.
+The deploy job authenticates as a dedicated ServiceAccount that can only manage the site's own resource types in its namespace. It cannot delete anything or read Secrets. Pinning by digest means the exact image that passed CI is the one that runs.

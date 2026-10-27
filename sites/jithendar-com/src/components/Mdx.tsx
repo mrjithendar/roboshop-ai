@@ -3,6 +3,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { isProductionEnv } from "@/config/site";
 import type { MDXComponents } from "mdx/types";
 import { CodeBlock } from "./CodeBlock";
+import { ContentImage } from "./ContentImage";
 
 /** Owner placeholder for facts that cannot be verified from the repo. Hidden in production builds. */
 function Todo({ children }: { children?: ReactNode }) {
@@ -23,5 +24,6 @@ function Anchor({ href = "", ...props }: ComponentProps<"a">) {
 export const mdxComponents: MDXComponents = {
   a: Anchor,
   pre: CodeBlock,
+  img: ContentImage,
   Todo,
 };

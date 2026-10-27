@@ -4,9 +4,9 @@ import { buildNewsSitemap, newsSitemapEntries } from "@/lib/seo/news-sitemap";
 // Evaluated per request so articles age out of the 48-hour window without a rebuild.
 export const dynamic = "force-dynamic";
 
-export function GET() {
+export async function GET() {
   const now = new Date();
-  const xml = buildNewsSitemap(newsSitemapEntries(getPublishedContent({ now }), now));
+  const xml = buildNewsSitemap(newsSitemapEntries(await getPublishedContent({ now }), now));
   return new Response(xml, {
     headers: {
       "Content-Type": "application/xml; charset=utf-8",

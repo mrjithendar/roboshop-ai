@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { ArticleList } from "@/components/ArticleList";
-import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { Avatar } from "@/components/AuthorCard";
+import { Container } from "@/components/Container";
+import { GitHubIcon } from "@/components/icons";
 import { JsonLd } from "@/components/JsonLd";
 import { mdxComponents } from "@/components/Mdx";
+import { PageHeader } from "@/components/PageHeader";
 import { Pagination } from "@/components/Pagination";
 import { getAuthor, type Article, type Paged } from "@/lib/content";
 import { compileMdx } from "@/lib/mdx/compile";
@@ -10,8 +13,8 @@ import { breadcrumbLd, profilePageLd } from "@/lib/seo/jsonld";
 import { listingMetadata } from "./listing";
 import { authorListing } from "./listings";
 
-export function authorMetadata(slug: string, page = 1): Metadata {
-  return listingMetadata(authorListing(slug), page);
+export async function authorMetadata(slug: string, page = 1): Promise<Metadata> {
+  return listingMetadata(await authorListing(slug), page);
 }
 
 function hostLabel(url: string): string {
@@ -19,41 +22,52 @@ function hostLabel(url: string): string {
 }
 
 export async function AuthorProfilePage({ slug, paged }: { slug: string; paged: Paged<Article> }) {
-  const listing = authorListing(slug);
-  const author = getAuthor(slug)!;
+  const listing = await authorListing(slug);
+  const author = (await getAuthor(slug))!;
   const fm = author.frontmatter;
   const { Content } = await compileMdx(author.body);
   const hasBio = author.body.trim().length > 0;
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <>
       <JsonLd data={[profilePageLd(author), breadcrumbLd(listing.crumbs)]} />
-      <Breadcrumbs crumbs={listing.crumbs} />
-      <header className="mt-4 max-w-3xl">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{fm.name}</h1>
-        {fm.jobTitle && <p className="mt-1 text-lg text-zinc-600 dark:text-zinc-400">{fm.jobTitle}</p>}
+      <PageHeader
+        title={fm.name}
+        eyebrow={fm.jobTitle ?? "Author"}
+        crumbs={listing.crumbs}
+        icon={
+          <span className="hidden sm:block">
+            <Avatar name={fm.name} size="lg" />
+          </span>
+        }
+      >
         {fm.sameAs.length > 0 && (
-          <ul aria-label="Profiles" className="mt-3 flex flex-wrap gap-4 text-sm">
+          <ul aria-label="Profiles" className="flex flex-wrap gap-3">
             {fm.sameAs.map((url) => (
               <li key={url}>
-                <a href={url} rel="me noopener" className="underline">
+                <a
+                  href={url}
+                  rel="me noopener"
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                >
+                  {url.includes("github.com") && <GitHubIcon className="h-4 w-4" />}
                   {hostLabel(url)}
                 </a>
               </li>
             ))}
           </ul>
         )}
-      </header>
-      {paged.page === 1 && hasBio && (
-        <div className="prose prose-zinc mt-6 max-w-3xl dark:prose-invert">
-          <Content components={mdxComponents} />
-        </div>
-      )}
-      <h2 className="mt-12 text-xl font-semibold">Published work</h2>
-      <div className="mt-6">
-        <ArticleList articles={paged.items} emptyText="Nothing published yet." headingLevel={3} />
-      </div>
-      <Pagination basePath={listing.basePath} page={paged.page} totalPages={paged.totalPages} />
-    </div>
+      </PageHeader>
+      <Container className="py-14">
+        {paged.page === 1 && hasBio && (
+          <div className="prose prose-slate prose-lg mb-16 max-w-3xl dark:prose-invert">
+            <Content components={mdxComponents} />
+          </div>
+        )}
+        <h2 className="mb-8 text-2xl font-bold tracking-tight text-ink dark:text-white">Published work</h2>
+        <ArticleList articles={paged.items} emptyText="Nothing published yet" headingLevel={3} />
+        <Pagination basePath={listing.basePath} page={paged.page} totalPages={paged.totalPages} />
+      </Container>
+    </>
   );
 }

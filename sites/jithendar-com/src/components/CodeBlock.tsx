@@ -23,7 +23,7 @@ export function CodeBlock(props: ComponentProps<"pre">) {
       <button
         type="button"
         onClick={copy}
-        className="absolute right-2 top-2 rounded border border-zinc-300 bg-white/90 px-2 py-1 text-xs font-medium text-zinc-700 opacity-80 hover:opacity-100 focus-visible:opacity-100 dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-200"
+        className="absolute right-3 top-3 rounded-lg border border-slate-200 bg-white/90 px-2.5 py-1 font-sans text-xs font-semibold text-slate-700 shadow-sm backdrop-blur transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 dark:border-white/15 dark:bg-surface-dark-raised/90 dark:text-slate-200"
       >
         {status === "Copied to clipboard" ? "Copied" : "Copy"}
         <span className="sr-only"> code</span>

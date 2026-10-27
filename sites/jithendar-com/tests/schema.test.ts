@@ -21,7 +21,7 @@ describe("article frontmatter schema", () => {
     ["description too short", { description: "Short." }, "description"],
     ["description too long", { description: "x".repeat(161) }, "description"],
     ["non-kebab slug", { slug: "Not_Kebab" }, "slug"],
-    ["unknown category", { category: "gardening" }, "category"],
+    ["non-slug category", { category: "Gardening Tips" }, "category"],
     ["date without offset", { publishedAt: "2026-10-20T09:00:00" }, "publishedAt"],
     ["date only", { publishedAt: "2026-10-20" }, "publishedAt"],
     ["published without publishedAt", { publishedAt: undefined }, "publishedAt"],

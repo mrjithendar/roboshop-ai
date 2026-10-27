@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { generateStaticParams as blogParams } from "@/app/blog/[slug]/page";
 import { articleMetadata, ArticlePage } from "@/lib/pages/article";
 
 const params = (slug: string) => ({ params: Promise.resolve({ slug }) });
@@ -23,12 +22,5 @@ describe("article routes", () => {
     const meta = await articleMetadata("blog", params("published-tutorial"));
     expect(meta.alternates?.canonical).toBe("https://jithendar.com/blog/published-tutorial");
     expect(meta.title).toBe("Published tutorial fixture for tests");
-  });
-
-  it("does not pre-render unpublished slugs", () => {
-    const slugs = blogParams().map((p) => p.slug);
-    expect(slugs).toContain("published-tutorial");
-    expect(slugs).not.toContain("draft-post");
-    expect(slugs).not.toContain("future-post");
   });
 });

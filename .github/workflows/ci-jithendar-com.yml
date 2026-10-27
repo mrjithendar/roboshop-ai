@@ -1,13 +1,10 @@
 name: jithendar.com
 
 # check   → lint, typecheck, test, build, render manifests (every push and PR)
-# publish → build arm64 image, push to ECR, commit its digest to deploy/production (default branch only)
-# deploy  → kubectl apply -k deploy/production with that digest, wait for the rollout, smoke-test
+# publish → build the arm64 image and push it to ECR as jithendar-com:<commit-sha> (default branch only)
 #
-# jithendar.com is deployed by CI, not Argo CD (owner decision 2026-10-27). The deploy job
-# authenticates as ServiceAccount jithendar/jithendar-deployer (deploy/ci-access/rbac.yaml):
-# namespace-scoped, no delete, no Secrets. Its kubeconfig is the production environment
-# secret JITHENDAR_KUBECONFIG, minted by scripts/ci-kubeconfig.sh.
+# CI does not deploy and has no cluster access. sites/deploy.sh resolves the image digest
+# from ECR, pins it in deploy/production and applies it.
 
 on:
   workflow_dispatch:
@@ -19,15 +16,13 @@ on:
     paths:
       - 'sites/jithendar-com/**'
       - '.github/workflows/ci-jithendar-com.yml'
-      # The digest commit below must not start another release.
-      - '!sites/jithendar-com/deploy/production/kustomization.yaml'
 
 permissions:
   contents: read
 
-# Releases run one at a time and in order, so an older build can never overwrite a newer digest.
+# Builds for the same ref run one at a time.
 concurrency:
-  group: jithendar-com-${{ github.event_name == 'pull_request' && github.ref || 'release' }}
+  group: jithendar-com-${{ github.ref }}
   cancel-in-progress: false
 
 defaults:
@@ -65,20 +60,13 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: [self-hosted, linux, ARM64]
     timeout-minutes: 30
-    permissions:
-      contents: write
-    outputs:
-      image: ${{ steps.pin.outputs.image }}
-      repository: ${{ steps.pin.outputs.repository }}
-      digest: ${{ steps.pin.outputs.digest }}
     env:
       AWS_REGION: us-east-1
       REPOSITORY: jithendar-com
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Needed to push the digest commit with the job's GITHUB_TOKEN.
-          persist-credentials: true
+          persist-credentials: false
       # Concurrent runners share HOME; isolate Docker login and buildx settings.
       - name: Isolate Docker configuration for this job
         run: echo "DOCKER_CONFIG=$(mktemp -d "$RUNNER_TEMP/docker-config.XXXXXX")" >> "$GITHUB_ENV"
@@ -101,99 +89,16 @@ jobs:
           tags: ${{ steps.ecr.outputs.registry }}/${{ env.REPOSITORY }}:${{ github.sha }}
           cache-from: type=gha,scope=jithendar-com
           cache-to: type=gha,mode=max,scope=jithendar-com
-      - name: Pin digest in deploy/production
-        id: pin
+      - name: Record image
         env:
           IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.REPOSITORY }}
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
-          set -euo pipefail
-          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "Unexpected digest: $DIGEST" >&2; exit 1; }
-          {
-            echo "image=$IMAGE@$DIGEST"
-            echo "repository=$IMAGE"
-            echo "digest=$DIGEST"
-          } >> "$GITHUB_OUTPUT"
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          for attempt in 1 2 3; do
-            git fetch --quiet origin "$GITHUB_REF_NAME"
-            git reset --quiet --hard "origin/$GITHUB_REF_NAME"
-            scripts/set-image.sh "$IMAGE" "$DIGEST"
-            if git diff --quiet; then
-              echo "Digest already pinned."
-              exit 0
-            fi
-            git commit --quiet -am "deploy(jithendar-com): ${GITHUB_SHA::7}" \
-              -m "Image: $IMAGE@$DIGEST" -m "Built from $GITHUB_SHA by run $GITHUB_RUN_ID."
-            git push --quiet origin "HEAD:$GITHUB_REF_NAME" && exit 0
-            echo "Push raced with another commit; retrying ($attempt/3)."
-          done
-          exit 1
-      - name: Record image
-        run: |
           {
             echo '### jithendar.com image'
             echo
-            echo "\`${{ steps.pin.outputs.image }}\`"
+            echo "- Tag: \`$IMAGE:$GITHUB_SHA\`"
+            echo "- Digest: \`$IMAGE@$DIGEST\`"
+            echo
+            echo "Deploy: \`sites/deploy.sh $GITHUB_SHA\`"
           } >> "$GITHUB_STEP_SUMMARY"
-
-  deploy:
-    needs: publish
-    runs-on: self-hosted
-    timeout-minutes: 15
-    environment:
-      name: production
-      url: https://jithendar.com
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4
-        with:
-          version: v1.35.0
-      - name: Load cluster credentials
-        env:
-          KUBECONFIG_DATA: ${{ secrets.JITHENDAR_KUBECONFIG }}
-        run: |
-          set -euo pipefail
-          [[ -n "$KUBECONFIG_DATA" ]] || { echo "Secret JITHENDAR_KUBECONFIG is not set for environment production (run scripts/ci-kubeconfig.sh)." >&2; exit 1; }
-          umask 077
-          printf '%s\n' "$KUBECONFIG_DATA" > "$RUNNER_TEMP/kubeconfig"
-          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
-      - name: Pin the image built by this run
-        env:
-          REPOSITORY: ${{ needs.publish.outputs.repository }}
-          DIGEST: ${{ needs.publish.outputs.digest }}
-        run: scripts/set-image.sh "$REPOSITORY" "$DIGEST"
-      - name: Validate against the cluster
-        run: kubectl apply -k deploy/production --dry-run=server
-      - name: Apply
-        run: kubectl apply -k deploy/production
-      - name: Wait for rollout (undo on failure)
-        run: |
-          set -euo pipefail
-          if ! kubectl -n jithendar rollout status deployment/jithendar-com --timeout=5m; then
-            kubectl -n jithendar get pods -l app=jithendar-com -o wide || true
-            kubectl -n jithendar get events --sort-by=.lastTimestamp | tail -20 || true
-            echo "Rollout failed; rolling back to the previous ReplicaSet." >&2
-            kubectl -n jithendar rollout undo deployment/jithendar-com
-            kubectl -n jithendar rollout status deployment/jithendar-com --timeout=5m || true
-            exit 1
-          fi
-      - name: Wait until this build serves traffic
-        run: |
-          set -euo pipefail
-          for _ in $(seq 1 30); do
-            live="$(curl -sS --max-time 10 https://jithendar.com/api/health | sed -nE 's/.*"version":"([^"]*)".*/\1/p' || true)"
-            [[ "$live" == "$GITHUB_SHA" ]] && { echo "Live: $live"; exit 0; }
-            echo "Waiting for $GITHUB_SHA (live: ${live:-unreachable})"
-            sleep 5
-          done
-          echo "Pods rolled out but https://jithendar.com does not serve $GITHUB_SHA." >&2
-          exit 1
-      - name: Smoke test
-        run: scripts/smoke.sh https://jithendar.com "$GITHUB_SHA"
-      - name: Remove credentials
-        if: always()
-        run: rm -f "$RUNNER_TEMP/kubeconfig"

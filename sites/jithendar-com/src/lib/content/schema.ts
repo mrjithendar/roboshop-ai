@@ -1,7 +1,6 @@
 import { z } from "zod";
 import {
   allowedTypes,
-  categoryKeys,
   contentTypeKeys,
   typesRequiringSources,
   type Collection,
@@ -26,7 +25,9 @@ const source = z.strictObject({
 });
 
 const featuredImage = z.strictObject({
-  src: z.string().min(1),
+  src: z
+    .string()
+    .regex(/^(\/images\/[^?#]+\.(jpe?g|png|webp|avif)|\/media\/[0-9a-f-]{36}\/[^/?#]+)$/i, "must be a /images/... file or an uploaded /media/... image"),
   alt: z.string().min(1, "alt text is required"),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
@@ -38,7 +39,8 @@ export const articleFrontmatter = z
     slug: articleSlug,
     description: z.string().min(50).max(160),
     author: slug,
-    category: z.enum(categoryKeys),
+    // Existence is checked against the live category list by the loader / post service.
+    category: slug,
     tags: z
       .array(z.string().trim().min(1))
       .default([])

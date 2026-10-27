@@ -1,4 +1,6 @@
-import { categoryKeys, collections, tagSlug } from "@/config/taxonomy";
+import { collections, tagSlug } from "@/config/taxonomy";
+import { getCategories } from "@/lib/categories";
+import { checkImage, imageRefs, publicRoot, type ImageProblem } from "@/lib/images";
 import { getAuthors, getPages, getPublishedContent, type PublishedQuery } from "./index";
 import { contentRoot, loadContent } from "./load";
 
@@ -20,19 +22,19 @@ export function internalLinks(body: string): string[] {
 }
 
 /** Every route a reader can reach right now. */
-export function publicRoutes(query: PublishedQuery = {}): Set<string> {
-  const published = getPublishedContent({ ...query, preview: false });
+export async function publicRoutes(query: PublishedQuery = {}): Promise<Set<string>> {
+  const published = await getPublishedContent({ ...query, preview: false });
   const routes = new Set(STATIC_ROUTES);
   for (const a of published) {
     routes.add(a.path);
     for (const t of a.frontmatter.tags) routes.add(`/tag/${tagSlug(t)}`);
   }
-  for (const c of categoryKeys) {
+  for (const { slug: c } of await getCategories()) {
     routes.add(`/category/${c}`);
     routes.add(`/category/${c}/feed.xml`);
   }
-  for (const a of getAuthors(query.root)) routes.add(a.path);
-  for (const p of getPages(query.root)) routes.add(p.path);
+  for (const a of await getAuthors(query.root)) routes.add(a.path);
+  for (const p of await getPages(query.root)) routes.add(p.path);
   return routes;
 }
 
@@ -42,11 +44,11 @@ export type BrokenLink = { file: string; link: string };
  * Published articles, pages and author bios may link only to public routes.
  * Unpublished drafts may also link to other existing (not yet published) content.
  */
-export function findBrokenLinks(query: PublishedQuery = {}): BrokenLink[] {
+export async function findBrokenLinks(query: PublishedQuery = {}): Promise<BrokenLink[]> {
   const root = query.root ?? contentRoot();
   const store = loadContent(root);
-  const routes = publicRoutes({ ...query, root });
-  const published = new Set(getPublishedContent({ ...query, root, preview: false }).map((a) => a.path));
+  const routes = await publicRoutes({ ...query, root });
+  const published = new Set((await getPublishedContent({ ...query, root, preview: false })).map((a) => a.path));
   const existing = new Set(store.articles.map((a) => a.path));
 
   const broken: BrokenLink[] = [];
@@ -60,4 +62,22 @@ export function findBrokenLinks(query: PublishedQuery = {}): BrokenLink[] {
   for (const p of store.pages.values()) check(p.file, p.body, false);
   for (const a of store.authors.values()) check(a.file, a.body, false);
   return broken;
+}
+
+/**
+ * Every image in content (articles of any status, pages, author bios, featured images) must be a local
+ * /images/... file that exists, is under the size limit and has alt text. `npm test` fails otherwise.
+ */
+export function findImageProblems(query: PublishedQuery = {}, publicDir: string = publicRoot()): ImageProblem[] {
+  const store = loadContent(query.root ?? contentRoot());
+  const problems: ImageProblem[] = [];
+  const bodies = [...store.articles, ...store.pages.values(), ...store.authors.values()];
+  for (const item of bodies) {
+    for (const ref of imageRefs(item.body)) problems.push(...checkImage(item.file, ref, publicDir));
+  }
+  for (const a of store.articles) {
+    const featured = a.frontmatter.featuredImage;
+    if (featured) problems.push(...checkImage(a.file, { src: featured.src, alt: featured.alt }, publicDir));
+  }
+  return problems;
 }

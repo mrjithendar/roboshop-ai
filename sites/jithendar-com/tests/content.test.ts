@@ -6,11 +6,11 @@ import { getPublishedArticle, getPublishedContent } from "@/lib/content";
 import { loadContent } from "@/lib/content/load";
 import { FIXTURES, NOW, REAL_CONTENT } from "./helpers";
 
-const slugs = (now = NOW) => getPublishedContent({ now, root: FIXTURES }).map((a) => `${a.collection}/${a.slug}`);
+const slugs = async (now = NOW) => (await getPublishedContent({ now, root: FIXTURES })).map((a) => `${a.collection}/${a.slug}`);
 
 describe("getPublishedContent", () => {
-  it("returns only published, non-future items, newest first", () => {
-    expect(slugs()).toEqual([
+  it("returns only published, non-future items, newest first", async () => {
+    expect(await slugs()).toEqual([
       "news/fresh-news",
       "blog/syndicated-post",
       "news/stale-news",
@@ -19,18 +19,18 @@ describe("getPublishedContent", () => {
     ]);
   });
 
-  it.each(["blog/draft-post", "news/review-news", "blog/future-post", "blog/archived-post"])("excludes %s", (item) => {
-    expect(slugs()).not.toContain(item);
+  it.each(["blog/draft-post", "news/review-news", "blog/future-post", "blog/archived-post"])("excludes %s", async (item) => {
+    expect(await slugs()).not.toContain(item);
     const [collection, slug] = item.split("/") as ["blog" | "news", string];
-    expect(getPublishedArticle(collection, slug, { now: NOW, root: FIXTURES })).toBeUndefined();
+    expect(await getPublishedArticle(collection, slug, { now: NOW, root: FIXTURES })).toBeUndefined();
   });
 
-  it("releases a scheduled item once its publish time passes", () => {
-    expect(slugs(new Date("2026-11-01T03:30:00Z"))).toContain("blog/future-post");
+  it("releases a scheduled item once its publish time passes", async () => {
+    expect(await slugs(new Date("2026-11-01T03:30:00Z"))).toContain("blog/future-post");
   });
 
-  it("filters by collection", () => {
-    const news = getPublishedContent({ collection: "news", now: NOW, root: FIXTURES });
+  it("filters by collection", async () => {
+    const news = await getPublishedContent({ collection: "news", now: NOW, root: FIXTURES });
     expect(news.every((a) => a.collection === "news")).toBe(true);
   });
 });
@@ -53,6 +53,7 @@ describe("loadContent validation", () => {
     write("blog/mismatch.mdx", fm("other-slug"));
     write("blog/ghost.mdx", fm("ghost", "nobody"));
     write("blog/bad.mdx", "---\ntitle: short\n---\n");
+    write("blog/odd-topic.mdx", fm("odd-topic").replace("category: kubernetes", "category: gardening"));
     let message = "";
     try {
       loadContent(dir);
@@ -62,6 +63,7 @@ describe("loadContent validation", () => {
     expect(message).toMatch(/blog\/mismatch\.mdx: slug must match the file name/);
     expect(message).toMatch(/blog\/ghost\.mdx: author "nobody" not found/);
     expect(message).toMatch(/blog\/bad\.mdx: title:/);
+    expect(message).toMatch(/blog\/odd-topic\.mdx: unknown category "gardening"/);
   });
 });
 

@@ -4,19 +4,19 @@ import { canonicalFor } from "@/lib/seo/canonical";
 import { articleLd, breadcrumbLd, personLd, profilePageLd, serializeJsonLd, websiteLd } from "@/lib/seo/jsonld";
 import { FIXTURES, NOW } from "./helpers";
 
-const author = getAuthor("test-author", FIXTURES)!;
-const get = (collection: "blog" | "news" | "projects", slug: string) =>
-  getPublishedArticle(collection, slug, { now: NOW, root: FIXTURES })!;
+const author = (await getAuthor("test-author", FIXTURES))!;
+const get = async (collection: "blog" | "news" | "projects", slug: string) =>
+  (await getPublishedArticle(collection, slug, { now: NOW, root: FIXTURES }))!;
 
 describe("JSON-LD", () => {
-  it("escapes < so content cannot close the script tag", () => {
+  it("escapes < so content cannot close the script tag", async () => {
     const out = serializeJsonLd({ "@type": "Thing", name: "</script><script>alert(1)</script>" });
     expect(out).not.toContain("</script>");
     expect(JSON.parse(out).name).toBe("</script><script>alert(1)</script>");
   });
 
-  it("uses NewsArticle for news with required fields matching the content", () => {
-    const article = get("news", "fresh-news");
+  it("uses NewsArticle for news with required fields matching the content", async () => {
+    const article = await get("news", "fresh-news");
     const ld = JSON.parse(serializeJsonLd(articleLd(article, author)));
     expect(ld).toMatchObject({
       "@context": "https://schema.org",
@@ -28,27 +28,27 @@ describe("JSON-LD", () => {
     });
   });
 
-  it("uses BlogPosting for tutorials, with dateModified and image", () => {
-    const ld = articleLd(get("blog", "published-tutorial"), author);
+  it("uses BlogPosting for tutorials, with dateModified and image", async () => {
+    const ld = articleLd(await get("blog", "published-tutorial"), author);
     expect(ld["@type"]).toBe("BlogPosting");
     expect(ld.dateModified).toBe("2026-10-22T10:00:00+05:30");
     expect(ld.image).toMatchObject({ url: "https://jithendar.com/images/fixture.png", width: 1200, height: 630 });
   });
 
-  it("uses CreativeWork (not an article type) for projects", () => {
-    const ld = articleLd(get("projects", "sample-project"), author);
+  it("uses CreativeWork (not an article type) for projects", async () => {
+    const ld = articleLd(await get("projects", "sample-project"), author);
     expect(ld["@type"]).toBe("CreativeWork");
     expect(ld.name).toBe("Sample project fixture entry");
     expect(ld.headline).toBeUndefined();
   });
 
-  it("respects an external canonical URL", () => {
-    const article = get("blog", "syndicated-post");
+  it("respects an external canonical URL", async () => {
+    const article = await get("blog", "syndicated-post");
     expect(canonicalFor(article)).toBe("https://example.com/original-post");
     expect(articleLd(article, author).url).toBe("https://example.com/original-post");
   });
 
-  it("builds Person, ProfilePage, WebSite and BreadcrumbList", () => {
+  it("builds Person, ProfilePage, WebSite and BreadcrumbList", async () => {
     expect(personLd(author)).toMatchObject({ "@type": "Person", name: "Test Author", jobTitle: "Platform Engineer" });
     expect(profilePageLd(author)).toMatchObject({ "@type": "ProfilePage", mainEntity: { "@type": "Person" } });
     expect(websiteLd()).toMatchObject({ "@type": "WebSite", url: "https://jithendar.com", inLanguage: "en" });

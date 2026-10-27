@@ -1,10 +1,24 @@
 import Link from "next/link";
 import { site } from "@/config/site";
-import { categories, categoryKeys } from "@/config/taxonomy";
+import { getCategories } from "@/lib/categories";
+import { Container } from "./Container";
+import { GitHubIcon, RssIcon } from "./icons";
+import { LogoMark } from "./Logo";
 
-const policies = [
+const publication = [
+  { href: "/blog", label: "Articles" },
+  { href: "/news", label: "News" },
+  { href: "/projects", label: "Projects" },
+  { href: "/search", label: "Search" },
+];
+
+const company = [
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
+  { href: "/authors/jithendar-dharmapuri", label: "Author" },
+];
+
+const policies = [
   { href: "/editorial-policy", label: "Editorial policy" },
   { href: "/corrections-policy", label: "Corrections" },
   { href: "/ai-use-policy", label: "AI use" },
@@ -12,44 +26,74 @@ const policies = [
   { href: "/terms", label: "Terms" },
 ];
 
-export function SiteFooter() {
+function Column({ title, links }: { title: string; links: { href: string; label: string }[] }) {
   return (
-    <footer className="mt-20 border-t border-zinc-200 dark:border-zinc-800">
-      <div className="mx-auto grid max-w-5xl gap-8 px-4 py-10 text-sm sm:grid-cols-3">
-        <div>
-          <p className="font-semibold">{site.name}</p>
-          <p className="mt-2 text-zinc-600 dark:text-zinc-400">{site.description}</p>
-          <p className="mt-3">
-            <a href="/feed.xml" className="underline">
-              RSS feed
-            </a>
-          </p>
+    <nav aria-label={title}>
+      <h2 className="text-sm font-semibold text-ink dark:text-white">{title}</h2>
+      <ul className="mt-4 space-y-3">
+        {links.map((l) => (
+          <li key={l.href}>
+            <Link href={l.href} className="text-sm text-slate-600 transition-colors hover:text-ink dark:text-slate-400 dark:hover:text-white">
+              {l.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+export async function SiteFooter() {
+  const topics = (await getCategories()).map((c) => ({ href: `/category/${c.slug}`, label: c.label }));
+  const half = Math.ceil(topics.length / 2);
+  return (
+    <footer className="mt-24 border-t border-slate-200 bg-slate-50/60 dark:border-white/10 dark:bg-black/20">
+      <Container className="py-14">
+        <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]">
+          <div className="max-w-sm">
+            <div className="flex items-center gap-2.5">
+              <LogoMark className="h-7 w-7" />
+              <span className="font-semibold text-ink dark:text-white">{site.name}</span>
+            </div>
+            <p className="mt-4 text-sm leading-6 text-slate-600 dark:text-slate-400">{site.description}</p>
+            <div className="mt-6 flex items-center gap-3">
+              <a
+                href="/feed.xml"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-white/20"
+              >
+                <RssIcon className="h-4 w-4 text-orange-500" />
+                RSS feed
+              </a>
+              <a
+                href="https://github.com/mrjithendar"
+                rel="me noopener"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition-colors hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+              >
+                <GitHubIcon className="h-4 w-4" />
+                <span className="sr-only">GitHub</span>
+              </a>
+            </div>
+          </div>
+          <Column title="Publication" links={publication} />
+          <Column title="Topics" links={topics.slice(0, half)} />
+          <Column title="More topics" links={topics.slice(half)} />
+          <Column title="Publication info" links={company} />
         </div>
-        <nav aria-label="Topics">
-          <p className="font-semibold">Topics</p>
-          <ul className="mt-2 space-y-1">
-            {categoryKeys.map((c) => (
-              <li key={c}>
-                <Link href={`/category/${c}`} className="text-zinc-700 hover:underline dark:text-zinc-300">
-                  {categories[c]}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <nav aria-label="About this site">
-          <p className="font-semibold">About this site</p>
-          <ul className="mt-2 space-y-1">
+        <div className="mt-12 flex flex-col gap-4 border-t border-slate-200 pt-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between dark:border-white/10 dark:text-slate-400">
+          <p>
+            © {new Date().getFullYear()} {site.name}. Every article is reviewed by a human editor.
+          </p>
+          <ul className="flex flex-wrap gap-x-5 gap-y-2">
             {policies.map((p) => (
               <li key={p.href}>
-                <Link href={p.href} className="text-zinc-700 hover:underline dark:text-zinc-300">
+                <Link href={p.href} className="transition-colors hover:text-ink dark:hover:text-white">
                   {p.label}
                 </Link>
               </li>
             ))}
           </ul>
-        </nav>
-      </div>
+        </div>
+      </Container>
     </footer>
   );
 }
