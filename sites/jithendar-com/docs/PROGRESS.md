@@ -1,5 +1,14 @@
 # Progress log — jithendar.com
 
+## CI deploys with kubectl, Argo CD removed (2026-10-27, owner request)
+
+- **Why the live site did not change:** the owner ran `kubectl apply -k` from a checkout one commit behind `origin/master`. The local overlay pinned the old image (`dcdd3d7`), and CI had already pinned the new one (`d54da88`, `sha256:430f…`). The CI `deploy` job for that run was also waiting for an Argo CD app that had been deleted.
+- **New deploy job:** loads `JITHENDAR_KUBECONFIG` (environment `production`), pins the digest built in the same run, then server dry-runs and applies `deploy/production`. It waits for `rollout status` (`rollout undo` on failure), waits for `/api/health` to report the commit, and runs the smoke test. The credential file is removed in an `always()` step.
+- **CI identity:** `deploy/ci-access/rbac.yaml` (ServiceAccount, Role, RoleBinding; namespace `jithendar`; get/list/watch/create/update/patch on only the kinds in the overlay; read-only pods, events, replicasets; no delete; no Secrets). `scripts/ci-kubeconfig.sh` mints a 1-year token, refuses over-privileged or non-working credentials, and stores the GitHub secret.
+- **Argo CD:** removed `argocd/jithendar-com.yaml` and its catalog entry, reverted the auto-sync exception in `scripts/argocd/validate.py`, updated `argocd/README.md`, and set `tests/test_argocd_catalog.py` to 25 apps. That test was already failing on `master` (26 expected, 25 present) after jithendar-com was commented out. During this change, a first edit accidentally commented out `jaeger.yaml`; caught by the validator count and fixed before reporting.
+- **Checks:** actionlint, shellcheck, `validate.py` (25 apps, 79 resources), catalog tests 11 passed, RBAC server dry run passed.
+- **Not done (blocked by the agent permission policy, owner to run):** `kubectl apply -f deploy/ci-access/rbac.yaml` and `scripts/ci-kubeconfig.sh mk4`. Until then the `deploy` job fails at "Load cluster credentials" with a clear message.
+
 ## Phases 3 + 4 — Transparency pages and content platform (2026-10-27, owner request: "implement complete website")
 
 **Status:** complete locally. Not yet pushed; CI deploys on push. Phase 5 (n8n/OpenAI) and Phase 8 (monetisation scaffolding, observability) are not website features and were not started. Phase 7 (WordPress migration) is unnecessary; see AUD-008.

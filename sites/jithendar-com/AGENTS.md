@@ -26,7 +26,7 @@ See `docs/SEO_AUDIT.md`.
 | Host | Single server `46.224.38.14` running Minikube profile `mk4` | Shared with RoboShop AI, Argo CD, Grafana, Loki, JFrog |
 | Ingress | **Traefik + cert-manager (Let's Encrypt)** — not Cloudflare Tunnel | Owner decision 2026-10-27 |
 | TLS | Shared `jithendar.com` cert via Traefik `TLSStore` (`minikube/shared-tls`) | Source cert was created by the WordPress chart — see AUD-003 |
-| GitOps | Argo CD `Application` in `argocd/`, AppProject `platform` | Manual sync (no `automated`); Secrets blacklisted in project |
+| Deploy | **GitHub Actions `kubectl apply -k deploy/production`**, not Argo CD (owner decision 2026-10-27) | CI uses ServiceAccount `jithendar/jithendar-deployer` (namespace-scoped, no delete, no Secrets). See `docs/DEPLOYMENT.md` |
 | CI | GitHub Actions, self-hosted ARM64 runners, Amazon ECR (`us-east-1`) | Existing pattern: `publish-ecr.yml` |
 | Automation / DB / AI | n8n, PostgreSQL, OpenAI API | n8n absent; a RoboShop Postgres exists in `roboshop-ai` ns — do not share it |
 | Observability | Prometheus, Grafana, Loki, OTel collector, Jaeger | Present for RoboShop |

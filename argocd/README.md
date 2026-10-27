@@ -23,7 +23,8 @@ On the Minikube Linux host, expose Traefik ports separately:
 `PROFILE=mk4 bash minikube/expose-ingress.sh`. Allow host ports 80/443 and point
 DNS at the host. Then deploy the issuer and certificate sources in order:
 `./deploy-argocd.sh roboshop-letsencrypt`, `./deploy-argocd.sh shared-tls`. The
-`jithendar-com` app owns the canonical certificate; bootstrap does not claim that
+jithendar.com site (deployed by its own CI with `kubectl apply -k sites/jithendar-com/deploy/production`,
+not by Argo CD) owns the canonical certificate; bootstrap does not claim that
 trusted public TLS is already ready.
 
 # mk4 Argo CD applications
@@ -95,7 +96,7 @@ Applications from `argocd/kustomization.yaml` with kubectl in the intended
 context. Review each Application in Argo CD before syncing. The bootstrap shell
 wrapper has been removed; existing Applications remain unchanged.
 
-New Applications have **manual sync** (exception: `jithendar-com`, which auto-syncs without pruning because its CI release commits the image digest), no deletion finalizers, no automatic
+New Applications have **manual sync**, no deletion finalizers, no automatic
 pruning and `FailOnSharedResource=true`. Registering them does not adopt or
 restart their workloads. Review each Application's diff and prerequisites, then sync it without
 pruning in Argo CD. Applications can be OutOfSync until that review and sync.
@@ -111,8 +112,8 @@ Do not enable Force/Replace to resolve an immutable-field difference.
 | shopping-agent | Retired from the active catalog; functionality resides in Moks. Historical adoption files do not make it a required workload. |
 | cert-manager, metrics-server, grafana | Pinned upstream Helm charts with Git-hosted values and existing release names. |
 | roboshop-letsencrypt, prometheus | Existing local charts and release names. |
-| wordpress | Retired 2026-10-27 after the site was compromised; replaced by `jithendar-com`. Not a required workload. |
-| shared-tls | The single existing TLSStore in jithendar; no duplicate certificate or Traefik controller. `jithendar-com` owns the canonical Certificate (`sites/jithendar-com/deploy/production/certificate.yaml`). |
+| wordpress | Retired 2026-10-27 after the site was compromised; replaced by the jithendar.com site, which CI deploys outside Argo CD (`sites/jithendar-com/docs/DEPLOYMENT.md`). Not a required workload. |
+| shared-tls | The single existing TLSStore in jithendar; no duplicate certificate or Traefik controller. The canonical Certificate belongs to jithendar.com, which CI deploys outside Argo CD (`sites/jithendar-com/deploy/production/certificate.yaml`). |
 | jfrog | Optional, currently absent. Manual sync only, requires bootstrap credentials, storage and host-capacity checks first. Public ingress remains a separate explicit exposure step. |
 
 Langfuse is a cloud integration and n8n has no deployment manifests, so neither

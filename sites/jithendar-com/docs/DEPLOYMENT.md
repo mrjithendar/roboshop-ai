@@ -1,11 +1,14 @@
 # Deployment — jithendar.com on mk4
 
+jithendar.com is deployed by **GitHub Actions with `kubectl apply -k`**, not by Argo CD (owner decision, 2026-10-27).
+
 | Piece | Where |
 |---|---|
 | Image | `881026659929.dkr.ecr.us-east-1.amazonaws.com/jithendar-com` (arm64, immutable tags = commit SHA, scan on push, last 30 kept) |
-| Build & deploy | `.github/workflows/ci-jithendar-com.yml`: `check` on every push/PR; on `master`, `publish` (image + digest commit) then `deploy` (wait for rollout + smoke test) |
+| Pipeline | `.github/workflows/ci-jithendar-com.yml`: `check` on every push/PR; on `master`, `publish` then `deploy` |
 | Manifests | `deploy/base` (Deployment, Service, PDB, NetworkPolicy) + `deploy/production` (Certificate, Traefik middlewares, Ingresses, image pin) |
-| GitOps | `argocd/jithendar-com.yaml` (AppProject `platform`, namespace `jithendar`). **Auto-sync, no prune, no self-heal**: the only app with auto-sync (allow-listed in `scripts/argocd/validate.py`) |
+| CI identity | ServiceAccount `jithendar/jithendar-deployer` (`deploy/ci-access/rbac.yaml`): namespace `jithendar` only, only the kinds in the overlay, **no delete, no Secrets** |
+| CI credential | GitHub environment secret `JITHENDAR_KUBECONFIG` (environment `production`), minted by `scripts/ci-kubeconfig.sh` with a 1-year token |
 | Image pulls | Secret `jithendar/ecr-pull`, refreshed every 6 h by CronJob `roboshop-ai/ecr-refresh` |
 | TLS | Certificate `jithendar/jithendar-com` (apex + www, `letsencrypt-prod`) → Secret `jithendar-com-tls`. That Secret is also the Traefik default certificate (`TLSStore default`) for `/argocd`, `/grafana`, `/prometheus` and `/roboshop`. **Do not delete it.** |
 
@@ -20,21 +23,38 @@
 Push or merge to `master` with changes under `sites/jithendar-com/`:
 
 1. **check**: lint, typecheck, tests, build, manifest render.
-2. **publish**: builds `linux/arm64` with `GIT_SHA` baked in, pushes `jithendar-com:<commit>` to ECR, and commits `deploy(jithendar-com): <sha7>` that pins `image@sha256:…` in `deploy/production/kustomization.yaml` (via `scripts/set-image.sh`). This commit does not retrigger the workflow.
-3. **Argo CD** notices the commit within about 2 minutes and syncs (rolling update, no downtime with 2 replicas).
-4. **deploy**: polls `https://jithendar.com/api/health` until `version` equals the commit (10-minute limit), then runs `scripts/smoke.sh`. A red `deploy` job means the release did not go live or is unhealthy.
+2. **publish**: builds `linux/arm64` with `GIT_SHA` baked in and pushes `jithendar-com:<commit>` to ECR. It then commits `deploy(jithendar-com): <sha7>`, pinning `image@sha256:…` in `deploy/production/kustomization.yaml`, so Git always records what is live. That commit does not retrigger the workflow.
+3. **deploy**:
+   1. pins the same digest in its checkout
+   2. `kubectl apply -k deploy/production --dry-run=server`, then `kubectl apply -k deploy/production`
+   3. `kubectl rollout status`; **on failure it runs `rollout undo`** and the job fails
+   4. waits until `https://jithendar.com/api/health` reports the commit
+   5. runs `scripts/smoke.sh`
 
-Releases are serialized (`concurrency: jithendar-com-release`), so an older build never overwrites a newer digest.
+Releases are serialized (`concurrency: jithendar-com-release`), so an older build never overwrites a newer one.
 
-### One-time bootstrap
-
-The Argo Application has to exist in the cluster once, after the files are on GitHub:
+## One-time setup (admin)
 
 ```bash
-kubectl --context mk4 apply -f argocd/jithendar-com.yaml
+cd sites/jithendar-com
+kubectl --context mk4 apply -f deploy/ci-access/rbac.yaml   # create the CI identity
+scripts/ci-kubeconfig.sh mk4                                # mint token, verify scope, store the GitHub secret
 ```
 
-If the first `deploy` job timed out before that, re-run it from the Actions tab.
+`ci-kubeconfig.sh` refuses to store the credential if it cannot patch Deployments or if it can read Secrets. **Re-run it before the token expires** (it prints the expiry) to rotate.
+
+The self-hosted runner must reach the API server in that kubeconfig (`https://jithendar.com:32811`). If the firewall only allows your own IP, add the runner host.
+
+## Manual deploy
+
+Always deploy what `master` pins. A stale local checkout deploys an old image.
+
+```bash
+git pull
+kubectl --context mk4 apply -k sites/jithendar-com/deploy/production    # -k with the directory, not -f
+kubectl --context mk4 -n jithendar rollout status deployment/jithendar-com
+curl -s https://jithendar.com/api/health                                # "version" = commit now live
+```
 
 ## Smoke test
 
@@ -43,11 +63,12 @@ sites/jithendar-com/scripts/smoke.sh https://jithendar.com [expected-commit-sha]
 kubectl --context mk4 -n jithendar get certificate jithendar-com   # READY True
 ```
 
-The script checks: health (and version), homepage, both sitemaps, robots.txt, 404, the 410 hijack URLs, http→https, www→apex, and that `/argocd/` is unaffected.
+The script checks health (and version), homepage, about, RSS, both sitemaps, robots.txt, 404, the 410 hijack URLs, http→https, www→apex, and that `/argocd/` is unaffected.
 
 ## Rollback
 
-Revert the `deploy(jithendar-com): …` commit you want to undo and push. Argo CD auto-syncs the previous digest. (Reverting a source commit instead triggers a fresh build of the older code.) For an emergency, run `kubectl --context mk4 -n jithendar rollout undo deployment/jithendar-com`; Argo shows OutOfSync until Git matches.
+- **Immediate:** `kubectl --context mk4 -n jithendar rollout undo deployment/jithendar-com`.
+- **Lasting:** revert the source commit and push. CI rebuilds and deploys the older code. Alternatively, pin an older digest from ECR with `scripts/set-image.sh` and run `kubectl apply -k`.
 
 ## Limits
 

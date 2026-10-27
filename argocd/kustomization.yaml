@@ -7,7 +7,6 @@ resources:
 - currency-service.yaml
 - frontend.yaml
 - grafana.yaml
-# - jithendar-com.yaml
 - jaeger.yaml
 # - jfrog.yaml
 - kafka-bridge.yaml
