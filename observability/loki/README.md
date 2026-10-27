@@ -23,7 +23,7 @@ limited to pods/pods-log in those two namespaces, not Secrets or cluster-admin.
 ## Resource and data boundaries
 
 - Loki: one pod, 256Mi request / 1Gi limit, 10Gi PVC, seven-day retention.
-- Alloy: one pod, 128Mi request / 384Mi limit, 1Gi persistent WAL storage.
+- Alloy: one pod, 128Mi request / 384Mi limit, 1Gi PVC for read positions. Prometheus scrapes Loki and Alloy.
 - Existing Grafana/Prometheus remain. This is a single-host lab, not HA.
 - Minikube hostPath volume capacity may not enforce a quota. Monitor host free disk.
 - Alloy tails Kubernetes API streams, reducing host privileges at the cost of API

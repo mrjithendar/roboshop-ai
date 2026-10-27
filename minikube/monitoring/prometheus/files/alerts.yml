@@ -15,3 +15,12 @@ groups:
           severity: warning
         annotations:
           summary: 'More than 10% of {{ $labels.service }} requests fail'
+  - name: observability
+    rules:
+      - alert: ObservabilityTargetDown
+        expr: up{job=~"loki|alloy"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.job }} is not responding; logs may not be collected'

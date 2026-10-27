@@ -11,6 +11,7 @@ resources:
 - loki-deployment.yaml
 - loki-service.yaml
 - alloy-deployment.yaml
+- alloy-service.yaml
 configMapGenerator:
 - name: loki-config
   namespace: monitoring

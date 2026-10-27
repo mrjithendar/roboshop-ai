@@ -10,8 +10,22 @@ retentionSize: 4GB
 kubernetesMetrics:
   enabled: true
 # Add Kubernetes-reachable scrape jobs here. Use Kubernetes service DNS names.
-extraScrapeConfigs: []
-# Example:
-# - job_name: roboshop
-#   static_configs:
-#     - targets: ["ai-gateway.roboshop-ai.svc.cluster.local:3000"]
+# Only services whose /metrics endpoint answers are listed; files/alerts.yml uses these job names.
+extraScrapeConfigs:
+  - job_name: roboshop
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - ai-gateway.roboshop-ai.svc.cluster.local:3000
+          - cart-service.roboshop-ai.svc.cluster.local:4107
+          - catalogue-service.roboshop-ai.svc.cluster.local:4108
+          - moks.roboshop-ai.svc.cluster.local:4103
+          - payment-service.roboshop-ai.svc.cluster.local:4105
+          - shipping-service.roboshop-ai.svc.cluster.local:4106
+          - user-service.roboshop-ai.svc.cluster.local:4109
+  - job_name: loki
+    static_configs:
+      - targets: ["loki.monitoring.svc.cluster.local:3100"]
+  - job_name: alloy
+    static_configs:
+      - targets: ["alloy.monitoring.svc.cluster.local:12345"]

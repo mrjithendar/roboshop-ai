@@ -46,6 +46,7 @@ loki.process "safe" {
   forward_to = [loki.write.local.receiver]
 }
 loki.write "local" {
+  // The loki.write WAL is experimental and refuses to start at the default stability
+  // level. Read positions persist under --storage.path on the alloy-data PVC.
   endpoint { url = "http://loki.monitoring.svc:3100/loki/api/v1/push" }
-  wal { enabled = true }
 }

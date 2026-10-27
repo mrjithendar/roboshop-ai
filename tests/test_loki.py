@@ -26,7 +26,8 @@ class LokiTests(unittest.TestCase):
         self.assertTrue(cfg['compactor']['retention_enabled'])
         alloy=(ROOT/'observability/loki/config.alloy').read_text()
         self.assertIn('stage.output { source = "safe_line" }',alloy)
-        self.assertIn('wal { enabled = true }',alloy)
+        # Experimental blocks crash Alloy at its default stability level.
+        self.assertNotIn('wal {',alloy)
         self.assertNotIn('target_label = "trace_id"',alloy)
 
     def test_datasource_preserves_prometheus(self):
