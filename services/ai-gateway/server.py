@@ -698,6 +698,8 @@ class Gateway:
             file = STATIC_ROOT / path[1:]
         elif re.fullmatch(r"/illustrations/(robot|kit|component|accessory)\.svg", path):
             file = STATIC_ROOT / path[1:]
+        elif re.fullmatch(r"/fonts/inter-latin(?:-ext)?\.woff2", path):
+            file = STATIC_ROOT / path[1:]
         elif re.fullmatch("/images/[a-zA-Z0-9_-]+\.png", path):
             file = STATIC_ROOT / path[1:]
         else:
@@ -716,6 +718,7 @@ class Gateway:
                             ".png": "image/png",
                             ".jpg": "image/jpeg",
                             ".svg": "image/svg+xml",
+                            ".woff2": "font/woff2",
                         }[file.suffix],
                     ),
                     (

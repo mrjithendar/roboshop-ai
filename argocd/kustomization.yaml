@@ -28,7 +28,5 @@ resources:
 - shared-tls.yaml
 - shipping-service.yaml
 - user-service.yaml
-- wordpress.yaml
-
 - loki.yaml
 - project-logging.yaml

@@ -15,8 +15,12 @@ for (const name of ['index.html', 'admin.html', 'product.html', 'checkout.html',
     ? '<a class="store-account" href="/account">My account</a>'
     : '<a class="store-account" id="account-button" href="/login">Sign in</a><a id="admin-link" href="/admin" hidden>Manage store</a><button class="store-signout" id="logout-button" hidden>Sign out</button>';
   const count = ['index.html', 'checkout.html'].includes(name) ? '<span id="bag-count" aria-label="Items in cart">0</span>' : '';
+  // Mark the current section so the shared header shows where the visitor is.
+  const current = ' aria-current="page"';
+  const shell = header.replace('{{ACCOUNT_CONTROL}}', name === 'profile.html' ? account.replace('class="store-account"', `class="store-account"${current}`) : account).replace('{{CART_COUNT}}', count)
+    .replace('{{NAV_SHOP}}', ['index.html', 'product.html'].includes(name) ? current : '').replace('{{NAV_CART}}', name === 'checkout.html' ? current : '');
   const html = (await readFile(new URL(name, frontend), 'utf8'))
-    .replace('<!-- STORE_HEADER -->', header.replace('{{ACCOUNT_CONTROL}}', account).replace('{{CART_COUNT}}', count))
+    .replace('<!-- STORE_HEADER -->', shell)
     .replace('<!-- STORE_FOOTER -->', footer);
   await writeFile(new URL(`dist/${name}`, frontend), html);
 }
@@ -27,3 +31,5 @@ await cp(new URL('illustrations/', frontend), new URL('dist/illustrations/', fro
 await cp(new URL('product-media/', frontend), new URL('dist/product-media/', frontend), { recursive: true });
 
 await cp(new URL('images/', frontend), new URL('dist/images/', frontend), { recursive: true });
+
+await cp(new URL('fonts/', frontend), new URL('dist/fonts/', frontend), { recursive: true });

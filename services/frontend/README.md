@@ -96,3 +96,9 @@ currencies not enabled by the payment service are disabled, and reserved orders 
 their original currency. Conversion failures show original amounts rather than relabeling them.
 
 The header uses a directly accessible native currency dropdown beside account and cart controls, with no popup button. Narrow screens place these actions on their own row.
+
+## Typography, theme and rebranding
+
+The site uses Inter, self-hosted from `fonts/` (SIL Open Font License 1.1, see `fonts/LICENSE`); no third-party font requests are made, so the `default-src 'self'` CSP is unchanged. `/fonts/inter-latin(-ext).woff2` is routed by the frontend NGINX, the edge NGINX and the native gateway.
+
+Brand colours, text colours, font stack and header height are CSS custom properties on `:root` in the "Enterprise theme" block at the end of `styles.css`; change `--brand*` there to rebrand. The store name and announcement come from admin Store settings. The header logo mark is drawn in CSS, so it survives the runtime store-name replacement. `npm run build` marks the current section in the header with `aria-current="page"`.
