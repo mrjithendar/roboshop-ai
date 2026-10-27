@@ -37,7 +37,7 @@ export const defaultSettings: Settings = {
       "Sourced news, in-depth analysis and hands-on tutorials across AI engineering, platform engineering, infrastructure as code and security. Every article is reviewed by a human editor.",
   },
   features: { comments: true, registration: true, contactForm: true },
-  social: { github: "https://github.com/mrjithendar", x: "https://x.com/imjithendar", linkedin: "" },
+  social: { github: "https://github.com/mrjithendar", x: "https://x.com/imjithendar", linkedin: "https://www.linkedin.com/in/jithendardharmapuri" },
   announcement: { enabled: false, text: "", href: "" },
 };
 

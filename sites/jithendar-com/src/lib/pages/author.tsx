@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ArticleList } from "@/components/ArticleList";
 import { Avatar } from "@/components/AuthorCard";
 import { Container } from "@/components/Container";
-import { GitHubIcon } from "@/components/icons";
+import { GitHubIcon, LinkedInIcon } from "@/components/icons";
 import { JsonLd } from "@/components/JsonLd";
 import { mdxComponents } from "@/components/Mdx";
 import { PageHeader } from "@/components/PageHeader";
@@ -51,6 +51,7 @@ export async function AuthorProfilePage({ slug, paged }: { slug: string; paged: 
                   className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
                 >
                   {url.includes("github.com") && <GitHubIcon className="h-4 w-4" />}
+                  {url.includes("linkedin.com") && <LinkedInIcon className="h-4 w-4" />}
                   {hostLabel(url)}
                 </a>
               </li>

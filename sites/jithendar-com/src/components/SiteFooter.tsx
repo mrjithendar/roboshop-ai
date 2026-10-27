@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getCategories } from "@/lib/categories";
 import { getSettings } from "@/lib/settings";
 import { Container } from "./Container";
-import { GitHubIcon, RssIcon } from "./icons";
+import { GitHubIcon, LinkedInIcon, RssIcon } from "./icons";
 import { LogoMark } from "./Logo";
 
 const publication = [
@@ -74,7 +74,12 @@ export async function SiteFooter() {
                 <span className="sr-only">GitHub</span>
               </a>}
               {settings.social.x && <a href={settings.social.x} rel="me noopener" className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">X</a>}
-              {settings.social.linkedin && <a href={settings.social.linkedin} rel="me noopener" className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">LinkedIn</a>}
+              {settings.social.linkedin && (
+                <a href={settings.social.linkedin} rel="me noopener" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition-colors hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+                  <LinkedInIcon className="h-4 w-4" />
+                  <span className="sr-only">LinkedIn</span>
+                </a>
+              )}
             </div>
           </div>
           <Column title="Publication" links={publication} />

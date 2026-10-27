@@ -9,6 +9,7 @@ import {
   CategoryIcon,
   CheckBadge,
   GitHubIcon,
+  LinkedInIcon,
   LinkIcon,
   PencilIcon,
   RssIcon,
@@ -217,6 +218,9 @@ async function AuthorBand() {
         </Link>
         <a href="https://github.com/mrjithendar" rel="me noopener" className={secondaryButton}>
           <GitHubIcon className="h-4 w-4" /> GitHub
+        </a>
+        <a href="https://www.linkedin.com/in/jithendardharmapuri" rel="me noopener" className={secondaryButton}>
+          <LinkedInIcon className="h-4 w-4" /> LinkedIn
         </a>
       </div>
     </div>

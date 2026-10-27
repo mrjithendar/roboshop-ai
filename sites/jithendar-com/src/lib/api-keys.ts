@@ -44,12 +44,14 @@ export async function createApiKey(actor: Actor, raw: unknown): Promise<{ key: s
 
 export async function listApiKeys(actor: Actor) {
   const db = await getDb();
-  return db
+  const rows = await db
     .select({ key: schema.apiKey, owner: schema.user.email })
     .from(schema.apiKey)
     .innerJoin(schema.user, eq(schema.user.id, schema.apiKey.userId))
     .where(actor.role === "admin" ? undefined : eq(schema.apiKey.userId, actor.id))
     .orderBy(desc(schema.apiKey.createdAt));
+  const now = Date.now();
+  return rows.map((r) => ({ ...r, state: r.key.revokedAt ? "revoked" : r.key.expiresAt && r.key.expiresAt.getTime() < now ? "expired" : "active" }) as const);
 }
 
 export async function revokeApiKey(actor: Actor, id: string) {

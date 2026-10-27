@@ -22,7 +22,6 @@ async function revoke(form: FormData) {
 export default async function ApiKeysPage({ searchParams }: { searchParams: FlashParams }) {
   const me = actorOf(await requireRole("admin", "author"));
   const [keys, sp] = await Promise.all([listApiKeys(me), searchParams]);
-  const status = (k: (typeof keys)[number]["key"]) => (k.revokedAt ? "rejected" : k.expiresAt && k.expiresAt.getTime() < Date.now() ? "archived" : "approved");
   return (
     <>
       <AdminHeader title="API keys" description="Manage posts from scripts and automations. A key acts with its owner's permissions." />
@@ -30,12 +29,12 @@ export default async function ApiKeysPage({ searchParams }: { searchParams: Flas
       <Card className="mb-6"><CreateKeyForm /></Card>
       <Table head={<tr><th className={th}>Name</th><th className={th}>Key</th><th className={th}>Scopes</th><th className={th}>Status</th><th className={th}>Last used</th><th className={th} /></tr>}>
         {keys.length === 0 && <tr><td className={td} colSpan={6}>No keys yet.</td></tr>}
-        {keys.map(({ key: k, owner }) => (
+        {keys.map(({ key: k, owner, state }) => (
           <tr key={k.id}>
             <td className={td}><p className="font-medium text-ink dark:text-white">{k.name}</p><p className="text-xs text-slate-500">{owner}</p></td>
             <td className={`${td} font-mono text-xs`}>{k.prefix}…</td>
             <td className={`${td} text-xs`}>{k.scopes.join(", ")}</td>
-            <td className={td}><StatusPill status={status(k)} /> <span className="text-xs text-slate-500">{k.revokedAt ? "revoked" : k.expiresAt ? `expires ${formatDateTime(k.expiresAt.toISOString())}` : "no expiry"}</span></td>
+            <td className={td}><StatusPill status={state === "active" ? "approved" : state === "expired" ? "archived" : "rejected"} /> <span className="text-xs text-slate-500">{k.revokedAt ? "revoked" : k.expiresAt ? `expires ${formatDateTime(k.expiresAt.toISOString())}` : "no expiry"}</span></td>
             <td className={`${td} whitespace-nowrap text-xs`}>{k.lastUsedAt ? formatDateTime(k.lastUsedAt.toISOString()) : "never"}</td>
             <td className={td}>{!k.revokedAt && <form action={revoke}><input type="hidden" name="id" value={k.id} /><Button type="submit" variant="ghost">Revoke</Button></form>}</td>
           </tr>

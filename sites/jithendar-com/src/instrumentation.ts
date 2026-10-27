@@ -22,6 +22,9 @@ export async function register() {
   const applied = await migrateDb(await getDb());
   log.info("database ready", { migrationsApplied: applied, ms: Date.now() - started });
 
+  const { startBackupScheduler } = await import("./lib/backups");
+  startBackupScheduler();
+
   // Warm the caches so the first visitor gets a fast page, not a cold one.
   const { warmCaches } = await import("./lib/warm");
   void warmCaches().catch((err) => log.warn("cache warm-up failed", { err }));
