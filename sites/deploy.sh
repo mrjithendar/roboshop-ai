@@ -30,13 +30,25 @@ echo "→ Pinning $REGISTRY@$DIGEST"
 "$SITE/scripts/set-image.sh" "$REGISTRY" "$DIGEST"
 grep -A3 '^images:' "$SITE/deploy/production/kustomization.yaml"
 
+echo "→ Checking Secrets"
+for s in jithendar-postgres jithendar-redis jithendar-com-env; do
+  kubectl --context "$CONTEXT" -n jithendar get secret "$s" >/dev/null 2>&1 || {
+    echo "Secret jithendar/$s is missing. Run $SITE/scripts/create-secrets.sh once first." >&2
+    exit 1
+  }
+done
+
 echo "→ Validating against the cluster"
 kubectl --context "$CONTEXT" apply -k "$SITE/deploy/production" --dry-run=server >/dev/null
 
 echo "→ Applying"
 kubectl --context "$CONTEXT" apply -k "$SITE/deploy/production"
 
-echo "→ Waiting for rollout"
+echo "→ Waiting for Postgres and Redis"
+kubectl --context "$CONTEXT" -n jithendar rollout status statefulset/jithendar-postgres --timeout=5m
+kubectl --context "$CONTEXT" -n jithendar rollout status deployment/jithendar-redis --timeout=3m
+
+echo "→ Waiting for the site"
 if ! kubectl --context "$CONTEXT" -n jithendar rollout status deployment/jithendar-com --timeout=5m; then
   kubectl --context "$CONTEXT" -n jithendar get pods -l app=jithendar-com -o wide || true
   echo "Rollout failed; rolling back to the previous version." >&2

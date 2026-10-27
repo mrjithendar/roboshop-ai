@@ -1,0 +1,166 @@
+# PostgreSQL for jithendar.com. Minikube's hostpath volumes live on the node that runs the pod,
+# so the pod is pinned to one node: moving it means moving the data directory with it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: jithendar-postgres
+  labels:
+    app: jithendar-postgres
+spec:
+  selector:
+    app: jithendar-postgres
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jithendar-postgres
+  labels:
+    app: jithendar-postgres
+    app.kubernetes.io/part-of: jithendar-com
+spec:
+  serviceName: jithendar-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jithendar-postgres
+  template:
+    metadata:
+      labels:
+        app: jithendar-postgres
+        app.kubernetes.io/part-of: jithendar-com
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: mk4-m03
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      # Minikube hostpath volumes are created root:root 0755 and fsGroup does not apply to them.
+      # This one-shot step hands the data directory to the postgres user (uid 70) so the database
+      # itself never runs as root. It has only the file-ownership capabilities.
+      initContainers:
+      - name: data-permissions
+        image: postgres:18-alpine
+        command: ["sh", "-c", "chown 70:70 /var/lib/postgresql && chmod 0750 /var/lib/postgresql"]
+        securityContext:
+          runAsUser: 0
+          runAsNonRoot: false
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - CHOWN
+            - FOWNER
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 32Mi
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql
+      containers:
+      - name: postgres
+        image: postgres:18-alpine
+        args:
+        - -c
+        - shared_buffers=128MB
+        - -c
+        - max_connections=50
+        - -c
+        - log_min_duration_statement=500
+        - -c
+        - log_line_prefix=%m [%p] %q%u@%d
+        ports:
+        - name: postgres
+          containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: jithendar
+        - name: POSTGRES_USER
+          value: jithendar
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: jithendar-postgres
+              key: password
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: "1"
+            memory: 1Gi
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 70
+          runAsGroup: 70
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        startupProbe:
+          exec: &ready
+            command: ["pg_isready", "-U", "jithendar", "-d", "jithendar", "-h", "127.0.0.1"]
+          periodSeconds: 5
+          failureThreshold: 60
+        readinessProbe:
+          exec: *ready
+          periodSeconds: 10
+        livenessProbe:
+          exec: *ready
+          periodSeconds: 30
+          failureThreshold: 3
+        volumeMounts:
+        # postgres:18 keeps its data under /var/lib/postgresql/<major>/docker.
+        - name: data
+          mountPath: /var/lib/postgresql
+        - name: run
+          mountPath: /var/run/postgresql
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: run
+        emptyDir: {}
+      - name: tmp
+        emptyDir:
+          sizeLimit: 256Mi
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ReadWriteOnce]
+      storageClassName: standard
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: jithendar-postgres
+spec:
+  podSelector:
+    matchLabels:
+      app: jithendar-postgres
+  policyTypes: [Ingress, Egress]
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: jithendar-com
+    ports:
+    - port: 5432
+      protocol: TCP
+  egress: []

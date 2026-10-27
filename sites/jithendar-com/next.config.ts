@@ -24,7 +24,8 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: siteRoot,
   turbopack: { root: siteRoot },
   // Content is read from disk at request time (sitemaps, ISR), so ship it with the server.
-  outputFileTracingIncludes: { "/**/*": [path.join("content", "**", "*")] },
+  // Content is the one-time import source for /setup; migrations run at server start (instrumentation.ts).
+  outputFileTracingIncludes: { "/**/*": [path.join("content", "**", "*"), path.join("src", "db", "migrations", "**", "*")] },
   // Pods run with a read-only root filesystem, and Next 16 writes regenerated ISR pages into
   // .next/server (route-cache) next to the build output. Keep the ISR cache in memory instead:
   // content ships inside the image, so a restarted pod simply regenerates pages on demand.

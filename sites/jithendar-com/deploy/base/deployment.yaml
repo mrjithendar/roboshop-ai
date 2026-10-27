@@ -46,11 +46,22 @@ spec:
         ports:
         - name: http
           containerPort: 3000
+        # DATABASE_URL, REDIS_URL, BETTER_AUTH_SECRET, SETTINGS_ENCRYPTION_KEY, ADMIN_BOOTSTRAP_TOKEN,
+        # TURNSTILE_SITE_KEY/SECRET_KEY, optional SMTP_URL/MAIL_FROM, METRICS_TOKEN (scripts/create-secrets.sh).
+        envFrom:
+        - secretRef:
+            name: jithendar-com-env
         env:
         - name: APP_ENV
           value: production
         - name: SITE_URL
           value: https://jithendar.com
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://otel-collector.observability:4318
+        - name: OTEL_SERVICE_NAME
+          value: jithendar-com
+        - name: LOG_LEVEL
+          value: info
         resources:
           requests:
             cpu: 50m

@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: jithendar
 resources:
 - ../base
+- ../data
 - certificate.yaml
 - middlewares.yaml
 - ingress.yaml

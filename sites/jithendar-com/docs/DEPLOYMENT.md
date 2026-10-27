@@ -11,6 +11,31 @@
 | Image pulls | Secret `jithendar/ecr-pull`, refreshed every 6 h by CronJob `roboshop-ai/ecr-refresh` |
 | TLS | Certificate `jithendar/jithendar-com` (apex + www, `letsencrypt-prod`) → Secret `jithendar-com-tls`. That Secret is also the Traefik default certificate (`TLSStore default`) for `/argocd`, `/grafana`, `/prometheus` and `/roboshop`. **Do not delete it.** |
 
+## Data services (namespace `jithendar`, deployed by the same `kubectl apply -k`)
+
+| Service | Manifest | Notes |
+|---|---|---|
+| PostgreSQL 18 | `deploy/data/postgres.yaml` | StatefulSet `jithendar-postgres`, 10 GiB volume, **pinned to node `mk4-m03`** (Minikube hostpath data lives on that node; moving the pod means moving `/tmp/hostpath-provisioner/jithendar/data-jithendar-postgres-0` too). Runs as uid 70; a one-shot init container fixes volume ownership. Reachable only from the site's pods. |
+| Redis 7.4 | `deploy/data/redis.yaml` | Deployment `jithendar-redis`, cache only (no persistence, 64 MB LRU), password-protected, reachable only from the site's pods. Losing it is harmless: the site falls back to Postgres. |
+
+Secrets (never in Git), created once by `scripts/create-secrets.sh`:
+
+| Secret | Keys |
+|---|---|
+| `jithendar-postgres` | `password` |
+| `jithendar-redis` | `password` |
+| `jithendar-com-env` | `DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_SECRET`, `SETTINGS_ENCRYPTION_KEY`, `ADMIN_BOOTSTRAP_TOKEN`, `METRICS_TOKEN`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, optional `SMTP_URL`, `MAIL_FROM` |
+
+Back up `SETTINGS_ENCRYPTION_KEY` with your database backups: it decrypts the stored S3/backup credentials.
+
+## First-time setup
+
+1. Create a Turnstile widget for `jithendar.com` in the Cloudflare dashboard (site key + secret key).
+2. `sites/jithendar-com/scripts/create-secrets.sh mk4` and keep the printed setup token.
+3. `sites/deploy.sh` (creates Postgres and Redis, runs database migrations on start, deploys the site).
+4. Open `https://jithendar.com/setup`, enter the token, and create the admin account. This also imports the existing articles and pages. `/setup` disappears once an admin exists.
+5. In the admin, configure media storage (S3) before uploading images.
+
 ## Routing
 
 - `https://jithendar.com/` → site. Longer path rules (`/argocd`, `/grafana`, `/prometheus`, `/roboshop`) keep priority in Traefik.

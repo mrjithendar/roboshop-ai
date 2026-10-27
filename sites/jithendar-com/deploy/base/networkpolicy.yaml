@@ -1,4 +1,4 @@
-# Only Traefik may reach the site; the site needs no egress beyond DNS.
+# Ingress: only Traefik. Egress: only what the site needs.
 # kindnet enforcement is unverified (SEO_AUDIT AUD-013); this is correct either way.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -20,6 +20,7 @@ spec:
     - port: 3000
       protocol: TCP
   egress:
+  # DNS
   - to:
     - namespaceSelector:
         matchLabels:
@@ -31,4 +32,49 @@ spec:
     - port: 53
       protocol: UDP
     - port: 53
+      protocol: TCP
+  # Postgres and Redis in this namespace
+  - to:
+    - podSelector:
+        matchLabels:
+          app: jithendar-postgres
+    ports:
+    - port: 5432
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: jithendar-redis
+    ports:
+    - port: 6379
+      protocol: TCP
+  # Traces to the OpenTelemetry collector
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: observability
+      podSelector:
+        matchLabels:
+          app: otel-collector
+    ports:
+    - port: 4318
+      protocol: TCP
+  # Internet only (Turnstile, S3, breached-password check, SMTP, backup targets): never other cluster or private ranges.
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+        - 100.64.0.0/10
+        - 169.254.0.0/16
+    ports:
+    - port: 443
+      protocol: TCP
+    - port: 465
+      protocol: TCP
+    - port: 587
+      protocol: TCP
+    - port: 22
       protocol: TCP
