@@ -60,7 +60,6 @@ class HttpError(Exception):
         super().__init__(message)
         self.status = status
 
-
 deadline = contextvars.ContextVar("request_deadline", default=None)
 
 def remaining_timeout(timeout):
@@ -596,9 +595,15 @@ def telemetry(service, context, start, route, status):
                 export_slots.release()  # Shutdown/disabled exporter cannot fail commerce.
 
 
+# Prometheus default-style latency buckets in seconds; cumulative per route.
+LATENCY_BOUNDS = (0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10)
+
+
 def application(service, handler):
     counts, lock = Counter(), threading.Lock()
     duration = [0.0]
+    latency, route_seconds = Counter(), Counter()
+    started = time.time()
 
     def app(environ, start_response):
         start = time.time_ns()
@@ -626,7 +631,16 @@ def application(service, handler):
                         "# TYPE roboshop_http_duration_seconds summary",
                         f'roboshop_http_duration_seconds_sum{{service="{service}"}} {duration[0]}',
                         f'roboshop_http_duration_seconds_count{{service="{service}"}} {sum(counts.values())}',
+                        "# TYPE http_server_request_duration_seconds histogram",
                     ]
+                    for r in sorted({r for r, _ in counts}):
+                        total = sum(n for (rr, _), n in counts.items() if rr == r)
+                        rows += [f'http_server_request_duration_seconds_bucket{{service="{service}",route="{r}",le="{b}"}} {latency[(r, b)]}' for b in LATENCY_BOUNDS]
+                        rows += [f'http_server_request_duration_seconds_bucket{{service="{service}",route="{r}",le="+Inf"}} {total}',
+                                 f'http_server_request_duration_seconds_sum{{service="{service}",route="{r}"}} {route_seconds[r]}',
+                                 f'http_server_request_duration_seconds_count{{service="{service}",route="{r}"}} {total}']
+                    rows += ["# TYPE roboshop_process_start_time_seconds gauge",
+                             f'roboshop_process_start_time_seconds{{service="{service}"}} {started}']
                 result = ("\n".join(rows) + "\n").encode()
                 headers = [("Content-Type", "text/plain; version=0.0.4")]
             else:
@@ -676,10 +690,17 @@ def application(service, handler):
             with lock:
                 counts[(route, status)] += 1
                 duration[0] += elapsed
+                route_seconds[route] += elapsed
+                for bound in LATENCY_BOUNDS:
+                    if elapsed <= bound:
+                        latency[(route, bound)] += 1
             probe = req.path.endswith("/ready")
             log_event("request_completed", "WARN" if status >= 400 else "DEBUG" if probe else "INFO",
                       method=req.method, route=route, operation=operation_name(req.path), outcome="failure" if status >= 400 else "success", status=status, durationMs=round(elapsed * 1000))
-            telemetry(service, context, start, http_name(req.method, req.path), status)
+            try:
+                telemetry(service, context, start, http_name(req.method, req.path), status)
+            except Exception:
+                pass  # Telemetry is optional; the response is already complete.
         ctx.reset(token)
         return [b"" if req.method == "HEAD" else payload]
 

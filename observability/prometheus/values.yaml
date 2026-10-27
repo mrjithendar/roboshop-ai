@@ -19,6 +19,7 @@ extraScrapeConfigs:
           - ai-gateway.roboshop-ai.svc.cluster.local:3000
           - cart-service.roboshop-ai.svc.cluster.local:4107
           - catalogue-service.roboshop-ai.svc.cluster.local:4108
+          - currency-service.roboshop-ai.svc.cluster.local:4111
           - moks.roboshop-ai.svc.cluster.local:4103
           - payment-service.roboshop-ai.svc.cluster.local:4105
           - shipping-service.roboshop-ai.svc.cluster.local:4106

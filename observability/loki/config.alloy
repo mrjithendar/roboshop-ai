@@ -26,8 +26,11 @@ loki.source.kubernetes "logs" {
   targets = discovery.relabel.logs.output
   forward_to = [loki.process.safe.receiver]
 }
-// Preserve the previous collection boundary: no raw user data, headers, URLs,
-// prompts or exception text are forwarded. Trace IDs remain in the log, not labels.
+// Preserve the collection boundary: no raw user data, headers, URLs, prompts,
+// free-text messages or exception text are forwarded. Services log JSON with an
+// allowlisted field set; here each field is copied only when its value matches a
+// strict pattern, so anything unexpected is dropped rather than stored.
+// Trace IDs remain in the line, not labels.
 loki.process "safe" {
   stage.regex {
     expression = `(?i)"(?:level|log.level)"\s*:\s*"(?P<level>trace|debug|info|warn|warning|error|fatal)"`
@@ -38,9 +41,65 @@ loki.process "safe" {
   stage.regex {
     expression = `"(?:traceId|trace_id)"\s*:\s*"(?P<trace_id>[a-fA-F0-9]{32})"`
   }
+  // Non-JSON lines leave these unset and still become event=application_log.
+  stage.json {
+    expressions = {
+      raw_route = "route", raw_method = "method", raw_status = "status", raw_duration = "durationMs",
+      raw_dependency = "dependency", raw_operation = "operation", raw_error_type = "errorType",
+      raw_error_code = "errorCode", raw_outcome = "outcome", raw_logger = "logger_name",
+    }
+  }
+  stage.regex {
+    source     = "raw_route"
+    expression = `^(?P<route>/[A-Za-z0-9_./{}:-]{0,150})$`
+  }
+  stage.regex {
+    source     = "raw_method"
+    expression = `^(?P<method>[A-Z]{3,7})$`
+  }
+  stage.regex {
+    source     = "raw_status"
+    expression = `^(?P<status>[1-5][0-9]{2})$`
+  }
+  stage.regex {
+    source     = "raw_duration"
+    expression = `^(?P<duration_ms>[0-9]{1,9})(?:\.[0-9]+)?$`
+  }
+  stage.regex {
+    source     = "raw_dependency"
+    expression = `^(?P<dependency>[A-Za-z0-9_.:-]{1,80})$`
+  }
+  stage.regex {
+    source     = "raw_operation"
+    expression = `^(?P<operation>[A-Za-z0-9_./{}:-]{1,120})$`
+  }
+  stage.regex {
+    source     = "raw_error_type"
+    expression = `^(?P<error_type>[A-Za-z0-9_.$]{1,80})$`
+  }
+  stage.regex {
+    source     = "raw_error_code"
+    expression = `^(?P<error_code>[A-Za-z0-9_.]{1,80})$`
+  }
+  stage.regex {
+    source     = "raw_outcome"
+    expression = `^(?P<outcome>success|failure)$`
+  }
+  stage.regex {
+    source     = "raw_logger"
+    expression = `^(?P<logger>[A-Za-z0-9_.$]{1,160})$`
+  }
+  // Low-cardinality level label (info/warn/error/...) for fast filtering.
   stage.template {
-    source = "safe_line"
-    template = `event={{ if .event }}{{ .event }}{{ else }}application_log{{ end }} level={{ if .level }}{{ .level }}{{ else }}unknown{{ end }} trace_id={{ if .trace_id }}{{ .trace_id }}{{ else }}none{{ end }}`
+    source   = "level_label"
+    template = `{{ if .level }}{{ $l := ToLower .level }}{{ if eq $l "warning" }}warn{{ else }}{{ $l }}{{ end }}{{ else }}unknown{{ end }}`
+  }
+  stage.labels {
+    values = { level = "level_label" }
+  }
+  stage.template {
+    source   = "safe_line"
+    template = `event={{ if .event }}{{ .event }}{{ else }}application_log{{ end }} level={{ .level_label }}{{ with .route }} route={{ . }}{{ end }}{{ with .method }} method={{ . }}{{ end }}{{ with .status }} status={{ . }}{{ end }}{{ with .duration_ms }} duration_ms={{ . }}{{ end }}{{ with .operation }} operation={{ . }}{{ end }}{{ with .dependency }} dependency={{ . }}{{ end }}{{ with .outcome }} outcome={{ . }}{{ end }}{{ with .error_type }} error_type={{ . }}{{ end }}{{ with .error_code }} error_code={{ . }}{{ end }}{{ with .logger }} logger={{ . }}{{ end }} trace_id={{ if .trace_id }}{{ .trace_id }}{{ else }}none{{ end }}`
   }
   stage.output { source = "safe_line" }
   forward_to = [loki.write.local.receiver]

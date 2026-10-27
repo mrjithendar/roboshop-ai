@@ -171,6 +171,7 @@ func (c *rateCache) run(ctx context.Context) {
 	defer ticker.Stop()
 	for {
 		if err := c.refresh(ctx); err != nil && ctx.Err() == nil {
+			serviceMetrics.refreshFailure()
 			slog.Warn("fx_refresh_failed", "service", "currency-service", "action", "retaining_unexpired_cache", "errorCode", "FX_REFRESH_FAILED", "errorType", fmt.Sprintf("%T", err), "retryAfterSeconds", 3600)
 		}
 		select {
@@ -182,6 +183,10 @@ func (c *rateCache) run(ctx context.Context) {
 }
 func (c *rateCache) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
+	if r.URL.Path == "/metrics" && r.Method == http.MethodGet {
+		serviceMetrics.write(w, c, started)
+		return
+	}
 	requestContext, tr := startTrace(r.Context(), r.Header.Get("traceparent"), r.Header.Get("tracestate"))
 	r = r.WithContext(requestContext)
 	w.Header().Set("X-Request-ID", tr.ID)
@@ -219,7 +224,7 @@ func (c *rateCache) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if status >= 400 {
 			level = slog.LevelWarn
 		}
-		slog.Log(r.Context(), level, "HTTP request completed", "service", "currency-service", "method", r.Method, "route", route, "trace_id", tr.ID, "span_id", tr.Span, "status", status, "durationMs", time.Since(started).Milliseconds())
+		slog.Log(r.Context(), level, "HTTP request completed", "event", "request_completed", "service", "currency-service", "method", r.Method, "route", route, "trace_id", tr.ID, "span_id", tr.Span, "status", status, "durationMs", time.Since(started).Milliseconds())
 	}
 	name := r.Method
 	if route != "" {
@@ -228,6 +233,7 @@ func (c *rateCache) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" && r.Method != "POST" && r.Method != "HEAD" && r.Method != "PUT" && r.Method != "DELETE" && r.Method != "OPTIONS" {
 		name = "HTTP"
 	}
+	serviceMetrics.observe(route, status, time.Since(started))
 	exportTrace(tr, started, name, 2, status, map[string]string{"http.route": route, "http.request.method": r.Method})
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(body)
@@ -259,7 +265,7 @@ func main() {
 		defer cancel()
 		_ = server.Shutdown(shutdown)
 	}()
-	slog.Info("Service listening for requests", "service", "currency-service", "port", 4111)
+	slog.Info("Service listening for requests", "event", "service_listening", "service", "currency-service", "port", 4111)
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("server_failed", "service", "currency-service", "errorType", "http_server_error")
 		os.Exit(1)

@@ -15,6 +15,13 @@ groups:
           severity: warning
         annotations:
           summary: 'More than 10% of {{ $labels.service }} requests fail'
+      - alert: RoboShopHighLatency
+        expr: histogram_quantile(0.95, sum by (service, route, le) (rate(http_server_request_duration_seconds_bucket{job="roboshop", route!=""}[5m]))) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.service }} {{ $labels.route }} p95 latency is above 2s'
   - name: observability
     rules:
       - alert: ObservabilityTargetDown

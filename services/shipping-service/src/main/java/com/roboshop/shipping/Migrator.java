@@ -43,7 +43,7 @@ final class Migrator {
                 // Local database role; externally provisioned roles receive grants from the DBA.
                 statement.execute("DO $$ BEGIN IF EXISTS (SELECT FROM pg_roles WHERE rolname='shipping_app') THEN GRANT INSERT ON shipping.shipment_requests TO shipping_app; END IF; END $$");
                 connection.commit();
-                System.out.println("Shipping schema ready; deployed location seed verified.");
+                System.out.println(ShippingApplication.startupEvent("shipping_schema_ready", "INFO", java.time.Instant.now(), java.util.Map.of("reason", "deployed location seed verified")));
             } catch (Exception e) { connection.rollback(); throw e; }
         }
     }

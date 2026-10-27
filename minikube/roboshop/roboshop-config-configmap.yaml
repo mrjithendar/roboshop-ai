@@ -14,6 +14,8 @@ data:
   APP_ENV: "development"
   PUBLIC_ORIGIN: "https://jithendar.com"
   LOG_FORMAT: "json"
+  # DEBUG adds probe/dependency detail; WARN or ERROR reduces volume. Restart pods to apply.
+  LOG_LEVEL: "INFO"
 
   # Checkout and payment
   # Test mode does not charge real money. Live mode also requires valid live secrets.

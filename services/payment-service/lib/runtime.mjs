@@ -165,6 +165,9 @@ export function serve(service, port, handler) {
   logService = service;
   const counts = new Map();
   let duration = 0, requests = 0;
+  // Cumulative per-route latency buckets in seconds (Prometheus defaults).
+  const bounds = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
+  const latency = new Map(), started = Date.now() / 1000;
   const server = http.createServer(async (req, res) => {
     const start = Date.now();
     let incoming = /^00-([a-f0-9]{32})-([a-f0-9]{16})-(0[01])$/.exec(req.headers.traceparent || '');
@@ -187,7 +190,14 @@ export function serve(service, port, handler) {
         if (url.pathname === '/metrics' && req.method === 'GET') {
           const rows = ['# TYPE roboshop_http_requests_total counter'];
           for (const [labels, count] of counts) rows.push(`roboshop_http_requests_total{service="${service}",${labels}} ${count}`);
-          rows.push('# TYPE roboshop_http_duration_seconds summary', `roboshop_http_duration_seconds_sum{service="${service}"} ${duration}`, `roboshop_http_duration_seconds_count{service="${service}"} ${requests}`, '');
+          rows.push('# TYPE roboshop_http_duration_seconds summary', `roboshop_http_duration_seconds_sum{service="${service}"} ${duration}`, `roboshop_http_duration_seconds_count{service="${service}"} ${requests}`);
+          rows.push('# TYPE http_server_request_duration_seconds histogram');
+          for (const [r, h] of latency) {
+            const labels = `service="${service}",route="${r}"`;
+            bounds.forEach((b, i) => rows.push(`http_server_request_duration_seconds_bucket{${labels},le="${b}"} ${h.buckets[i]}`));
+            rows.push(`http_server_request_duration_seconds_bucket{${labels},le="+Inf"} ${h.count}`, `http_server_request_duration_seconds_sum{${labels}} ${h.sum}`, `http_server_request_duration_seconds_count{${labels}} ${h.count}`);
+          }
+          rows.push('# TYPE roboshop_process_start_time_seconds gauge', `roboshop_process_start_time_seconds{service="${service}"} ${started}`, '');
           res.writeHead(200, { 'content-type': 'text/plain; version=0.0.4' });
           return res.end(rows.join('\n'));
         }
@@ -212,7 +222,11 @@ export function serve(service, port, handler) {
           if (operations[pathname]) logEvent(operation + (res.statusCode >= 400 ? '_failed' : '_completed'), {operation,method:req.method,status:res.statusCode,outcome:res.statusCode >= 400 ? 'failure' : 'success',reason:res.statusCode >= 400 ? 'see_correlated_request_error' : 'operation_completed'}, res.statusCode >= 400 ? 'WARN' : 'INFO');
           const key = `route="${safeRoute}",status="${res.statusCode}"`;
           counts.set(key, (counts.get(key) || 0) + 1);
-          requests++; duration += (Date.now() - start) / 1000;
+          const elapsed = (Date.now() - start) / 1000;
+          requests++; duration += elapsed;
+          let h = latency.get(safeRoute);
+          if (!h) latency.set(safeRoute, h = { buckets: bounds.map(() => 0), sum: 0, count: 0 });
+          bounds.forEach((b, i) => { if (elapsed <= b) h.buckets[i]++; }); h.sum += elapsed; h.count++;
           logEvent('request_completed', {method: req.method, route: safeRoute, operation, status: res.statusCode, outcome: res.statusCode >= 400 ? 'failure' : 'success', reason: res.statusCode >= 500 ? 'service_or_dependency_failure' : res.statusCode >= 400 ? 'request_rejected' : 'operation_completed', durationMs: Date.now() - start}, res.statusCode >= 400 ? 'WARN' : probe ? 'DEBUG' : 'INFO');
           exportSpan(service, ctx, start, httpName(req.method, pathname), res.statusCode, ctx.attributes);
         }

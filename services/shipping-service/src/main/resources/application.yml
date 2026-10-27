@@ -71,6 +71,10 @@ management:
   metrics:
     tags:
       service: shipping-service
+    # Histogram buckets let Prometheus/Grafana compute p95/p99 request latency.
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
 
 roboshop:
   cache-enabled: ${CACHE_ENABLED:false}
@@ -78,5 +82,10 @@ roboshop:
 
 # Keep framework SQL/wire debug logging disabled; control our operational events only.
 logging:
+  # One JSON object per line (stack traces included) like the other services.
+  # Set SHIPPING_LOG_FORMAT to ecs or gelf to change the schema.
+  structured:
+    format:
+      console: ${SHIPPING_LOG_FORMAT:logstash}
   level:
     com.roboshop.shipping: ${LOG_LEVEL:INFO}

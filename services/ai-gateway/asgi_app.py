@@ -66,7 +66,8 @@ def create_app(gateway=None):
     counts = Counter()
     durations = [0.0]
     latency_bounds = (0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10)
-    latency_buckets = Counter()
+    latency_buckets, route_seconds = Counter(), Counter()
+    started = time.time()
     configure_telemetry('ai-gateway')
 
     async def dispatch(request: ASGIRequest):
@@ -93,10 +94,13 @@ def create_app(gateway=None):
                 rows += [f'roboshop_http_requests_total{{service="ai-gateway",route="{r}",status="{s}"}} {n}' for (r,s),n in counts.items()]
                 rows += ['# TYPE roboshop_http_duration_seconds summary', f'roboshop_http_duration_seconds_sum{{service="ai-gateway"}} {durations[0]}', f'roboshop_http_duration_seconds_count{{service="ai-gateway"}} {sum(counts.values())}']
                 rows += ['# TYPE http_server_request_duration_seconds histogram']
-                rows += [f'http_server_request_duration_seconds_bucket{{service="ai-gateway",le="{bound}"}} {latency_buckets[bound]}' for bound in latency_bounds]
-                rows += [f'http_server_request_duration_seconds_bucket{{service="ai-gateway",le="+Inf"}} {sum(counts.values())}',
-                         f'http_server_request_duration_seconds_sum{{service="ai-gateway"}} {durations[0]}',
-                         f'http_server_request_duration_seconds_count{{service="ai-gateway"}} {sum(counts.values())}']
+                for r in sorted({r for r,_ in counts}):
+                    total = sum(n for (rr,_),n in counts.items() if rr == r)
+                    rows += [f'http_server_request_duration_seconds_bucket{{service="ai-gateway",route="{r}",le="{bound}"}} {latency_buckets[(r,bound)]}' for bound in latency_bounds]
+                    rows += [f'http_server_request_duration_seconds_bucket{{service="ai-gateway",route="{r}",le="+Inf"}} {total}',
+                             f'http_server_request_duration_seconds_sum{{service="ai-gateway",route="{r}"}} {route_seconds[r]}',
+                             f'http_server_request_duration_seconds_count{{service="ai-gateway",route="{r}"}} {total}']
+                rows += ['# TYPE roboshop_process_start_time_seconds gauge', f'roboshop_process_start_time_seconds{{service="ai-gateway"}} {started}']
                 result, extra = ('\n'.join(rows)+'\n').encode(), [('Content-Type','text/plain; version=0.0.4')]
             else:
                 if sum(len(k)+len(v) for k,v in request.scope['headers']) > 16384:
@@ -151,11 +155,15 @@ def create_app(gateway=None):
             if not quiet_route(route) or status >= 400:
                 counts[(route,status)] += 1
                 durations[0] += elapsed
+                route_seconds[route] += elapsed
                 for bound in latency_bounds:
-                    if elapsed <= bound: latency_buckets[bound] += 1
+                    if elapsed <= bound: latency_buckets[(route,bound)] += 1
                 probe = request.url.path in ('/health/ready', '/api/ready')
                 log_event('request_completed', 'WARN' if status >= 400 else 'DEBUG' if probe else 'INFO', route=route, operation=operation_name(request.url.path), method=request.method, outcome="failure" if status >= 400 else "success", status=status, durationMs=round(elapsed*1000))
-                telemetry('ai-gateway', context, start, (http_name(request.method, '') + ' ' + route).rstrip(), status)
+                try:
+                    telemetry('ai-gateway', context, start, (http_name(request.method, '') + ' ' + route).rstrip(), status)
+                except Exception:
+                    pass  # Telemetry is optional; it must not replace the response.
             ctx.reset(token)
         payload = result if isinstance(result, bytes) else encode(result)
         headers = {**SECURITY, 'Content-Type':'application/json; charset=utf-8', 'X-Request-ID':context['traceId']}
