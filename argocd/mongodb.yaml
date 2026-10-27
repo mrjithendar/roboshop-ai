@@ -29,9 +29,15 @@ spec:
     - PruneLast=true
     - CreateNamespace=true
     - RespectIgnoreDifferences=true
-  source:
-    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+  # Live controller is a Deployment; services/mongodb's StatefulSet needs a data migration first.
+  sources:
+  - repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
-    path: minikube/gitops/adoption/mongodb
+    path: services/mongodb
     directory:
-      include: resources.yaml
+      include: '{mongodb-data-pvc-minikube.yaml,mongodb-service-minikube.yaml}'
+  - repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    targetRevision: master
+    path: minikube/mongodb
+    directory:
+      include: mongodb-deployment.yaml
