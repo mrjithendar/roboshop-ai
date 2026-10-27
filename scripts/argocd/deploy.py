@@ -141,6 +141,10 @@ def main():
         namespace_files.add(manifest)
     for manifest in sorted(namespace_files):
         subprocess.check_call(kube + ['apply', '--server-side', '--field-manager=roboshop-namespace-bootstrap', '-f', str(manifest)])
+    if any(name in ('elk-core', 'elk-pipeline') for name in selected):
+        # Use the same create-only helper as the dedicated ELK sync command.
+        subprocess.check_call([sys.executable, str(ROOT / 'scripts/observability/elk.py'),
+                               'credentials', '--context', args.context, '--apply'])
     for project in sorted({live.get(n, apps[n])['spec']['project'] for n in selected}):
         if not run('get', 'appproject', project, '--ignore-not-found', '-o', 'name').strip():
             print(run('create', '-f', '-', body=projects[project]), end='')

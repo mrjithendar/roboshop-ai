@@ -1,5 +1,4 @@
 # Maintain active manifests using explicit paths; archived legacy/ and reference-only sources are excluded.
-# OpenClaw plugin updates are grouped together; review them with the pinned gateway release.
 version: 2
 updates:
 - package-ecosystem: npm
@@ -8,7 +7,6 @@ updates:
   - /services/frontend
   - /services/catalogue-service
   - /services/payment-service
-  - /services/mcp-server/operations/plugins
   schedule:
     interval: weekly
     day: monday
@@ -16,9 +14,6 @@ updates:
     timezone: Asia/Kolkata
   open-pull-requests-limit: 5
   groups:
-    openclaw-plugins:
-      patterns:
-      - '@openclaw/*'
     node-minor-patch:
       patterns:
       - '*'
@@ -116,7 +111,6 @@ updates:
   - /services/catalogue-service
   - /services/kafka-bridge
   - /services/mcp-server
-  - /services/mcp-server/operations
   - /services/moks
   - /services/user-service
   - /services/user-service/tests

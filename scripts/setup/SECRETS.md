@@ -27,7 +27,7 @@ Existing secrets are reused, never rotated or deleted. Partial secrets require r
 
 If a selected namespace has PVCs but its installation secret is missing, creation stops before writes. This includes Terminating PVCs. Restore the original secret from your secure backup; random replacement passwords cannot recover database access or encrypted data. Namespace-level PVC checks are deliberately conservative. Retained PVs or external databases without PVCs cannot be detected by this check: restore their original credentials too.
 
-This is not a generator for arbitrary Kubernetes secrets. cert-manager owns TLS keys, Argo CD owns its initial admin credentials, ECK owns Elasticsearch credentials, and Helm owns release records. These remain untouched. Turnstile, Razorpay, SES, AWS, Langfuse and OpenAI credentials must come from their providers. OpenClaw's linked credentials use its dedicated `scripts/openclaw/prepare_secrets.py` workflow; they are not independently randomized here.
+This is not a generator for arbitrary Kubernetes secrets. cert-manager owns TLS keys, Argo CD owns its initial admin credentials, ECK owns Elasticsearch credentials, and Helm owns release records. These remain untouched. Turnstile, Razorpay, SES, AWS, Langfuse and OpenAI credentials must come from their providers.
 
 Verify locally without Kubernetes or AWS calls:
 

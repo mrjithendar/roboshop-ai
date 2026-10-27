@@ -9,5 +9,4 @@ single_nat_gateway = false
 ses_enabled = true
 ses_domain  = "jithendar.com"
 
-# OpenClaw pulls from this account; no cross-account grant is needed.
 ecr_pull_principals = {}

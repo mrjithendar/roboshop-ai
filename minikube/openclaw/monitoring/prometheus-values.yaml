@@ -1,3 +1,0 @@
-openclaw:
-  enabled: true
-  credentialsSecret: openclaw-metrics-auth

@@ -32,8 +32,7 @@ All Application and AppProject YAML lives in this root directory. Workload
 sources remain in `services/` and `minikube/`. `kustomization.yaml` registers
 31 Applications and three projects; it does not include workload manifests.
 Argo CD and Traefik controllers are deliberately excluded. Their existing Helm
-releases, CRDs and installation scripts remain externally managed. OpenClaw's
-read-only observer Role/RoleBinding in `argocd` is still owned by OpenClaw.
+releases, CRDs and installation scripts remain externally managed.
 
 ## Simple deployment commands
 
@@ -70,12 +69,12 @@ From the repository root (requires `kubectl`, Python 3 and PyYAML):
 The default context is `mk4`; use `--context NAME` or `KUBE_CONTEXT` to change it.
 The script creates missing projects and Applications, requests a sync without
 pruning, and waits up to 600 seconds for Synced/Healthy (`--timeout 900` overrides
-this). Existing Application settings, including OpenClaw patches, are preserved.
+this). Existing Application settings, are preserved.
 Commit and push workload changes first: Argo CD deploys the configured Git
 revision, not uncommitted local workload files.
 
 With no arguments, or with `all`, the script selects every Application registered
-in `argocd/kustomization.yaml`, including infrastructure, OpenClaw, JFrog and
+in `argocd/kustomization.yaml`, including infrastructure, JFrog and
 legacy apps. Referenced AppProjects are created when missing. Existing Secrets,
 images and storage remain prerequisites; missing dependencies cause the health
 wait to fail rather than silently skipping an app.
@@ -94,8 +93,7 @@ wrapper has been removed; existing Applications remain unchanged.
 
 New Applications have **manual sync**, no deletion finalizers, no automatic
 pruning and `FailOnSharedResource=true`. Registering them does not adopt or
-restart their workloads. OpenClaw retains its existing automatic/self-heal
-policy. Review each Application's diff and prerequisites, then sync it without
+restart their workloads. Review each Application's diff and prerequisites, then sync it without
 pruning in Argo CD. Applications can be OutOfSync until that review and sync.
 Do not enable Force/Replace to resolve an immutable-field difference.
 
@@ -110,7 +108,6 @@ Do not enable Force/Replace to resolve an immutable-field difference.
 | cert-manager, metrics-server, grafana | Pinned upstream Helm charts with Git-hosted values and existing release names. |
 | roboshop-letsencrypt, prometheus, wordpress | Existing local charts and release names. WordPress ingress remains enabled for the existing initialized site. |
 | shared-tls | The single existing TLSStore in jithendar; no duplicate certificate or Traefik controller. WordPress owns the canonical Certificate. |
-| openclaw | Optional, currently disabled in the root catalog and excluded from its required workload inventory. |
 | jfrog | Optional, currently absent. Manual sync only, requires bootstrap credentials, storage and host-capacity checks first. Public ingress remains a separate explicit exposure step. |
 
 Langfuse is a cloud integration and n8n has no deployment manifests, so neither
@@ -123,7 +120,7 @@ Traefik, CoreDNS, kube-proxy and kindnet; full validation checks that every iden
 1. Preserve existing Secrets and PVCs. Credentials remain external; no credential values are copied into this catalog.
    JFrog alone renders a configuration-only Secret in its dedicated project;
    its actual passwords and keys reference the external bootstrap Secret. Check `roboshop-secrets`, `ecr-pull`,
-   `wordpress-credentials`, `monitoring-auth` and OpenClaw's existing credentials.
+   `wordpress-credentials`, `monitoring-auth`.
    Continue ECR credential refresh independently of workload reconciliation.
 2. Review shared configuration and infrastructure first, then data services,
    then application services. Existing Helm resources keep their release names.
@@ -160,8 +157,7 @@ adding a collector during `deploy all`. See [ELK deployment](../observability/el
 
 
 The required workload inventory (`minikube/gitops/workload-inventory.json`) covers
-only the active default catalog. OpenClaw's three optional deployments and retired
-product-ingestion/shopping-agent deployments are excluded. Enabling optional apps
+only the active default catalog. Retired product-ingestion/shopping-agent deployments are excluded. Enabling optional apps
 requires reviewing their project, ownership and inventory together. Validation still
 fails when any required active workload is absent; it never filters expected entries
 against whatever happened to render. This inventory change does not delete live pods.

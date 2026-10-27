@@ -60,7 +60,7 @@ def test_default_and_all_include_entire_catalog(arguments, capsys):
     for name in ('mongodb', 'moks', 'catalogue-service'):
         assert name in output
 
-    for name in ('openclaw', 'jfrog', 'product-ingestion', 'shopping-agent'):
+    for name in ( 'jfrog', 'product-ingestion', 'shopping-agent'):
         assert name not in output
 
 

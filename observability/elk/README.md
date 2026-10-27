@@ -4,6 +4,27 @@ This is an **optional, single-node, non-HA lab**, not a production logging servi
 No command in this change has been run against the cluster. Files are prepared for
 review and a later Git commit/push by the operator; Argo reads `master`, not local files.
 
+## Single-command deployment
+
+From the repository root:
+
+```bash
+./deploy-elk.sh --dry-run
+./deploy-elk.sh --context mk4
+```
+
+The script checks prerequisites, reuses or installs ECK, creates missing credentials,
+and syncs core then pipeline. Readiness gates prevent starting the pipeline before
+Elasticsearch and certificates are ready. Kibana startup can overlap collection
+startup; all workloads are checked before success. Each stage has a bounded timeout
+(default 600 seconds; override with `--timeout 900`). A failure stops later stages;
+rerun after fixing it. Existing passwords/PVCs are preserved, with no pruning.
+
+Requires Python 3, kubectl, installed Argo CD, Traefik, cert-manager, shared TLSStore,
+and adequate node memory/storage. It does not modify host sysctls. An external ECK
+operator is reused without adoption and must watch `elk`. Argo reads GitHub `master`;
+push manifest changes before deploying. No Argo CLI login is needed.
+
 ## Architecture and ownership
 
 Container stdout/stderr → Filebeat DaemonSet → **mutual TLS** → Logstash → HTTPS →
@@ -117,7 +138,8 @@ minikube ssh -p mk4 -- sysctl vm.max_map_count
 Back on your Kubernetes client:
 
 ```bash
-# Creates missing secret only; repeat runs preserve all keys. Nothing is printed.
+# Optional: elk-core/elk-pipeline sync now creates this automatically if missing.
+# Existing keys are preserved; incomplete secrets require explicit repair.
 python3 scripts/observability/elk.py credentials --context mk4 --apply
 kubectl --context=mk4 apply -f argocd/project-elk.yaml
 
@@ -405,3 +427,5 @@ this change; do not delete Elasticsearch data or Kibana encryption keys.
 The 3 GiB Kibana container also hit OOMKilled during startup with a 2 GiB
 heap. Reserve and limit 4 GiB while keeping the heap at 2 GiB for native
 startup overhead. This is a measured lab correction, not a capacity guarantee.
+
+Credential preparation is automatic in both `scripts/observability/elk.py sync --apply` (core/pipeline) and `deploy-argocd.sh` when selecting ELK core/pipeline. It uses create-only writes, handles concurrent creators without rotation, and never prints values. Preview commands remain offline. ECK and cert-manager still generate their own system/TLS secrets. Missing credentials are newly generated, not recovered: restore original Kibana encryption keys from backup when recovering previously encrypted saved objects.

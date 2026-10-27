@@ -11,7 +11,7 @@ def test_catalog_has_unique_safe_ownership():
     apps,owners=module.validate()
     names={app['metadata']['name'] for app in apps}
     assert {'moks','catalogue-service'} <= names
-    assert not {'shopping-agent','product-ingestion','openclaw','jfrog'} & names
+    assert not {'shopping-agent','product-ingestion','jfrog'} & names
     assert not {'argocd','traefik','coredns','kube-proxy','kindnet'}&names
     assert len(apps)==25
     assert 'cert-manager' not in names
@@ -22,8 +22,6 @@ def test_catalog_has_unique_safe_ownership():
 
 def test_catalog_contains_only_projects_and_applications():
     assert all(doc['kind'] in ('Application','AppProject') for doc in module.catalog())
-    assert not (ROOT/'minikube/openclaw/argocd/application.yaml').exists()
-    assert (ROOT/'argocd/openclaw.yaml').is_file()
 
 
 def test_adoption_baselines_have_no_credentials_or_server_metadata():
@@ -90,7 +88,7 @@ def test_required_inventory_matches_active_catalog_and_rejects_missing_workloads
     import json
     import pytest
     expected={tuple(row) for row in json.loads((ROOT/'minikube/gitops/workload-inventory.json').read_text())}
-    assert not any(ns=='openclaw' or name in ('product-ingestion','shopping-agent') for _,ns,name in expected)
+    assert not any(name in ('product-ingestion','shopping-agent') for _,ns,name in expected)
     assert ('Deployment','roboshop-ai','moks') in expected
     assert ('Deployment','roboshop-ai','catalogue-service') in expected
     module.validate_inventory(expected)

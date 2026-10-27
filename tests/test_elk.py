@@ -217,8 +217,9 @@ class ElkCommandTests(unittest.TestCase):
                 user='old-sync' if polls==1 else marker
                 return json.dumps({'status':{'operationState':{'phase':'Succeeded','operation':{'initiatedBy':{'username':user}}}}})
             return ''
-        with patch.object(module.sys,'argv',['elk','sync','--app','elk-core','--apply']),patch.object(module.subprocess,'check_output',side_effect=command),patch.object(module.time,'sleep') as sleep:
+        with patch.object(module.sys,'argv',['elk','sync','--app','elk-core','--apply']),patch.object(module.subprocess,'check_output',side_effect=command),patch.object(module.time,'sleep') as sleep, patch.object(module,'ensure_credentials') as credentials:
             module.main()
+        credentials.assert_called_once_with('mk4')
         self.assertEqual(polls,2);sleep.assert_called_once()
 
 

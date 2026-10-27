@@ -15,9 +15,99 @@ ROOT = Path(__file__).resolve().parents[2]
 KEYS = ('ingestPassword','viewerPassword','securityKey','objectsKey','reportingKey')
 
 
+def ensure_credentials(context):
+    """Create missing credentials once; never rotate persisted encryption keys."""
+    kube = ['kubectl', '--context', context, '--request-timeout=20s']
+    def command(args, document=None):
+        result = subprocess.run(kube + args, text=True, capture_output=True,
+            input=json.dumps(document) if document is not None else None, timeout=30)
+        if result.returncode:
+            raise RuntimeError('ELK credentials operation failed; check cluster access/RBAC. Secret output suppressed.')
+        return result.stdout
+    def validate(raw):
+        try:
+            obj = json.loads(raw)
+            valid = obj.get('type', 'Opaque') == 'Opaque' and all(
+                len(base64.b64decode(obj['data'][key], validate=True)) >= 32 for key in KEYS)
+        except (KeyError, ValueError, TypeError, AttributeError):
+            valid = False
+        if not valid:
+            raise RuntimeError('Existing elk-credentials is incomplete or invalid; preserved. Restore original keys.')
+    if not command(['get', 'namespace', 'elk', '--ignore-not-found', '-o', 'name']).strip():
+        # apply only the namespace, never credential values.
+        command(['apply', '-f', '-'], {'apiVersion':'v1','kind':'Namespace','metadata':{'name':'elk'}})
+    read = ['-n','elk','get','secret','elk-credentials','--ignore-not-found','-o','json']
+    existing = command(read)
+    if existing.strip():
+        validate(existing)
+        print('Reusing existing elk-credentials; no rotation.')
+        return
+    document = {'apiVersion':'v1','kind':'Secret','metadata':{'name':'elk-credentials','namespace':'elk'},
+                'type':'Opaque','stringData':{key:secrets.token_hex(32) for key in KEYS}}
+    try:
+        command(['create','-f','-'], document)
+    except RuntimeError:
+        # Another deployment may have won the create race. Validate, never replace.
+        existing = command(read)
+        if not existing.strip():
+            raise
+        validate(existing)
+        print('Reusing concurrently created elk-credentials; no rotation.')
+        return
+    print('Created elk-credentials; no values logged.')
+
+
+def deploy(context, timeout, apply):
+    """One ordered entry point; keep stage logic in the existing sync helper."""
+    if not apply:
+        print('Preview: prerequisites -> credentials -> ECK operator -> Elasticsearch/Kibana -> Logstash/Filebeat.')
+        print('Existing operator reused; no pruning, password rotation or host changes. Git master supplies manifests.')
+        return
+    kube = ['kubectl', '--context', context, '--request-timeout=30s']
+    def call(*args):
+        return subprocess.check_output(kube + list(args), text=True)
+    def stage(app):
+        subprocess.check_call([sys.executable, str(Path(__file__).resolve()), 'sync',
+            '--app', app, '--context', context, '--timeout', str(timeout), '--apply'])
+    def ready(namespace, *resources):
+        call('-n', namespace, 'wait', *resources, '--for=condition=Ready', '--timeout='+str(timeout)+'s')
+    # Verify prerequisites before writes. Bootstrap controllers remain separately owned.
+    for kind, name in (('crd','applications.argoproj.io'), ('crd','certificates.cert-manager.io'),
+                       ('crd','ingressroutes.traefik.io'), ('ingressclass','traefik'), ('storageclass','standard')):
+        call('get', kind, name, '-o', 'name')
+    call('-n','jithendar','get','tlsstore','default','-o','name')
+    crd = call('get','crd','elasticsearches.elasticsearch.k8s.elastic.co','--ignore-not-found','-o','name').strip()
+    owned = call('-n','argocd','get','application','elk-operator','--ignore-not-found','-o','name').strip()
+    if crd and not owned:
+        # Do not install a second operator or take over an externally managed one.
+        pods = json.loads(call('get','pods','-A','-o','json'))['items']
+        operators = [p for p in pods if any('eck-operator' in c.get('image','') for c in p['spec'].get('containers',[]))]
+        if not operators:
+            raise RuntimeError('ECK CRDs exist without a running operator; restore its existing owner before deploying.')
+        for pod in operators:
+            ready(pod['metadata']['namespace'], 'pod/'+pod['metadata']['name'])
+        print('Reusing external ECK operator; it must watch namespace elk.')
+    else:
+        print('1/3: Deploying ECK operator.', flush=True)
+        stage('elk-operator')
+        call('-n','elastic-system','rollout','status','statefulset/elastic-operator','--timeout='+str(timeout)+'s')
+    call('wait','--for=condition=Established','crd/elasticsearches.elasticsearch.k8s.elastic.co',
+         'crd/kibanas.kibana.k8s.elastic.co','--timeout='+str(timeout)+'s')
+    print('2/3: Deploying Elasticsearch and Kibana; ensuring credentials.', flush=True)
+    stage('elk-core')
+    # Each bounded gate prevents the previous out-of-order pipeline failure.
+    call('-n','elk','wait','elasticsearch/logs','--for=jsonpath={.status.health}=green','--timeout='+str(timeout)+'s')
+    ready('elk','certificate/logstash-server','certificate/filebeat-client')
+    print('3/3: Deploying log collection.', flush=True)
+    stage('elk-pipeline')
+    for kind, name in (('deployment','logs-kb'), ('deployment','logstash'), ('daemonset','filebeat')):
+        call('-n','elk','rollout','status',kind+'/'+name,'--timeout='+str(timeout)+'s')
+    print('ELK workloads ready: https://jithendar.com/elk/ (public HTTPS reachability not tested).')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['render','preflight','credentials','dashboards','sync'])
+    parser.add_argument('action', choices=['render','preflight','credentials','dashboards','sync','deploy'])
     parser.add_argument('--context', default='mk4')
     parser.add_argument('--apply', action='store_true', help='Required for credentials, dashboards or sync; otherwise preview only')
     parser.add_argument('--app', choices=['elk-operator','elk-core','elk-pipeline'], help='Application for sync')
@@ -25,6 +115,9 @@ def main():
     args = parser.parse_args()
     if args.action=='sync' and not args.app:parser.error('sync requires --app')
     if args.timeout<=0:parser.error('--timeout must be positive')
+    if args.action == 'deploy':
+        deploy(args.context, args.timeout, args.apply)
+        return
     kube = ['kubectl','--context',args.context,'--request-timeout=20s']
     def run(command, data=None):
         return subprocess.check_output(command, input=data, text=True)
@@ -61,6 +154,8 @@ def main():
                 cert=json.loads(run(kube+['get','certificate',name,'-n','elk','-o','json']))
                 if not any(c.get('type')=='Ready' and c.get('status')=='True' for c in cert.get('status',{}).get('conditions',[])):
                     raise RuntimeError(name+' certificate is not Ready; finish elk-core first')
+        if args.app in ('elk-core', 'elk-pipeline'):
+            ensure_credentials(args.context)
         run(command+['apply','-f',str(ROOT/'argocd/project-elk.yaml')])
         run(command+['apply','-f',str(ROOT/'argocd'/f'{args.app}.yaml')])
         # API-triggered operations do not automatically inherit the Application's
@@ -143,18 +238,8 @@ def main():
         print('Inventory checks passed, not capacity or deployment readiness. Review kubectl describe nodes, top nodes/pods, free disk, CNI, host sysctl and image architecture before sync.')
         return
     if args.action=='credentials':
-        # No values in command arguments or logs; do not rotate credentials on repeat runs.
-        namespace=run(kube+['get','namespace','elk','--ignore-not-found','-o','name'])
-        if not namespace.strip():
-            run(kube+['create','namespace','elk'])
-        existing=run(kube+['-n','elk','get','secret','elk-credentials','--ignore-not-found','-o','json'])
-        if existing.strip():
-            data=json.loads(existing).get('data',{})
-            if not all(k in data and len(base64.b64decode(data[k]))>=32 for k in KEYS):
-                raise RuntimeError('Existing elk-credentials is incomplete; preserve and repair it explicitly')
-            print('Reusing existing elk-credentials; no rotation.');return
-        run(kube+['create','-f','-'],json.dumps({'apiVersion':'v1','kind':'Secret','metadata':{'name':'elk-credentials','namespace':'elk'},'type':'Opaque','stringData':{k:secrets.token_hex(32) for k in KEYS}}))
-        print('Created elk-credentials; no values logged.');return
+        ensure_credentials(args.context)
+        return
     # Admin only for saved-object import; normal browsing uses elk_viewer.
     secret=json.loads(run(kube+['-n','elk','get','secret','logs-es-elastic-user','-o','json']))
     password=base64.b64decode(secret['data']['elastic']).decode()

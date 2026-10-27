@@ -15,12 +15,10 @@ resources:
 - moks.yaml
 - mongodb.yaml
 - nginx.yaml
-# - openclaw.yaml
 - otel-collector.yaml
 - payment-service.yaml
 - postgres.yaml
 # - project-jfrog.yaml
-# - project-openclaw.yaml
 - project-platform.yaml
 - prometheus.yaml
 - rabbitmq.yaml
