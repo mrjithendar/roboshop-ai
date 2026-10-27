@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { tagSlug } from "@/config/taxonomy";
 import {
   getPublishedArticle,
@@ -151,6 +151,10 @@ describe("schema additions", () => {
 });
 
 describe("MDX pipeline", () => {
+  // The first compile starts Shiki (WASM regex engine + themes): ~9 s on a busy CI runner.
+  // Pay that once here so the assertions below keep the default timeout.
+  beforeAll(() => compileMdx("```bash\nwarm up\n```"), 60_000);
+
   it("demotes h1, assigns heading ids and collects h2/h3 for the TOC", async () => {
     const { headings } = await compileMdx("# Intro\n\n## Set up the cluster\n\n### Install `kubectl`\n\nText");
     expect(headings).toEqual([
