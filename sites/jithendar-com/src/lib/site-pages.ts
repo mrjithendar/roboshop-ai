@@ -28,7 +28,8 @@ function canEdit(actor: Actor) {
 
 function validate(raw: unknown) {
   const input = pageInput.parse(raw);
-  const parsed = pageFrontmatter.safeParse({ ...input, updatedAt: input.updatedAt ?? undefined });
+  // `body` is stored on the row but is not a frontmatter field (the schema is strict).
+  const parsed = pageFrontmatter.safeParse({ slug: input.slug, title: input.title, description: input.description, updatedAt: input.updatedAt ?? undefined });
   const issues = parsed.success ? [] : parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
   if (RESERVED_PAGE_SLUGS.has(input.slug)) issues.push(`slug: "${input.slug}" is reserved by the site`);
   if (issues.length > 0) throw new PostError("The page is not valid.", 400, issues);

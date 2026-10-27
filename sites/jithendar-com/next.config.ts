@@ -30,6 +30,8 @@ const nextConfig: NextConfig = {
   // .next/server (route-cache) next to the build output. Keep the ISR cache in memory instead:
   // content ships inside the image, so a restarted pod simply regenerates pages on demand.
   experimental: { isrFlushToDisk: false },
+  // ssh2 (SFTP backups) ships optional native add-ons; load it from node_modules instead of bundling.
+  serverExternalPackages: ["ssh2", "ssh2-sftp-client", "cpu-features"],
   async redirects() {
     return redirects.map(({ source, destination }) => ({ source, destination, permanent: true }));
   },

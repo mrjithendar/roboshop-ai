@@ -1,6 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, schema } from "@/db";
+import { rowsOf } from "@/db/rows";
 import { iconNames } from "@/components/icons";
 import { toneNames } from "@/components/categoryStyle";
 import { defaultCategories } from "@/config/taxonomy";
@@ -81,10 +82,9 @@ export async function deleteCategory(actor: Actor, slugToDelete: string) {
 /** All tags in use with counts (any status), for the admin. */
 export async function tagUsage() {
   const db = await getDb();
-  const rows = (await db.execute(sql`select tag, count(*)::int as n from post, unnest(tags) as tag group by tag order by n desc, tag`)) as unknown as {
-    rows: { tag: string; n: number }[];
-  };
-  return rows.rows;
+  return rowsOf<{ tag: string; n: number }>(
+    await db.execute(sql`select tag, count(*)::int as n from post, unnest(tags) as tag group by tag order by n desc, tag`),
+  );
 }
 
 const tagName = z.string().trim().toLowerCase().min(1).max(40);

@@ -19,6 +19,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { TopicGrid } from "@/components/TopicGrid";
 import { site, siteUrl } from "@/config/site";
 import { getCategories, getCategoryMap } from "@/lib/categories";
+import { getSettings } from "@/lib/settings";
 import { getAuthor, getPublishedContent } from "@/lib/content";
 import { organizationLd, websiteLd } from "@/lib/seo/jsonld";
 
@@ -51,7 +52,8 @@ function SectionHeading({ id, eyebrow, title, description, action }: { id: strin
 }
 
 async function Hero() {
-  const cats = (await getCategories()).slice(0, 8);
+  const [cats, settings] = await Promise.all([getCategories().then((c) => c.slice(0, 8)), getSettings()]);
+  const hero = settings.hero;
   return (
     <section className="relative overflow-hidden border-b border-slate-200 dark:border-white/10">
       <div className="bg-grid pointer-events-none absolute inset-0" aria-hidden="true" />
@@ -63,14 +65,13 @@ async function Hero() {
         <div>
           <p className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-            Independent engineering publication
+            {hero.eyebrow}
           </p>
           <h1 className="mt-6 text-4xl font-bold leading-[1.08] tracking-tight text-ink sm:text-5xl lg:text-6xl dark:text-white">
-            Engineering insight for teams building with <span className="text-gradient">AI, cloud and Kubernetes</span>
+            {hero.title} {hero.highlight && <span className="text-gradient">{hero.highlight}</span>}
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600 dark:text-slate-300">
-            Sourced news, in-depth analysis and hands-on tutorials across AI engineering, platform engineering, infrastructure as
-            code and security. Every article is reviewed by a human editor.
+            {hero.subtitle}
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link href="#topics" className={primaryButton}>

@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { ArticleCard } from "@/components/ArticleList";
 import { AuthorCard, Avatar } from "@/components/AuthorCard";
 import { toneFor } from "@/components/categoryStyle";
+import { Comments } from "@/components/Comments";
 import { Container } from "@/components/Container";
 import { CategoryIcon, ClockIcon } from "@/components/icons";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -17,7 +19,7 @@ import { absoluteUrl, site } from "@/config/site";
 import { collectionLabels, type Collection } from "@/config/taxonomy";
 import { getCategoryMap, labelOf } from "@/lib/categories";
 import { findRedirect } from "@/lib/redirects";
-import { getAuthor, getPublishedArticle, readingTimeMinutes, relatedArticles } from "@/lib/content";
+import { getAuthor, getPublishedArticle, readingTimeMinutes, relatedArticles, type Article, type Author } from "@/lib/content";
 import { formatDateTime } from "@/lib/dates";
 import { compileMdx } from "@/lib/mdx/compile";
 import { canonicalFor } from "@/lib/seo/canonical";
@@ -73,6 +75,21 @@ export async function articleMetadata(collection: Collection, { params }: SlugPa
 export async function ArticlePage({ collection, params }: { collection: Collection } & SlugParams) {
   const { slug } = await params;
   const { article, author } = await load(collection, slug);
+  return <ArticleView article={article} author={author} collection={collection} />;
+}
+
+/** The full article layout, shared by the public page and the editor preview. */
+export async function ArticleView({
+  article,
+  author,
+  collection,
+  notice,
+}: {
+  article: Article;
+  author: Author;
+  collection: Collection;
+  notice?: ReactNode;
+}) {
   const fm = article.frontmatter;
   const { Content, headings } = await compileMdx(article.body);
   const related = await relatedArticles(article);
@@ -87,7 +104,8 @@ export async function ArticlePage({ collection, params }: { collection: Collecti
 
   return (
     <article>
-      <JsonLd data={[articleLd(article, author), breadcrumbLd(crumbs)]} />
+      {!article.preview && <JsonLd data={[articleLd(article, author), breadcrumbLd(crumbs)]} />}
+      {notice}
       <header className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white dark:border-white/10 dark:from-white/[0.03] dark:to-transparent">
         <div className="bg-grid pointer-events-none absolute inset-0" aria-hidden="true" />
         <Container className="relative py-12 sm:py-16">
@@ -235,6 +253,8 @@ export async function ArticlePage({ collection, params }: { collection: Collecti
               <TagList tags={fm.tags} />
               <AuthorCard author={author} />
             </footer>
+
+            {article.id && !article.preview && <Comments postId={article.id} path={article.path} />}
           </div>
 
           {hasToc && (

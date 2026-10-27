@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { sql } from "drizzle-orm";
 import type { Db } from "./index";
+import { rowsOf } from "./rows";
 
 const LOCK_ID = 7_250_031; // arbitrary, constant advisory-lock key for this app's migrations
 
@@ -19,8 +20,7 @@ export async function migrateDb(db: Db, dir: string = migrationsDir()): Promise<
   await db.execute(sql`select pg_advisory_lock(${LOCK_ID})`);
   try {
     await db.execute(sql`create table if not exists schema_migrations (name text primary key, applied_at timestamptz not null default now())`);
-    const rows = (await db.execute(sql`select name from schema_migrations`)) as unknown as { rows?: { name: string }[] } & { name: string }[];
-    const done = new Set((rows.rows ?? rows).map((r) => r.name));
+    const done = new Set(rowsOf<{ name: string }>(await db.execute(sql`select name from schema_migrations`)).map((r) => r.name));
     for (const file of files) {
       if (done.has(file)) continue;
       const statements = fs

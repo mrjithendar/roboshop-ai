@@ -7,6 +7,8 @@ import { getDb, schema } from "@/db";
 import { staffActor } from "@/lib/admin";
 import { publicRoot, readLocalImage } from "@/lib/images";
 import { storeUpload } from "@/lib/media";
+import { createPreview, type PreviewKind } from "@/lib/preview";
+import { PostError } from "@/lib/posts";
 import { storageReady } from "@/lib/storage";
 
 export type MediaItem = { id: string; src: string; alt: string; width: number; height: number; context: string };
@@ -53,4 +55,14 @@ export async function uploadMedia(form: FormData) {
   const file = form.get("file");
   if (!(file instanceof File)) return { ok: false as const, error: "Choose an image to upload." };
   return storeUpload({ name: file.name, bytes: Buffer.from(await file.arrayBuffer()) }, String(form.get("alt") ?? ""), actor.id, String(form.get("context") ?? "library"));
+}
+
+/** Store the editor's current content for /preview/<token> (opened in a new tab). */
+export async function createPreviewAction(kind: PreviewKind, payload: unknown): Promise<{ ok: true; token: string } | { ok: false; error: string }> {
+  const actor = await staffActor();
+  try {
+    return { ok: true, token: await createPreview(actor, kind, payload) };
+  } catch (error) {
+    return { ok: false, error: error instanceof PostError ? error.message : "Preview is unavailable right now." };
+  }
 }

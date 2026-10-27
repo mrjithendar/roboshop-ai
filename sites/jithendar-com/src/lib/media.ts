@@ -67,3 +67,26 @@ export async function resolveImage(src: string): Promise<ResolvedImage | undefin
   const local = readLocalImage(src);
   return local ? { src: local.src, width: local.width, height: local.height, svg: local.svg } : undefined;
 }
+
+/** Delete an upload (S3 object + row). Refused while a post or page still references it. */
+export async function deleteMedia(actor: { id: string; role: string; label: string }, id: string) {
+  const { PostError } = await import("./posts");
+  const { audit } = await import("./audit");
+  const { deleteObject } = await import("./storage");
+  const { sql } = await import("drizzle-orm");
+  const { rowsOf } = await import("@/db/rows");
+  if (actor.role !== "admin" && actor.role !== "author") throw new PostError("Not allowed.", 403);
+  const db = await getDb();
+  const [row] = await db.select().from(schema.media).where(eq(schema.media.id, id));
+  if (!row) throw new PostError("Image not found.", 404);
+  const needle = `${MEDIA_PREFIX}${row.id}/`;
+  const [{ n } = { n: 0 }] = rowsOf<{ n: number }>(
+    await db.execute(sql`
+    select (select count(*) from post where body like ${"%" + needle + "%"} or featured_image->>'src' like ${needle + "%"})
+         + (select count(*) from page where body like ${"%" + needle + "%"}) as n`),
+  );
+  if (Number(n) > 0) throw new PostError(`This image is used by ${n} post(s) or page(s). Remove it there first.`, 409);
+  await deleteObject(row.storageKey);
+  await db.delete(schema.media).where(eq(schema.media.id, id));
+  await audit(actor, "media.delete", id, { key: row.storageKey });
+}

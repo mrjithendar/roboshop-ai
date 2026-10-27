@@ -11,4 +11,4 @@ resources:
 images:
 - name: jithendar-com
   newName: 881026659929.dkr.ecr.us-east-1.amazonaws.com/jithendar-com
-  digest: sha256:b37589bcfcb27e6e112abb97914220911b30e0fe314d27a2ce50cc803f18247e
+  digest: sha256:29c5a07cc8ec20c9118eabfa03956e2d50e40ce035333c87bca7f74329577405

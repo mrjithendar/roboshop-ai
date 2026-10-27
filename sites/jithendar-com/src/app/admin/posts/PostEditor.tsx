@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { CoverImagePicker } from "@/components/admin/CoverImagePicker";
+import { openPreview } from "@/components/admin/openPreview";
 import dynamic from "next/dynamic";
 import { Alert, Button, Field, Input, Select, Textarea } from "@/components/ui/form";
 import type { FeaturedImage, Source } from "@/db/schema";
@@ -103,6 +104,11 @@ export function PostEditor({ id, initial, categories }: { id: string | null; ini
     });
   }
 
+  async function preview() {
+    const error = await openPreview("post", { ...v, sources: textToSources(sources) });
+    if (error) setResult({ ok: false, message: error });
+  }
+
   function remove() {
     if (!id || !window.confirm("Delete this post permanently?")) return;
     start(async () => {
@@ -169,6 +175,7 @@ export function PostEditor({ id, initial, categories }: { id: string | null; ini
           )}
           <div className="flex flex-wrap gap-2">
             <Button type="button" onClick={() => save()} disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
+            <Button type="button" variant="secondary" onClick={preview} title="Open the current, unsaved version in a new tab">Preview ↗</Button>
             {v.status !== "published" && <Button type="button" variant="secondary" onClick={() => save("published")} disabled={pending}>Publish</Button>}
             {id && v.status === "published" && <Link href={publicPath} target="_blank" className="inline-flex items-center rounded-xl px-3 text-sm font-semibold underline">View ↗</Link>}
           </div>

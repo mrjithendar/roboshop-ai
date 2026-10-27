@@ -262,3 +262,36 @@ export const redirect = pgTable("redirect", {
   toPath: text("to_path").notNull(),
   createdAt: ts("created_at").notNull().defaultNow(),
 });
+
+/** Short-lived previews of unsaved editor content (post or page), visible only to their creator or an admin. */
+export const preview = pgTable(
+  "preview",
+  {
+    token: text("token").primaryKey(),
+    kind: text("kind").notNull(),
+    payload: jsonb("payload").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    expiresAt: ts("expires_at").notNull(),
+  },
+  (t) => [index("preview_expires_idx").on(t.expiresAt)],
+);
+
+/** History of backup runs (manual or scheduled). */
+export const backupRun = pgTable(
+  "backup_run",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    trigger: text("trigger").notNull(),
+    status: text("status").notNull(),
+    filename: text("filename"),
+    sizeBytes: integer("size_bytes"),
+    results: jsonb("results").$type<{ destination: string; ok: boolean; detail: string }[]>().notNull().default([]),
+    startedAt: ts("started_at").notNull().defaultNow(),
+    finishedAt: ts("finished_at"),
+    triggeredBy: text("triggered_by"),
+  },
+  (t) => [index("backup_run_started_idx").on(t.startedAt)],
+);

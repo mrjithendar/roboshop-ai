@@ -7,7 +7,7 @@ import { adminAc, defaultStatements, userAc } from "better-auth/plugins/admin/ac
 import { createAccessControl } from "better-auth/plugins/access";
 import { isProductionEnv, siteUrl } from "@/config/site";
 import { getDb, schema } from "@/db";
-import { mailConfigured, sendMail } from "./mail";
+import { sendMail } from "./mail";
 import { getSettings } from "./settings";
 import { passwordProblem, PASSWORD_MAX, PASSWORD_MIN } from "./password-policy";
 import { getRedis } from "./redis";
@@ -65,20 +65,17 @@ async function createAuth() {
       maxPasswordLength: PASSWORD_MAX,
       autoSignIn: true,
       requireEmailVerification: false,
-      sendResetPassword: mailConfigured()
-        ? async ({ user, url }) => {
-            await sendMail(user.email, "Reset your Jithendar.com password", `Reset your password: ${url}\n\nIf you did not ask for this, ignore this email.`);
-          }
-        : undefined,
+      // Sends through Amazon SES (admin-configured) or SMTP; if neither is set up, reset emails are skipped.
+      sendResetPassword: async ({ user, url }) => {
+        await sendMail(user.email, "Reset your Jithendar.com password", `Reset your password: ${url}\n\nIf you did not ask for this, ignore this email.`);
+      },
     },
-    emailVerification: mailConfigured()
-      ? {
-          sendOnSignUp: true,
-          sendVerificationEmail: async ({ user, url }) => {
-            await sendMail(user.email, "Verify your Jithendar.com account", `Confirm your email address: ${url}`);
-          },
-        }
-      : undefined,
+    emailVerification: {
+      sendOnSignUp: true,
+      sendVerificationEmail: async ({ user, url }) => {
+        await sendMail(user.email, "Verify your Jithendar.com account", `Confirm your email address: ${url}`);
+      },
+    },
     session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24 },
     rateLimit: {
       enabled: true,

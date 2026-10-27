@@ -3,7 +3,9 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { AnnouncementBar } from "@/components/AnnouncementBar";
 import { absoluteUrl, isProductionEnv, site, siteUrl } from "@/config/site";
+import { getSettings } from "@/lib/settings";
 import "./globals.css";
 
 // next/font downloads these at build time and serves them from this site.
@@ -12,14 +14,17 @@ const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrai
 
 // No canonical here on purpose: every indexable page sets its own, and an inherited
 // root canonical would point unrelated pages at the homepage.
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl()),
-  title: { default: site.name, template: `%s | ${site.name}` },
-  description: site.description,
-  applicationName: site.name,
-  alternates: { types: { "application/rss+xml": absoluteUrl("/feed.xml") } },
-  robots: isProductionEnv() ? { index: true, follow: true } : { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  return {
+    metadataBase: new URL(siteUrl()),
+    title: { default: settings.siteName, template: `%s | ${settings.siteName}` },
+    description: settings.description,
+    applicationName: settings.siteName,
+    alternates: { types: { "application/rss+xml": absoluteUrl("/feed.xml") } },
+    robots: isProductionEnv() ? { index: true, follow: true } : { index: false, follow: false },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: [
@@ -38,6 +43,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         >
           Skip to content
         </a>
+        <AnnouncementBar />
         <SiteHeader />
         <main id="main" className="flex-1">
           {children}

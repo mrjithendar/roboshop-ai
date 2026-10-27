@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { site } from "@/config/site";
 import { getCategories } from "@/lib/categories";
+import { getSettings } from "@/lib/settings";
 import { Container } from "./Container";
 import { GitHubIcon, RssIcon } from "./icons";
 import { LogoMark } from "./Logo";
@@ -44,6 +44,7 @@ function Column({ title, links }: { title: string; links: { href: string; label:
 }
 
 export async function SiteFooter() {
+  const settings = await getSettings();
   const topics = (await getCategories()).map((c) => ({ href: `/category/${c.slug}`, label: c.label }));
   const half = Math.ceil(topics.length / 2);
   return (
@@ -53,9 +54,9 @@ export async function SiteFooter() {
           <div className="max-w-sm">
             <div className="flex items-center gap-2.5">
               <LogoMark className="h-7 w-7" />
-              <span className="font-semibold text-ink dark:text-white">{site.name}</span>
+              <span className="font-semibold text-ink dark:text-white">{settings.siteName}</span>
             </div>
-            <p className="mt-4 text-sm leading-6 text-slate-600 dark:text-slate-400">{site.description}</p>
+            <p className="mt-4 text-sm leading-6 text-slate-600 dark:text-slate-400">{settings.description}</p>
             <div className="mt-6 flex items-center gap-3">
               <a
                 href="/feed.xml"
@@ -64,14 +65,16 @@ export async function SiteFooter() {
                 <RssIcon className="h-4 w-4 text-orange-500" />
                 RSS feed
               </a>
-              <a
-                href="https://github.com/mrjithendar"
+              {settings.social.github && <a
+                href={settings.social.github}
                 rel="me noopener"
                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition-colors hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
               >
                 <GitHubIcon className="h-4 w-4" />
                 <span className="sr-only">GitHub</span>
-              </a>
+              </a>}
+              {settings.social.x && <a href={settings.social.x} rel="me noopener" className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">X</a>}
+              {settings.social.linkedin && <a href={settings.social.linkedin} rel="me noopener" className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">LinkedIn</a>}
             </div>
           </div>
           <Column title="Publication" links={publication} />
@@ -81,7 +84,7 @@ export async function SiteFooter() {
         </div>
         <div className="mt-12 flex flex-col gap-4 border-t border-slate-200 pt-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between dark:border-white/10 dark:text-slate-400">
           <p>
-            © {new Date().getFullYear()} {site.name}. Every article is reviewed by a human editor.
+            © {new Date().getFullYear()} {settings.siteName}. Every article is reviewed by a human editor.
           </p>
           <ul className="flex flex-wrap gap-x-5 gap-y-2">
             {policies.map((p) => (

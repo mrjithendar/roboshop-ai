@@ -59,8 +59,12 @@ async function authorSlugFor(userId: string): Promise<string> {
 /** Validate with the exact schema the public site reads with, plus database-level checks. */
 async function validate(input: ParsedInput, authorId: string, selfId?: string) {
   const author = await authorSlugFor(authorId);
+  // `collection` and `body` are stored on the row but are not frontmatter fields (the schema is strict).
+  const { collection: _collection, body: _body, ...frontmatter } = input;
+  void _collection;
+  void _body;
   const result = collectionSchema(input.collection).safeParse({
-    ...input,
+    ...frontmatter,
     author,
     publishedAt: input.publishedAt ?? undefined,
     updatedAt: input.updatedAt ?? undefined,

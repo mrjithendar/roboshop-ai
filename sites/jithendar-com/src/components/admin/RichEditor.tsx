@@ -14,8 +14,11 @@ import { MediaPicker } from "./MediaPicker";
 
 type Mode = "rich" | "markdown" | "preview";
 
-/** Shortcodes (`:::callout`, `::button[…]`, `::toc`) are kept verbatim by editing them as Markdown. */
-const SHORTCODE = /^\s*:{2,3}[a-z]/m;
+/**
+ * Shortcodes (`:::callout`, `::button[…]`, `::toc`) and HTML comments (owner notes) are kept verbatim
+ * by editing them as Markdown; rich mode could rewrite or drop them.
+ */
+const SHORTCODE = /^\s*:{2,3}[a-z]|<!--/m;
 
 const SNIPPETS: { label: string; text: string }[] = [
   { label: "Callout: info", text: ':::callout{type="info" title="Note"}\nText.\n:::' },
@@ -174,7 +177,7 @@ export function RichEditor({
   function switchTo(next: Mode) {
     if (next === mode) return;
     if (next === "rich") {
-      if (SHORTCODE.test(latest.current) && !window.confirm("This post uses shortcodes. Rich mode may rewrite them; keep editing shortcodes in Markdown mode. Switch anyway?")) return;
+      if (SHORTCODE.test(latest.current) && !window.confirm("This text uses shortcodes or hidden notes. Rich mode may rewrite or drop them; keep editing in Markdown mode. Switch anyway?")) return;
       editor?.commands.setContent(latest.current, { contentType: "markdown" });
     }
     if (next === "preview") {
