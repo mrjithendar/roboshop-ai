@@ -3,14 +3,11 @@ kind: PersistentVolumeClaim
 metadata:
   name: mongodb-data
   namespace: roboshop-ai
-  annotations:
-    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   labels:
     app.kubernetes.io/part-of: roboshop-ai
 spec:
   accessModes:
   - ReadWriteOnce
-  storageClassName: standard
   resources:
     requests:
       storage: 5Gi

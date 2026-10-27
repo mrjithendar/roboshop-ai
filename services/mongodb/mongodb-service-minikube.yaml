@@ -3,8 +3,6 @@ kind: Service
 metadata:
   name: mongodb
   namespace: roboshop-ai
-  annotations:
-    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   labels:
     app.kubernetes.io/part-of: roboshop-ai
 spec:
