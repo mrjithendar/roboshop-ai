@@ -66,7 +66,7 @@ def render(app, external=False):
 def validate_inventory(workloads):
     # This is the required active catalog, not a historical snapshot of live pods.
     # Do not filter expected entries by rendered apps: that would hide omissions.
-    inventory = ROOT/'minikube/gitops/workload-inventory.json'
+    inventory = ROOT/'argocd/workload-inventory.json'
     expected = {tuple(row) for row in json.loads(inventory.read_text())}
     assert expected <= workloads, f'Unmanaged workloads: {sorted(expected-workloads)}'
 

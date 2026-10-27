@@ -79,7 +79,7 @@ def test_imperative_guard_allows_unregistered_application(tmp_path):
 
 def test_inventory_excludes_cluster_managed_networking():
     import json
-    inventory=json.loads((ROOT/'minikube/gitops/workload-inventory.json').read_text())
+    inventory=json.loads((ROOT/'argocd/workload-inventory.json').read_text())
     assert not any(namespace=='kube-system' and name in {'coredns','kindnet','kube-proxy'}
                    for kind,namespace,name in inventory)
     assert ['Deployment','kube-system','metrics-server'] in inventory
@@ -88,7 +88,7 @@ def test_inventory_excludes_cluster_managed_networking():
 def test_required_inventory_matches_active_catalog_and_rejects_missing_workloads():
     import json
     import pytest
-    expected={tuple(row) for row in json.loads((ROOT/'minikube/gitops/workload-inventory.json').read_text())}
+    expected={tuple(row) for row in json.loads((ROOT/'argocd/workload-inventory.json').read_text())}
     assert not any(name in ('product-ingestion','shopping-agent') for _,ns,name in expected)
     assert ('Deployment','roboshop-ai','moks') in expected
     assert ('Deployment','roboshop-ai','catalogue-service') in expected

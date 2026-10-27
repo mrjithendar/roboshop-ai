@@ -151,7 +151,7 @@ leaves its workloads running. To return a workload to imperative management,
 remove its Argo ownership first and verify no Application still reconciles it.
 
 
-The required workload inventory (`minikube/gitops/workload-inventory.json`) covers
+The required workload inventory (`argocd/workload-inventory.json`) covers
 only the active default catalog. Retired product-ingestion/shopping-agent deployments are excluded. Enabling optional apps
 requires reviewing their project, ownership and inventory together. Validation still
 fails when any required active workload is absent; it never filters expected entries
