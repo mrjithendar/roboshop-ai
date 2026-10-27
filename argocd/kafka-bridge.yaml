@@ -22,4 +22,4 @@ spec:
     targetRevision: master
     path: services/kafka-bridge
     directory:
-      include: kafka-bridge-minikube.yaml
+      include: '{kafka-service-minikube.yaml,kafka-statefulset-minikube.yaml,kafka-internal-network-policy-minikube.yaml}'

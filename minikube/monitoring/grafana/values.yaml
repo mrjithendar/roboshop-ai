@@ -73,3 +73,12 @@ datasources:
         jsonData:
           httpMethod: POST
           timeInterval: 30s
+      - name: Loki
+        uid: roboshop-loki
+        type: loki
+        access: proxy
+        url: http://loki.monitoring.svc:3100
+        isDefault: false
+        editable: false
+        jsonData:
+          maxLines: 1000

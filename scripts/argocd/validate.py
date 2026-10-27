@@ -89,7 +89,7 @@ def validate(external=False):
             kind=resource['kind'];meta=resource['metadata'];namespace=meta.get('namespace','')
             cluster_kind=kind in ('Namespace','ClusterRole','ClusterRoleBinding','CustomResourceDefinition','APIService','ClusterIssuer','MutatingWebhookConfiguration','ValidatingWebhookConfiguration')
             if not namespace and not cluster_kind:namespace=spec['destination']['namespace']
-            assert namespace not in ('argocd','traefik'),(name,kind,meta['name'])
+            assert namespace not in ('argocd','traefik') or (name=='loki' and namespace=='traefik' and kind in ('Role','RoleBinding')),(name,kind,meta['name'])
             if kind=='Secret':
                 assert name=='jfrog' and meta['name']=='jfrog-artifactory-unified-secret',f'{name} renders a credential Secret: provision credentials externally'
                 assert set(resource.get('stringData',{}))=={'access.config.patch.yml','binarystore.xml','system.yaml'}

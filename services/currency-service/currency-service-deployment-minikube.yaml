@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: currency-service
+  namespace: roboshop-ai
+  labels:
+    app.kubernetes.io/part-of: roboshop-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: currency-service
+  template:
+    metadata:
+      labels:
+        app: currency-service
+        app.kubernetes.io/part-of: roboshop-ai
+    spec:
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      imagePullSecrets:
+      - name: ecr-pull
+      containers:
+      - name: currency-service
+        envFrom:
+        - configMapRef:
+            name: roboshop-config
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-currency-service:latest
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        ports:
+        - containerPort: 4111
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        startupProbe:
+          httpGet: &id001
+            path: /health
+            port: 4111
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 120
+        livenessProbe:
+          httpGet: *id001
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 4111
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 3
+        env:
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: roboshop-config
+              key: LOG_FORMAT
+              optional: true
+      volumes:
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate

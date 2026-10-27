@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: roboshop-ai
+  labels:
+    app.kubernetes.io/part-of: roboshop-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+        app.kubernetes.io/part-of: roboshop-ai
+    spec:
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      imagePullSecrets:
+      - name: ecr-pull
+      containers:
+      - name: nginx
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-nginx:latest
+        imagePullPolicy: Always
+        env:
+        - name: FRONTEND_BASE_PATH
+          value: /roboshop
+        # NGINX runtime DNS resolution needs full Kubernetes service names.
+        - name: GATEWAY_HOST
+          value: ai-gateway.roboshop-ai.svc.cluster.local
+        - name: GATEWAY_PORT
+          value: '3000'
+        - name: FRONTEND_HOST
+          value: frontend.roboshop-ai.svc.cluster.local
+        - name: FRONTEND_PORT
+          value: '8080'
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: roboshop-config
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        startupProbe:
+          httpGet: &id001
+            path: /health
+            port: 8080
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 120
+        livenessProbe:
+          httpGet: *id001
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          timeoutSeconds: 4
+          periodSeconds: 10
+          failureThreshold: 3
+      volumes:
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate

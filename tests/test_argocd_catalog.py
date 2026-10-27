@@ -13,7 +13,7 @@ def test_catalog_has_unique_safe_ownership():
     assert {'moks','catalogue-service'} <= names
     assert not {'shopping-agent','product-ingestion','jfrog'} & names
     assert not {'argocd','traefik','coredns','kube-proxy','kindnet'}&names
-    assert len(apps)==25
+    assert len(apps)==26
     assert 'cert-manager' not in names
     assert owners[('apps','Deployment','roboshop-ai','mongodb')]=='mongodb'
     assert ('apps','StatefulSet','roboshop-ai','mongodb') not in owners
@@ -50,7 +50,8 @@ def test_helm_releases_keep_names_and_pinned_versions():
 
 
 def test_shared_namespace_has_valid_metadata():
-    namespace,config=list(yaml.safe_load_all((ROOT/'minikube/roboshop/config.yaml').read_text()))
+    namespace=yaml.safe_load((ROOT/'minikube/roboshop/roboshop-ai-namespace.yaml').read_text())
+    config=yaml.safe_load((ROOT/'minikube/roboshop/roboshop-config-configmap.yaml').read_text())
     assert 'LOG_FORMAT' not in namespace['metadata']
     assert config['data']['LOG_FORMAT']=='json'
 

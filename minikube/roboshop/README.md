@@ -5,7 +5,7 @@
 
 # Deploy all RoboShop services to Minikube
 
-Each runnable service has its own **`services/<service>/<service>-minikube.yaml`**. The root **`scripts/deploy/deploy-minikube.sh`** applies all 18 in dependency order into `roboshop-ai`, checking readiness between services. Each application keeps its internal libraries in its own `lib/` folder; these libraries are not separate workloads.
+Each runnable service has its own **`services/<service>/<resource-name>-<kind>-minikube.yaml`**. The root **`scripts/deploy/deploy-minikube.sh`** applies all 18 in dependency order into `roboshop-ai`, checking readiness between services. Each application keeps its internal libraries in its own `lib/` folder; these libraries are not separate workloads.
 
 ## Local images on the Vultr Minikube host
 
@@ -45,7 +45,7 @@ Traefik strips `/roboshop` before forwarding to NGINX. `FRONTEND_BASE_PATH=/robo
 
 Open **https://jithendar.com/roboshop/** (admin: `/roboshop/admin`). HTTP redirects to HTTPS. WordPress continues serving `/`; monitoring retains `/grafana` and `/prometheus`.
 
-Prerequisites: DNS points to Vultr, Traefik exposes public ports 80/443, and cert-manager's `letsencrypt-prod` ClusterIssuer is Ready. The deploy script checks these cluster resources, applies `ingress.yaml`, and waits up to three minutes for the certificate. This certificate and its TLS Secret live in `roboshop-ai` because TLS Secrets cannot be referenced across namespaces.
+Prerequisites: DNS points to Vultr, Traefik exposes public ports 80/443, and cert-manager's `letsencrypt-prod` ClusterIssuer is Ready. The deploy script checks these cluster resources, applies the named `*-ingress.yaml` and `*-middleware.yaml` resources, and waits up to three minutes for the certificate. This certificate and its TLS Secret live in `roboshop-ai` because TLS Secrets cannot be referenced across namespaces.
 
 On the Minikube host, rebuild the frontend and NGINX changes using the fixed local tag:
 
@@ -81,10 +81,10 @@ Do not add `-t` for stdio protocol clients. Set a valid `MCP_SESSION_TOKEN` in `
 | APIs and AI | catalogue-service, catalogue-service, moks, payment-service, shipping-service, user-service, ai-gateway |
 | Web and tools | frontend, nginx, mcp-server |
 
-- `minikube/roboshop/config.yaml`: namespace and the single `roboshop-config` ConfigMap (environment settings and service configuration files).
+- `minikube/roboshop/roboshop-ai-namespace.yaml, minikube/roboshop/roboshop-config-configmap.yaml`: namespace and the single `roboshop-config` ConfigMap (environment settings and service configuration files).
 - `minikube/roboshop/deployment.py`: renderer and first-install credential initialization.
 - Each service YAML: Service (where applicable), Deployment/StatefulSet, probes, resources, and required PVC definitions and references to the shared ConfigMap.
-- The shared ConfigMap contains Mongo/Postgres init scripts and Redis/RabbitMQ/collector configuration. Each volume explicitly selects its own file with `items`, preventing unrelated init scripts from being mounted. Edit these files in `minikube/roboshop/config.yaml`. Database init scripts only run on **empty** data volumes.
+- The shared ConfigMap contains Mongo/Postgres init scripts and Redis/RabbitMQ/collector configuration. Each volume explicitly selects its own file with `items`, preventing unrelated init scripts from being mounted. Edit these files in `minikube/roboshop/roboshop-ai-namespace.yaml, minikube/roboshop/roboshop-config-configmap.yaml`. Database init scripts only run on **empty** data volumes.
 
 Prometheus is managed by `minikube/deploy-prometheus.sh` in `monitoring`; this application installer does not deploy a second Prometheus or reset monitoring. To collect application metrics, add actual service endpoints to `minikube/monitoring/prometheus/values.yaml` under `extraScrapeConfigs` and redeploy Prometheus. Traces flow to the included Jaeger, which uses ephemeral sandbox storage.
 

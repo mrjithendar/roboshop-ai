@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace | quote }}
+  name: wordpress
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: wordpress}
+  template:
+    metadata:
+      labels: {app: wordpress}
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {fsGroup: 33}
+      containers:
+        - name: wordpress
+          image: {{ .Values.images.wordpress | quote }}
+          env:
+            {{- include "wordpress.env" . | nindent 12 }}
+          ports: [{containerPort: 80}]
+          startupProbe:
+            tcpSocket: {port: 80}
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            tcpSocket: {port: 80}
+          livenessProbe:
+            tcpSocket: {port: 80}
+          resources:
+            requests: {cpu: 100m, memory: 192Mi}
+            limits: {cpu: "1", memory: 512Mi}
+          volumeMounts: [{name: wordpress, mountPath: /var/www/html}]
+        # WP-CLI shares the web volume and runs as Apache's UID, not root.
+        - name: cli
+          image: {{ .Values.images.cli | quote }}
+          command: [sh, -c, 'while true; do sleep 3600; done']
+          workingDir: /var/www/html
+          securityContext:
+            runAsUser: 33
+            runAsGroup: 33
+            allowPrivilegeEscalation: false
+          env:
+            {{- include "wordpress.env" . | nindent 12 }}
+            - {name: HOME, value: /tmp}
+            - {name: WP_CLI_CACHE_DIR, value: /tmp/wp-cli-cache}
+            - name: WP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: wordpress-credentials, key: admin-password}
+            - name: WP_ADMIN_USER
+              value: {{ .Values.adminUser | quote }}
+            - name: WP_ADMIN_EMAIL
+              value: {{ .Values.adminEmail | quote }}
+            - name: WP_TITLE
+              value: {{ .Values.siteTitle | quote }}
+            - name: WP_URL
+              value: {{ printf "https://%s" .Values.host | quote }}
+            - name: REDIS_PLUGIN_VERSION
+              value: {{ .Values.redisPluginVersion | quote }}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          volumeMounts: [{name: wordpress, mountPath: /var/www/html}]
+      volumes:
+        - name: wordpress
+          persistentVolumeClaim: {claimName: wordpress-wordpress}

@@ -20,7 +20,7 @@ StatefulSet with its volume:
 
 ```bash
 kubectl --context=mk4 -n roboshop-ai delete deployment/mongodb --ignore-not-found --cascade=foreground --wait=true --timeout=120s
-kubectl --context=mk4 apply -f services/mongodb/mongodb-minikube.yaml
+kubectl --context=mk4 apply -f services/mongodb/mongodb-data-pvc-minikube.yaml, services/mongodb/mongodb-service-minikube.yaml, services/mongodb/mongodb-statefulset-minikube.yaml, services/mongodb/mongodb-headless-service-minikube.yaml
 kubectl --context=mk4 -n roboshop-ai get pods,pvc -l app=mongodb
 ```
 

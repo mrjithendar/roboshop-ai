@@ -40,7 +40,7 @@ def test_invalid_token_never_contacts_kubernetes():
 
 
 def test_schedule_rbac_and_public_images():
-    docs=list(yaml.safe_load_all((ROOT/'minikube/ecr-refresh/resources.yaml').read_text()))
+    docs=[yaml.safe_load(p.read_text()) for p in (ROOT/'minikube/ecr-refresh').glob('*.yaml') if p.name != 'kustomization.yaml']
     cron=next(d for d in docs if d['kind']=='CronJob')['spec']
     assert cron['schedule']=='0 */6 * * *' and cron['concurrencyPolicy']=='Forbid'
     assert cron['jobTemplate']['spec']['activeDeadlineSeconds']==300

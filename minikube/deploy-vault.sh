@@ -37,7 +37,7 @@ helm --kube-context="$KUBE_CONTEXT" upgrade --install vault vault \
   --namespace vault --create-namespace \
   -f "$SCRIPT_DIR/vault/values.yaml" \
   --set-string "server.dataStorage.storageClass=$STORAGE_CLASS" --timeout 10m
-"${kube[@]}" apply -f "$SCRIPT_DIR/vault/ingress.yaml"
+"${kube[@]}" apply -k "$SCRIPT_DIR/vault"
 echo 'Submitted: https://jithendar.com/vault (redirects to /ui/).'
 echo 'Initialize once and unseal via the UI. Keep unseal keys and root token secure.'
 echo 'Sealed/uninitialized is expected; existing data and credentials are preserved.'

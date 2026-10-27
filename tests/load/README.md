@@ -175,21 +175,21 @@ rm /tmp/load-fixtures.json
 ```
 
 For Minikube, explicitly select your **test cluster context**, load the image and
-apply `tests/load/minikube.yaml`. The manifest creates only
+apply `tests/load/kubernetes/`. The manifest creates only
 `roboshop-load-testing`, disables service-account credentials, and denies pod
 network traffic. Verify your CNI enforces NetworkPolicy; otherwise use an isolated
 cluster with host egress controls. Port-forward works through the API server:
 
 ```bash
 minikube -p YOUR_TEST_PROFILE image load roboshop-load-lab:local
-kubectl --context=YOUR_TEST_CONTEXT apply -f tests/load/minikube.yaml
+kubectl --context=YOUR_TEST_CONTEXT apply -f tests/load/kubernetes/
 kubectl --context=YOUR_TEST_CONTEXT -n roboshop-load-testing port-forward deployment/load-lab 18080:18080
 # Separate shell; copy the same private fixture path from the pod.
 kubectl --context=YOUR_TEST_CONTEXT -n roboshop-load-testing cp \
   POD_NAME:/workspace/tests/load/.runs/load-container/fixtures.json /tmp/load-fixtures.json
 # Run the direct k6 command above from your workstation.
 # Remove only test-owned resources after saving sanitized reports:
-kubectl --context=YOUR_TEST_CONTEXT delete -f tests/load/minikube.yaml
+kubectl --context=YOUR_TEST_CONTEXT delete -f tests/load/kubernetes/
 ```
 
 Prefer an external generator for comparisons. A lab running generator and services

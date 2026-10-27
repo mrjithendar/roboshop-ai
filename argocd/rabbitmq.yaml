@@ -22,4 +22,4 @@ spec:
     targetRevision: master
     path: services/rabbitmq
     directory:
-      include: rabbitmq-minikube.yaml
+      include: '{rabbitmq-data-pvc-minikube.yaml,rabbitmq-service-minikube.yaml,rabbitmq-statefulset-minikube.yaml}'

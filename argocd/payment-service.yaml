@@ -22,4 +22,4 @@ spec:
     targetRevision: master
     path: services/payment-service
     directory:
-      include: payment-service-minikube.yaml
+      include: '{payment-service-service-minikube.yaml,payment-service-deployment-minikube.yaml}'

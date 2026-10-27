@@ -24,7 +24,7 @@ It follows the installer's selected `mk4` profile. Use `PROFILE=another-base-pro
 
 - `values.yaml`: official cert-manager Helm values and resources.
 - `issuers/values.yaml`: ACME email, ingress class, endpoints and account Secret names.
-- `issuers/templates/clusterissuers.yaml`: the two issuer resources.
+- `issuers/templates/letsencrypt-staging-cluster-issuer.yaml` and `letsencrypt-production-cluster-issuer.yaml`: one issuer per template.
 - `certificate.example.yaml`: optional certificate request for `jithendar.com`.
 
 The default account email is `jithendardharmapuri@gmail.com` and the ingress class is `traefik`. Override without editing YAML:

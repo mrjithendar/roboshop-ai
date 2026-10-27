@@ -22,4 +22,4 @@ spec:
     targetRevision: master
     path: services/redis
     directory:
-      include: redis-minikube.yaml
+      include: '{redis-service-minikube.yaml,redis-deployment-minikube.yaml}'

@@ -1,0 +1,8 @@
+# Shared, non-secret configuration for the roboshop-ai namespace.
+# Credentials belong in roboshop-secrets, never in this file.
+# Environment changes require a rollout of the services that consume them.
+# Database initialization scripts run only when their data volume is empty.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: roboshop-ai

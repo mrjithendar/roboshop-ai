@@ -22,4 +22,4 @@ spec:
     targetRevision: master
     path: services/jaeger
     directory:
-      include: jaeger-minikube.yaml
+      include: '{jaeger-service-minikube.yaml,jaeger-deployment-minikube.yaml}'

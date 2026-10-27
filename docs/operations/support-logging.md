@@ -104,4 +104,4 @@ kubectl -n roboshop-ai patch configmap roboshop-config --type=merge -p '{"data":
 bash scripts/deploy/deploy-minikube.sh
 ```
 
-New installs receive this setting from `minikube/roboshop/config.yaml`.
+New installs receive this setting from `minikube/roboshop/roboshop-ai-namespace.yaml, minikube/roboshop/roboshop-config-configmap.yaml`.

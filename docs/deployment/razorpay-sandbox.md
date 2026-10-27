@@ -8,7 +8,7 @@ payment service reject live checkout for demo/synthetic/simulated inventory.
 
 ## Configure the demo
 
-Keep `PAYMENT_MODE: test` in `minikube/roboshop/config.yaml`. Use the same ConfigMap
+Keep `PAYMENT_MODE: test` in `minikube/roboshop/roboshop-ai-namespace.yaml, minikube/roboshop/roboshop-config-configmap.yaml`. Use the same ConfigMap
 for gateway and payment service so storefront stock availability reflects the
 selected mode. In the existing `roboshop-secrets` Secret, configure:
 

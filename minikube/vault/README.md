@@ -9,7 +9,7 @@ bash minikube/deploy-vault.sh
 
 Overrides: `KUBE_CONTEXT=mk4 STORAGE_CLASS=standard`. Requires Helm, kubectl, Traefik with its Middleware CRD, and the existing ready `jithendar/jithendar-com` certificate and default TLSStore. Bootstrap the cluster and shared TLS first if missing.
 
-The script installs/upgrades official chart 0.34.1 (Vault 2.0.4), creates namespace `vault`, and applies the ingress YAML. It does not initialize, unseal, restart, or delete stored data. Helm does not wait for readiness because new Vault servers are sealed.
+The script installs/upgrades official chart 0.34.1 (Vault 2.0.4), creates namespace `vault`, and applies the single-resource manifests through `kustomization.yaml`. It does not initialize, unseal, restart, or delete stored data. Helm does not wait for readiness because new Vault servers are sealed.
 
 | Path | Behavior |
 | --- | --- |

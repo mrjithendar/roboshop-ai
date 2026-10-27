@@ -213,7 +213,7 @@ kubectl --context="$KUBE_CONTEXT" get clusterissuer letsencrypt-prod -o name
 
 ```bash
 set -euo pipefail
-kubectl --context="$KUBE_CONTEXT" apply -f minikube/roboshop/config.yaml
+kubectl --context="$KUBE_CONTEXT" apply -f minikube/roboshop/roboshop-ai-namespace.yaml, minikube/roboshop/roboshop-config-configmap.yaml
 # Generate only on a fresh installation; preserve existing credentials.
 # Refuse replacement passwords when persistent data already exists.
 python3 minikube/roboshop/deployment.py credentials --context="$KUBE_CONTEXT"
@@ -242,21 +242,21 @@ done
 ### .github/workflows/deploy-minikube.yml / deploy / Deploy Kafka order-event bridge
 
 ```bash
-kubectl --context="$KUBE_CONTEXT" apply -f services/kafka-bridge/kafka-bridge-minikube.yaml
+kubectl --context="$KUBE_CONTEXT" apply -f services/kafka-bridge/kafka-service-minikube.yaml, services/kafka-bridge/kafka-statefulset-minikube.yaml, services/kafka-bridge/kafka-internal-network-policy-minikube.yaml
 kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart statefulset/kafka
 ```
 
 ### .github/workflows/deploy-minikube.yml / deploy / Deploy catalogue-service from ECR
 
 ```bash
-kubectl --context="$KUBE_CONTEXT" apply -f "services/catalogue-service/catalogue-service-minikube.yaml"
+kubectl --context="$KUBE_CONTEXT" apply -f "services/catalogue-service/catalogue-service-service-minikube.yaml, services/catalogue-service/catalogue-service-deployment-minikube.yaml"
 kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/catalogue-service
 ```
 
 ### .github/workflows/deploy-minikube.yml / deploy / Deploy moks from ECR
 
 ```bash
-kubectl --context="$KUBE_CONTEXT" apply -f "services/moks/moks-minikube.yaml"
+kubectl --context="$KUBE_CONTEXT" apply -f "services/moks/moks-service-minikube.yaml, services/moks/moks-deployment-minikube.yaml"
 kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/moks
 ```
 
@@ -270,14 +270,14 @@ kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/sre-
 ### .github/workflows/deploy-minikube.yml / deploy / Deploy cart-service from ECR
 
 ```bash
-kubectl --context="$KUBE_CONTEXT" apply -f "services/cart-service/cart-service-minikube.yaml"
+kubectl --context="$KUBE_CONTEXT" apply -f "services/cart-service/cart-service-service-minikube.yaml, services/cart-service/cart-service-deployment-minikube.yaml"
 kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/cart-service
 ```
 
 ### .github/workflows/deploy-minikube.yml / deploy / Deploy payment-service from ECR
 
 ```bash
-kubectl --context="$KUBE_CONTEXT" apply -f "services/payment-service/payment-service-minikube.yaml"
+kubectl --context="$KUBE_CONTEXT" apply -f "services/payment-service/payment-service-service-minikube.yaml, services/payment-service/payment-service-deployment-minikube.yaml"
 kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/payment-service
 ```
 
@@ -303,14 +303,14 @@ kubectl --context="$KUBE_CONTEXT" -n roboshop-ai exec -i deployment/shipping-db 
 ### .github/workflows/deploy-minikube.yml / deploy / Deploy shipping-service from ECR
 
 ```bash
-kubectl --context="$KUBE_CONTEXT" apply -f "services/shipping-service/shipping-service-minikube.yaml"
+kubectl --context="$KUBE_CONTEXT" apply -f "services/shipping-service/shipping-service-service-minikube.yaml, services/shipping-service/shipping-service-deployment-minikube.yaml"
 kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/shipping-service
 ```
 
 ### .github/workflows/deploy-minikube.yml / deploy / Deploy user-service from ECR
 
 ```bash
-kubectl --context="$KUBE_CONTEXT" apply -f "services/user-service/user-service-minikube.yaml"
+kubectl --context="$KUBE_CONTEXT" apply -f "services/user-service/user-service-service-minikube.yaml, services/user-service/user-service-deployment-minikube.yaml"
 kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/user-service
 ```
 
@@ -324,35 +324,35 @@ kubectl --context="$KUBE_CONTEXT" -n roboshop-ai delete deployment/smtp-server s
 ### .github/workflows/deploy-minikube.yml / deploy / Deploy ai-gateway from ECR
 
 ```bash
-kubectl --context="$KUBE_CONTEXT" apply -f "services/ai-gateway/ai-gateway-minikube.yaml"
+kubectl --context="$KUBE_CONTEXT" apply -f "services/ai-gateway/gateway-data-pvc-minikube.yaml, services/ai-gateway/ai-gateway-service-minikube.yaml, services/ai-gateway/ai-gateway-deployment-minikube.yaml"
 kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/ai-gateway
 ```
 
 ### .github/workflows/deploy-minikube.yml / deploy / Deploy optional currency-service from ECR
 
 ```bash
-kubectl --context="$KUBE_CONTEXT" apply -f services/currency-service/currency-service-minikube.yaml
+kubectl --context="$KUBE_CONTEXT" apply -f services/currency-service/currency-service-service-minikube.yaml, services/currency-service/currency-service-deployment-minikube.yaml
 kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/currency-service
 ```
 
 ### .github/workflows/deploy-minikube.yml / deploy / Deploy frontend from ECR
 
 ```bash
-kubectl --context="$KUBE_CONTEXT" apply -f "services/frontend/frontend-minikube.yaml"
+kubectl --context="$KUBE_CONTEXT" apply -f "services/frontend/frontend-service-minikube.yaml, services/frontend/frontend-deployment-minikube.yaml"
 kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/frontend
 ```
 
 ### .github/workflows/deploy-minikube.yml / deploy / Deploy nginx from ECR
 
 ```bash
-kubectl --context="$KUBE_CONTEXT" apply -f "services/nginx/nginx-minikube.yaml"
+kubectl --context="$KUBE_CONTEXT" apply -f "services/nginx/nginx-service-minikube.yaml, services/nginx/nginx-deployment-minikube.yaml"
 kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/nginx
 ```
 
 ### .github/workflows/deploy-minikube.yml / deploy / Deploy mcp-server from ECR
 
 ```bash
-kubectl --context="$KUBE_CONTEXT" apply -f "services/mcp-server/mcp-server-minikube.yaml"
+kubectl --context="$KUBE_CONTEXT" apply -f "services/mcp-server/mcp-server-service-minikube.yaml, services/mcp-server/mcp-server-deployment-minikube.yaml"
 kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/mcp-server
 ```
 
@@ -360,7 +360,7 @@ kubectl --context="$KUBE_CONTEXT" -n roboshop-ai rollout restart deployment/mcp-
 
 ```bash
 KUBE_CONTEXT="$KUBE_CONTEXT" bash minikube/setup-shared-tls.sh
-kubectl --context="$KUBE_CONTEXT" apply -f minikube/roboshop/ingress.yaml
+kubectl --context="$KUBE_CONTEXT" apply -f minikube/roboshop/roboshop-prefix-middleware.yaml, minikube/roboshop/roboshop-https-middleware.yaml, minikube/roboshop/roboshop-ingress.yaml, minikube/roboshop/roboshop-http-ingress.yaml
 ```
 
 ### .github/workflows/deploy-minikube.yml / deploy / Record deployment

@@ -101,7 +101,7 @@ Do not enable Force/Replace to resolve an immutable-field difference.
 
 | Applications | Sources and migration notes |
 | --- | --- |
-| ai-gateway, cart-service, catalogue-service, currency-service, frontend, jaeger, kafka-bridge, mcp-server, moks, nginx, otel-collector, payment-service, postgres, rabbitmq, redis, shipping-service, user-service | Only the named `services/<service>/*-minikube.yaml` file is loaded. `postgres` owns shipping-db; `kafka-bridge` owns the Kafka StatefulSet and bridge sidecar. |
+| ai-gateway, cart-service, catalogue-service, currency-service, frontend, jaeger, kafka-bridge, mcp-server, moks, nginx, otel-collector, payment-service, postgres, rabbitmq, redis, shipping-service, user-service | Explicitly named `services/<service>/*-minikube.yaml` resource files are loaded. `postgres` owns shipping-db; `kafka-bridge` owns the Kafka StatefulSet and bridge sidecar. |
 | roboshop-config | Shared ConfigMap, namespace and shop ingress; one owner for shared configuration. |
 | mongodb | Existing Deployment, Service and PVC baseline; **not** the repo's newer StatefulSet. A controller conversion needs a separate data migration. |
 | shopping-agent | Retired from the active catalog; functionality resides in Moks. Historical adoption files do not make it a required workload. |
@@ -149,11 +149,6 @@ Removing an Application from this catalog does not delete it from the cluster;
 review removal explicitly. Without cascading finalizers, deleting an Application
 leaves its workloads running. To return a workload to imperative management,
 remove its Argo ownership first and verify no Application still reconciles it.
-
-Optional ELK logging is staged separately to preserve deployment ordering and avoid
-adding a collector during `deploy all`. See [ELK deployment](../observability/elk/README.md):
-`project-elk.yaml`, then (only if no existing ECK) `elk-operator.yaml`, then
-`elk-core.yaml`, then `elk-pipeline.yaml`. Namespace `elk`, Kibana at `/elk`.
 
 
 The required workload inventory (`minikube/gitops/workload-inventory.json`) covers
@@ -223,3 +218,6 @@ to Git. Back up the Secret securely. Do not use newly generated passwords with
 restored databases: restore their original Secret/encryption key instead.
 External Razorpay, SES, Turnstile, AWS and Langfuse values are not fabricated;
 configure them separately. Scheduled ECR refresh still requires AWS credentials.
+
+
+Logging uses Loki and Alloy: run `./deploy-loki.sh --context mk4`. See [logging setup](../observability/loki/README.md).

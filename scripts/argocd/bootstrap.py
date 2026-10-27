@@ -183,7 +183,7 @@ def main():
             subprocess.check_call(kube + ['-n', namespace, 'rollout', 'status', f'deployment/{deployment}', f'--timeout={args.timeout}s'])
     # Reuse the existing pinned, Helm-version-compatible Argo installer.
     subprocess.check_call([sys.executable, str(ROOT / 'scripts/argocd/deploy.py'), 'install', '--context', args.context, '--timeout', str(args.timeout)])
-    subprocess.check_call(kube + ['apply', '-f', str(ROOT / 'minikube/argocd/ingress.yaml')])
+    subprocess.check_call(kube + ['apply', '-k', str(ROOT / 'minikube/argocd')])
     print('Controllers and Argo CD ingress ready. Public HTTPS still requires host ports 80/443 and the shared certificate.')
     if args.deploy_apps:
         subprocess.check_call([sys.executable, str(ROOT / 'scripts/argocd/deploy.py'), '--context', args.context, '--timeout', str(args.timeout)])

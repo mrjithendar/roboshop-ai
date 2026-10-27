@@ -22,4 +22,4 @@ spec:
     targetRevision: master
     path: services/otel-collector
     directory:
-      include: otel-collector-minikube.yaml
+      include: '{otel-collector-service-minikube.yaml,otel-collector-deployment-minikube.yaml}'

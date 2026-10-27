@@ -99,7 +99,7 @@ class ReadinessTests(unittest.TestCase):
                  'moks':'/ready', 'catalogue-service':'/api/catalogue/ready'}
         for name, path in paths.items():
             with self.subTest(service=name):
-                manifests = yaml.safe_load_all((ROOT / f'services/{name}/{name}-minikube.yaml').read_text())
+                manifests = (yaml.safe_load(p.read_text()) for p in (ROOT / f'services/{name}').glob('*-minikube.yaml'))
                 deployment = next(doc for doc in manifests if doc['kind'] == 'Deployment')
                 container = deployment['spec']['template']['spec']['containers'][0]
                 self.assertEqual(container['livenessProbe']['httpGet']['path'], '/health/live' if name == 'ai-gateway' else '/health')

@@ -1,0 +1,5 @@
+# Explicit opt-in dedicated namespace; no production service or secret references.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: roboshop-load-testing

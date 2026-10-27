@@ -1,0 +1,15 @@
+# Minikube sandbox deployment; apply with ./scripts/deploy/deploy-minikube.sh.
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: roboshop-ai
+  labels:
+    app.kubernetes.io/part-of: roboshop-ai
+spec:
+  selector:
+    app: payment-service
+  ports:
+  - name: p4105
+    port: 4105
+    targetPort: 4105

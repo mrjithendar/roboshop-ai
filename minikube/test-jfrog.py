@@ -43,7 +43,7 @@ class JFrogTests(unittest.TestCase):
             self.assertNotIn(data['admin-password'],' '.join(write.call_args.args[0]))
 
     def test_routes_do_not_take_over_existing_website(self):
-        docs=list(yaml.safe_load_all((ROOT/'jfrog/ingress.yaml').read_text()))
+        docs=[yaml.safe_load((ROOT/'jfrog'/name).read_text()) for name in yaml.safe_load((ROOT/'jfrog/kustomization.yaml').read_text())['resources']]
         for doc in docs:
             if doc['kind']=='Ingress':
                 for rule in doc['spec']['rules']:

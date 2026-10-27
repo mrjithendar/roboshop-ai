@@ -4,7 +4,7 @@ import yaml
 ROOT=Path(__file__).resolve().parents[1]
 class MongoManifestTests(unittest.TestCase):
     def test_statefulset_reuses_existing_claim_and_service(self):
-        docs=list(yaml.safe_load_all((ROOT/'services/mongodb/mongodb-minikube.yaml').read_text()))
+        docs=[yaml.safe_load(p.read_text()) for p in (ROOT/'services/mongodb').glob('*-minikube.yaml')]
         self.assertFalse(any(d['kind']=='Deployment' for d in docs))
         sts=next(d for d in docs if d['kind']=='StatefulSet')
         self.assertEqual(sts['spec']['replicas'],1)

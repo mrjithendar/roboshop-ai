@@ -22,4 +22,4 @@ spec:
     targetRevision: master
     path: services/catalogue-service
     directory:
-      include: catalogue-service-minikube.yaml
+      include: '{catalogue-service-service-minikube.yaml,catalogue-service-deployment-minikube.yaml}'

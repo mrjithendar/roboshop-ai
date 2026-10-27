@@ -22,10 +22,4 @@ Cluster networking, kubeconfig and lifecycle helpers remain dependencies of
 cluster operations. Build, CI runner, runtime, credential, diagnostic and test
 tools are retained; they are not application deployment entry points.
 
-## Optional ELK operations
-
-`python3 scripts/observability/elk.py --help` describes offline render, read-only
-preflight and explicit credential/dashboard setup. `--apply` is required for the
-two setup actions. Deployments remain Argo-owned and follow the separate
-[ELK runbook](../../observability/elk/README.md). `minikube/host-limits.sh --elk`
-checks only; `--elk --apply` explicitly opts into the Elasticsearch mmap sysctl.
+Logging uses Loki and Alloy: run `./deploy-loki.sh --context mk4`. See [logging setup](../../observability/loki/README.md).

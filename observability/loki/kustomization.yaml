@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- alloy-service-account.yaml
+- roboshop-ai-alloy-logs-role.yaml
+- roboshop-ai-alloy-logs-role-binding.yaml
+- traefik-alloy-logs-role.yaml
+- traefik-alloy-logs-role-binding.yaml
+- loki-data-pvc.yaml
+- alloy-data-pvc.yaml
+- loki-deployment.yaml
+- loki-service.yaml
+- alloy-deployment.yaml
+configMapGenerator:
+- name: loki-config
+  namespace: monitoring
+  files: [loki.yaml]
+- name: alloy-config
+  namespace: monitoring
+  files: [config.alloy]

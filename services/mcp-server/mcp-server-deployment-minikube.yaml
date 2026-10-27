@@ -1,0 +1,72 @@
+# Minikube sandbox deployment; apply with ./scripts/deploy/deploy-minikube.sh.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-server
+  namespace: roboshop-ai
+  labels:
+    app.kubernetes.io/part-of: roboshop-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-server
+  template:
+    metadata:
+      labels:
+        app: mcp-server
+        app.kubernetes.io/part-of: roboshop-ai
+    spec:
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      imagePullSecrets:
+      - name: ecr-pull
+      containers:
+      - name: mcp-server
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-mcp-server:latest
+        imagePullPolicy: Always
+        env:
+        - name: GATEWAY_URL
+          value: http://ai-gateway:3000
+        - name: MCP_TRANSPORT
+          value: http
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        envFrom:
+        - configMapRef:
+            name: roboshop-config
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        ports:
+        - name: http
+          containerPort: 4107
+        livenessProbe:
+          httpGet: {path: /health, port: http}
+          periodSeconds: 20
+          timeoutSeconds: 3
+        readinessProbe:
+          httpGet: {path: /ready, port: http}
+          periodSeconds: 10
+          timeoutSeconds: 4
+        startupProbe:
+          httpGet: {path: /health, port: http}
+          periodSeconds: 5
+          failureThreshold: 30
+          timeoutSeconds: 3
+      volumes:
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate

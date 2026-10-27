@@ -1,0 +1,51 @@
+// One collector uses the API: no privileged host mounts or per-node agents.
+discovery.kubernetes "pods" {
+  role = "pod"
+  namespaces { names = ["roboshop-ai", "traefik"] }
+}
+discovery.relabel "logs" {
+  targets = discovery.kubernetes.pods.targets
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    target_label = "namespace"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    target_label = "pod"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_container_name"]
+    target_label = "container"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_container_name"]
+    target_label = "service_name"
+  }
+}
+loki.source.kubernetes "logs" {
+  targets = discovery.relabel.logs.output
+  forward_to = [loki.process.safe.receiver]
+}
+// Preserve the previous collection boundary: no raw user data, headers, URLs,
+// prompts or exception text are forwarded. Trace IDs remain in the log, not labels.
+loki.process "safe" {
+  stage.regex {
+    expression = `(?i)"(?:level|log.level)"\s*:\s*"(?P<level>trace|debug|info|warn|warning|error|fatal)"`
+  }
+  stage.regex {
+    expression = `"event"\s*:\s*"(?P<event>[A-Za-z][A-Za-z0-9_.:/-]{0,119})"`
+  }
+  stage.regex {
+    expression = `"(?:traceId|trace_id)"\s*:\s*"(?P<trace_id>[a-fA-F0-9]{32})"`
+  }
+  stage.template {
+    source = "safe_line"
+    template = `event={{ if .event }}{{ .event }}{{ else }}application_log{{ end }} level={{ if .level }}{{ .level }}{{ else }}unknown{{ end }} trace_id={{ if .trace_id }}{{ .trace_id }}{{ else }}none{{ end }}`
+  }
+  stage.output { source = "safe_line" }
+  forward_to = [loki.write.local.receiver]
+}
+loki.write "local" {
+  endpoint { url = "http://loki.monitoring.svc:3100/loki/api/v1/push" }
+  wal { enabled = true }
+}

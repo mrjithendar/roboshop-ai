@@ -22,4 +22,4 @@ spec:
     targetRevision: master
     path: services/ai-gateway
     directory:
-      include: ai-gateway-minikube.yaml
+      include: '{gateway-data-pvc-minikube.yaml,ai-gateway-service-minikube.yaml,ai-gateway-deployment-minikube.yaml}'

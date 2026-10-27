@@ -157,4 +157,4 @@ and `ai-gateway` to enable the integration; no checkout dependency on Kafka is a
 
 ### Create missing Minikube secrets
 
-Use `./create-secrets.sh --context mk4` to preview, then add `--apply` to create missing RoboShop, monitoring and WordPress credentials. Optional `--all` includes ELK/JFrog; `--ecr` refreshes image-pull tokens using existing AWS authentication. Existing credentials are preserved. See [secret setup and recovery safeguards](scripts/setup/SECRETS.md).
+Use `./create-secrets.sh --context mk4` to preview, then add `--apply` to create missing RoboShop, monitoring and WordPress credentials. Optional `--all` includes JFrog; `--ecr` refreshes image-pull tokens using existing AWS authentication. Existing credentials are preserved. See [secret setup and recovery safeguards](scripts/setup/SECRETS.md).

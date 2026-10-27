@@ -1,0 +1,5 @@
+# Reuse the shared jithendar.com TLSStore; reserve /ui and /v1 for Vault.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vault

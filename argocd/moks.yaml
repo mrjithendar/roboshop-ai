@@ -22,4 +22,4 @@ spec:
     targetRevision: master
     path: services/moks
     directory:
-      include: moks-minikube.yaml
+      include: '{moks-service-minikube.yaml,moks-deployment-minikube.yaml}'

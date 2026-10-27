@@ -22,4 +22,4 @@ spec:
     targetRevision: master
     path: minikube/roboshop
     directory:
-      include: '{config.yaml,ingress.yaml}'
+      include: '{roboshop-ai-namespace.yaml,roboshop-config-configmap.yaml,roboshop-prefix-middleware.yaml,roboshop-https-middleware.yaml,roboshop-ingress.yaml,roboshop-http-ingress.yaml}'
