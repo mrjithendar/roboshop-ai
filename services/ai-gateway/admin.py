@@ -1,6 +1,7 @@
 import re
 from pymongo.errors import DuplicateKeyError
-from runtime import HttpError, text, now
+import product_images
+from runtime import UserError, text, now
 from catalogue import normalize
 from auth import require_role, email_address
 
@@ -10,6 +11,10 @@ DEFAULTS = {
     "supportEmail": "team@jithendar.com",
     "checkoutEnabled": True,
 }
+
+
+# Mirrors the static asset routes in NGINX and the gateway, so a saved path never renders broken.
+SERVED_IMAGE = re.compile(r"/product-media/[a-z0-9-]+\.(?:jpg|png)|/images/[A-Za-z0-9_-]+\.png")
 
 
 def settings(db):
@@ -24,7 +29,9 @@ def routes(req, db, auth, store):
         products = list(db.products.find().sort("sku", 1).limit(10000))
         with store.lock:
             return {"products": [{k: v for k, v in p.items() if k != "_id"}
-                                 | {"available": store.available(p)} for p in products]}
+                                 | {"available": store.available(p)} for p in products],
+                    # PostgreSQL stock changes need an audited adjustment, not the catalogue editor.
+                    "stockEditable": getattr(store, "backend", "json") != "postgres"}
     match = re.fullmatch(r"/api/admin/products/([A-Za-z0-9_-]{1,64})", path)
     if (path == "/api/admin/products" and method == "POST") or (
         match and method == "PUT"
@@ -41,36 +48,39 @@ def routes(req, db, auth, store):
             "revision",
             "image",
         }:
-            raise HttpError(400, "Unknown product field.")
+            raise UserError(400, "Unknown product field.")
         if "archived" in data and type(data["archived"]) is not bool:
-            raise HttpError(400, "Archived must be true or false.")
+            raise UserError(400, "Archived must be true or false.")
         image = data.get('image')
-        if image is not None and (not isinstance(image, str) or (image and not re.fullmatch(r"/(?:product-media|images)/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)", image))):
-            raise HttpError(400, "Use an existing storefront image path under /product-media/ or /images/.")
+        if image is not None and not isinstance(image, str):
+            raise UserError(400, "Upload a product image or leave it blank.")
         product = normalize(data)
         if image:
             product['image'] = image
         if match and (
             match[1] != product["sku"] or type(data.get("revision")) is not int
         ):
-            raise HttpError(400, "SKU cannot change and a revision is required.")
+            raise UserError(400, "SKU cannot change and a revision is required.")
         with store.catalogue_lock:
+            existing = (db.products.find_one({"_id": product["sku"]}) or {}) if match else {}
+            # Only images the storefront can actually serve; an unchanged legacy path stays editable.
+            if image and image != existing.get("image") and not (SERVED_IMAGE.fullmatch(image) or product_images.exists(db, image)):
+                raise UserError(400, "Upload the product image again; this image is not available on the storefront.")
             if match:
-                existing = db.products.find_one({"_id": product["sku"]}) or {}
                 if getattr(store, "backend", "json") == "postgres" and data.get("instock") != existing.get("instock"):
-                    raise HttpError(409, "Use an audited PostgreSQL inventory adjustment; catalogue stock is no longer authoritative.")
+                    raise UserError(409, "Use an audited PostgreSQL inventory adjustment; catalogue stock is no longer authoritative.")
                 if existing.get("collection") == "reference" and product["instock"] != 0:
-                    raise HttpError(400, "Reference inventory must remain zero and simulated.")
+                    raise UserError(400, "Reference inventory must remain zero and simulated.")
                 if image is None:
                     product['image'] = existing.get('image', product['image'])
                 if existing.get("showcase"):
                     if product["price"] != existing["price"]:
-                        raise HttpError(
+                        raise UserError(
                             400,
                             "Source reference prices must be updated with reviewed provenance, not the live price editor.",
                         )
                     if image and image != existing.get('image'):
-                        raise HttpError(400, "Reference images require a reviewed provenance update.")
+                        raise UserError(400, "Reference images require a reviewed provenance update.")
                     product["image"] = existing.get('image', '/images/placeholder.png')
 
                 with store.lock:
@@ -82,7 +92,7 @@ def routes(req, db, auth, store):
                         < max(store.reserved(product["sku"], "live") + store.sold(product["sku"], "live"),
                               store.reserved(product["sku"], "test") + store.sold(product["sku"], "test"))
                     ):
-                        raise HttpError(
+                        raise UserError(
                             409,
                             "Stock cannot fall below sold and reserved quantities; pending orders prevent archiving.",
                         )
@@ -98,15 +108,15 @@ def routes(req, db, auth, store):
                     },
                 )
                 if not result.matched_count:
-                    raise HttpError(
+                    raise UserError(
                         409,
                         "Product changed or does not exist. Refresh before editing.",
                     )
             else:
                 if product["sku"].startswith("REF-"):
-                    raise HttpError(400, "REF- SKUs are reserved for source-reviewed reference imports.")
+                    raise UserError(400, "REF- SKUs are reserved for source-reviewed reference imports.")
                 if db.products.count_documents({}) >= 10000:
-                    raise HttpError(409, "Catalogue capacity reached.")
+                    raise UserError(409, "Catalogue capacity reached.")
                 try:
                     db.products.insert_one(
                         {
@@ -122,7 +132,7 @@ def routes(req, db, auth, store):
                         }
                     )
                 except DuplicateKeyError:
-                    raise HttpError(409, "SKU already exists.")
+                    raise UserError(409, "SKU already exists.")
         return {"saved": True}, 200 if match else 201, []
     require_role(actor, ["superadmin"])
     if path == "/api/admin/settings":
@@ -134,7 +144,7 @@ def routes(req, db, auth, store):
                 set(data) - set(DEFAULTS)
                 or type(data.get("checkoutEnabled")) is not bool
             ):
-                raise HttpError(400, "Only public store settings can be changed here.")
+                raise UserError(400, "Only public store settings can be changed here.")
             value = {
                 "storeName": text(data.get("storeName"), "Store name", 60),
                 "announcement": text(data.get("announcement"), "Announcement", 160),
@@ -157,4 +167,4 @@ def routes(req, db, auth, store):
                 upsert=True,
             )
             return value
-    raise HttpError(404, "Admin endpoint not found.")
+    raise UserError(404, "Admin endpoint not found.")

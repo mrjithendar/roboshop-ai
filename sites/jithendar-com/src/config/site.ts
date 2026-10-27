@@ -29,6 +29,14 @@ export function isProductionEnv(): boolean {
   return process.env.APP_ENV === "production" || process.env.VERCEL_ENV === "production";
 }
 
+/**
+ * Local preview of unpublished work: `CONTENT_PREVIEW=true npm run dev`.
+ * Ignored whenever APP_ENV is production, so it can never leak drafts to the live site.
+ */
+export function isContentPreview(): boolean {
+  return process.env.CONTENT_PREVIEW === "true" && !isProductionEnv();
+}
+
 /** Request-time check: production environment *and* served on the canonical host. */
 export function isIndexableHost(host: string | null | undefined): boolean {
   if (!isProductionEnv() || !host) return false;

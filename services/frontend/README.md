@@ -102,3 +102,7 @@ The header uses a directly accessible native currency dropdown beside account an
 The site uses Inter, self-hosted from `fonts/` (SIL Open Font License 1.1, see `fonts/LICENSE`); no third-party font requests are made, so the `default-src 'self'` CSP is unchanged. `/fonts/inter-latin(-ext).woff2` is routed by the frontend NGINX, the edge NGINX and the native gateway.
 
 Brand colours, text colours, font stack and header height are CSS custom properties on `:root` in the "Enterprise theme" block at the end of `styles.css`; change `--brand*` there to rebrand. The store name and announcement come from admin Store settings. The header logo mark is drawn in CSS, so it survives the runtime store-name replacement. `npm run build` marks the current section in the header with `aria-current="page"`.
+
+## Admin product editing
+
+Product images are uploaded (file picker or drag and drop); the browser resizes to 1600 px and the gateway re-encodes and stores them. Standard categories are checkboxes matching the storefront filters, with a free-text box for extra categories. Fields the gateway would refuse are locked: images for reference products, and stock when the PostgreSQL commerce backend requires audited inventory adjustments. Super admins also get Orders (search, filters, test-order reconciliation with a reason) and Activity (the admin audit log) tabs.

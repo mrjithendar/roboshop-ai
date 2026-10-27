@@ -10,7 +10,7 @@ class ImageTests(unittest.TestCase):
     def setUp(self):
         self.db=mongomock.MongoClient().db
         self.store=SimpleNamespace(catalogue_lock=threading.RLock(),lock=threading.RLock(),reserved=lambda *a:0,sold=lambda *a:0)
-        self.body={'sku':'TEST','name':'Test','description':'Test','price':99,'instock':4,'categories':['robot'],'archived':False,'image':'/product-media/test.webp'}
+        self.body={'sku':'TEST','name':'Test','description':'Test','price':99,'instock':4,'categories':['robot'],'archived':False,'image':'/product-media/test.png'}
     def request(self,method,body):
         return routes(SimpleNamespace(user={'id':'admin','role':'admin'},path='/api/admin/products'+('/TEST' if method=='PUT' else ''),method=method,body=lambda:body),self.db,None,self.store)
     def test_create_update_preserve_and_revision(self):

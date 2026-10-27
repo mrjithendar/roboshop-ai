@@ -7,6 +7,8 @@ PATTERNS = [('/api/products/[^/]+/reviews/mine', '/api/products/{product_id}/rev
 STATIC = STATIC | frozenset('/api/shipping/countries /api/shipping/cities /internal/llm/readiness'.split())
 STATIC |= frozenset(['/api/admin/products', '/api/admin/settings', '/api/admin/llm/status', '/api/admin/llm/test', '/api/admin/llm/disconnect', '/admin', '/account', '/account/', '/cart', '/cart/', '/checkout', '/checkout/', '/', '/index.html', '/admin.html', '/product.html', '/checkout.html', '/profile.html', '/profile.js', '/checkout.js', '/product.js', '/paths.js', '/challenge.js', '/app.js', '/account.js', '/admin.js', '/styles.css', '/mcp/'])
 PATTERNS.extend([('/product-media/[a-z0-9-]+\\.(?:jpg|png)', '/product-media/{image}'), ('/illustrations/(robot|kit|component|accessory)\\.svg', '/illustrations/{type}.svg'), ('/images/[a-zA-Z0-9_-]+\\.png', '/images/{image}.png')])
+STATIC |= frozenset(['/api/admin/product-images', '/api/admin/overview', '/api/admin/orders', '/api/admin/audit', '/fonts/inter-latin.woff2', '/fonts/inter-latin-ext.woff2'])
+PATTERNS.append(('/api/product-images/[0-9a-f]{32}\\.jpg', '/api/product-images/{image}.jpg'))
 def route_template(path):
     path = urlsplit(path).path
     prefix = ''

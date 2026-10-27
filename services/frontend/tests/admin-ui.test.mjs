@@ -160,13 +160,13 @@ test('tabs switch panels and keyboard navigation skips restricted tabs', async t
 });
 test('product image path previews and is included in revision-protected update', async t => {
   const ui = setup(t, 'admin'); await ui.boot(); ui.$('#admin-products button').click();
-  ui.$('#product-image').value='/product-media/updated.webp';
+  ui.$('#product-image').value='/product-media/updated.png';
   ui.$('#product-image').dispatchEvent(new ui.w.Event('input'));
   assert.equal(ui.$('#product-image-preview').hidden,false);
   ui.$('#product-form').dispatchEvent(new ui.w.Event('submit',{cancelable:true}));
   await new Promise(r=>setTimeout(r,10));
   const body=JSON.parse(ui.calls.find(c=>c.options.method==='PUT').options.body);
-  assert.equal(body.image,'/product-media/updated.webp'); assert.equal(body.revision,1);
+  assert.equal(body.image,'/product-media/updated.png'); assert.equal(body.revision,1);
   assert.equal(ui.$('#panel-products').hidden,false);
 });
 test('product overview counts stock states and filters the table', async t => {
@@ -213,4 +213,105 @@ test('super admin can search loaded users', async t => {
   const rows = [...ui.w.document.querySelectorAll('#admin-users .admin-user')];
   assert.deepEqual(rows.map(row => row.hidden), [true, false]);
   assert.match(ui.$('#user-count').textContent, /Showing 1 of 2/);
+});
+function respond(ui, routes) {
+  const original = ui.w.fetch;
+  ui.w.fetch = async (path, options = {}) => {
+    for (const [prefix, body] of Object.entries(routes)) if (path.startsWith(prefix)) { ui.calls.push({ path, options }); return { ok: true, status: 200, json: async () => typeof body === 'function' ? body(path, options) : body }; }
+    return original(path, options);
+  };
+}
+test('product images are uploaded from a file, not typed as a path', async t => {
+  const ui = setup(t, 'admin');
+  const uploaded = '/api/product-images/' + 'a'.repeat(32) + '.jpg';
+  respond(ui, { '/api/admin/product-images': { image: uploaded } });
+  ui.w.createImageBitmap = async () => ({ width: 1200, height: 900, close() {} });
+  ui.w.HTMLCanvasElement.prototype.getContext = () => ({ fillRect() {}, drawImage() {}, fillStyle: '' });
+  ui.w.HTMLCanvasElement.prototype.toDataURL = () => 'data:image/jpeg;base64,AAAA';
+  await ui.boot(); ui.$('#new-product').click();
+  const picker = ui.$('#product-image-file');
+  Object.defineProperty(picker, 'files', { value: [new ui.w.File(['x'], 'robot.png', { type: 'image/png' })] });
+  picker.dispatchEvent(new ui.w.Event('change'));
+  await new Promise(resolve => setTimeout(resolve, 20));
+  const upload = ui.calls.find(call => call.path === '/api/admin/product-images');
+  assert.deepEqual(JSON.parse(upload.options.body), { image: 'data:image/jpeg;base64,AAAA' });
+  assert.equal(ui.$('#product-image').value, uploaded);
+  assert.equal(ui.$('#product-image-preview').hidden, false);
+  assert.equal(ui.$('#product-dirty').hidden, false);
+  assert.match(ui.$('#product-image-status').textContent, /Image uploaded/);
+  ui.$('#product-image-remove').click();
+  assert.equal(ui.$('#product-image').value, '');
+});
+test('unsupported or tiny files are rejected before upload', async t => {
+  const ui = setup(t, 'admin');
+  ui.w.createImageBitmap = async () => ({ width: 120, height: 90, close() {} });
+  await ui.boot(); ui.$('#new-product').click();
+  const picker = ui.$('#product-image-file');
+  for (const file of [new ui.w.File(['x'], 'vector.svg', { type: 'image/svg+xml' }), new ui.w.File(['x'], 'tiny.png', { type: 'image/png' })]) {
+    Object.defineProperty(picker, 'files', { value: [file], configurable: true });
+    picker.dispatchEvent(new ui.w.Event('change'));
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+  assert.match(ui.$('#product-image-status').textContent, /at least 200/);
+  assert.ok(!ui.calls.some(call => call.path === '/api/admin/product-images'));
+});
+test('standard categories are picked from checkboxes and at least one is required', async t => {
+  const ui = setup(t, 'admin'); await ui.boot();
+  ui.$('#admin-products button').click();
+  assert.equal(ui.$('#product-categories').value, 'Robot');
+  ui.$('#category-options input[value="robot arms"]').checked = true;
+  ui.$('#product-form').dispatchEvent(new ui.w.Event('submit', { cancelable: true }));
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.deepEqual(JSON.parse(ui.calls.find(call => call.options.method === 'PUT').options.body).categories, ['robot arms', 'Robot']);
+  ui.$('#admin-products button').click();
+  ui.$('#category-options input[value="robot arms"]').checked = false; ui.$('#product-categories').value = '';
+  const before = ui.calls.length;
+  ui.$('#product-form').dispatchEvent(new ui.w.Event('submit', { cancelable: true }));
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.match(ui.$('#product-status').textContent, /at least one category/);
+  assert.equal(ui.calls.slice(before).filter(call => call.options.method === 'PUT').length, 0);
+});
+test('fields the server refuses are locked instead of failing on save', async t => {
+  const ui = setup(t, 'admin');
+  respond(ui, { '/api/admin/products': { products: [{ ...product, showcase: true }], stockEditable: false } });
+  await ui.boot(); ui.$('#admin-products button').click();
+  assert.equal(ui.$('#product-stock').readOnly, true);
+  assert.equal(ui.$('#product-stock-help').hidden, false);
+  assert.equal(ui.$('#product-image-file').disabled, true);
+  assert.equal(ui.$('#product-price').readOnly, true);
+  assert.match(ui.$('#product-image-status').textContent, /provenance/);
+  ui.$('#new-product').click();
+  assert.equal(ui.$('#product-stock').readOnly, false);
+  assert.equal(ui.$('#product-image-file').disabled, false);
+});
+test('super admin reviews orders and reconciles test orders with a reason and revision', async t => {
+  const ui = setup(t, 'superadmin');
+  const id = '0f8fad5b-d9cb-469f-a165-70867728950e';
+  respond(ui, {
+    '/api/admin/overview': { reviews: { pending: 2 }, orders: { needsAttention: 1 } },
+    '/api/admin/orders?': { orders: [{ id, status: 'payment_review', paymentMode: 'test', createdAt: '2026-10-01T10:00:00Z', currency: 'INR', total: 1499, items: [{ sku: 'TEST', name: 'Robot', quantity: 2 }], shipping: { recipient: '<b>Asha</b>', city: 'Pune', country: 'IN' } }], total: 1 },
+    '/api/admin/test-orders': { orders: [{ id, revision: 4 }] },
+    [`/api/admin/test-orders/${id}/reconcile`]: { status: 'paid' },
+  });
+  await ui.boot(); await new Promise(resolve => setTimeout(resolve, 10));
+  assert.equal(ui.$('#tab-reviews').textContent, 'Reviews · 2');
+  assert.equal(ui.$('#tab-orders').textContent, 'Orders · 1');
+  ui.$('#order-mode').value = 'test';
+  ui.$('#tab-orders').click(); await new Promise(resolve => setTimeout(resolve, 10));
+  assert.match(ui.$('#admin-orders').textContent, /<b>Asha<\/b>/);
+  assert.equal(ui.$('#admin-orders b'), null);
+  assert.match(ui.$('#admin-orders').textContent, /2 × Robot/);
+  ui.w.prompt = () => 'Provider shows captured payment';
+  [...ui.w.document.querySelectorAll('#admin-orders button')].find(button => button.textContent === 'Reconcile').click();
+  await new Promise(resolve => setTimeout(resolve, 10));
+  const call = ui.calls.find(c => c.path.endsWith('/reconcile'));
+  assert.deepEqual(JSON.parse(call.options.body), { reason: 'Provider shows captured payment', revision: 4 });
+});
+test('activity log lists audited changes with readable labels', async t => {
+  const ui = setup(t, 'superadmin');
+  respond(ui, { '/api/admin/audit?': { entries: [{ at: '2026-10-02T08:30:00Z', action: 'product.update', target: 'TEST', actor: { email: 'ops@example.com', role: 'admin' }, outcome: 'failure', status: 409, fields: ['archived', 'price'], values: { archived: true } }], total: 1 } });
+  await ui.boot(); ui.$('#tab-audit').click(); await new Promise(resolve => setTimeout(resolve, 10));
+  const text = ui.$('#admin-audit').textContent;
+  assert.match(text, /Updated product/); assert.match(text, /ops@example\.com/); assert.match(text, /archived: true, price/); assert.match(text, /Refused \(409\)/);
+  assert.equal(ui.$('#more-audit').hidden, true);
 });

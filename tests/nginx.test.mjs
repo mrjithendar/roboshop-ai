@@ -49,6 +49,12 @@ test('NGINX serves assets and safely proxies API requests', { skip: process.env.
     r=await fetch(base+'/api/payments/webhook',{method:'POST',headers:{'content-type':'application/json','x-razorpay-signature':signature},body:raw});
     assert.equal(r.status,200); assert.equal(seen.body.toString(),raw); assert.equal(seen.headers['x-razorpay-signature'],signature);
     assert.equal((await fetch(base+'/api/cart',{method:'POST',body:'x'.repeat(65537)})).status,413);
+    // Only product image uploads may exceed 64k; uploaded images are content-addressed and cached long-term.
+    r=await fetch(base+'/api/admin/product-images',{method:'POST',headers:{'content-type':'application/json'},body:'x'.repeat(1200000)});
+    assert.equal(r.status,200); assert.equal(seen.body.length,1200000);
+    assert.equal((await fetch(base+'/api/admin/product-images',{method:'POST',body:'x'.repeat(2200000)})).status,413);
+    assert.equal((await fetch(base+'/api/admin/products',{method:'POST',body:'x'.repeat(65537)})).status,413);
+    assert.equal((await fetch(base+'/api/product-images/'+'a'.repeat(32)+'.jpg')).headers.get('cache-control'),'public, max-age=31536000, immutable');
     assert.equal((await fetch(base+'/api/fail')).status,503);
     assert.equal((await fetch(base+'/ready')).status,200); assert.equal(seen.url,'/api/ready');
     ready=false; assert.equal((await fetch(base+'/ready')).status,503);

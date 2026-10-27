@@ -22,9 +22,9 @@ Do not use cascading deletion or delete cert-manager CRDs/certificates.
 On the Minikube Linux host, expose Traefik ports separately:
 `PROFILE=mk4 bash minikube/expose-ingress.sh`. Allow host ports 80/443 and point
 DNS at the host. Then deploy the issuer and certificate sources in order:
-`./deploy-argocd.sh roboshop-letsencrypt`, `./deploy-argocd.sh wordpress`,
-`./deploy-argocd.sh shared-tls`. The WordPress chart currently owns the canonical
-certificate; bootstrap does not claim that trusted public TLS is already ready.
+`./deploy-argocd.sh roboshop-letsencrypt`, `./deploy-argocd.sh shared-tls`. The
+`jithendar-com` app owns the canonical certificate; bootstrap does not claim that
+trusted public TLS is already ready.
 
 # mk4 Argo CD applications
 
@@ -110,7 +110,8 @@ Do not enable Force/Replace to resolve an immutable-field difference.
 | mongodb | Existing Deployment, Service and PVC baseline; **not** the repo's newer StatefulSet. A controller conversion needs a separate data migration. |
 | shopping-agent | Retired from the active catalog; functionality resides in Moks. Historical adoption files do not make it a required workload. |
 | cert-manager, metrics-server, grafana | Pinned upstream Helm charts with Git-hosted values and existing release names. |
-| roboshop-letsencrypt, prometheus, wordpress | Existing local charts and release names. WordPress ingress remains enabled for the existing initialized site. |
+| roboshop-letsencrypt, prometheus | Existing local charts and release names. |
+| wordpress | Retired 2026-10-27 after the site was compromised; replaced by `jithendar-com`. Not a required workload. |
 | shared-tls | The single existing TLSStore in jithendar; no duplicate certificate or Traefik controller. `jithendar-com` owns the canonical Certificate (`sites/jithendar-com/deploy/production/certificate.yaml`). |
 | jfrog | Optional, currently absent. Manual sync only, requires bootstrap credentials, storage and host-capacity checks first. Public ingress remains a separate explicit exposure step. |
 

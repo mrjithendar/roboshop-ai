@@ -1,0 +1,39 @@
+---
+title: "RoboShop AI: a microservices storefront with an AI shopping assistant"
+slug: roboshop-ai
+description: A polyglot microservices store - TypeScript, Python, Java - with an AI shopping assistant, MCP tools and full observability, deployed with Argo CD.
+author: jithendar-dharmapuri
+category: kubernetes
+tags: [Kubernetes, Argo CD, Microservices, MCP, Observability]
+contentType: project
+status: review
+related: [blog/deploy-nextjs-kubernetes-argo-cd]
+---
+<Todo>Review every statement below against the current repository before publishing, and add what you want readers to take away: why you built it and what you learned.</Todo>
+
+RoboShop AI is a robot store built as a set of independently deployable services. The code is public on [GitHub](https://github.com/mrjithendar/roboshop-ai).
+
+## Services
+
+| Area | Service | Stack |
+| --- | --- | --- |
+| Storefront | `frontend` | TypeScript storefront, product pages, cart and admin UI |
+| Edge | `nginx` | Edge proxy, asset routing and security headers |
+| API | `ai-gateway` | Python: public API routing, authorization and order ledger |
+| Accounts | `user-service` | MongoDB accounts, sessions, MFA and purchase history |
+| Catalogue | `catalogue-service` | MongoDB catalogue reads and validated imports |
+| Cart | `cart-service` | Redis-backed carts |
+| Shipping | `shipping-service` | Java/Gradle with PostgreSQL |
+| Payments | `payment-service` | Razorpay orders and payment verification |
+| Assistant | `moks` | Shopping assistance and recommendations |
+| Tools | `mcp-server` | Diagnostics and Model Context Protocol tools |
+
+Data and messaging run on MongoDB, PostgreSQL, Redis and RabbitMQ.
+
+## Observability
+
+Metrics, logs and traces are collected with Prometheus, Grafana, Loki/Alloy, the OpenTelemetry Collector and Jaeger.
+
+## Delivery
+
+Each workload has its own Dockerfile and Kubernetes manifest. Images are published to Amazon ECR from GitHub Actions, and applications are deployed from Git through an Argo CD catalog, so the cluster state is reviewed like code.

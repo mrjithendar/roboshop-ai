@@ -47,7 +47,8 @@ SAFE_ERRORS = {'Account security is not configured. Contact the store.': 'ACCOUN
 def error_details(error):
     """Only allowlisted messages; exception text may contain tokens or user data."""
     code = SAFE_ERRORS.get(str(error), "HTTP_" + str(getattr(error, "status", 500)))
-    details = {"errorCode": code, "reason": str(error) if str(error) in SAFE_ERRORS else "See errorCode and source; sensitive exception text omitted"}
+    public = str(error) in SAFE_ERRORS or getattr(error, "public", False)
+    details = {"errorCode": code, "reason": str(error) if public else "See errorCode and source; sensitive exception text omitted"}
     if error.__traceback__:
         tb = error.__traceback__
         while tb.tb_next:
@@ -59,6 +60,11 @@ class HttpError(Exception):
     def __init__(self, status, message):
         super().__init__(message)
         self.status = status
+
+
+class UserError(HttpError):
+    """A fixed, actionable message written for the person using the UI; never include secrets or input."""
+    public = True
 
 deadline = contextvars.ContextVar("request_deadline", default=None)
 
@@ -275,7 +281,7 @@ def encode(value):
 
 def text(value, name="Message", maximum=1000):
     if not isinstance(value, str) or not value.strip() or len(value) > maximum:
-        raise HttpError(400, f"{name} must contain 1–{maximum} characters.")
+        raise UserError(400, f"{name} must contain 1–{maximum} characters.")
     return value.strip()
 
 
@@ -450,12 +456,12 @@ class Request:
             raise HttpError(413, "Request is too large.")
         return self._raw
 
-    def body(self):
+    def body(self, maximum=16384):
         if not self.environ.get("CONTENT_TYPE", "").startswith("application/json"):
             raise HttpError(415, "Use application/json.")
         try:
             data = json.loads(
-                self.raw(), parse_constant=lambda _: (_ for _ in ()).throw(ValueError())
+                self.raw(maximum), parse_constant=lambda _: (_ for _ in ()).throw(ValueError())
             )
             if not isinstance(data, dict):
                 raise ValueError()

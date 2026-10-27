@@ -3,7 +3,14 @@ import path from "node:path";
 import type { z } from "zod";
 import { collections, type Collection } from "@/config/taxonomy";
 import { splitFrontmatter } from "./frontmatter";
-import { authorFrontmatter, collectionSchema, type ArticleFrontmatter, type AuthorFrontmatter } from "./schema";
+import {
+  authorFrontmatter,
+  collectionSchema,
+  pageFrontmatter,
+  type ArticleFrontmatter,
+  type AuthorFrontmatter,
+  type PageFrontmatter,
+} from "./schema";
 
 export type Article = {
   collection: Collection;
@@ -13,11 +20,15 @@ export type Article = {
   frontmatter: ArticleFrontmatter;
   body: string;
   file: string;
+  /** Set only in local preview, for review items shown as if published. */
+  preview?: boolean;
 };
 
 export type Author = { slug: string; path: string; frontmatter: AuthorFrontmatter; body: string; file: string };
 
-export type ContentStore = { articles: Article[]; authors: Map<string, Author> };
+export type Page = { slug: string; path: string; frontmatter: PageFrontmatter; body: string; file: string };
+
+export type ContentStore = { articles: Article[]; authors: Map<string, Author>; pages: Map<string, Page> };
 
 export function contentRoot(): string {
   // Shipped via outputFileTracingIncludes in next.config.ts, so tracing must not follow these paths.
@@ -83,8 +94,33 @@ export function loadContent(root: string = contentRoot()): ContentStore {
     }
   }
 
+  const known = new Set(articles.map((a) => `${a.collection}/${a.slug}`));
+  for (const a of articles) {
+    for (const ref of a.frontmatter.related) {
+      if (!known.has(ref)) errors.push(`${rel(a.file)}: related "${ref}" does not exist`);
+      if (ref === `${a.collection}/${a.slug}`) errors.push(`${rel(a.file)}: related cannot reference itself`);
+    }
+  }
+
+  const pages = new Map<string, Page>();
+  for (const file of mdxFiles(path.join(/*turbopackIgnore: true*/ root, "pages"))) {
+    try {
+      const { data, body } = splitFrontmatter(fs.readFileSync(file, "utf8"));
+      const parsed = pageFrontmatter.safeParse(data);
+      if (!parsed.success) {
+        errors.push(...formatIssues(rel(file), parsed.error));
+        continue;
+      }
+      const fm = parsed.data;
+      if (path.basename(file, ".mdx") !== fm.slug) errors.push(`${rel(file)}: slug must match the file name`);
+      pages.set(fm.slug, { slug: fm.slug, path: `/${fm.slug}`, frontmatter: fm, body, file });
+    } catch (error) {
+      errors.push(`${rel(file)}: ${(error as Error).message}`);
+    }
+  }
+
   if (errors.length > 0) {
     throw new Error(`Invalid content (${errors.length} problem${errors.length === 1 ? "" : "s"}):\n  ${errors.join("\n  ")}`);
   }
-  return { articles, authors };
+  return { articles, authors, pages };
 }

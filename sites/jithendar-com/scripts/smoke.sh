@@ -28,6 +28,8 @@ if [[ -n "$EXPECTED_VERSION" ]]; then
 fi
 
 check "homepage" 200 "$(status "$ORIGIN/")"
+check "about page" 200 "$(status "$ORIGIN/about")"
+check "rss feed" 200 "$(status "$ORIGIN/feed.xml")"
 check "sitemap.xml" 200 "$(status "$ORIGIN/sitemap.xml")"
 check "news-sitemap.xml" 200 "$(status "$ORIGIN/news-sitemap.xml")"
 check "robots.txt lists sitemap" 1 "$(curl -sS --max-time 15 "$ORIGIN/robots.txt" | grep -c "^Sitemap: $ORIGIN/sitemap.xml$" || true)"

@@ -9,6 +9,13 @@ import {
 
 const slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "must be kebab-case");
 
+/** Slugs that would collide with listing routes (/blog/page/2, /blog/feed.xml). */
+const RESERVED_SLUGS = new Set(["page", "feed", "category", "tag"]);
+const articleSlug = slug.refine((s) => !RESERVED_SLUGS.has(s), "is reserved for a route");
+
+/** Explicit related article, written as "<collection>/<slug>". */
+const relatedRef = z.string().regex(/^(blog|news|projects)\/[a-z0-9]+(?:-[a-z0-9]+)*$/, 'must look like "blog/my-post"');
+
 /** ISO 8601 date-time that carries an explicit offset (Z or ±hh:mm). */
 export const isoDateTime = z.iso.datetime({ offset: true, local: false });
 
@@ -28,7 +35,7 @@ const featuredImage = z.strictObject({
 export const articleFrontmatter = z
   .strictObject({
     title: z.string().min(10).max(110),
-    slug,
+    slug: articleSlug,
     description: z.string().min(50).max(160),
     author: slug,
     category: z.enum(categoryKeys),
@@ -46,6 +53,7 @@ export const articleFrontmatter = z
     corrections: z.array(z.strictObject({ date: isoDateTime, note: z.string().min(1) })).default([]),
     sponsored: z.boolean().default(false),
     sponsor: z.string().min(1).optional(),
+    related: z.array(relatedRef).default([]),
   })
   .superRefine((fm, ctx) => {
     if (fm.status === "published" && !fm.publishedAt) {
@@ -92,3 +100,13 @@ export const authorFrontmatter = z.strictObject({
 });
 
 export type AuthorFrontmatter = z.output<typeof authorFrontmatter>;
+
+/** Standalone site pages (about, policies) in content/pages/. */
+export const pageFrontmatter = z.strictObject({
+  title: z.string().min(2).max(110),
+  slug,
+  description: z.string().min(50).max(160),
+  updatedAt: isoDateTime.optional(),
+});
+
+export type PageFrontmatter = z.output<typeof pageFrontmatter>;

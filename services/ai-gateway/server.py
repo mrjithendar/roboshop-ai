@@ -18,6 +18,7 @@ from purchase_sync import PurchaseSync
 from auth import connect_mongo, require_role
 from admin import routes as admin_routes, settings
 import admin_console
+import product_images
 from store import Store, cents
 import currency_quote
 from cart_repository import CartRepository
@@ -375,6 +376,9 @@ class Gateway:
                 and req.headers.get("origin") != self.origin
             ):
                 raise HttpError(403, "Origin not allowed.")
+            if method == "POST" and path == product_images.UPLOAD_PATH:
+                self.limit(req, True)
+                return product_images.upload(req, self.db)
             if method == "GET" and path == "/api/admin/overview":
                 return admin_console.overview(req.user, self.db, self.store)
             if method == "GET" and path == "/api/admin/orders":
@@ -414,6 +418,8 @@ class Gateway:
                 return admin_routes(req, self.db, self.auth, self.store)
         if path == "/api/settings" and method == "GET":
             return settings(self.db)
+        if path.startswith("/api/product-images/") and method in ("GET", "HEAD"):
+            return product_images.serve(path, self.db)
         if path.startswith("/api/payments/") and path != "/api/payments/config":
             require_role(req.user)
         if path.startswith("/api/shipping/"):

@@ -460,3 +460,23 @@ h3{letter-spacing:-.01em}
 }
 @media(prefers-reduced-transparency:reduce){.store-header{background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}}
 .hero-actions .button{font-size:14px}
+
+/* Admin product media and category picking. */
+.image-uploader{display:grid;grid-template-columns:200px minmax(0,1fr);gap:20px;align-items:start}
+.image-drop{position:relative;width:200px;height:200px;display:grid;place-items:center;border:2px dashed #c9d6cf;border-radius:12px;background:#f7faf8;overflow:hidden;transition:border-color .15s,background .15s}
+.image-drop.dragging{border-color:var(--brand);background:var(--brand-tint)}
+.image-drop.busy::after{content:'Uploading…';position:absolute;inset:0;display:grid;place-items:center;background:#ffffffcc;font-size:13px;font-weight:600;color:var(--brand)}
+.image-drop .admin-image-preview{width:100%;height:100%;border:0;border-radius:0;background:#fff}
+.image-placeholder{font-size:13px;color:var(--text-muted)}
+.image-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.image-actions .admin-help{flex-basis:100%;margin:4px 0 0}
+.file-button{cursor:pointer}.file-button:focus-within{outline:3px solid #75a98b;outline-offset:3px}
+.file-button.disabled{opacity:.5;pointer-events:none}
+.image-advanced{margin-top:14px;font-size:13px}.image-advanced summary{cursor:pointer;color:var(--text-muted);min-height:32px}
+.image-advanced label{margin-top:8px}
+.category-picker{display:grid;gap:12px}
+.category-options{display:flex;flex-wrap:wrap;gap:8px}
+.category-options label{display:inline-flex!important;align-items:center;gap:8px;padding:8px 14px;border:1px solid #c9d6cf;border-radius:999px;font-weight:500!important;cursor:pointer;background:#fff}
+.category-options label:has(input:checked){background:var(--brand-tint);border-color:var(--brand);color:var(--brand)}
+.category-picker>small,.product-form label small{font-weight:400;font-size:12px;color:var(--text-muted)}
+@media(max-width:600px){.image-uploader{grid-template-columns:minmax(0,1fr)}.image-drop{width:100%;height:auto;aspect-ratio:1}}

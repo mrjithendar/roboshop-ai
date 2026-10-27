@@ -8,6 +8,7 @@ Requires Node ≥ 24 (`.nvmrc`). On this Mac, Node 26 is at `/opt/homebrew/bin/n
 export PATH=/opt/homebrew/bin:$PATH
 npm install
 npm run dev          # http://localhost:3000
+npm run preview      # same, but also shows items in status: review
 npm run lint
 npm run typecheck
 npm test

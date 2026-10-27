@@ -21,9 +21,17 @@ async function adminRequest<T>(path: string, method = 'GET', data?: object): Pro
   }
   return result;
 }
+// Storefront category filters (index.html) only recognise these names.
+const STANDARD_CATEGORIES = ['educational kits', 'robot arms', 'mobile robots', 'components', 'accessories'];
+const IMAGE_PATH = /^(?:\/product-media\/[a-z0-9-]+\.(?:jpg|png)|\/images\/[A-Za-z0-9_-]+\.png|\/api\/product-images\/[0-9a-f]{32}\.jpg)$/;
+const MAX_UPLOAD_CHARS = 1_400_000;
+const when = (value?: string | null) => { if (!value) return '—'; const date = new Date(value); return Number.isNaN(date.getTime()) ? value : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }); };
+const amount = (value: number | null | undefined, currency = 'INR') => typeof value === 'number' ? new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value) : '—';
+let stockEditable = true;
 let editing: AdminProduct | null = null, nextUsers: string | null = null, adminProducts: AdminProduct[] = [], productSnapshot = '', reviewsLoaded = false, reviewCursor: string | null = null;
 const LOW_STOCK = 5;
-const tabNames = ['products', 'editor', 'reviews', 'users', 'settings', 'llm'];
+const tabNames = ['products', 'editor', 'reviews', 'orders', 'users', 'settings', 'llm', 'audit'];
+const loaded = new Set<string>();
 function selectTab(name: string): void {
   if (control(`tab-${name}`).hidden) return;
   if (name !== 'editor' && !control('panel-editor').hidden && productDirty() && !confirm('Discard unsaved product changes?')) return;
@@ -34,6 +42,8 @@ function selectTab(name: string): void {
     control(`panel-${key}`).hidden = !active;
   }
   if (name === 'reviews' && !reviewsLoaded) { reviewsLoaded = true; void moderateList(); }
+  if (name === 'orders' && !loaded.has('orders')) { loaded.add('orders'); void loadOrders(); }
+  if (name === 'audit' && !loaded.has('audit')) { loaded.add('audit'); void loadAudit(); }
 }
 for (const key of tabNames) {
   const tab = control(`tab-${key}`);
@@ -49,19 +59,63 @@ for (const key of tabNames) {
     event.preventDefault(); control(`tab-${visible[index]}`).focus(); control(`tab-${visible[index]}`).click();
   });
 }
-const productFields = ['product-image', 'product-sku', 'product-name', 'product-description', 'product-price', 'product-stock', 'product-categories', 'product-archived'];
-const productState = () => JSON.stringify(productFields.map(id => { const field = control<HTMLInputElement>(id); return field.type === 'checkbox' ? field.checked : field.value; }));
+const productFields = ['product-image', 'category-options', 'product-sku', 'product-name', 'product-description', 'product-price', 'product-stock', 'product-categories', 'product-archived'];
+const productState = () => JSON.stringify(productFields.map(id => id === 'category-options' ? categoryBoxes().map(box => box.checked) : (field => field.type === 'checkbox' ? field.checked : field.value)(control<HTMLInputElement>(id))));
 const productDirty = () => !control('product-form').hidden && productState() !== productSnapshot;
 control('product-form').addEventListener('input', () => { control('product-dirty').hidden = !productDirty(); });
 addEventListener('beforeunload', event => { if (productDirty()) event.preventDefault(); });
 function previewImage(): void {
   const path = input('product-image').value.trim();
   const preview = control<HTMLImageElement>('product-image-preview');
-  const valid = /^\/(?:product-media|images)\/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)$/.test(path);
-  preview.hidden = !valid;
-  control('product-image-status').textContent = path && !valid ? 'Enter a storefront image path ending in .jpg, .jpeg, .png or .webp.' : '';
+  const valid = IMAGE_PATH.test(path);
+  preview.hidden = !valid; control('image-placeholder').hidden = valid;
+  control('product-image-remove').hidden = !path;
+  notify('product-image-status', path && !valid ? 'This path is not served by the storefront. Upload the image instead.' : '', path && !valid ? 'error' : '');
   if (valid) preview.src = appPath(path);
   else preview.removeAttribute('src');
+}
+// Resize in the browser so uploads stay small; the gateway re-encodes and validates again.
+async function prepareImage(file: File): Promise<string> {
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Choose a JPEG, PNG or WebP image.');
+  if (file.size > 20 * 1024 * 1024) throw new Error('Choose an image smaller than 20 MB.');
+  const bitmap = await createImageBitmap(file);
+  try {
+    if (Math.min(bitmap.width, bitmap.height) < 200) throw new Error('Choose an image at least 200 × 200 pixels.');
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas'); canvas.width = Math.round(bitmap.width * scale); canvas.height = Math.round(bitmap.height * scale);
+    const context = canvas.getContext('2d'); if (!context) throw new Error('Image processing is unavailable in this browser.');
+    context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height); context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    let quality = .9, value = canvas.toDataURL('image/jpeg', quality);
+    while (value.length > MAX_UPLOAD_CHARS && quality > .4) { quality -= .1; value = canvas.toDataURL('image/jpeg', quality); }
+    if (value.length > MAX_UPLOAD_CHARS) throw new Error('This image is too detailed to upload. Try a smaller image.');
+    return value;
+  } finally { bitmap.close(); }
+}
+async function uploadImage(file: File): Promise<void> {
+  const picker = input('product-image-file'); picker.disabled = true; control('image-drop').classList.add('busy');
+  notify('product-image-status', 'Uploading image…');
+  try {
+    const { image } = await adminRequest<{ image: string }>('/api/admin/product-images', 'POST', { image: await prepareImage(file) });
+    input('product-image').value = image; previewImage(); control('product-dirty').hidden = !productDirty();
+    notify('product-image-status', 'Image uploaded. Save the product to publish it.', 'success');
+  } catch (error) { notify('product-image-status', message(error), 'error'); }
+  finally { picker.disabled = false; picker.value = ''; control('image-drop').classList.remove('busy'); }
+}
+input('product-image-file').addEventListener('change', () => { const file = input('product-image-file').files?.[0]; if (file) void uploadImage(file); });
+const drop = control('image-drop');
+drop.addEventListener('dragover', event => { if (input('product-image-file').disabled) return; event.preventDefault(); drop.classList.add('dragging'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('dragging'));
+drop.addEventListener('drop', event => { event.preventDefault(); drop.classList.remove('dragging'); const file = event.dataTransfer?.files[0]; if (file && !input('product-image-file').disabled) void uploadImage(file); });
+control('product-image-remove').addEventListener('click', () => { input('product-image').value = ''; previewImage(); control('product-dirty').hidden = !productDirty(); });
+// Standard categories are checkboxes so a typo cannot hide a product from storefront filters.
+control('category-options').replaceChildren(...STANDARD_CATEGORIES.map(name => {
+  const label = node('label'), box = node('input'); box.type = 'checkbox'; box.value = name; box.name = 'product-category';
+  label.append(box, document.createTextNode(' ' + name.replace(/\b\w/g, letter => letter.toUpperCase()))); return label;
+}));
+const categoryBoxes = () => [...control('category-options').querySelectorAll<HTMLInputElement>('input[type=checkbox]')];
+function selectedCategories(): string[] {
+  const other = input('product-categories').value.split(',').map(value => value.trim()).filter(Boolean);
+  return [...new Set([...categoryBoxes().filter(box => box.checked).map(box => box.value), ...other])];
 }
 input('product-image').addEventListener('input', previewImage);
 control('product-image-preview').addEventListener('error', () => { control('product-image-status').textContent = 'Image could not be loaded. Check that this asset is deployed.'; });
@@ -74,7 +128,16 @@ function edit(product: AdminProduct | null): void {
   input('product-sku').value = product?.sku || ''; input('product-sku').readOnly = Boolean(product);
   input('product-name').value = product?.name || ''; control<HTMLTextAreaElement>('product-description').value = product?.description || '';
   input('product-price').readOnly = product?.showcase === true;
-  input('product-price').value = String(product?.price ?? 0); input('product-stock').value = String(product?.instock ?? 0); input('product-categories').value = product?.categories.join(', ') || '';
+  input('product-price').value = String(product?.price ?? 0); input('product-stock').value = String(product?.instock ?? 0);
+  const categories = product?.categories || [];
+  for (const box of categoryBoxes()) box.checked = categories.includes(box.value);
+  input('product-categories').value = categories.filter(name => !STANDARD_CATEGORIES.includes(name)).join(', ');
+  // Fields the server will refuse for this product are locked here instead of failing on save.
+  input('product-stock').readOnly = Boolean(product) && !stockEditable; control('product-stock-help').hidden = !input('product-stock').readOnly;
+  const locked = product?.showcase === true;
+  input('product-image-file').disabled = locked; input('product-image').readOnly = locked; control<HTMLButtonElement>('product-image-remove').disabled = locked;
+  control('image-upload-label').classList.toggle('disabled', locked);
+  if (locked) notify('product-image-status', 'Reference product images change only through a reviewed provenance update.');
   input('product-archived').checked = product?.archived || false; notify('product-status', ''); input(product ? 'product-name' : 'product-sku').focus();
   productSnapshot = productState(); control('product-dirty').hidden = true;
 }
@@ -100,7 +163,8 @@ function renderAdminProducts(): void {
   control('admin-products').replaceChildren(...rows);
 }
 async function loadAdminProducts(): Promise<void> {
-  ({ products: adminProducts } = await adminRequest<{ products: AdminProduct[] }>('/api/admin/products'));
+  const result = await adminRequest<{ products: AdminProduct[]; stockEditable?: boolean }>('/api/admin/products');
+  adminProducts = result.products; stockEditable = result.stockEditable !== false;
   renderAdminProducts();
 }
 input('product-search').addEventListener('input', renderAdminProducts);
@@ -122,9 +186,9 @@ async function loadUsers(append = false): Promise<void> {
           adminRequest<{ purchases: { id: string; paidAt: string; total: number; currency: string }[]; next: string | null }>(`/api/admin/users/${user.id}/purchases`),
         ]);
         details.replaceChildren(); details.dataset.loaded = 'true';
-        details.append(node('p', `Last login: ${profile.activity.lastLoginAt || 'Unavailable'} · IP: ${profile.activity.lastLoginIp || 'Unavailable'} · Logins: ${profile.activity.loginCount || 0}`));
+        details.append(node('p', `Last login: ${profile.activity.lastLoginAt ? when(profile.activity.lastLoginAt) : 'Unavailable'} · IP: ${profile.activity.lastLoginIp || 'Unavailable'} · Logins: ${profile.activity.loginCount || 0}`));
         for (const item of profile.addresses) details.append(node('p', `${item.address.recipient} · ${item.address.line1} · ${item.city.name}, ${item.city.country} ${item.address.postalCode}`));
-        function add(rows: { id: string; paidAt: string; total: number; currency: string }[]): void { for (const order of rows) details.append(node('p', `${order.paidAt} · ${order.id} · ${order.currency} ${order.total.toFixed(2)}`)); }
+        function add(rows: { id: string; paidAt: string; total: number; currency: string }[]): void { for (const order of rows) details.append(node('p', `${when(order.paidAt)} · ${order.id} · ${amount(order.total, order.currency)}`)); }
         add(history.purchases); if (!history.purchases.length) details.append(node('p', 'No completed purchases.'));
         let cursor = history.next; const more = node('button', 'More purchases'); more.hidden = !cursor; details.append(more);
         more.addEventListener('click', async () => { more.disabled = true; try { const page = await adminRequest<typeof history>(`/api/admin/users/${user.id}/purchases?cursor=${encodeURIComponent(cursor || '')}`); add(page.purchases); cursor = page.next; more.hidden = !cursor; } catch (error) { notify('admin-status', message(error), 'error'); } finally { more.disabled = false; } });
@@ -159,7 +223,8 @@ control('more-users').addEventListener('click', () => { void loadUsers(true).cat
 control('product-form').addEventListener('submit', async event => {
   event.preventDefault(); const save = control<HTMLButtonElement>('save-product'); save.disabled = true;
   try {
-    const product = { image: input('product-image').value.trim(), sku: input('product-sku').value, name: input('product-name').value, description: control<HTMLTextAreaElement>('product-description').value, price: Number(input('product-price').value), instock: Number(input('product-stock').value), categories: input('product-categories').value.split(',').map(value => value.trim()).filter(Boolean), archived: input('product-archived').checked, ...(editing ? { revision: editing.revision } : {}) };
+    if (!selectedCategories().length) throw new Error('Choose at least one category.');
+    const product = { image: input('product-image').value.trim(), sku: input('product-sku').value, name: input('product-name').value, description: control<HTMLTextAreaElement>('product-description').value, price: Number(input('product-price').value), instock: Number(input('product-stock').value), categories: selectedCategories(), archived: input('product-archived').checked, ...(editing ? { revision: editing.revision } : {}) };
     await adminRequest(editing ? `/api/admin/products/${encodeURIComponent(editing.sku)}` : '/api/admin/products', editing ? 'PUT' : 'POST', product);
     await loadAdminProducts(); control('product-form').hidden = true; editing = null; control('tab-editor').textContent = 'Add product'; selectTab('products'); notify('admin-status', `Product ${product.sku} saved. The catalogue now uses this version.`, 'success');
   } catch (error) { notify('product-status', message(error), 'error'); }
@@ -230,6 +295,80 @@ control('llm-provider').addEventListener('change', llmFields);
 control('llm-form').addEventListener('submit', event => { event.preventDefault(); void llmAction('save'); });
 for (const action of ['test', 'disconnect', 'refresh'] as const) control(`llm-${action}`).addEventListener('click', () => { void llmAction(action); });
 
+async function loadOverview(): Promise<void> {
+  try {
+    const overview = await adminRequest<{ reviews?: { pending: number }; orders?: { needsAttention: number } }>('/api/admin/overview');
+    const count = (id: string, label: string, value?: number) => { control(id).textContent = value ? `${label} · ${value}` : label; if (value) control(id).setAttribute('aria-label', `${label}, ${value} need attention`); };
+    count('tab-reviews', 'Reviews', overview.reviews?.pending); count('tab-orders', 'Orders', overview.orders?.needsAttention);
+  } catch { /* Counts are a convenience; each tab still loads its own data. */ }
+}
+
+interface OrderSummary { id: string; status: string; paymentMode: string; createdAt?: string; paidAt?: string; currency?: string; total?: number; items: { sku: string; name?: string; quantity: number }[]; shipping: { recipient?: string; city?: string; country?: string }; demo?: boolean }
+const ORDER_TONES: Record<string, string> = { paid: 'success', payment_review: 'warning', payment_pending: 'info', creating: 'info', failed: 'danger', expired: '', cancelled: '' };
+let orderOffset = 0, orderSearchTimer: ReturnType<typeof setTimeout> | undefined;
+async function loadOrders(append = false): Promise<void> {
+  if (!append) orderOffset = 0;
+  try {
+    const query = new URLSearchParams({ mode: control<HTMLSelectElement>('order-mode').value, status: control<HTMLSelectElement>('order-status').value, q: input('order-search').value.trim(), offset: String(orderOffset), limit: '25' });
+    const [result, test] = await Promise.all([
+      adminRequest<{ orders: OrderSummary[]; total: number }>('/api/admin/orders?' + query),
+      control<HTMLSelectElement>('order-mode').value === 'live' ? Promise.resolve({ orders: [] }) : adminRequest<{ orders: { id: string; revision: number }[] }>('/api/admin/test-orders'),
+    ]);
+    const revisions = new Map(test.orders.map(order => [order.id, order.revision]));
+    const rows = result.orders.map(order => {
+      const row = node('tr'), id = node('td'); id.append(node('strong', order.id.slice(0, 8)), node('small', order.paymentMode === 'test' ? 'Test order' : 'Live order')); id.title = order.id;
+      const items = node('td', order.items.map(item => `${item.quantity} × ${item.name || item.sku}`).join(', '));
+      const total = node('td', amount(order.total, order.currency)); total.className = 'numeric';
+      const status = node('td'); status.append(badge(order.status.replace(/_/g, ' ').replace(/^\w/, letter => letter.toUpperCase()), ORDER_TONES[order.status] ?? ''));
+      const customer = node('td'); customer.append(node('strong', order.shipping.recipient || '—'), node('small', [order.shipping.city, order.shipping.country].filter(Boolean).join(', ')));
+      const action = node('td'), revision = revisions.get(order.id);
+      if (order.paymentMode === 'test' && revision !== undefined && order.status !== 'paid') {
+        const reconcile = node('button', 'Reconcile'); reconcile.className = 'button secondary';
+        reconcile.addEventListener('click', async () => {
+          const reason = prompt('Reason for reconciling this test order (10–500 characters):', '')?.trim();
+          if (!reason) return;
+          if (reason.length < 10) { notify('admin-status', 'Give a reconciliation reason of at least 10 characters.', 'error'); return; }
+          reconcile.disabled = true;
+          try { const updated = await adminRequest<{ status: string }>(`/api/admin/test-orders/${order.id}/reconcile`, 'POST', { reason, revision }); notify('admin-status', `Order ${order.id.slice(0, 8)} reconciled: ${updated.status.replace(/_/g, ' ')}.`, 'success'); await loadOrders(); }
+          catch (error) { notify('admin-status', message(error), 'error'); reconcile.disabled = false; }
+        });
+        action.append(reconcile);
+      }
+      row.append(id, node('td', when(order.paidAt || order.createdAt)), customer, items, total, status, action); return row;
+    });
+    if (!append && !rows.length) { const empty = node('td', 'No orders match these filters.'); empty.colSpan = 7; empty.className = 'admin-empty'; const row = node('tr'); row.append(empty); rows.push(row); }
+    if (append) control('admin-orders').append(...rows); else control('admin-orders').replaceChildren(...rows);
+    orderOffset += result.orders.length;
+    control('order-count').textContent = `Showing ${Math.min(orderOffset, result.total)} of ${result.total}`;
+    control('more-orders').hidden = orderOffset >= result.total;
+  } catch (error) { notify('admin-status', message(error), 'error'); }
+}
+for (const id of ['order-mode', 'order-status']) control(id).addEventListener('change', () => { void loadOrders(); });
+input('order-search').addEventListener('input', () => { clearTimeout(orderSearchTimer); orderSearchTimer = setTimeout(() => { void loadOrders(); }, 300); });
+control('more-orders').addEventListener('click', () => { void loadOrders(true); });
+
+interface AuditEntry { at: string; action: string; target?: string | null; actor: { email?: string; role?: string }; outcome: string; status: number; fields: string[]; values: Record<string, unknown> }
+const AUDIT_LABELS: Record<string, string> = { 'product.create': 'Created product', 'product.update': 'Updated product', 'product.image_upload': 'Uploaded product image', 'user.access': 'Changed user access', 'settings.update': 'Updated store settings', 'review.moderate': 'Moderated review', 'llm.save': 'Saved AI settings', 'llm.test': 'Tested AI connection', 'llm.disconnect': 'Disconnected AI', 'order.reconcile': 'Reconciled test order' };
+let auditOffset = 0;
+async function loadAudit(append = false): Promise<void> {
+  if (!append) auditOffset = 0;
+  try {
+    const query = new URLSearchParams({ action: control<HTMLSelectElement>('audit-action').value, outcome: control<HTMLSelectElement>('audit-outcome').value, offset: String(auditOffset), limit: '50' });
+    const { entries, total } = await adminRequest<{ entries: AuditEntry[]; total: number }>('/api/admin/audit?' + query);
+    const rows = entries.map(entry => {
+      const row = node('tr'), who = node('td'); who.append(node('strong', entry.actor.email || 'Unknown'), node('small', entry.actor.role || ''));
+      const changed = Object.entries(entry.values).map(([key, value]) => `${key}: ${String(value)}`);
+      const outcome = node('td'); outcome.append(badge(entry.outcome === 'success' ? 'Succeeded' : `Refused (${entry.status})`, entry.outcome === 'success' ? 'success' : 'danger'));
+      row.append(node('td', when(entry.at)), who, node('td', AUDIT_LABELS[entry.action] || entry.action), node('td', entry.target || '—'), node('td', [...changed, ...entry.fields.filter(field => !(field in entry.values))].join(', ') || '—'), outcome); return row;
+    });
+    if (!append && !rows.length) { const empty = node('td', 'No activity recorded yet.'); empty.colSpan = 6; empty.className = 'admin-empty'; const row = node('tr'); row.append(empty); rows.push(row); }
+    if (append) control('admin-audit').append(...rows); else control('admin-audit').replaceChildren(...rows);
+    auditOffset += entries.length; control('more-audit').hidden = auditOffset >= total;
+  } catch (error) { notify('admin-status', message(error), 'error'); }
+}
+for (const id of ['audit-action', 'audit-outcome']) control(id).addEventListener('change', () => { void loadAudit(); });
+control('more-audit').addEventListener('click', () => { void loadAudit(true); });
+
 try {
   const { user } = await adminRequest<{ user: AdminUser | null }>('/api/auth/me');
   if (!user || user.role === 'customer') throw new Error('An admin or super admin account is required.');
@@ -237,8 +376,9 @@ try {
   control('admin-identity').textContent = `Signed in as ${user.name} · ${user.role === 'superadmin' ? 'Super admin' : 'Admin'}`; control('admin-identity').hidden = false;
   selectTab('products');
   await loadAdminProducts();
+  void loadOverview();
   if (user.role === 'superadmin') {
-    for (const key of ['llm', 'users', 'settings']) control(`tab-${key}`).hidden = false;
+    for (const key of ['llm', 'users', 'settings', 'orders', 'audit']) control(`tab-${key}`).hidden = false;
     void loadLLM().catch(error => { control('llm-status').textContent = message(error); });
     const [settings] = await Promise.all([adminRequest<Settings>('/api/admin/settings'), loadUsers()]);
     input('setting-name').value = settings.storeName; input('setting-announcement').value = settings.announcement; input('setting-email').value = settings.supportEmail; input('setting-checkout').checked = settings.checkoutEnabled;
@@ -252,7 +392,7 @@ async function moderateList(append = false): Promise<void> {
     const tones: Record<string, string> = { published: 'success', hidden: 'danger', pending: 'warning' };
     for (const review of result.reviews) {
       const row = node('article'); row.className = 'review admin-review';
-      const meta = node('div'); meta.className = 'admin-review-meta'; meta.append(badge(review.status.charAt(0).toUpperCase() + review.status.slice(1), tones[review.status] || '')); if (review.synthetic) meta.append(badge('Synthetic')); meta.append(node('span', review.productId));
+      const meta = node('div'); meta.className = 'admin-review-meta'; meta.append(badge(review.status.charAt(0).toUpperCase() + review.status.slice(1), tones[review.status] || '')); if (review.synthetic) meta.append(badge('Synthetic')); meta.append(node('span', adminProducts.find(product => product.sku === review.productId)?.name || review.productId));
       const actions = node('div'); actions.className = 'admin-review-actions';
       for (const status of ['published', 'hidden', 'pending']) { const button = node('button', `Set ${status}`); button.className = 'button secondary'; button.disabled = review.status === status; button.addEventListener('click', async () => { button.disabled = true; try { await adminRequest('/api/admin/reviews/' + encodeURIComponent(review.id), 'PATCH', { status }); notify('admin-status', `Review “${review.title}” set to ${status}.`, 'success'); await moderateList(); } catch (error) { notify('admin-status', message(error), 'error'); button.disabled = false; } }); actions.append(button); }
       row.append(meta, node('h3', review.title), node('p', review.body), actions);
@@ -265,3 +405,4 @@ async function moderateList(append = false): Promise<void> {
 control('load-reviews').addEventListener('click', () => { void moderateList(); });
 control('moderation-kind').addEventListener('change', () => { void moderateList(); });
 control('more-moderation').addEventListener('click', () => { void moderateList(true); });
+

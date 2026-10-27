@@ -282,3 +282,9 @@ legacy unknown/empty provenance), refuses conflicting
 values and CAS-checks the old document. Each repair appends `provenanceAudit` atomically.
 Repeat runs are safe; financial fields are never changed. Conflicts need manual review.
 The tool is never invoked at startup or deployment, and was tested only with isolated data.
+
+## Product image uploads
+
+Admins upload product images from the admin editor; nobody types asset paths. `POST /api/admin/product-images` (admin/superadmin, same-origin, `{"image":"data:image/...;base64,..."}`, at most 1.5 MB, the only API body allowed above 64 KiB in both NGINX and ASGI) decodes JPEG/PNG/WebP with Pillow, rejects animations, decompression bombs and images under 200 px, flattens and resizes to at most 1600 px, and stores a fresh JPEG in MongoDB `product_images` keyed by its SHA-256 prefix. `GET /api/product-images/<id>.jpg` is public and immutable-cached. Product saves accept only uploaded images or paths the static routes actually serve (`/product-media/*.jpg|png`, `/images/*.png`); an unchanged legacy path stays editable. Reference/showcase images still need a reviewed provenance update.
+
+`runtime.UserError` marks fixed, operator-facing messages (admin validation and conflicts) that the ASGI layer may return verbatim; plain `HttpError` text stays masked. Never put input values or secrets in a `UserError`.

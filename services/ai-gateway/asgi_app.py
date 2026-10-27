@@ -17,7 +17,8 @@ from fastapi.responses import Response
 from starlette.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 from server import Gateway  # establishes the service-local library path
-from runtime import Request, HttpError, encode, trace_context, ctx, telemetry, configure_telemetry, deadline, log_event, operation_name, error_details, SAFE_ERRORS
+import product_images
+from runtime import Request, HttpError, UserError, encode, trace_context, ctx, telemetry, configure_telemetry, deadline, log_event, operation_name, error_details, SAFE_ERRORS
 from trace_routes import route_template, http_name, quiet_route
 from api_models import ChatRequest, ChatResponse, HealthResponse, ErrorResponse
 from readiness import gateway_readiness
@@ -106,10 +107,14 @@ def create_app(gateway=None):
                 if sum(len(k)+len(v) for k,v in request.scope['headers']) > 16384:
                     raise HttpError(431, 'Headers too large')
                 body = bytearray()
+                # Product image uploads are the only bodies allowed beyond the 64 KiB API limit.
+                limit = product_images.MAX_UPLOAD_CHARS + 1024 if request.url.path == product_images.UPLOAD_PATH else 65536
                 with anyio.fail_after(10):
                     async for chunk in request.stream():
                         body.extend(chunk)
-                        if len(body) > 65536:
+                        if len(body) > limit:
+                            if limit > 65536:
+                                raise UserError(413, 'This image is too large to upload. Use an image under 1 MB.')
                             raise HttpError(413, 'Request too large')
                 req = TransportRequest(request, bytes(body))
                 if not slots.acquire(blocking=False):
@@ -139,7 +144,8 @@ def create_app(gateway=None):
         except HttpError as error:
             log_event("request_rejected", "WARN", route=route, method=request.method, status=error.status, errorType=type(error).__name__, **error_details(error))
             status = error.status
-            result = ErrorResponse(error=str(error) if str(error) in SAFE_ERRORS else 'The request could not be completed.', requestId=context['traceId']).model_dump()
+            public = str(error) in SAFE_ERRORS or getattr(error, 'public', False)
+            result = ErrorResponse(error=str(error) if public else 'The request could not be completed.', requestId=context['traceId']).model_dump()
             result['code'] = error_details(error)['errorCode']
             if getattr(error, 'code', None) == 'CHECKOUT_QUOTE_INVALID':
                 result.update(code=error.code, error='Refresh your checkout total and choose an enabled payment currency before paying.')

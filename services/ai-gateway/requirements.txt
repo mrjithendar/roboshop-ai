@@ -4,3 +4,4 @@ pymongo==4.19.0
 pika==1.4.4
 dnspython==2.9.0
 psycopg[binary]==3.3.6
+Pillow==13.0.0

@@ -45,6 +45,37 @@ class FastAPIContract(unittest.TestCase):
             self.client.get('/trace-review/private-id')
         self.assertEqual(captured[-1],'GET /trace-review/{item_id}')
 
+    def test_operator_errors_reach_the_admin_ui_but_internal_errors_stay_masked(self):
+        from runtime import UserError
+        with patch.object(self.gateway, 'handle', side_effect=UserError(409, 'SKU already exists.')):
+            self.assertEqual(self.client.post('/api/admin/products', json={}).json()['error'], 'SKU already exists.')
+        with patch.object(self.gateway, 'handle', side_effect=HttpError(400, 'internal detail token=abc')):
+            self.assertEqual(self.client.post('/api/admin/products', json={}).json()['error'], 'The request could not be completed.')
+
+    def test_only_product_image_uploads_may_exceed_the_api_body_limit(self):
+        large = {'image': 'x' * 200000}
+        with patch.object(self.gateway, 'handle', return_value={'saved': True}) as handle:
+            self.assertEqual(self.client.post('/api/admin/products', json=large).status_code, 413)
+            self.assertEqual(self.client.post('/api/admin/product-images', json=large).status_code, 200)
+            too_large = self.client.post('/api/admin/product-images', json={'image': 'x' * 1600000})
+            self.assertEqual(too_large.status_code, 413)
+            self.assertIn('too large', too_large.json()['error'])
+            self.assertEqual(handle.call_count, 1)
+
+    def test_admin_uploads_product_image_end_to_end_and_storefront_serves_it(self):
+        import base64, io
+        from PIL import Image
+        picture = io.BytesIO(); Image.effect_noise((420, 320), 80).convert('RGB').save(picture, format='PNG')
+        image = 'data:image/png;base64,' + base64.b64encode(picture.getvalue()).decode()
+        self.assertGreater(len(image), 16384)
+        self.gateway.auth.current = Mock(return_value={'id': 'a1', 'role': 'admin', 'email': 'a@example.com'})
+        response = self.client.post('/api/admin/product-images', json={'image': image}, headers={'origin': 'https://shop.example'}, cookies={'rs_auth': 'a' * 64})
+        self.assertEqual(response.status_code, 201, response.text)
+        served = self.client.get(response.json()['image'])
+        self.assertEqual((served.status_code, served.headers['content-type']), (200, 'image/jpeg'))
+        self.assertIn('immutable', served.headers['cache-control'])
+        self.assertEqual(self.client.post('/api/admin/product-images', json={'image': image}, headers={'origin': 'https://evil.example'}, cookies={'rs_auth': 'a' * 64}).status_code, 403)
+
     def test_safe_login_error_is_not_masked(self):
         with patch.object(self.gateway, 'handle', side_effect=HttpError(401, 'Invalid email or password.')):
             response = self.client.post('/api/auth/login', json={'email':'user@example.com','password':'private'})

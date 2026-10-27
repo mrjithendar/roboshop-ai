@@ -19,6 +19,7 @@ SENSITIVE = re.compile(r"pass|secret|token|key|credential", re.I)
 AUDIT_RETENTION = timedelta(days=365)
 AUDIT_ACTIONS = (
     (r"/api/admin/products", "POST", "product.create"),
+    (r"/api/admin/product-images", "POST", "product.image_upload"),
     (r"/api/admin/products/(?P<target>[A-Za-z0-9_-]{1,64})", "PUT", "product.update"),
     (r"/api/admin/users/(?P<target>[A-Za-z0-9_-]{1,64})", "PATCH", "user.access"),
     (r"/api/admin/settings", "PUT", "settings.update"),

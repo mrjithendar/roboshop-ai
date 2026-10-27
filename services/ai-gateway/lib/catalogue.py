@@ -1,6 +1,6 @@
 import math
 import re
-from runtime import HttpError
+from runtime import HttpError, UserError
 
 STOP = set(
     "a an the for to me i want need find show robot robots droid please something under below less than euros euro with and of my is can you recommend".split()
@@ -127,6 +127,6 @@ def normalize(p):
             "image": f"/images/{p['sku']}.png",
         }
     except (KeyError, ValueError, TypeError):
-        raise HttpError(
+        raise UserError(
             400, "Enter a valid SKU, name, description, price, stock and categories."
         )

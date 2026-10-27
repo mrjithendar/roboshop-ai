@@ -1,21 +1,6 @@
 [
   [
     "Deployment",
-    "jithendar",
-    "wordpress"
-  ],
-  [
-    "Deployment",
-    "jithendar",
-    "wordpress-mysql"
-  ],
-  [
-    "Deployment",
-    "jithendar",
-    "wordpress-redis"
-  ],
-  [
-    "Deployment",
     "kube-system",
     "metrics-server"
   ],
