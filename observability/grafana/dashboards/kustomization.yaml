@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Grafana's file provider mounts this ConfigMap read-only (see grafana/values.yaml).
+# Regenerated JSON reaches Grafana without a pod restart.
+configMapGenerator:
+- name: grafana-dashboards-roboshop
+  namespace: monitoring
+  files:
+  - roboshop-services.json
+  - roboshop-kubernetes.json
+  - roboshop-logs.json
+  - roboshop-observability.json
+  options:
+    disableNameSuffixHash: true
+    annotations:
+      # ~100 KiB of JSON; client-side apply would store it again in an annotation.
+      argocd.argoproj.io/sync-options: ServerSideApply=true

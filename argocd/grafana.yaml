@@ -28,3 +28,6 @@ spec:
   - repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     ref: values
+  - repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    targetRevision: master
+    path: observability/grafana/dashboards
