@@ -14,7 +14,7 @@ bash minikube/deploy-cert-manager.sh
 bash minikube/deploy-grafana.sh
 ```
 
-Requires Helm, kubectl, a running cluster, the **Traefik ingress controller**, and a default StorageClass (Minikube normally supplies one). DNS for `jithendar.com` must resolve to your server; public ports **80 and 443 must reach Traefik inside Minikube**. A private Minikube IP or NodePort alone does not provide this routing. The [Traefik setup scripts](../../traefik/README.md) install the controller and configure host forwarding. They do not modify the Vultr firewall. Keep port 80 reachable for automatic certificate renewal.
+Requires Helm, kubectl, a running cluster, the **Traefik ingress controller**, and a default StorageClass (Minikube normally supplies one). DNS for `jithendar.com` must resolve to your server; public ports **80 and 443 must reach Traefik inside Minikube**. A private Minikube IP or NodePort alone does not provide this routing. The [Traefik setup scripts](../../minikube/traefik/README.md) install the controller and configure host forwarding. They do not modify the Vultr firewall. Keep port 80 reachable for automatic certificate renewal.
 
 The script follows the installer's selected `mk4` profile. For another base profile set `PROFILE`; from your laptop with the imported kubeconfig, use `KUBE_CONTEXT=<context-name>`. All commands target that context. Example:
 
@@ -28,7 +28,7 @@ KUBE_CONTEXT=mk4 bash minikube/deploy-grafana.sh
 - Pinned Grafana community Helm chart **14.0.1**, release `grafana`, namespace `monitoring`.
 - One Grafana replica with a **2 GiB persistent volume** for dashboards, users and settings. This is a single-instance sandbox deployment; back up the volume before resetting Minikube.
 - A ClusterIP service and a Traefik HTTPS Ingress for `/grafana` with Prefix matching. No rewrite or StripPrefix middleware is needed. Other website paths remain available for RoboShop's own ingress.
-- The shared `jithendar-com` Certificate from `../certificate.yaml`, issued by `letsencrypt-prod`, stored in `jithendar-com-tls`. Existing matching resources are updated in place. Do not also configure ingress-shim to manage this same Secret, or create another certificate controller owner for it.
+- TLS from the shared `jithendar/jithendar-com` certificate through Traefik's default TLSStore; this chart requests no Certificate.
 - Secure cookies, anonymous access disabled, sign-up disabled, and the shared `monitoring-auth` administrator credentials. HTTPS terminates at Traefik; in-cluster traffic to Grafana uses HTTP.
 
 The HTTPS-only Traefik router does not add a new HTTP redirect. Open the HTTPS URL directly. An existing controller-wide HTTP-to-HTTPS redirect can remain in place.
@@ -64,8 +64,8 @@ Use the same context as the installer (`kubectl --context=YOUR_CONTEXT ...`):
 kubectl -n monitoring get pods,pvc,svc,ingress
 kubectl -n monitoring describe pod -l app.kubernetes.io/name=grafana
 kubectl -n monitoring logs deployment/grafana -c grafana --tail=100
-kubectl -n monitoring get certificate,certificaterequest,orders,challenges
-kubectl -n monitoring describe certificate jithendar-com
+kubectl -n jithendar get certificate,certificaterequest,orders,challenges
+kubectl -n jithendar describe certificate jithendar-com
 kubectl get ingressclass,storageclass
 ```
 
@@ -79,6 +79,6 @@ kubectl get ingressclass,storageclass
 
 Configuration follows [Grafana's reverse proxy guidance](https://grafana.com/tutorials/run-grafana-behind-a-proxy/) and the [Grafana Helm installation guide](https://grafana.com/docs/grafana/latest/setup-grafana/installation/helm/).
 
-For existing installations in `roboshop-ai`, see [namespace migration notes](../README.md). The installers do not move data between namespaces.
+For existing installations in `roboshop-ai`, see [namespace migration notes](../README.md).
 
-**TLS ownership:** Grafana and Prometheus share the single `monitoring/jithendar-com` Certificate and `monitoring/jithendar-com-tls` Secret. Both installers reapply the same manifest; they do not request per-application certificates. See [certificate ownership and verification](../README.md#certificate-ownership).
+**TLS ownership:** Grafana and Prometheus have no Certificate of their own. Traefik serves the shared `jithendar/jithendar-com` certificate (Secret `jithendar-com-tls`) to every route through the default TLSStore owned by the `shared-tls` Application. See [observability](../README.md#access).

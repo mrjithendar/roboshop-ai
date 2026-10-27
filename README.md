@@ -68,9 +68,9 @@ Open **http://localhost:3000**. Ctrl+C stops the launcher’s child processes. `
 | `services/moks`, `services/catalogue-service` | Shopping assistance and recommendations |
 | `services/mcp-server` | Diagnostics and MCP tools |
 | `services/mongodb`, `services/postgres`, `services/redis`, `services/rabbitmq` | Data and messaging |
-| `services/otel-collector`, `services/jaeger` | Distributed traces |
+| `observability/` | Prometheus, Grafana, Loki/Alloy, OpenTelemetry collector and Jaeger |
 
-Each workload owns a `*-minikube.yaml`. Each application has its own Dockerfile. `minikube/monitoring/` holds Grafana and Prometheus configuration; monitoring runs in its own namespace. `legacy/original-roboshop/` retains reference application source.
+Each workload owns a `*-minikube.yaml`. Each application has its own Dockerfile. `observability/` holds metrics, logging and tracing configuration; see [observability](observability/README.md). `legacy/original-roboshop/` retains reference application source.
 
 ## Accounts, products and payments
 
@@ -84,7 +84,7 @@ Payments remain unavailable until Razorpay credentials are configured. Minikube 
 
 No LLM is enabled by default. The super admin can test and activate Amazon Bedrock or an approved Ollama endpoint under **Admin → AI / LLM configuration**. See [provider setup](docs/deployment/llm-providers.md).
 
-Application metrics are private `/metrics` endpoints. Configure scrape targets in `minikube/monitoring/prometheus/values.yaml`; see [Prometheus](minikube/monitoring/prometheus/README.md). Traces go through the OpenTelemetry collector to Jaeger. Jaeger storage is ephemeral in this sandbox.
+Application metrics are private `/metrics` endpoints. Configure scrape targets in `observability/prometheus/values.yaml`; see [Prometheus](observability/prometheus/README.md). Traces go through the OpenTelemetry collector to Jaeger. Jaeger storage is ephemeral in this sandbox.
 
 ## Verification and limits
 

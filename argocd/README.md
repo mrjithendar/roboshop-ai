@@ -220,4 +220,4 @@ External Razorpay, SES, Turnstile, AWS and Langfuse values are not fabricated;
 configure them separately. Scheduled ECR refresh still requires AWS credentials.
 
 
-Logging uses Loki and Alloy: run `./deploy-loki.sh --context mk4`. See [logging setup](../observability/loki/README.md).
+Logging uses Loki and Alloy: run `./deploy-argocd.sh loki grafana --context mk4`. See [logging setup](../observability/loki/README.md).

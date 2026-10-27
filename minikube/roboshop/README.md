@@ -86,7 +86,7 @@ Do not add `-t` for stdio protocol clients. Set a valid `MCP_SESSION_TOKEN` in `
 - Each service YAML: Service (where applicable), Deployment/StatefulSet, probes, resources, and required PVC definitions and references to the shared ConfigMap.
 - The shared ConfigMap contains Mongo/Postgres init scripts and Redis/RabbitMQ/collector configuration. Each volume explicitly selects its own file with `items`, preventing unrelated init scripts from being mounted. Edit these files in `minikube/roboshop/roboshop-ai-namespace.yaml, minikube/roboshop/roboshop-config-configmap.yaml`. Database init scripts only run on **empty** data volumes.
 
-Prometheus is managed by `minikube/deploy-prometheus.sh` in `monitoring`; this application installer does not deploy a second Prometheus or reset monitoring. To collect application metrics, add actual service endpoints to `minikube/monitoring/prometheus/values.yaml` under `extraScrapeConfigs` and redeploy Prometheus. Traces flow to the included Jaeger, which uses ephemeral sandbox storage.
+Prometheus is managed by the `prometheus` Argo CD Application in `monitoring`. To collect application metrics, add actual service endpoints to `observability/prometheus/values.yaml` under `extraScrapeConfigs`, push, and sync it. Traces flow to the included Jaeger, which uses ephemeral sandbox storage.
 
 ## Secrets and persistence
 

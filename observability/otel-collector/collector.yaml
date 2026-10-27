@@ -48,11 +48,11 @@ processors:
   batch:
     timeout: 2s
 exporters:
-  otlphttp/jaeger:
+  otlp_http/jaeger:
     endpoint: http://jaeger:4318
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, attributes/privacy, filter/routine, batch]
-      exporters: [otlphttp/jaeger]
+      exporters: [otlp_http/jaeger]

@@ -11,7 +11,7 @@ spec:
   project: platform
   destination:
     server: https://kubernetes.default.svc
-    namespace: roboshop-ai
+    namespace: observability
   syncPolicy:
     syncOptions:
     - FailOnSharedResource=true
@@ -20,6 +20,4 @@ spec:
   source:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
-    path: services/otel-collector
-    directory:
-      include: '{otel-collector-service-minikube.yaml,otel-collector-deployment-minikube.yaml}'
+    path: observability/otel-collector

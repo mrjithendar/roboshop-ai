@@ -3,7 +3,8 @@
 ## Architecture and investigation (2026-10-22)
 
 There is no Compose deployment in this repository. The active service manifests
-are under `services/`; Minikube uses the consolidated `roboshop-config` ConfigMap.
+are under `services/`; the collector and Jaeger run in the `observability` namespace
+from `observability/otel-collector/` and `observability/jaeger/`.
 No AGENTS.md was found in the repository or workspace root during this review.
 
 General application spans use OTLP/HTTP → otel-collector → Jaeger. Prometheus

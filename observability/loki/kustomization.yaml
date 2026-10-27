@@ -6,6 +6,8 @@ resources:
 - roboshop-ai-alloy-logs-role-binding.yaml
 - traefik-alloy-logs-role.yaml
 - traefik-alloy-logs-role-binding.yaml
+- observability-alloy-logs-role.yaml
+- observability-alloy-logs-role-binding.yaml
 - loki-data-pvc.yaml
 - alloy-data-pvc.yaml
 - loki-deployment.yaml

@@ -14,7 +14,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @unittest.skipUnless(os.getenv('OTELCOL'),'Set OTELCOL to a local collector 0.162.0 binary')
 class CollectorTracing(unittest.TestCase):
  def test_successful_probes_filtered_errors_and_products_retained(self):
-  config=yaml.safe_load((ROOT/'observability/opentelemetry/collector.yaml').read_text())
+  config=yaml.safe_load((ROOT/'observability/otel-collector/collector.yaml').read_text())
   with socket.socket() as sock:sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
   config['receivers']['otlp']['protocols']['http']['endpoint']=f'127.0.0.1:{port}'
   config['exporters']={'debug':{'verbosity':'detailed'}}

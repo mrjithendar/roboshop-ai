@@ -369,7 +369,7 @@ See [Argo CD setup and troubleshooting](argocd/README.md) for login and CLI comm
 Use Langfuse Cloud; no Langfuse database or dashboard runs in Minikube.
 Connect an existing Cloud project Secret with `bash minikube/connect-langfuse.sh`.
 Requires Helm 4.3.1+; setup and connection commands are in
-[Langfuse deployment and trace guide](langfuse/README.md).
+[Langfuse deployment and trace guide](../observability/langfuse/README.md).
 
 ## Shared jithendar.com certificate
 

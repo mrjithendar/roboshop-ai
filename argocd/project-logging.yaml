@@ -9,6 +9,8 @@ spec:
   destinations:
   - namespace: monitoring
     server: https://kubernetes.default.svc
+  - namespace: observability
+    server: https://kubernetes.default.svc
   - namespace: roboshop-ai
     server: https://kubernetes.default.svc
   - namespace: traefik

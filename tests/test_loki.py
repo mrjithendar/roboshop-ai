@@ -17,7 +17,7 @@ class LokiTests(unittest.TestCase):
             self.assertTrue(pod['securityContext']['runAsNonRoot'])
             self.assertFalse(any('hostPath' in v for v in pod['volumes']))
         roles=[d for d in docs if d['kind']=='Role']
-        self.assertEqual({r['metadata']['namespace'] for r in roles},{'roboshop-ai','traefik'})
+        self.assertEqual({r['metadata']['namespace'] for r in roles},{'roboshop-ai','traefik','observability'})
         self.assertTrue(all(set(rule['resources'])<={'pods','pods/log'} for r in roles for rule in r['rules']))
 
     def test_retention_and_sanitization(self):
@@ -31,7 +31,7 @@ class LokiTests(unittest.TestCase):
         self.assertNotIn('target_label = "trace_id"',alloy)
 
     def test_datasource_preserves_prometheus(self):
-        cfg=yaml.safe_load((ROOT/'minikube/monitoring/grafana/values.yaml').read_text())
+        cfg=yaml.safe_load((ROOT/'observability/grafana/values.yaml').read_text())
         ds=cfg['datasources']['datasources.yaml']['datasources']
         self.assertEqual({d['type'] for d in ds},{'prometheus','loki'})
         self.assertEqual([d['type'] for d in ds if d['isDefault']],['prometheus'])

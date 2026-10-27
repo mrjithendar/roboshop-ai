@@ -6,7 +6,7 @@ if __name__ == '__main__':
     if not any(arg in ('--help', '-h') for arg in _host_sys.argv[1:]):
         import subprocess as _host_subprocess
         from pathlib import Path as _HostPath
-        _host_gate = _HostPath(__file__).resolve().parent / '../..' / 'scripts/lib/require-centos.sh'
+        _host_gate = _HostPath(__file__).resolve().parent / '..' / 'scripts/lib/require-centos.sh'
         if _host_subprocess.call(['bash', str(_host_gate)]):
             raise SystemExit(1)
 

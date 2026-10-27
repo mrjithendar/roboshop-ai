@@ -10,7 +10,7 @@ Examples:
 - `services/frontend/frontend-deployment-minikube.yaml`
 - `services/frontend/frontend-service-minikube.yaml`
 - `minikube/roboshop/roboshop-config-configmap.yaml`
-- `minikube/monitoring/prometheus/templates/prometheus-data-pvc.yaml`
+- `observability/prometheus/templates/prometheus-data-pvc.yaml`
 
 Argo Applications explicitly include their resource filenames, or use an existing
 Kustomization. Kustomizations are single objects that list files; they do not embed

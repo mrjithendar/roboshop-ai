@@ -1,7 +1,7 @@
 // One collector uses the API: no privileged host mounts or per-node agents.
 discovery.kubernetes "pods" {
   role = "pod"
-  namespaces { names = ["roboshop-ai", "traefik"] }
+  namespaces { names = ["roboshop-ai", "traefik", "observability"] }
 }
 discovery.relabel "logs" {
   targets = discovery.kubernetes.pods.targets

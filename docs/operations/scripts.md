@@ -22,4 +22,4 @@ Cluster networking, kubeconfig and lifecycle helpers remain dependencies of
 cluster operations. Build, CI runner, runtime, credential, diagnostic and test
 tools are retained; they are not application deployment entry points.
 
-Logging uses Loki and Alloy: run `./deploy-loki.sh --context mk4`. See [logging setup](../../observability/loki/README.md).
+Logging uses Loki and Alloy: run `./deploy-argocd.sh loki grafana --context mk4`. See [logging setup](../../observability/loki/README.md).

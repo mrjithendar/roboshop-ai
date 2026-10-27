@@ -20,6 +20,6 @@ spec:
   source:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
-    path: minikube/monitoring/prometheus
+    path: observability/prometheus
     helm:
       releaseName: prometheus

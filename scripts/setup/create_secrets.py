@@ -95,7 +95,7 @@ def main(argv=None):
         if target == 'roboshop':
             module('scripts/argocd/bootstrap.py').ensure_app_secrets(args.context)
         elif target == 'monitoring':
-            module('minikube/monitoring/credentials.py').Credentials(args.context).ensure()
+            module('observability/credentials.py').Credentials(args.context).ensure()
         elif target == 'wordpress':
             create_wordpress(args.context)
         elif target == 'jfrog':

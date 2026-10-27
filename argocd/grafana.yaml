@@ -24,7 +24,7 @@ spec:
     helm:
       releaseName: grafana
       valueFiles:
-      - $values/minikube/monitoring/grafana/values.yaml
+      - $values/observability/grafana/values.yaml
   - repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     ref: values

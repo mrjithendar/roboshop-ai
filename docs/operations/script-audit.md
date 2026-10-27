@@ -34,7 +34,7 @@ Inventory of current commands and retained service-owned tools. Detailed caller/
 | `minikube/jfrog/publish-image.sh` | Container registry operations | bash, docker, minikube | CentOS Stream 9/10 | Builds images; authenticated remote registry writes |
 | `minikube/kubeconfig.py` | Local development / operational helper | python3, kubectl | CentOS Stream 9/10 | Local processes/configuration; helper-specific remote reads/writes |
 | `minikube/kubeconfig.sh` | Local development / operational helper | bash, python3, jq, docker, kubectl, minikube | CentOS Stream 9/10 | Local processes/configuration; helper-specific remote reads/writes |
-| `minikube/monitoring/credentials.py` | Database/configuration and synthetic data | kubectl | CentOS Stream 9/10 | May write database/secrets; explicit operator action |
+| `observability/credentials.py` | Database/configuration and synthetic data | kubectl | CentOS Stream 9/10 | May write database/secrets; explicit operator action |
 | `minikube/remove-langfuse.sh` | Maintenance and cleanup | bash, python3, kubectl, helm, minikube | CentOS Stream 9/10 | May delete/modify local or remote state; inspect explicit confirmation flags |
 | `minikube/reset-monitoring.sh` | Maintenance and cleanup | bash, python3, kubectl, helm, minikube | CentOS Stream 9/10 | May delete/modify local or remote state; inspect explicit confirmation flags |
 | `minikube/reset.sh` | Maintenance and cleanup | bash, minikube | CentOS Stream 9/10 | May delete/modify local or remote state; inspect explicit confirmation flags |

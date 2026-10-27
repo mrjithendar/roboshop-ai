@@ -9,16 +9,17 @@ Pinned versions: Loki 3.7.9 and Alloy 1.21.2.
 Publish these repository changes to `master`, then:
 
 ```bash
-./deploy-loki.sh --context mk4
+./deploy-argocd.sh loki grafana --context mk4
 ```
 
 This syncs the Loki/Alloy Application and the existing Grafana Application. It does
 not install another Grafana. Open **https://jithendar.com/grafana/** → Explore →
-**Loki** and query `{namespace="roboshop-ai"}` or `{namespace="traefik"}`.
+**Loki** and query `{namespace="roboshop-ai"}`, `{namespace="traefik"}` or
+`{namespace="observability"}`.
 No new password is needed; use your existing Grafana login. Loki is ClusterIP-only,
 with no public ingress or built-in authentication. Trusted cluster workloads can
 reach it; don't expose port 3100 externally. API collection uses RoleBindings
-limited to pods/pods-log in those two namespaces, not Secrets or cluster-admin.
+limited to pods/pods-log in those three namespaces, not Secrets or cluster-admin.
 
 ## Resource and data boundaries
 

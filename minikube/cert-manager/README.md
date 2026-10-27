@@ -38,7 +38,7 @@ Use the actual installed class from `kubectl get ingressclass`. The script insta
 
 ## Which certificate file to use
 
-- **Grafana + Prometheus:** both installers apply `minikube/monitoring/certificate.yaml`, creating one shared Certificate in `monitoring`.
+- **Grafana + Prometheus:** no Certificate of their own; Traefik serves the shared `jithendar/jithendar-com` certificate through the default TLSStore.
 - **WordPress:** its Helm chart creates its Certificate in `jithendar-com`.
 - **Legacy/manual RoboShop setup only:** `certificate.example.yaml` targets `roboshop-ai`. Do not apply it for the monitoring setup.
 

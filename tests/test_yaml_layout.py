@@ -27,7 +27,7 @@ def test_each_active_yaml_is_one_document():
 
 
 def test_each_local_chart_template_renders_at_most_one_resource():
-    for chart in ('minikube/wordpress','minikube/monitoring/prometheus','minikube/cert-manager/issuers'):
+    for chart in ('minikube/wordpress','observability/prometheus','minikube/cert-manager/issuers'):
         output=subprocess.check_output(['helm','template','layout',str(ROOT/chart),'-n','layout'],text=True)
         sources=re.findall(r'^# Source: (.+)$',output,re.M)
         assert len(sources)==len(set(sources)),chart
