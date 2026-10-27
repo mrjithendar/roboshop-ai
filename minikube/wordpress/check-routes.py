@@ -17,7 +17,8 @@ import sys
 def conflicts(data):
     for ingress in data.get('items', []):
         meta = ingress.get('metadata', {})
-        if (meta.get('namespace'), meta.get('name')) == ('jithendar', 'wordpress'):
+        # The WordPress chart owns the root route and its HTTP/alias redirects.
+        if meta.get('namespace') == 'jithendar' and meta.get('name') in ('wordpress', 'wordpress-http', 'wordpress-alias'):
             continue
         for rule in ingress.get('spec', {}).get('rules', []):
             if rule.get('host') not in ('jithendar.com', '*.com', None, ''):

@@ -32,9 +32,22 @@ class WordPressTests(unittest.TestCase):
         items = render('true')
         self.assertTrue(all(x['metadata']['namespace'] == 'jithendar' for x in items))
         cert = next(x for x in items if x['kind'] == 'Certificate')
-        self.assertEqual(cert['spec']['dnsNames'], ['jithendar.com'])
+        self.assertEqual(cert['spec']['dnsNames'], ['jithendar.com', 'www.jithendar.com'])
+        ingresses = {x['metadata']['name']: x for x in items if x['kind'] == 'Ingress'}
+        middlewares = {x['metadata']['name']: x['spec'] for x in items if x['kind'] == 'Middleware'}
+        http = ingresses['wordpress-http']
+        self.assertEqual(http['metadata']['annotations']['traefik.ingress.kubernetes.io/router.entrypoints'], 'web')
+        self.assertEqual([r['host'] for r in http['spec']['rules']], ['jithendar.com', 'www.jithendar.com'])
+        self.assertEqual(middlewares['wordpress-https-redirect'], {'redirectScheme': {'scheme': 'https', 'permanent': True}})
+        alias = ingresses['wordpress-alias']
+        self.assertEqual(alias['spec']['tls'][0], {'secretName': 'jithendar-com-tls', 'hosts': ['www.jithendar.com']})
+        redirect = middlewares['wordpress-alias-redirect']['redirectRegex']
+        import re
+        self.assertEqual(re.sub(redirect['regex'], redirect['replacement'].replace('${2}', r'\2'), 'http://www.jithendar.com/blog/?p=1'),
+                         'https://jithendar.com/blog/?p=1')
+        self.assertIsNone(re.match(redirect['regex'], 'https://jithendar.com/'))
         self.assertEqual(cert['spec']['secretName'], 'jithendar-com-tls')
-        ingress = next(x for x in items if x['kind'] == 'Ingress')
+        ingress = ingresses['wordpress']
         self.assertEqual(ingress['spec']['tls'][0]['secretName'], 'jithendar-com-tls')
         self.assertEqual(ingress['spec']['rules'][0]['http']['paths'][0]['path'], '/')
         self.assertEqual(len([x for x in items if x['kind'] == 'PersistentVolumeClaim']), 2)

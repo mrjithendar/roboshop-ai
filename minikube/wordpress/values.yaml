@@ -5,6 +5,8 @@ images:
   mysql: mysql:8.4
   redis: redis:7.4-alpine
 host: jithendar.com
+# Extra names on the certificate; requests for them redirect to https://<host>.
+aliases: [www.jithendar.com]
 adminEmail: jithendardharmapuri@gmail.com
 adminUser: admin
 siteTitle: Jithendar

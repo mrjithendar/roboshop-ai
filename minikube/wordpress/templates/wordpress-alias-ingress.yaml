@@ -1,0 +1,30 @@
+{{- if and .Values.ingress.enabled .Values.aliases }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: {{ .Release.Namespace | quote }}
+  name: wordpress-alias
+  annotations:
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: {{ printf "%s-wordpress-alias-redirect@kubernetescrd" .Release.Namespace | quote }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  tls:
+    - secretName: {{ .Values.ingress.tlsSecret }}
+      hosts:
+        {{- range .Values.aliases }}
+        - {{ . | quote }}
+        {{- end }}
+  rules:
+    {{- range .Values.aliases }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wordpress
+                port: {number: 80}
+    {{- end }}
+{{- end }}
