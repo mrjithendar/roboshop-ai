@@ -10,6 +10,8 @@ persistence:
   enabled: true
   size: 2Gi
   accessModes: [ReadWriteOnce]
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
 resources:
   requests:
     cpu: 100m
@@ -101,3 +103,7 @@ dashboardProviders:
           path: /var/lib/grafana/dashboards/roboshop
 dashboardsConfigMaps:
   roboshop: grafana-dashboards-roboshop
+
+# Minikube hostPath data lives on this node; move only together with the data.
+nodeSelector:
+  kubernetes.io/hostname: mk4-m04

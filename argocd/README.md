@@ -225,3 +225,23 @@ configure them separately. Scheduled ECR refresh still requires AWS credentials.
 
 
 Logging uses Loki and Alloy: run `./deploy-argocd.sh loki grafana --context mk4`. See [logging setup](../observability/loki/README.md).
+
+### Data safety rules (enforced by `scripts/argocd/validate.py`)
+
+These rules come from a real incident: a UI "sync all" with Prune deleted
+`Namespace/roboshop-ai`, and with it every Secret and volume.
+
+- Every Argo-managed `Namespace` and `PersistentVolumeClaim` carries
+  `argocd.argoproj.io/sync-options: Prune=false,Delete=false`. The same
+  annotation on an *Application* protects nothing; it must be on the resource.
+- Minikube's hostPath provisioner writes data on whichever node first ran the
+  pod, and PVs carry no node affinity. Every Deployment/StatefulSet that mounts a
+  PVC is pinned with `nodeSelector: kubernetes.io/hostname`. Change a pin only
+  together with moving the data; a pod started elsewhere sees an empty volume.
+- `./bootstrap-cluster.sh --app-secrets-only` refuses to create new credentials
+  while database volumes exist, because initialized databases keep their original
+  passwords. Restore the backed-up Secret instead; `--accept-new-credentials`
+  exists only for a lost Secret, followed by resetting the database users
+  (`scripts/reset-mongo-password.sh` for MongoDB).
+- `./deploy-argocd.sh` aligns live Application sources with Git and never prunes.
+  Avoid Prune in the Argo CD UI; run `./deploy-argocd.sh status` first.

@@ -67,7 +67,11 @@ INTERNAL_PASSWORD_KEYS = (
 )
 
 
-def ensure_app_secrets(context):
+# Volumes whose databases keep the credentials they were initialized with.
+DATA_CLAIMS = ('mongodb-data', 'shipping-postgres', 'rabbitmq-data')
+
+
+def ensure_app_secrets(context, accept_new_credentials=False):
     """Create fresh credentials once; existing credentials are never rotated."""
     kube = ['kubectl', '--context', context, '--request-timeout=20s']
     subprocess.check_call(kube + ['apply', '--server-side', '-f', str(ROOT / 'minikube/namespaces/roboshop-ai.yaml')])
@@ -79,6 +83,15 @@ def ensure_app_secrets(context):
             raise RuntimeError('Existing roboshop-secrets preserved; missing keys: ' + ', '.join(sorted(missing)) + '. Restore the original values; bootstrap will not rotate existing credentials.')
         print('Reusing roboshop-secrets; passwords and encryption key unchanged.')
         return
+    # New random passwords do not match databases that already hold data: MongoDB
+    # and PostgreSQL only apply credentials when their volume is first initialized.
+    claims = subprocess.check_output(kube + ['-n', 'roboshop-ai', 'get', 'pvc', '-o',
+        'jsonpath={.items[*].metadata.name}'], text=True).split()
+    existing_data = sorted(set(claims) & set(DATA_CLAIMS))
+    if existing_data and not accept_new_credentials:
+        raise RuntimeError('roboshop-secrets is missing but data volumes exist: ' + ', '.join(existing_data) + '. '
+                           'Restore the original Secret from backup. Only if it is lost, rerun with --accept-new-credentials '
+                           'and then reset the database users to the new values (MongoDB: scripts/reset-mongo-password.sh).')
     values = {key: secrets.token_hex(32) for key in INTERNAL_PASSWORD_KEYS}
     values['SUPERADMIN_EMAIL'] = 'team@jithendar.com'
     values['AUTH_ENCRYPTION_KEY'] = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode()
@@ -102,6 +115,8 @@ def main():
     parser.add_argument('--schedule-pull-secrets', action='store_true', help='Install/update a six-hour ECR refresh CronJob using AWS keys in roboshop-secrets')
     parser.add_argument('--pull-secrets-only', action='store_true', help='Refresh ECR pull credentials without installing controllers')
     parser.add_argument('--deploy-apps', action='store_true', help='Deploy the default application catalog after bootstrap')
+    parser.add_argument('--accept-new-credentials', action='store_true',
+                        help='Create roboshop-secrets even though database volumes already exist; database users must then be reset')
     args = parser.parse_args()
     if args.timeout <= 0:
         parser.error('--timeout must be positive')
@@ -122,7 +137,7 @@ def main():
     if args.app_secrets_only:
         if args.pull_secrets_only or args.schedule_pull_secrets or args.deploy_apps:
             parser.error('--app-secrets-only cannot be combined with other actions')
-        ensure_app_secrets(args.context)
+        ensure_app_secrets(args.context, args.accept_new_credentials)
         return
     if args.pull_secrets_only and args.deploy_apps:
         parser.error('--pull-secrets-only cannot be combined with --deploy-apps')
@@ -147,7 +162,7 @@ def main():
         print('Six-hour ECR refresh scheduled. It requires AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY in roboshop-secrets; verify its first Job.')
     if args.pull_secrets_only:
         return
-    ensure_app_secrets(args.context)
+    ensure_app_secrets(args.context, args.accept_new_credentials)
     kube = ['kubectl', '--context', args.context, '--request-timeout=20s']
     def read(*parts):
         return subprocess.check_output(kube + list(parts), text=True)

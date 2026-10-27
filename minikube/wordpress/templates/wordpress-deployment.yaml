@@ -12,6 +12,10 @@ spec:
     metadata:
       labels: {app: wordpress}
     spec:
+      {{- with .Values.nodeSelectors.wordpress }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       automountServiceAccountToken: false
       securityContext: {fsGroup: 33}
       containers:

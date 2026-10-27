@@ -17,6 +17,9 @@ spec:
         app: ai-gateway
         app.kubernetes.io/part-of: roboshop-ai
     spec:
+      # Minikube hostPath data lives on this node; move only together with the data.
+      nodeSelector:
+        kubernetes.io/hostname: mk4-m03
       securityContext:
         fsGroup: 1000
       enableServiceLinks: false

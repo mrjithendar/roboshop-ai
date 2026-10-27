@@ -25,6 +25,9 @@ spec:
         app: mongodb
         app.kubernetes.io/part-of: roboshop-ai
     spec:
+      # Minikube hostPath data lives on this node; move only together with the data.
+      nodeSelector:
+        kubernetes.io/hostname: mk4-m03
       automountServiceAccountToken: false
       containers:
       - env:

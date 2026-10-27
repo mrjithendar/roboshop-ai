@@ -102,6 +102,15 @@ def validate(external=False):
             assert key not in owners,f'{key} belongs to both {owners.get(key)} and {name}'
             owners[key]=name
             if kind in ('Deployment','StatefulSet','DaemonSet'):workloads.add((kind,namespace,meta['name']))
+            # A prune sync once deleted Namespace/roboshop-ai and every volume in it.
+            if kind in ('Namespace','PersistentVolumeClaim'):
+                options=(meta.get('annotations') or {}).get('argocd.argoproj.io/sync-options','')
+                assert 'Prune=false' in options and 'Delete=false' in options,f'{name}: {kind}/{meta["name"]} needs argocd.argoproj.io/sync-options: Prune=false,Delete=false'
+            # Minikube hostPath volumes exist only on the node that first ran the pod.
+            if kind in ('Deployment','StatefulSet'):
+                pod=resource['spec']['template']['spec']
+                if resource['spec'].get('volumeClaimTemplates') or any('persistentVolumeClaim' in v for v in pod.get('volumes',[])):
+                    assert (pod.get('nodeSelector') or {}).get('kubernetes.io/hostname'),f'{name}: {kind}/{meta["name"]} mounts a hostPath-backed PVC; pin it with nodeSelector kubernetes.io/hostname'
     if external:
         validate_inventory(workloads)
     print(f'Validated {len(apps)} Applications, {len(owners)} unique resources; external charts {"included" if external else "not rendered"}.')

@@ -12,6 +12,10 @@ spec:
     metadata:
       labels: {app: wordpress-mysql}
     spec:
+      {{- with .Values.nodeSelectors.mysql }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       automountServiceAccountToken: false
       containers:
         - name: mysql

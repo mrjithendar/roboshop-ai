@@ -19,3 +19,10 @@ ingress:
 storage:
   wordpress: 5Gi
   mysql: 5Gi
+
+# Minikube hostPath data lives on this node; move only together with the data.
+nodeSelectors:
+  wordpress:
+    kubernetes.io/hostname: mk4-m04
+  mysql:
+    kubernetes.io/hostname: mk4-m03

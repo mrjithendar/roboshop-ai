@@ -56,3 +56,30 @@ def test_pull_secret_refresh_only_skips_controllers():
         bootstrap.main()
     refresh.assert_called_once_with('mk4')
     read.assert_not_called()
+
+
+# The autouse fixture mocks ensure_app_secrets; keep the real one for these tests.
+_ensure_app_secrets = bootstrap.ensure_app_secrets
+
+
+def _secret_calls(claims):
+    # namespace apply (check_call), then: existing Secret lookup, PVC names.
+    return ['', claims]
+
+
+def test_new_credentials_refused_when_database_volumes_exist():
+    with patch.object(bootstrap.subprocess, 'check_call'), \
+         patch.object(bootstrap.subprocess, 'check_output', side_effect=_secret_calls('mongodb-data gateway-data')), \
+         patch.object(bootstrap.subprocess, 'run') as create:
+        with pytest.raises(RuntimeError, match='data volumes exist: mongodb-data'):
+            _ensure_app_secrets('mk4')
+    create.assert_not_called()
+
+
+def test_new_credentials_created_on_fresh_cluster_or_when_accepted():
+    for claims, accept in (('gateway-data', False), ('mongodb-data shipping-postgres', True)):
+        with patch.object(bootstrap.subprocess, 'check_call'), \
+             patch.object(bootstrap.subprocess, 'check_output', side_effect=_secret_calls(claims)), \
+             patch.object(bootstrap.subprocess, 'run', return_value=bootstrap.subprocess.CompletedProcess([], 0)) as create:
+            _ensure_app_secrets('mk4', accept_new_credentials=accept)
+        assert create.called

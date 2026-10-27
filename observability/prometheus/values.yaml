@@ -30,3 +30,7 @@ extraScrapeConfigs:
   - job_name: alloy
     static_configs:
       - targets: ["alloy.monitoring.svc.cluster.local:12345"]
+
+# Minikube hostPath data lives on this node; move only together with the data.
+nodeSelector:
+  kubernetes.io/hostname: mk4-m02
