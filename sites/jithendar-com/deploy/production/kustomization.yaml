@@ -6,8 +6,8 @@ resources:
 - certificate.yaml
 - middlewares.yaml
 - ingress.yaml
+# Pinned by digest. CI rewrites this entry on every release (scripts/set-image.sh); never deploy a mutable tag.
 images:
 - name: jithendar-com
   newName: 881026659929.dkr.ecr.us-east-1.amazonaws.com/jithendar-com
-  # Pin by digest once the image is published; never deploy :latest.
   newTag: unpublished

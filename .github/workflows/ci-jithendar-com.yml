@@ -1,5 +1,11 @@
 name: jithendar.com
 
+# check   → lint, typecheck, test, build, render manifests (every push and PR)
+# publish → build arm64 image, push to ECR, commit its digest to deploy/production (default branch only)
+# deploy  → Argo CD auto-syncs that commit; wait until the new build is live, then smoke-test it
+#
+# CI never talks to the cluster: Argo CD is the only thing that applies manifests.
+
 on:
   workflow_dispatch:
   pull_request:
@@ -10,9 +16,16 @@ on:
     paths:
       - 'sites/jithendar-com/**'
       - '.github/workflows/ci-jithendar-com.yml'
+      # The digest commit below must not start another release.
+      - '!sites/jithendar-com/deploy/production/kustomization.yaml'
 
 permissions:
   contents: read
+
+# Releases run one at a time and in order, so an older build can never overwrite a newer digest.
+concurrency:
+  group: jithendar-com-${{ github.event_name == 'pull_request' && github.ref || 'release' }}
+  cancel-in-progress: false
 
 defaults:
   run:
@@ -31,6 +44,9 @@ jobs:
           node-version-file: sites/jithendar-com/.nvmrc
           cache: npm
           cache-dependency-path: sites/jithendar-com/package-lock.json
+      - uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4
+        with:
+          version: v1.35.0
       - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck
@@ -41,19 +57,23 @@ jobs:
       - name: Render production manifests
         run: kubectl kustomize deploy/production > /dev/null
 
-  # Publishes an immutable image; deployment stays a reviewed change to deploy/production (Argo CD syncs it).
   publish:
     needs: check
     if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: [self-hosted, linux, ARM64]
     timeout-minutes: 30
+    permissions:
+      contents: write
+    outputs:
+      image: ${{ steps.pin.outputs.image }}
     env:
       AWS_REGION: us-east-1
       REPOSITORY: jithendar-com
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          persist-credentials: false
+          # Needed to push the digest commit with the job's GITHUB_TOKEN.
+          persist-credentials: true
       # Concurrent runners share HOME; isolate Docker login and buildx settings.
       - name: Isolate Docker configuration for this job
         run: echo "DOCKER_CONFIG=$(mktemp -d "$RUNNER_TEMP/docker-config.XXXXXX")" >> "$GITHUB_ENV"
@@ -70,19 +90,70 @@ jobs:
           context: sites/jithendar-com
           platforms: linux/arm64
           push: true
-          build-args: APP_ENV=production
+          build-args: |
+            APP_ENV=production
+            GIT_SHA=${{ github.sha }}
           tags: ${{ steps.ecr.outputs.registry }}/${{ env.REPOSITORY }}:${{ github.sha }}
           cache-from: type=gha,scope=jithendar-com
           cache-to: type=gha,mode=max,scope=jithendar-com
-      - name: Record digest
+      - name: Pin digest in deploy/production
+        id: pin
         env:
           IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.REPOSITORY }}
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
+          set -euo pipefail
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "Unexpected digest: $DIGEST" >&2; exit 1; }
+          echo "image=$IMAGE@$DIGEST" >> "$GITHUB_OUTPUT"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            git fetch --quiet origin "$GITHUB_REF_NAME"
+            git reset --quiet --hard "origin/$GITHUB_REF_NAME"
+            scripts/set-image.sh "$IMAGE" "$DIGEST"
+            if git diff --quiet; then
+              echo "Digest already pinned."
+              exit 0
+            fi
+            git commit --quiet -am "deploy(jithendar-com): ${GITHUB_SHA::7}" \
+              -m "Image: $IMAGE@$DIGEST" -m "Built from $GITHUB_SHA by run $GITHUB_RUN_ID."
+            git push --quiet origin "HEAD:$GITHUB_REF_NAME" && exit 0
+            echo "Push raced with another commit; retrying ($attempt/3)."
+          done
+          exit 1
+      - name: Record image
+        run: |
           {
             echo '### jithendar.com image'
             echo
-            echo "\`$IMAGE@$DIGEST\`"
-            echo
-            echo 'Pin it with: `cd sites/jithendar-com/deploy/production && kustomize edit set image jithendar-com='"$IMAGE@$DIGEST"'`'
+            echo "\`${{ steps.pin.outputs.image }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: publish
+    runs-on: self-hosted
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://jithendar.com
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Argo CD polls Git every ~2 minutes and auto-syncs jithendar-com; wait for this build to serve traffic.
+      - name: Wait for rollout
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 60); do
+            live="$(curl -sS --max-time 10 https://jithendar.com/api/health | sed -nE 's/.*"version":"([^"]*)".*/\1/p' || true)"
+            if [[ "$live" == "$GITHUB_SHA" ]]; then
+              echo "Live: $live"
+              exit 0
+            fi
+            echo "Waiting for $GITHUB_SHA (live: ${live:-unreachable})"
+            sleep 10
+          done
+          echo "Build $GITHUB_SHA did not go live within 10 minutes. Check the jithendar-com app in Argo CD." >&2
+          exit 1
+      - name: Smoke test
+        run: scripts/smoke.sh https://jithendar.com "$GITHUB_SHA"

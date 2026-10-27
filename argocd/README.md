@@ -95,7 +95,7 @@ Applications from `argocd/kustomization.yaml` with kubectl in the intended
 context. Review each Application in Argo CD before syncing. The bootstrap shell
 wrapper has been removed; existing Applications remain unchanged.
 
-New Applications have **manual sync**, no deletion finalizers, no automatic
+New Applications have **manual sync** (exception: `jithendar-com`, which auto-syncs without pruning because its CI release commits the image digest), no deletion finalizers, no automatic
 pruning and `FailOnSharedResource=true`. Registering them does not adopt or
 restart their workloads. Review each Application's diff and prerequisites, then sync it without
 pruning in Argo CD. Applications can be OutOfSync until that review and sync.
@@ -111,7 +111,7 @@ Do not enable Force/Replace to resolve an immutable-field difference.
 | shopping-agent | Retired from the active catalog; functionality resides in Moks. Historical adoption files do not make it a required workload. |
 | cert-manager, metrics-server, grafana | Pinned upstream Helm charts with Git-hosted values and existing release names. |
 | roboshop-letsencrypt, prometheus, wordpress | Existing local charts and release names. WordPress ingress remains enabled for the existing initialized site. |
-| shared-tls | The single existing TLSStore in jithendar; no duplicate certificate or Traefik controller. WordPress owns the canonical Certificate. |
+| shared-tls | The single existing TLSStore in jithendar; no duplicate certificate or Traefik controller. `jithendar-com` owns the canonical Certificate (`sites/jithendar-com/deploy/production/certificate.yaml`). |
 | jfrog | Optional, currently absent. Manual sync only, requires bootstrap credentials, storage and host-capacity checks first. Public ingress remains a separate explicit exposure step. |
 
 Langfuse is a cloud integration and n8n has no deployment manifests, so neither

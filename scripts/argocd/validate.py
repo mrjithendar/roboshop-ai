@@ -9,6 +9,8 @@ import tempfile
 import yaml
 ROOT = Path(__file__).resolve().parents[2]
 REPO = 'https://github.com/mrjithendar/roboshop-ai.git'
+# Stateless apps released by CI through a Git commit; auto-sync without pruning only.
+AUTO_SYNC = {'jithendar-com'}
 
 
 def command(args):
@@ -83,7 +85,8 @@ def validate(external=False):
         assert spec['project'] in projects
         project=projects[spec['project']]['spec']
         assert spec['destination']['namespace'] not in ('argocd','traefik')
-        assert 'automated' not in spec.get('syncPolicy',{}),name
+        automated=spec.get('syncPolicy',{}).get('automated')
+        assert automated is None or (name in AUTO_SYNC and automated.get('prune') is False),name
         assert 'FailOnSharedResource=true' in spec['syncPolicy']['syncOptions']
         for resource in render(app,external):
             kind=resource['kind'];meta=resource['metadata'];namespace=meta.get('namespace','')

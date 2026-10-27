@@ -12,7 +12,12 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: jithendar
+  # Auto-sync is the release path: CI commits a new image digest and Argo CD applies it.
+  # Pruning stays off (deletions are manual); selfHeal is off so manual hotfixes are visible as OutOfSync.
   syncPolicy:
+    automated:
+      prune: false
+      selfHeal: false
     syncOptions:
     - FailOnSharedResource=true
     - PruneLast=true
