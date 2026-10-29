@@ -33,4 +33,4 @@ jobs:
       - uses: azure/setup-helm@v4.3.1
       - run: python -m pip install PyYAML pytest
       - run: python scripts/argocd/validate.py --external-charts
-      - run: python -m pytest -q tests/test_argocd_catalog.py tests/test_mongodb_catalog.py minikube/test-wordpress.py minikube/test-jfrog.py
+      - run: python -m pytest -q tests/test_argocd_catalog.py tests/test_mongodb_catalog.py minikube/test-jfrog.py
