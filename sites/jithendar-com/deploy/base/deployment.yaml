@@ -53,6 +53,11 @@ spec:
         envFrom:
         - secretRef:
             name: jithendar-com-env
+        # Public identifiers (search-engine verification, GA4, AdSense, ads.txt, IndexNow key), not secrets.
+        # Optional: created by scripts/set-public-config.sh; the site runs without it.
+        - configMapRef:
+            name: jithendar-com-public
+            optional: true
         env:
         - name: APP_ENV
           value: production

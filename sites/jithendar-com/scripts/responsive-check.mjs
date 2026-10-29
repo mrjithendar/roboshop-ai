@@ -149,6 +149,10 @@ for (const width of [320, 375, 390, 768]) {
   await page.goto(`${BASE}/admin/posts/new`, { waitUntil: "load" });
   await page.waitForTimeout(1500);
   await page.fill("#title", "Scaling Kubernetes ingress on a single node");
+  // Below xl the post settings are in a drawer; the cover controls are in the "Featured image" panel.
+  const settings = page.getByRole("button", { name: "Settings", exact: true });
+  if (await settings.isVisible()) await settings.click();
+  await page.locator("summary", { hasText: "Featured image" }).click();
   await page.getByRole("button", { name: /Generate image/ }).first().click();
   let v = await inViewport();
   interactive.push({ width, check: "generate dialog: compose fits, focus inside", ok: v.open && v.fits && v.focusInside && !v.overflow, v });
@@ -167,7 +171,7 @@ for (const width of [320, 375, 390, 768]) {
   await page.keyboard.press("Escape");
   interactive.push({ width, check: "Escape closes the dialog", ok: !(await inViewport()).open });
   // Media picker
-  await page.getByRole("button", { name: /Select or upload a cover image/ }).click();
+  await page.getByRole("button", { name: /Select or upload a cover image/ }).first().click();
   await page.waitForTimeout(800);
   v = await inViewport();
   interactive.push({ width, check: "media picker fits", ok: v.open && v.fits && !v.overflow, v });

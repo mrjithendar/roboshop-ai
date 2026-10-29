@@ -27,7 +27,10 @@ Secrets (never in Git), created once by `scripts/create-secrets.sh`:
 | `jithendar-com-env` | `DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_SECRET`, `SETTINGS_ENCRYPTION_KEY`, `ADMIN_BOOTSTRAP_TOKEN`, `METRICS_TOKEN`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, optional `SMTP_URL`, `MAIL_FROM`; media: `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, optional `R2_PUBLIC_BASE_URL`; optional `GEMINI_API_KEY`, `GEMINI_IMAGE_MODEL` (added with `scripts/set-media-config.sh`) |
 
 Back up `SETTINGS_ENCRYPTION_KEY` with your database backups: it decrypts the stored storage/backup credentials.
-Gemini limits (`GEMINI_IMAGE_*`) are plain env values in `deploy/base/deployment.yaml`. Media architecture,
+Gemini limits (`GEMINI_IMAGE_*`) are plain env values in `deploy/base/deployment.yaml`.
+Public identifiers for search engines, GA4, AdSense, ads.txt and IndexNow live in the optional ConfigMap
+`jithendar-com-public` (`scripts/set-public-config.sh`; see `docs/SEO_ANALYTICS_ADS.md`). The site runs without it.
+Scheduled publishing and IndexNow retries run inside the site pods (no extra workload; `docs/EDITOR.md`). Media architecture,
 R2 bucket setup (CORS, lifecycle) and the S3 → R2 migration: see `docs/MEDIA.md`.
 
 ## First-time setup

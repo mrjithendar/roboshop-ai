@@ -1,5 +1,18 @@
 # Progress log — jithendar.com
 
+## Search engines, analytics, AdSense and the block editor (2026-10-29, owner request)
+
+**What changed**
+- SEO: SEO/social/noindex fields for posts and pages; image sitemap entries; noindex posts and pages left out of sitemaps; staging crawlable with `X-Robots-Tag: noindex` (was `Disallow: /`, which hides noindex); Google/Bing verification meta from runtime config; IndexNow with a Postgres job queue (retries, dedupe, never blocks publishing); HSTS and Permissions-Policy; `/search` rendered per request.
+- GA4 (Consent Mode v2 defaults, manual de-duplicated page views, `article_engaged`, no PII, never on private routes) and AdSense (one tag, labelled reserved slot after articles, test mode outside production, `/ads.txt` verbatim, Google's certified CMP + "Privacy choices" link). Draft privacy and cookies pages bundled for owner review (not auto-published). Details: `docs/SEO_ANALYTICS_ADS.md`.
+- Editor: visual block editor over canonical Markdown with protected shortcode blocks and a fidelity check, slash commands, searchable inserter, block move/duplicate/delete, code languages, figures/galleries, safe links; publish/schedule/update/unpublish; server autosave + recovery; optimistic concurrency; revisions with preview/restore; device previews; trash/restore/duplicate; posts and pages dashboards; media search/paging/drag-drop/paste, alt editing and usage warnings; server-side scheduler. Details: `docs/EDITOR.md`.
+- Migration `0005_editor_seo.sql`: new columns (defaults keep existing behaviour), `revision` (baseline revision for all existing content), `autosave`, `job`. Additive only; rollback = deploy the previous image (it ignores the new columns/tables), but note it does not know about trash or scheduling: trashed posts would show again and scheduled posts would stay unpublished until rolled forward.
+- Security: render-time filter for unsafe URL schemes (`lib/mdx/safe-urls.ts`), save-time link validation.
+
+**Commands**: see the final report (lint, typecheck, 29 test files, build, HTTP checks, browser flows).
+
+**Manual steps**: Search Console/Bing/GA4/AdSense/consent checklist in `docs/SEO_ANALYTICS_ADS.md`; `scripts/set-public-config.sh mk4`; review and publish the bundled privacy/cookies drafts (Admin → Pages); complete "Owner input needed" items.
+
 ## Responsive pages, R2 media, Gemini "Generate image" (2026-10-29, owner request)
 
 **What changed**
