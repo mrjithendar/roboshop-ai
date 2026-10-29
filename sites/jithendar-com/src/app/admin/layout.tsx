@@ -32,7 +32,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     ...(isAdmin
       ? [
           { href: "/admin/users", label: "Users", section: "Site" },
-          { href: "/admin/settings", label: "Settings", section: "Site" },
+          { href: "/admin/appearance", label: "Appearance & settings", section: "Site" },
           { href: "/admin/storage", label: "Storage & email", section: "Site" },
           { href: "/admin/backups", label: "Backups", section: "Site" },
           { href: "/admin/system", label: "System status", section: "Operations" },

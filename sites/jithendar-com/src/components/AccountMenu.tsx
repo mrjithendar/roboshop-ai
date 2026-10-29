@@ -131,7 +131,7 @@ function Menu({ name, email, image, staff }: { name: string; email: string; imag
           id={menuId}
           role="menu"
           aria-label="Account"
-          className="absolute right-0 top-full z-50 mt-2 w-72 max-w-[calc(100vw-1.5rem)] origin-top-right rounded-xl border border-line bg-surface p-1.5 shadow-lg"
+          className="chrome-reset absolute right-0 top-full z-50 mt-2 w-72 max-w-[calc(100vw-1.5rem)] origin-top-right rounded-xl border border-line bg-surface p-1.5 shadow-lg"
         >
           <div className="flex items-center gap-3 border-b border-line px-3 pb-3 pt-2" role="none">
             <UserAvatar name={name} image={image} size="sm" />

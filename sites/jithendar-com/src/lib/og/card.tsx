@@ -4,7 +4,7 @@ import { site } from "@/config/site";
 export const ogSize = { width: 1200, height: 630 };
 
 /** Branded 1200×630 social card. Rendered by next/og (Satori); no external fonts or images. */
-export function ogCard({ eyebrow, title, footer }: { eyebrow: string; title: string; footer: string }) {
+export function ogCard({ eyebrow, title, footer, accent = "#2559c4", name = site.name }: { eyebrow: string; title: string; footer: string; accent?: string; name?: string }) {
   return new ImageResponse(
     (
       <div
@@ -15,7 +15,7 @@ export function ogCard({ eyebrow, title, footer }: { eyebrow: string; title: str
           flexDirection: "column",
           justifyContent: "space-between",
           padding: "72px 80px",
-          background: "linear-gradient(135deg, #0f1220 0%, #1e1b4b 55%, #0e3a52 100%)",
+          background: "#0e1013",
           color: "white",
           fontFamily: "sans-serif",
         }}
@@ -26,7 +26,7 @@ export function ogCard({ eyebrow, title, footer }: { eyebrow: string; title: str
               width: 56,
               height: 56,
               borderRadius: 14,
-              background: "linear-gradient(135deg, #4f46e5, #22b8d6)",
+              background: accent,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -36,7 +36,7 @@ export function ogCard({ eyebrow, title, footer }: { eyebrow: string; title: str
           >
             J
           </div>
-          <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: -0.5 }}>{site.name}</div>
+          <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: -0.5 }}>{name}</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
           <div style={{ fontSize: 26, fontWeight: 700, color: "#a5b4fc", textTransform: "uppercase", letterSpacing: 2 }}>{eyebrow}</div>

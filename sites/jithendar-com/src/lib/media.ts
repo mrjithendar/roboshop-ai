@@ -315,7 +315,10 @@ export async function mediaUsage(ids: string[]): Promise<Map<string, number>> {
   const posts = await db.select({ body: schema.post.body, cover: schema.post.featuredImage, social: schema.post.socialImage }).from(schema.post);
   const pages = await db.select({ body: schema.page.body }).from(schema.page);
   const texts = [...posts.map((p) => `${p.body} ${p.cover?.src ?? ""} ${p.social?.src ?? ""}`), ...pages.map((p) => p.body)];
-  for (const id of ids) out.set(id, texts.filter((t) => t.includes(`${MEDIA_PREFIX}${id}/`)).length);
+  // Logos, banners, icons and share images selected in Admin → Appearance (published or draft).
+  const { configMediaIds } = await import("./site-config/store");
+  const fromConfig = await configMediaIds().catch(() => new Map<string, number>());
+  for (const id of ids) out.set(id, texts.filter((t) => t.includes(`${MEDIA_PREFIX}${id}/`)).length + (fromConfig.get(id) ?? 0));
   return out;
 }
 

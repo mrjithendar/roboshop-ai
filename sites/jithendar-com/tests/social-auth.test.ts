@@ -184,13 +184,17 @@ describe("social sign-in and callback errors", () => {
   });
 
   it("does not create accounts when registration is closed", async () => {
-    const { saveSettings } = await import("@/lib/settings");
-    const { getSettings } = await import("@/lib/settings");
-    const current = await getSettings();
-    await saveSettings({ ...current, features: { ...current.features, registration: false } }, "test-admin");
+    const { getDraft, saveDraft, publishDraft } = await import("@/lib/site-config/store");
+    await db.insert(schema.user).values({ id: "test-admin-1", name: "Admin", email: "admin@example.com", role: "admin" });
+    const admin = { id: "test-admin-1", role: "admin" as const, label: "admin@example.com" };
+    const draft = await getDraft();
+    const config = structuredClone(draft.config) as { general: { features: { registration: boolean } } };
+    config.general.features.registration = false;
+    const { version } = await saveDraft(admin, config, draft.version);
+    await publishDraft(admin, version);
     const { res } = await signInWithGitHub();
     expect(errorOf(res)).toBe("REGISTRATION_CLOSED");
-    expect(await db.select().from(schema.user)).toHaveLength(0);
+    expect(await db.select().from(schema.user).where(eq(schema.user.email, "octo@example.com"))).toHaveLength(0);
   });
 
   it("never links to an existing account just because the email matches", async () => {

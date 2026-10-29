@@ -25,6 +25,8 @@ import { getAuthor, getPublishedArticle, readingTimeMinutes, relatedArticles, ty
 import { formatDateTime } from "@/lib/dates";
 import { compileMdx } from "@/lib/mdx/compile";
 import { canonicalFor } from "@/lib/seo/canonical";
+import { getSiteConfig } from "@/lib/site-config";
+import { ShareLinks } from "@/components/ShareLinks";
 import { articleLd, breadcrumbLd } from "@/lib/seo/jsonld";
 
 export type SlugParams = { params: Promise<{ slug: string }> };
@@ -98,7 +100,10 @@ export async function ArticleView({
 }) {
   const fm = article.frontmatter;
   const { Content, headings } = await compileMdx(article.body);
-  const related = await relatedArticles(article);
+  const { config } = await getSiteConfig();
+  // Presentation options (Admin → Appearance → Blog). Structured data below never depends on them.
+  const a = config.blog.article;
+  const related = a.related.enabled ? await relatedArticles(article, a.related.count) : [];
   const cats = await getCategoryMap();
   const category = cats.get(fm.category);
   const crumbs = [
@@ -106,7 +111,8 @@ export async function ArticleView({
     { name: collectionLabels[collection], path: `/${collection}` },
     { name: fm.title, path: article.path },
   ];
-  const hasToc = headings.length >= 2;
+  const hasToc = a.toc.enabled && headings.length >= a.toc.minHeadings;
+  const sidebarToc = hasToc && a.sidebar === "toc";
   const ads = integrations().adsense;
 
   const column = "mx-auto w-full min-w-0 max-w-reading";
@@ -117,8 +123,8 @@ export async function ArticleView({
       {notice}
       <Container className="pt-8 sm:pt-12">
         <header className={column}>
-          <Breadcrumbs crumbs={crumbs} />
-          <div className="mt-8 flex flex-wrap items-center gap-2">
+          {a.showBreadcrumbs && <Breadcrumbs crumbs={crumbs} />}
+          <div className={`${a.showBreadcrumbs ? "mt-8" : ""} flex flex-wrap items-center gap-2`}>
             <Link href={`/category/${fm.category}`} className="inline-flex min-h-7 items-center gap-1.5 text-sm font-semibold text-accent-text hover:underline">
               <CategoryIcon name={category?.icon ?? "layers"} className="h-4 w-4" />
               {labelOf(cats, fm.category)}
@@ -130,18 +136,20 @@ export async function ArticleView({
           <h1 className="mt-4 text-title font-bold text-fg text-balance [overflow-wrap:anywhere]">{fm.title}</h1>
           <p className="mt-4 text-lg leading-8 text-fg-muted sm:text-xl sm:leading-8">{fm.description}</p>
           <div className="mt-8 flex items-center gap-3 border-y border-line py-4">
-            <Avatar name={author.frontmatter.name} size="sm" />
+            {a.showAuthor && <Avatar name={author.frontmatter.name} size="sm" />}
             <div className="min-w-0 text-sm leading-6">
-              <p className="font-semibold text-fg">
-                <Link href={author.path} rel="author" className="hover:underline">
-                  {author.frontmatter.name}
-                </Link>
-              </p>
+              {a.showAuthor && (
+                <p className="font-semibold text-fg">
+                  <Link href={author.path} rel="author" className="hover:underline">
+                    {author.frontmatter.name}
+                  </Link>
+                </p>
+              )}
               <p className="flex flex-wrap items-center gap-x-2 text-fg-subtle">
                 <span>
                   <time dateTime={fm.publishedAt}>{formatDateTime(fm.publishedAt!)}</time>
                 </span>
-                {fm.updatedAt && (
+                {a.showUpdated && fm.updatedAt && (
                   <>
                     <span aria-hidden="true">·</span>
                     <span>
@@ -149,16 +157,20 @@ export async function ArticleView({
                     </span>
                   </>
                 )}
-                <span aria-hidden="true">·</span>
-                <span className="inline-flex items-center gap-1">
-                  <ClockIcon className="h-3.5 w-3.5" /> {readingTimeMinutes(article.body)} min read
-                </span>
+                {a.showReadingTime && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="inline-flex items-center gap-1">
+                      <ClockIcon className="h-3.5 w-3.5" /> {readingTimeMinutes(article.body)} min read
+                    </span>
+                  </>
+                )}
               </p>
             </div>
           </div>
         </header>
 
-        {fm.featuredImage && (
+        {a.showCover && fm.featuredImage && (
           <figure className="mx-auto mt-8 max-w-4xl">
             <Image
               src={fm.featuredImage.src}
@@ -173,7 +185,7 @@ export async function ArticleView({
           </figure>
         )}
 
-        <div className={`pb-4 pt-8 sm:pt-10 ${hasToc ? "xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,var(--container-reading))_minmax(0,1fr)] xl:gap-x-12" : ""}`}>
+        <div className={`pb-4 pt-8 sm:pt-10 ${sidebarToc ? "xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,var(--container-reading))_minmax(0,1fr)] xl:gap-x-12" : ""}`}>
           <div className={`${column} xl:col-start-2`}>
             {fm.sponsored && fm.sponsor && (
               <p className="mb-8 rounded-lg border border-yellow-300 bg-yellow-50 p-4 text-sm leading-6 text-yellow-950 dark:border-yellow-500/30 dark:bg-yellow-500/10 dark:text-yellow-100">
@@ -191,7 +203,7 @@ export async function ArticleView({
             )}
 
             {hasToc && (
-              <details className="group mb-8 rounded-lg border border-line bg-surface-muted xl:hidden">
+              <details className={`group mb-8 rounded-lg border border-line bg-surface-muted ${sidebarToc ? "xl:hidden" : ""}`}>
                 <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-semibold text-fg [&::-webkit-details-marker]:hidden">
                   On this page
                   <ChevronDown className="h-4 w-4 text-fg-subtle transition-transform group-open:rotate-180" />
@@ -205,6 +217,8 @@ export async function ArticleView({
             <div className="article-body prose max-w-none dark:prose-invert">
               <Content components={{ ...mdxComponents, nav: () => <TableOfContents headings={headings} id="toc-inline" /> }} />
             </div>
+
+            {a.share.enabled && a.share.networks.length > 0 && <ShareLinks url={canonicalFor(article)} title={fm.title} networks={a.share.networks} />}
 
             {!article.preview && <ArticleEngagement collection={collection} slug={article.slug} />}
             {!article.preview && ads?.slots.articleEnd && <AdSlot client={ads.client} slot={ads.slots.articleEnd} test={ads.test} />}
@@ -255,13 +269,13 @@ export async function ArticleView({
 
             <footer className="mt-12 space-y-8 border-t border-line pt-8">
               <TagList tags={fm.tags} />
-              <AuthorCard author={author} />
+              {a.showAuthorCard && <AuthorCard author={author} />}
             </footer>
 
             {article.id && !article.preview && <Comments postId={article.id} path={article.path} />}
           </div>
 
-          {hasToc && (
+          {sidebarToc && (
             <aside className="hidden xl:col-start-3 xl:block">
               <div className="sticky top-[calc(var(--spacing-header)+2rem)] max-h-[calc(100dvh-var(--spacing-header)-4rem)] overflow-y-auto pb-4">
                 <TableOfContents headings={headings} />

@@ -1,7 +1,8 @@
 # Design system
 
 One source: `src/app/globals.css` (Tailwind 4 `@theme`). Components use semantic tokens, so light and dark
-need no duplicated `dark:` pairs.
+need no duplicated `dark:` pairs. Admins can change the palette, fonts, widths, radius, density and more in
+Admin → Appearance (`docs/APPEARANCE.md`); those choices override the same CSS variables at runtime.
 
 ## Colour
 

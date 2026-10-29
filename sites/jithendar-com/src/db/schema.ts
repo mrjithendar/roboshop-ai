@@ -237,6 +237,22 @@ export const setting = pgTable("setting", {
   updatedBy: text("updated_by"),
 });
 
+/**
+ * Site configuration (Admin → Appearance). Two rows: "published" (what readers see) and "draft" (shared by
+ * admins, private). `version` increments on every write and guards against conflicting edits; the draft's
+ * `base_version` is the published version it started from. Published history lives in `revision`
+ * (entity "site-config").
+ */
+export const siteConfig = pgTable("site_config", {
+  key: text("key").primaryKey(),
+  config: jsonb("config").$type<Record<string, unknown>>().notNull(),
+  schemaVersion: integer("schema_version").notNull(),
+  version: integer("version").notNull(),
+  baseVersion: integer("base_version").notNull().default(0),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+  updatedBy: text("updated_by"),
+});
+
 export const comment = pgTable(
   "comment",
   {

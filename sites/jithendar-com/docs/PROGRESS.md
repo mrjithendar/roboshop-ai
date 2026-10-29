@@ -1,5 +1,21 @@
 # Progress log — jithendar.com
 
+## Appearance & site settings (2026-10-29, owner request)
+
+**What changed**
+- Admin → Appearance & settings (`/admin/appearance`, admins only): General, Branding, Header, Navigation, Footer, Typography & colours, Homepage, Blog & articles, Media, SEO & integrations, Advanced, Revision history. Details and the full control list: `docs/APPEARANCE.md`.
+- Typed, versioned `SiteConfig` (zod) with safe links, plain text, hex colours, bounded values, own-media images, contrast and navigation rules; legacy settings migrated; per-section fallbacks.
+- Lifecycle: shared private draft with autosave and conflict detection → preview of the real pages (admin-only cookie token, no-store, noindex, phone/tablet/desktop) → atomic publish (transaction, revision, audit, cache bus) → history with restore; export/import of non-secret settings into the draft.
+- Public site now reads the configuration: theme tokens/fonts via CSS variables, header (presets, inverse backgrounds, CTA, social, nested menus with keyboard submenus), dismissible announcement, footer, homepage section registry, listing/article presentation and page size, share links, date format/time zone, favicon/icons, configurable default share image.
+- Maintenance mode in the proxy (503 + Retry-After, staff bypass, indexing untouched). Same-origin framing allowed for previews.
+- Migration `0007_site_config.sql` (additive). No new dependencies. Old `/admin/settings` redirects.
+
+**Files**: `src/lib/site-config/*`, `src/app/admin/appearance/*`, `src/app/api/admin/appearance/preview/route.ts`, `src/components/{SiteHeader,NavLinks,SiteFooter,Logo,AnnouncementBar,DismissAnnouncement,PreviewBanner,ShareLinks,CopyLink,ArticleList,CoverImage,TopicGrid}.tsx`, `src/components/sections/HomeSections.tsx`, `src/components/site/*`, `src/app/{layout,page,opengraph-image}.tsx`, `src/lib/{settings,dates,media}.ts`, `src/lib/pages/{article,listing,listings}.tsx|ts`, `src/lib/og/card.tsx`, `src/proxy.ts`, `next.config.ts`, `src/app/globals.css`, `src/db/schema.ts`, tests `site-config` (+ `indexing`, `seo-integrations`, `social-auth` adjusted), `docs/APPEARANCE.md`.
+
+**Commands**: see the final report of this change (lint, typecheck, 32 test files, production build, browser flows and width audit).
+
+**Manual steps**: none required; after deploying, review the draft in Admin → Appearance and publish when ready.
+
 ## Redesign + social sign-in, profiles and header account menu (2026-10-29, owner request)
 
 **What changed**

@@ -3,7 +3,7 @@ import { AlertIcon, CheckIcon } from "@/components/icons";
 
 /** Text inputs are 16px (no iOS zoom on focus) and 44px tall; invalid fields get a red border via aria-invalid. */
 export const inputClass =
-  "block w-full min-h-11 rounded-lg border border-line-strong bg-surface px-3.5 py-2 text-base text-fg shadow-xs transition-colors placeholder:text-fg-subtle hover:border-slate-400 focus:border-accent focus:outline-none focus:ring-3 focus:ring-accent/20 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-fg-subtle aria-invalid:border-red-500 aria-invalid:focus:ring-red-500/20 dark:hover:border-white/30";
+  "block w-full min-h-11 rounded-[var(--radius-control)] border border-line-strong bg-surface px-3.5 py-2 text-base text-fg shadow-xs transition-colors placeholder:text-fg-subtle hover:border-slate-400 focus:border-accent focus:outline-none focus:ring-3 focus:ring-accent/20 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-fg-subtle aria-invalid:border-red-500 aria-invalid:focus:ring-red-500/20 dark:hover:border-white/30";
 
 export function Field({
   label,
@@ -71,7 +71,7 @@ const sizes = {
 export type ButtonVariant = keyof typeof variants;
 
 export function buttonClass(variant: ButtonVariant = "primary", size: keyof typeof sizes = "md") {
-  return `inline-flex items-center justify-center gap-2 rounded-lg font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-55 aria-disabled:pointer-events-none aria-disabled:opacity-55 ${variants[variant]} ${sizes[size]}`;
+  return `inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-55 aria-disabled:pointer-events-none aria-disabled:opacity-55 ${variants[variant]} ${sizes[size]}`;
 }
 
 export function Button({

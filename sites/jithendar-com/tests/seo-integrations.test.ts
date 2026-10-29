@@ -15,6 +15,13 @@ import { buildSitemap } from "@/lib/seo/sitemap";
 import { proxy } from "@/proxy";
 import { freshDb } from "./db-helpers";
 
+// These tests cover routing headers only; maintenance mode (a database read) is tested in site-config.test.ts.
+vi.mock("@/lib/site-config/maintenance", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/site-config/maintenance")>()),
+  maintenanceState: async () => ({ enabled: false, message: "", retryAfterMinutes: 30 }),
+}));
+
+
 vi.mock("server-only", () => ({}));
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("NOT_FOUND"); }, permanentRedirect: (to: string) => { throw new Error(`REDIRECT ${to}`); } }));
 
@@ -22,7 +29,7 @@ const author: Actor = { id: "author", role: "author", label: "a@example.com" };
 const PNG_SRC = "/images/roboshop-ai/cart.jpg";
 
 describe("integration configuration", () => {
-  it("accepts only well-formed public identifiers and never enables analytics outside production", () => {
+  it("accepts only well-formed public identifiers and never enables analytics outside production", async () => {
     const env = {
       GA4_MEASUREMENT_ID: "G-ABC123XYZ9",
       ADSENSE_CLIENT_ID: "ca-pub-1234567890123456",
@@ -58,7 +65,7 @@ describe("integration configuration", () => {
     vi.unstubAllEnvs();
   });
 
-  it("denies ad and analytics storage by default in the EEA, UK and Switzerland (and everywhere in strict mode)", () => {
+  it("denies ad and analytics storage by default in the EEA, UK and Switzerland (and everywhere in strict mode)", async () => {
     const regional = consentDefaultsScript("regional");
     const [first, second] = [...regional.matchAll(/gtag\('consent','default',(\{.*?\})\);/g)].map((m) => JSON.parse(m[1]!));
     expect(first).toMatchObject({ ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied", analytics_storage: "denied" });
@@ -70,24 +77,24 @@ describe("integration configuration", () => {
     expect(regional.indexOf("consent','default")).toBeLessThan(regional.indexOf("ads_data_redaction"));
   });
 
-  it("never tracks or shows ads on private, editorial or preview routes", () => {
+  it("never tracks or shows ads on private, editorial or preview routes", async () => {
     for (const p of ["/admin", "/admin/posts/1", "/account", "/login", "/setup", "/preview/abc", "/api/health"]) expect(isTrackablePath(p)).toBe(false);
     for (const p of ["/", "/blog/some-post", "/about", "/administrators-guide"]) expect(isTrackablePath(p)).toBe(true);
   });
 });
 
 describe("GA4 page views and events", () => {
-  it("sends each location once (Strict Mode double effects, re-renders) and again after navigating", () => {
+  it("sends each location once (Strict Mode double effects, re-renders) and again after navigating", async () => {
     const d = new PageViewDeduper();
     expect([d.shouldSend("a"), d.shouldSend("a"), d.shouldSend("b"), d.shouldSend("b"), d.shouldSend("a")]).toEqual([true, false, true, false, true]);
   });
 
-  it("strips query strings (search terms, emails) from page_location except the page number", () => {
+  it("strips query strings (search terms, emails) from page_location except the page number", async () => {
     expect(cleanLocation("https://jithendar.com", "/search", "?q=jane%40example.com")).toBe("https://jithendar.com/search");
     expect(cleanLocation("https://jithendar.com", "/blog", "?page=2&utm_source=x&email=a@b.c")).toBe("https://jithendar.com/blog?page=2");
   });
 
-  it("drops event parameters that look like personal data", () => {
+  it("drops event parameters that look like personal data", async () => {
     expect(safeParams({ article_slug: "k8s-ingress", email: "jane@example.com", phone: "+91 98765 43210", n: 3, ok: true, long: "x".repeat(200), obj: { a: 1 } })).toEqual({ article_slug: "k8s-ingress", n: 3, ok: true });
   });
 });
@@ -155,7 +162,7 @@ describe("metadata, sitemap and structured data", () => {
     expect(await getPublishedArticle("blog", "scheduled-post")).toBeUndefined();
   });
 
-  it("escapes JSON-LD so content can never close the script tag", () => {
+  it("escapes JSON-LD so content can never close the script tag", async () => {
     const out = serializeJsonLd({ "@type": "BlogPosting", headline: "</script><script>alert(1)</script>" });
     expect(out).not.toContain("</script>");
     expect(JSON.parse(out).headline).toBe("</script><script>alert(1)</script>");
@@ -172,9 +179,9 @@ describe("IndexNow", () => {
     setDbForTests(undefined);
   });
 
-  it("serves the key file at the site root", () => {
+  it("serves the key file at the site root", async () => {
     vi.stubEnv("INDEXNOW_KEY", "0123456789abcdef0123456789abcdef");
-    const res = proxy(new NextRequest("https://jithendar.com/0123456789abcdef0123456789abcdef.txt"));
+    const res = await proxy(new NextRequest("https://jithendar.com/0123456789abcdef0123456789abcdef.txt"));
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/plain");
   });

@@ -26,6 +26,8 @@ export type Listing = {
   chips?: { href: string; label: string }[];
   feedHref?: string;
   emptyText?: string;
+  /** Items per page (configured; out-of-range pages 404). */
+  pageSize?: number;
 };
 
 export type PageParams = { params: Promise<{ n: string }> };
@@ -34,7 +36,7 @@ export type PageParams = { params: Promise<{ n: string }> };
 export function resolvePage(listing: Listing, raw?: string): Paged<Article> {
   if (raw === "1") permanentRedirect(listing.basePath);
   const page = raw === undefined ? 1 : parsePageParam(raw);
-  const paged = page === undefined ? undefined : paginate(listing.articles, page);
+  const paged = page === undefined ? undefined : paginate(listing.articles, page, listing.pageSize);
   if (!paged) notFound();
   return paged;
 }

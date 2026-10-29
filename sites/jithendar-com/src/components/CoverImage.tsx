@@ -16,16 +16,19 @@ export function CoverImage({
   sizes,
   priority = false,
   className = "",
+  aspect = "16/9",
 }: {
   article: Article;
   category?: CategoryInfo;
   sizes: string;
   priority?: boolean;
   className?: string;
+  /** Width/height ratio of the frame (configured in Admin → Appearance → Blog). */
+  aspect?: "16/9" | "3/2" | "4/3" | "1/1";
 }) {
   const cover = article.frontmatter.featuredImage;
   return (
-    <div className={`relative aspect-[16/9] overflow-hidden bg-surface-sunken ${className}`}>
+    <div className={`relative overflow-hidden bg-surface-sunken ${className}`} style={{ aspectRatio: aspect.replace("/", " / ") }}>
       {cover ? (
         <Image
           src={cover.src}
