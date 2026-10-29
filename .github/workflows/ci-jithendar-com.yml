@@ -78,14 +78,13 @@ jobs:
           version: v1.35.0
       - run: npm ci --no-audit --no-fund
       # The production build type-checks the whole project, so no separate typecheck is needed here.
+      # Only the build is production: tests rely on development fallbacks (e.g. SETTINGS_ENCRYPTION_KEY).
       - name: Lint, test and build (in parallel)
-        env:
-          APP_ENV: production
         run: |
           set -uo pipefail
           npm run lint > lint.log 2>&1 & lint=$!
           npm test > test.log 2>&1 & tests=$!
-          npm run build > build.log 2>&1 & build=$!
+          APP_ENV=production npm run build > build.log 2>&1 & build=$!
           rc=0
           for job in "lint:$lint" "test:$tests" "build:$build"; do
             if ! wait "${job#*:}"; then echo "::error::${job%%:*} failed"; rc=1; fi
