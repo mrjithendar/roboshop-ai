@@ -118,7 +118,7 @@ test('MongoDB accounts, one super admin, server-side roles, persistent sessions 
     const existing = (await customer.call('/api/admin/products')).data.products.find(p => p.sku === 'RMC');
     const update = { sku: existing.sku, name: existing.name, description: existing.description, price: 50, instock: existing.instock, categories: existing.categories, archived: false, revision: existing.revision };
     assert.equal((await customer.call('/api/admin/products/RMC', 'PUT', update)).status, 200);
-    await seedProducts(db); assert.equal((await db.collection('products').findOne({ _id: 'RMC' })).price, 50, 'startup does not overwrite edits');
+    await seedProducts(db, fileURLToPath(new URL('./fixtures/catalogue/fictional-products.json', import.meta.url))); assert.equal((await db.collection('products').findOne({ _id: 'RMC' })).price, 50, 'a repeat import does not overwrite edits');
     const settings = { storeName: 'My Robot Shop', announcement: 'Welcome', supportEmail: 'help@example.com', checkoutEnabled: false };
     assert.equal((await admin.call('/api/admin/settings', 'PUT', { ...settings, RAZORPAY_KEY_SECRET: 'must-not-save' })).status, 400);
     assert.equal((await admin.call('/api/admin/settings', 'PUT', settings)).status, 200);

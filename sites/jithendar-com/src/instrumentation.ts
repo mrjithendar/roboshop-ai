@@ -25,6 +25,10 @@ export async function register() {
   const { startBackupScheduler } = await import("./lib/backups");
   startBackupScheduler();
 
+  // Scheduled publishing and the job queue (IndexNow submissions with retries).
+  const { startWorker } = await import("./lib/scheduler");
+  startWorker();
+
   // Warm the caches so the first visitor gets a fast page, not a cold one.
   const { warmCaches } = await import("./lib/warm");
   void warmCaches().catch((err) => log.warn("cache warm-up failed", { err }));

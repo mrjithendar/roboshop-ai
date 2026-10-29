@@ -12,6 +12,37 @@ The initialization script runs only on an empty database. Accounts, sessions,
 profiles, products, settings and saved Moks conversations remain in MongoDB.
 Application collection `chat_history` is keyed by the authenticated account ID.
 
+## Product catalogue (`catalog.js`)
+
+All catalogue data lives in MongoDB (`roboshop.products`); no service bundles product
+files. [`catalog.js`](catalog.js) is the single definition: a `mongosh` script whose
+`CATALOG` block is a JSON array. It currently holds 32 robots, the original 20 plus 12
+added demo robots. Each product is upserted by SKU with `$setOnInsert`, and the
+script ensures the unique slug index. Re-running it never changes existing products:
+admin edits, stock, prices, archived flags and revisions always win, and only missing
+SKUs are added.
+
+- **New database:** the ConfigMap `mongodb-catalog` (key `20-catalog.js`, file
+  `minikube/mongodb/mongodb-catalog-configmap.yaml`) is mounted into
+  `/docker-entrypoint-initdb.d` next to the application-user script. The official image
+  runs both on an **empty** data volume only.
+- **Existing database** (init scripts do not run again), run either command:
+
+  ```bash
+  kubectl -n roboshop-ai exec -i deploy/mongodb -- sh -c 'mongosh --quiet -u root -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin' < services/mongodb/catalog.js
+  npm run catalog:import          # Node driver with MONGODB_URL/MONGODB_DATABASE (also run by npm run dev)
+  ```
+
+  Use `exec ... statefulset/mongodb` if you deployed the StatefulSet. The root password
+  stays inside the pod.
+- **Adding products:** edit the `CATALOG` array, then run `npm run catalog:configmap`
+  (a test fails if the ConfigMap copy is stale) and `npm test`. Import with one of the
+  commands above. To change a product that is already live, use the admin console:
+  editing the file does not update existing rows.
+
+Adding the ConfigMap mount changes the MongoDB pod template, so the next MongoDB sync
+restarts the pod briefly. Data on the volume is unaffected.
+
 ## Existing Deployment to StatefulSet
 
 Back up the existing database before the controller transition. Expect a brief
@@ -20,6 +51,7 @@ StatefulSet with its volume:
 
 ```bash
 kubectl --context=mk4 -n roboshop-ai delete deployment/mongodb --ignore-not-found --cascade=foreground --wait=true --timeout=120s
+kubectl --context=mk4 apply -f minikube/mongodb/mongodb-catalog-configmap.yaml
 kubectl --context=mk4 apply -f services/mongodb/mongodb-data-pvc-minikube.yaml, services/mongodb/mongodb-service-minikube.yaml, services/mongodb/mongodb-statefulset-minikube.yaml, services/mongodb/mongodb-headless-service-minikube.yaml
 kubectl --context=mk4 -n roboshop-ai get pods,pvc -l app=mongodb
 ```

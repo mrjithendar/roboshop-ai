@@ -64,7 +64,7 @@ and fulfilment are marked simulated. Prices are dated observations and can chang
 ## Import and review contract
 
 `services/catalogue-service/reference-products.json` owns this collection. The
-intentional concept/demo collection remains in `products.json`; the earlier
+intentional concept/demo collection is stored in MongoDB from `services/mongodb/catalog.js`; the earlier
 `showcase-reference.json` fixture is retained and is **not** imported or recertified
 by this update. Existing older showcase rows are labeled `legacy-reference` on read;
 no historical rows are silently archived. Some earlier rows may describe the same
@@ -74,7 +74,7 @@ On catalogue-service startup, `seedProducts()` validates the complete batch befo
 writing and performs `$setOnInsert` upserts keyed by SKU. Publishing calls the same
 function. Repeating either operation does not overwrite administrator edits, price,
 stock, revision or archive decisions. There is no automatic supplier sync. A unique
-slug index protects product URLs. `CATALOGUE_FILE` can replace the demo seed input;
+slug index protects product URLs. `CATALOGUE_FILE` names an explicit fixture file to import (tests only);
 the reference file is still independently validated and inserted.
 
 The public namespace `REF-` is reserved for these imports. Validation rejects sale
@@ -125,11 +125,9 @@ Publication is additive; it inserts the reference rows without replacing demo da
 
 ## Deployment publication
 
-Deploy-Minikube applies and restarts catalogue-service. Its startup calls
-`seedProducts(db)` before opening the HTTP listener, inserting missing listings
-without changing existing products. The workflow does not also execute
-`publish-catalogue.mjs` inside the restarting container: with the Recreate strategy
-that can fail with `container not found ("catalogue-service")`.
+Catalogue-service no longer publishes products at startup. Products are imported
+into MongoDB by `services/mongodb/catalog.js`: automatically on a new, empty MongoDB
+volume, or explicitly on an existing one (see `services/mongodb/README.md`).
 Ingress and TLS configuration has its own apply step. No rollout waits are added;
 a successful workflow means commands were submitted, not that publication or
 certificate issuance has completed. If products remain missing, inspect

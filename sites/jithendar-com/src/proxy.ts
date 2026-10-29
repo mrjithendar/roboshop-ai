@@ -44,6 +44,12 @@ function route(request: NextRequest): NextResponse {
   }
 
   const { pathname } = request.nextUrl;
+  // IndexNow key file at the site root ({key}.txt), proving ownership to participating search engines.
+  const indexNowKey = process.env.INDEXNOW_KEY;
+  if (indexNowKey && /^[A-Za-z0-9-]{8,128}$/.test(indexNowKey) && pathname === `/${indexNowKey}.txt`) {
+    return new NextResponse(indexNowKey, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=86400" } });
+  }
+
   if (pathname.length > 1 && pathname.endsWith("/")) {
     // A plain URL: NextURL re-applies the trailing slash when formatted.
     const url = new URL(request.url);

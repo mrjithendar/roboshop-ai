@@ -49,7 +49,8 @@ export const articleFrontmatter = z
       .default([])
       .transform((tags) => [...new Set(tags.map((t) => t.toLowerCase()))]),
     contentType: z.enum(contentTypeKeys),
-    status: z.enum(["draft", "review", "published", "archived"]),
+    /** scheduled = published automatically at publishedAt by the server (see lib/scheduler.ts). */
+    status: z.enum(["draft", "review", "scheduled", "published", "archived"]),
     publishedAt: isoDateTime.optional(),
     updatedAt: isoDateTime.optional(),
     canonicalUrl: z.url({ protocol: /^https$/ }).optional(),
@@ -59,10 +60,19 @@ export const articleFrontmatter = z
     sponsored: z.boolean().default(false),
     sponsor: z.string().min(1).optional(),
     related: z.array(relatedRef).default([]),
+    /** Search-result overrides (fall back to title/description). */
+    seoTitle: z.string().trim().min(10).max(110).optional(),
+    seoDescription: z.string().trim().min(50).max(160).optional(),
+    /** Social-card overrides (fall back to the SEO values, then title/description/cover). */
+    socialTitle: z.string().trim().min(10).max(110).optional(),
+    socialDescription: z.string().trim().min(20).max(200).optional(),
+    socialImage: featuredImage.optional(),
+    /** Published but excluded from search engines (noindex + left out of sitemaps). */
+    noindex: z.boolean().default(false),
   })
   .superRefine((fm, ctx) => {
-    if (fm.status === "published" && !fm.publishedAt) {
-      ctx.addIssue({ code: "custom", path: ["publishedAt"], message: "required when status is published" });
+    if ((fm.status === "published" || fm.status === "scheduled") && !fm.publishedAt) {
+      ctx.addIssue({ code: "custom", path: ["publishedAt"], message: `required when status is ${fm.status}` });
     }
     if (fm.updatedAt && !fm.publishedAt) {
       ctx.addIssue({ code: "custom", path: ["updatedAt"], message: "requires publishedAt" });
@@ -112,6 +122,10 @@ export const pageFrontmatter = z.strictObject({
   slug,
   description: z.string().min(50).max(160),
   updatedAt: isoDateTime.optional(),
+  seoTitle: z.string().trim().min(2).max(110).optional(),
+  seoDescription: z.string().trim().min(50).max(160).optional(),
+  noindex: z.boolean().default(false),
+  sortOrder: z.number().int().default(100),
 });
 
 export type PageFrontmatter = z.output<typeof pageFrontmatter>;

@@ -19,6 +19,16 @@ VERSION = "2"
 GENERATED = datetime(2026, 10, 19, tzinfo=timezone.utc)
 
 
+CATALOG_FILE = ROOT.parent / "mongodb" / "catalog.js"
+
+
+def catalog_products(path=CATALOG_FILE):
+    """Products from the MongoDB catalogue script's JSON data block (the single catalogue source)."""
+    text = Path(path).read_text()
+    block = text.split("const CATALOG = ", 1)[1].split(";\n// END CATALOG DATA", 1)[0]
+    return json.loads(block)
+
+
 def guard(name):
     if os.getenv("APP_ENV") != "demo" or not re.fullmatch(
         r"roboshop_demo_[a-z0-9_]{1,40}", name
@@ -288,9 +298,7 @@ def main():
         uri, serverSelectionTimeoutMS=5000, socketTimeoutMS=15000, tz_aware=True
     ) as client:
         db = client[args.database]
-        products = json.loads(
-            (ROOT / "products.json").read_text()
-        )
+        products = catalog_products()
         counts = (
             cleanup(db, args.dataset)
             if args.action == "cleanup"

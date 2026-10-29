@@ -25,11 +25,14 @@ async function load(slug: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { frontmatter: fm, path } = await load((await params).page);
+  const title = fm.seoTitle ?? fm.title;
+  const description = fm.seoDescription ?? fm.description;
   return {
-    title: fm.title,
-    description: fm.description,
+    title,
+    description,
     alternates: { canonical: absoluteUrl(path) },
-    openGraph: { type: "website", url: absoluteUrl(path), siteName: site.name, locale: site.locale, title: fm.title, description: fm.description },
+    openGraph: { type: "website", url: absoluteUrl(path), siteName: site.name, locale: site.locale, title, description },
+    ...(fm.noindex ? { robots: { index: false, follow: true } } : {}),
   };
 }
 

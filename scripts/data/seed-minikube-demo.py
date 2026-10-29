@@ -82,7 +82,7 @@ def main():
             if target.demo_profiles.count_documents({'datasetId':{'$ne':DATASET}}):
                 raise ValueError('Another dataset exists in the demo database; no data removed.')
             print('Connected. Seeding isolated synthetic profiles and reviews...',flush=True)
-            counts=demo.seed(target,DATASET,json.loads((ROOT/'services/catalogue-service/products.json').read_text()),customers=1000,reviews=3000)
+            counts=demo.seed(target,DATASET,demo.catalog_products(),customers=1000,reviews=3000)
             if target.command('usersInfo','roboshop_demo_reader')['users']:
                 target.command('updateUser','roboshop_demo_reader',pwd=password,roles=[{'role':'read','db':DATABASE}])
             else:

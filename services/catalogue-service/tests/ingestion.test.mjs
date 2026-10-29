@@ -43,3 +43,9 @@ test('publication failure closes Mongo and prevents startup completion',async t=
  await assert.rejects(initializeCatalogue(async()=>f.connection),/Database unavailable/);
  assert.equal(f.closed,1);
 });
+test('without CATALOGUE_FILE startup only ensures the index and writes no products',async t=>{
+ const f=await fixture(t,[product('A')]); delete process.env.CATALOGUE_FILE;
+ let indexes=0; f.collection.createIndex=async()=>{indexes++;};
+ await initializeCatalogue(async()=>f.connection);
+ assert.equal(indexes,1);assert.equal(f.writes,0);assert.equal(f.rows.size,0);assert.equal(f.closed,0);
+});

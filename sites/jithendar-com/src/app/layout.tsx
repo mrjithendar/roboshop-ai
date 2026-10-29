@@ -4,7 +4,9 @@ import type { ReactNode } from "react";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { AnnouncementBar } from "@/components/AnnouncementBar";
+import { integrations } from "@/config/integrations";
 import { absoluteUrl, isProductionEnv, site, siteUrl } from "@/config/site";
+import { ThirdParty } from "@/components/integrations/ThirdParty";
 import { getSettings } from "@/lib/settings";
 import "./globals.css";
 
@@ -16,6 +18,7 @@ const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrai
 // root canonical would point unrelated pages at the homepage.
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
+  const { verification } = integrations();
   return {
     metadataBase: new URL(siteUrl()),
     title: { default: settings.siteName, template: `%s | ${settings.siteName}` },
@@ -23,6 +26,11 @@ export async function generateMetadata(): Promise<Metadata> {
     applicationName: settings.siteName,
     alternates: { types: { "application/rss+xml": absoluteUrl("/feed.xml") } },
     robots: isProductionEnv() ? { index: true, follow: true } : { index: false, follow: false },
+    // Search Console / Bing Webmaster Tools HTML-tag verification (DNS verification needs none of this).
+    verification: {
+      ...(verification.google.length ? { google: verification.google } : {}),
+      ...(verification.bing.length ? { other: { "msvalidate.01": verification.bing } } : {}),
+    },
   };
 }
 
@@ -49,6 +57,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
         <SiteFooter />
+        <ThirdParty />
       </body>
     </html>
   );

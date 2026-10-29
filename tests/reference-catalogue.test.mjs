@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { seedProducts } from '../services/catalogue-service/lib/products.mjs';
+import { plan } from '../scripts/data/import-catalog.mjs';
 const source = JSON.parse(readFileSync(new URL('../services/catalogue-service/reference-products.json', import.meta.url)));
 for (const service of ['catalogue-service']) {
  const {normalizeProducts,rank} = await import(`../services/${service}/lib/catalogue.mjs`);
@@ -24,20 +24,21 @@ for (const service of ['catalogue-service']) {
   assert.deepEqual(rank([unknown],{query:'under $200',budget:200}),[]);
  });
 }
-test('repeat publication preserves admin edits, archived rows and unrelated merchant prices',async()=>{
+test('repeat catalogue import preserves admin edits, archived rows and unrelated merchant prices',async()=>{
+ // Replays exactly what services/mongodb/catalog.js does under mongosh.
  const rows=new Map();const merchant={_id:'SHOP',price:2000,currency:'JPY',instock:6,revision:5};rows.set('SHOP',structuredClone(merchant));
- const db={collection(name){assert.equal(name,'products');return {createIndex:async()=>{},bulkWrite:async ops=>{for(const {updateOne:o} of ops){assert.deepEqual(Object.keys(o.update),['$setOnInsert']);assert.equal(o.upsert,true);if(!rows.has(o.filter._id))rows.set(o.filter._id,{_id:o.filter._id,...structuredClone(o.update.$setOnInsert)});}}};}};
- await seedProducts(db);assert.equal(rows.size,21);
- assert.equal(rows.has(source[0].sku),false);
+ const {calls,products}=plan();
+ const apply=()=>{for(const call of calls.filter(c=>c.method==='bulkWrite'))for(const {updateOne:o} of call.args[0]){assert.deepEqual(Object.keys(o.update),['$setOnInsert']);assert.equal(o.upsert,true);if(!rows.has(o.filter._id))rows.set(o.filter._id,{_id:o.filter._id,...structuredClone(o.update.$setOnInsert)});}};
+ apply();assert.equal(rows.size,products.length+1);
  const row=[...rows.values()].find(p=>p._id!=='SHOP');Object.assign(row,{name:'Admin title',archived:true,revision:9});
- await seedProducts(db);assert.equal(rows.size,21);assert.equal(row.name,'Admin title');assert.equal(row.archived,true);assert.equal(row.revision,9);assert.deepEqual(rows.get('SHOP'),merchant);
- const publisher=readFileSync(new URL('../services/catalogue-service/publish-catalogue.mjs',import.meta.url),'utf8');assert.doesNotMatch(publisher,/repriceCatalogue|updateMany/);
+ apply();assert.equal(rows.size,products.length+1);assert.equal(row.name,'Admin title');assert.equal(row.archived,true);assert.equal(row.revision,9);assert.deepEqual(rows.get('SHOP'),merchant);
+ const script=readFileSync(new URL('../services/mongodb/catalog.js',import.meta.url),'utf8');assert.doesNotMatch(script,/updateMany|\$set[^O]|deleteMany|drop\(/);
 });
 
 for (const service of ['catalogue-service']) {
  test(`${service}: removes reference listings from public reads without deleting stored data`, async () => {
   const {readProducts}=await import(`../services/${service}/lib/products.mjs`);
-  const demo=JSON.parse(readFileSync(new URL('../services/catalogue-service/products.json',import.meta.url),'utf8'));
+  const demo=plan().products;
   const rows=[...demo,...source];
   const db={collection(){return {find(){return {sort(){return {limit(){return {toArray:async()=>rows};}};}};}};}};
   const products=await readProducts(db);

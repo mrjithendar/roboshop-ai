@@ -6,6 +6,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -131,6 +132,18 @@ export const post = pgTable(
     sponsored: boolean("sponsored").notNull().default(false),
     sponsor: text("sponsor"),
     related: text("related").array().notNull().default(sql`'{}'::text[]`),
+    /** Overrides for search results and social cards; empty → title/description/cover are used. */
+    seoTitle: text("seo_title"),
+    seoDescription: text("seo_description"),
+    socialTitle: text("social_title"),
+    socialDescription: text("social_description"),
+    socialImage: jsonb("social_image").$type<FeaturedImage | null>(),
+    /** Published but kept out of search results (noindex, not in sitemaps). */
+    noindex: boolean("noindex").notNull().default(false),
+    /** Optimistic concurrency: incremented by every committed save. */
+    version: integer("version").notNull().default(1),
+    /** In the trash (hidden everywhere; restorable) since this time. */
+    deletedAt: ts("deleted_at"),
     authorId: text("author_id")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
@@ -150,7 +163,66 @@ export const page = pgTable("page", {
   body: text("body").notNull().default(""),
   updatedAt: ts("updated_at"),
   savedAt: ts("saved_at").notNull().defaultNow(),
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
+  noindex: boolean("noindex").notNull().default(false),
+  /** Order in the "Publication info" navigation (lower first). */
+  sortOrder: integer("sort_order").notNull().default(100),
+  version: integer("version").notNull().default(1),
+  deletedAt: ts("deleted_at"),
 });
+
+/** Committed versions of posts and pages (a snapshot per save, publish, schedule or restore). */
+export const revision = pgTable(
+  "revision",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    entity: text("entity").notNull(),
+    entityId: text("entity_id").notNull(),
+    version: integer("version").notNull(),
+    reason: text("reason").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    authorId: text("author_id").references(() => user.id, { onDelete: "set null" }),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("revision_entity_idx").on(t.entity, t.entityId, t.createdAt)],
+);
+
+/** One working copy per user and document; never visible to readers until committed. */
+export const autosave = pgTable(
+  "autosave",
+  {
+    entity: text("entity").notNull(),
+    entityId: text("entity_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    baseVersion: integer("base_version").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    savedAt: ts("saved_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ name: "autosave_pk", columns: [t.entity, t.entityId, t.userId] })],
+);
+
+/** Background jobs with retries (IndexNow submissions). Pending jobs are de-duplicated by dedupeKey. */
+export const job = pgTable(
+  "job",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    kind: text("kind").notNull(),
+    dedupeKey: text("dedupe_key"),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    status: text("status").notNull().default("queued"),
+    attempts: integer("attempts").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(5),
+    runAt: ts("run_at").notNull().defaultNow(),
+    lockedUntil: ts("locked_until"),
+    lastError: text("last_error"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    finishedAt: ts("finished_at"),
+  },
+  (t) => [index("job_due_idx").on(t.status, t.runAt)],
+);
 
 export const setting = pgTable("setting", {
   key: text("key").primaryKey(),

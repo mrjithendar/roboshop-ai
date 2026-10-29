@@ -39,7 +39,7 @@ export async function loadContentFromDb(): Promise<ContentStore> {
 
   const articles: Article[] = [];
   for (const row of postRows) {
-    if (!(collections as readonly string[]).includes(row.collection)) continue;
+    if (row.deletedAt || !(collections as readonly string[]).includes(row.collection)) continue;
     const collection = row.collection as Collection;
     const parsed = collectionSchema(collection).safeParse({
       title: row.title,
@@ -59,6 +59,12 @@ export async function loadContentFromDb(): Promise<ContentStore> {
       sponsored: row.sponsored,
       sponsor: row.sponsor ?? undefined,
       related: row.related,
+      seoTitle: row.seoTitle ?? undefined,
+      seoDescription: row.seoDescription ?? undefined,
+      socialTitle: row.socialTitle ?? undefined,
+      socialDescription: row.socialDescription ?? undefined,
+      socialImage: row.socialImage ?? undefined,
+      noindex: row.noindex,
     });
     if (!parsed.success || !authors.has(parsed.data.author)) {
       log.error("invalid post skipped", { postId: row.id, issues: parsed.success ? ["unknown author"] : parsed.error.issues.map((i) => i.message) });
@@ -69,7 +75,17 @@ export async function loadContentFromDb(): Promise<ContentStore> {
 
   const pages = new Map<string, Page>();
   for (const row of pageRows) {
-    const parsed = pageFrontmatter.safeParse({ title: row.title, slug: row.slug, description: row.description, updatedAt: iso(row.updatedAt) });
+    if (row.deletedAt) continue;
+    const parsed = pageFrontmatter.safeParse({
+      title: row.title,
+      slug: row.slug,
+      description: row.description,
+      updatedAt: iso(row.updatedAt),
+      seoTitle: row.seoTitle ?? undefined,
+      seoDescription: row.seoDescription ?? undefined,
+      noindex: row.noindex,
+      sortOrder: row.sortOrder,
+    });
     if (!parsed.success) continue;
     pages.set(row.slug, { slug: row.slug, path: `/${row.slug}`, frontmatter: parsed.data, body: row.body, file: `db:page/${row.slug}` });
   }

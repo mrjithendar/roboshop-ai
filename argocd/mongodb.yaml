@@ -35,4 +35,4 @@ spec:
     targetRevision: master
     path: minikube/mongodb
     directory:
-      include: '{mongodb-data-pvc.yaml,mongodb-service.yaml,mongodb-deployment.yaml}'
+      include: '{mongodb-data-pvc.yaml,mongodb-service.yaml,mongodb-catalog-configmap.yaml,mongodb-deployment.yaml}'

@@ -1,14 +1,14 @@
-# Twenty-model INR demo catalogue
+# INR demo catalogue
 
-The merchant supplied the twenty model names and authorized repricing to ₹99–999 in INR and randomly assigned initial stock of 20–50 units per model. Those values are fixed in `services/catalogue-service/products.json`; rebuilds never randomize or replenish stock. They are demo inventory, not a warehouse verification, and now carry explicit demo provenance. Razorpay Test Mode is required; live checkout rejects these concept listings. No manufacturer specifications have been invented.
+The merchant supplied the original twenty model names and authorized repricing to ₹99–999 in INR and randomly assigned initial stock of 20–50 units per model. Those values are fixed in `services/mongodb/catalog.js`, which imports them into MongoDB; rebuilds never randomize or replenish stock. Twelve further demo robots (`catalogueVersion` `demo-32-inr-v3`) follow the same price and stock bounds; they show the labelled robot illustration until a real photograph is uploaded, and their hardware specifications are marked pending supplier confirmation. They are demo inventory, not a warehouse verification, and now carry explicit demo provenance. Razorpay Test Mode is required; live checkout rejects these concept listings. No manufacturer specifications have been invented.
 
 Each product has its own AI-generated concept render. Captions identify these as concept renders, not manufacturer photographs. Replace them with matching supplier photographs when available.
 
 ## Release
 
 Build the catalogue-service image through its service CI, then run the
-**Deploy-Minikube** workflow. Startup and `publish-catalogue.mjs` insert missing
-SKUs from the demo and reference files. Neither path archives, reprices or
+**Deploy-Minikube** workflow. `services/mongodb/catalog.js` (run on MongoDB setup, or `npm run catalog:import`) inserts missing
+SKUs. Neither path archives, reprices or
 replenishes existing listings. Existing payment records retain their amounts,
 currencies and demo provenance.
 

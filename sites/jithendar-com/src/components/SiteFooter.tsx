@@ -1,3 +1,4 @@
+import { PrivacyChoices } from "./integrations/PrivacyChoices";
 import Link from "next/link";
 import { getCategories } from "@/lib/categories";
 import { getSettings } from "@/lib/settings";
@@ -23,6 +24,7 @@ const policies = [
   { href: "/corrections-policy", label: "Corrections" },
   { href: "/ai-use-policy", label: "AI use" },
   { href: "/privacy-policy", label: "Privacy" },
+  { href: "/cookies", label: "Cookies" },
   { href: "/terms", label: "Terms" },
 ];
 
@@ -99,6 +101,9 @@ export async function SiteFooter() {
                 </Link>
               </li>
             ))}
+            <li>
+              <PrivacyChoices className="inline-block py-1 transition-colors hover:text-ink dark:hover:text-white" />
+            </li>
           </ul>
         </div>
       </Container>

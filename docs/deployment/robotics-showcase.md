@@ -4,7 +4,7 @@ The default seed now contains 30 real robotics products. All are **display-only 
 
 ## Catalogue and currency policy
 
-`services/catalogue-service/products.json` records stable SKUs/slugs, manufacturer/model, product type, original summaries, specifications, core included items, accessory/compatibility notes, official source URLs, checking date, price type and currency, and image permission status. A placeholder is used for every product because permission to reproduce manufacturer photographs was not established. Package lists deliberately identify unverified bundle details; do not interpret them as complete packing lists.
+`services/mongodb/catalog.js` (imported into MongoDB) records stable SKUs/slugs, manufacturer/model, product type, original summaries, specifications, core included items, accessory/compatibility notes, official source URLs, checking date, price type and currency, and image permission status. A placeholder is used for every product because permission to reproduce manufacturer photographs was not established. Package lists deliberately identify unverified bundle details; do not interpret them as complete packing lists.
 
 Source review date: **19 October 2026**. The three Pololu prices (Balboa, DRV8833, DRV8835) are USD reference prices from the manufacturer's quantity-one listings, not store offers, delivered prices, or inventory guarantees. Other products show **Price on request**. Their numeric `price: 0` is a legacy schema sentinel, not a free-product price. Never display it as a sale price. Documentation-only entries retain a declared reference currency but have no quoted amount. No exchange rates or conversions are performed.
 

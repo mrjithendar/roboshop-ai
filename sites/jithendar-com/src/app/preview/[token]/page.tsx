@@ -59,7 +59,16 @@ export default async function PreviewPage({ params }: Props) {
   const p = preview.payload as Payload;
 
   if (preview.kind === "page") {
-    const fm = { title: str(p.title, "Untitled page"), slug: str(p.slug, "preview"), description: str(p.description), updatedAt: str(p.updatedAt) || undefined };
+    const fm = {
+      title: str(p.title, "Untitled page"),
+      slug: str(p.slug, "preview"),
+      description: str(p.description),
+      updatedAt: str(p.updatedAt) || undefined,
+      seoTitle: str(p.seoTitle) || undefined,
+      seoDescription: str(p.seoDescription) || undefined,
+      noindex: p.noindex === true,
+      sortOrder: typeof p.sortOrder === "number" ? p.sortOrder : 100,
+    };
     const check = pageFrontmatter.safeParse(fm);
     const page: Page = { slug: fm.slug, path: `/${fm.slug}`, frontmatter: { ...fm }, body: str(p.body), file: "preview" };
     return <PageView page={page} notice={<Notice kind="page" issues={check.success ? [] : check.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`)} />} />;
@@ -86,6 +95,12 @@ export default async function PreviewPage({ params }: Props) {
     sponsored: p.sponsored === true,
     sponsor: str(p.sponsor) || undefined,
     related: arr<string>(p.related),
+    seoTitle: str(p.seoTitle) || undefined,
+    seoDescription: str(p.seoDescription) || undefined,
+    socialTitle: str(p.socialTitle) || undefined,
+    socialDescription: str(p.socialDescription) || undefined,
+    socialImage: (p.socialImage as ArticleFrontmatter["socialImage"]) ?? undefined,
+    noindex: p.noindex === true,
   };
   const check = collectionSchema(collection).safeParse(candidate);
   const issues = check.success ? [] : check.error.issues.map((i) => `${i.path.join(".") || "post"}: ${i.message}`);

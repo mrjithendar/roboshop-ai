@@ -15,6 +15,9 @@ import { JsonLd } from "@/components/JsonLd";
 import { mdxComponents } from "@/components/Mdx";
 import { TableOfContents } from "@/components/TableOfContents";
 import { TagList } from "@/components/TagList";
+import { AdSlot } from "@/components/integrations/AdSlot";
+import { ArticleEngagement } from "@/components/integrations/ThirdPartyClient";
+import { integrations } from "@/config/integrations";
 import { absoluteUrl, site } from "@/config/site";
 import { collectionLabels, type Collection } from "@/config/taxonomy";
 import { getCategoryMap, labelOf } from "@/lib/categories";
@@ -45,12 +48,16 @@ export async function articleMetadata(collection: Collection, { params }: SlugPa
   const { article, author } = await load(collection, slug);
   const fm = article.frontmatter;
   const canonical = canonicalFor(article);
-  const images = fm.featuredImage
-    ? [{ url: absoluteUrl(fm.featuredImage.src), width: fm.featuredImage.width, height: fm.featuredImage.height, alt: fm.featuredImage.alt }]
-    : undefined;
+  const cardImage = fm.socialImage ?? fm.featuredImage;
+  const images = cardImage ? [{ url: absoluteUrl(cardImage.src), width: cardImage.width, height: cardImage.height, alt: cardImage.alt }] : undefined;
+  // Search results use the SEO overrides; social cards prefer their own, then the SEO ones.
+  const title = fm.seoTitle ?? fm.title;
+  const description = fm.seoDescription ?? fm.description;
+  const socialTitle = fm.socialTitle ?? title;
+  const socialDescription = fm.socialDescription ?? description;
   return {
-    title: fm.title,
-    description: fm.description,
+    title,
+    description,
     alternates: { canonical },
     authors: [{ name: author.frontmatter.name, url: absoluteUrl(author.path) }],
     openGraph: {
@@ -58,8 +65,8 @@ export async function articleMetadata(collection: Collection, { params }: SlugPa
       url: canonical,
       siteName: site.name,
       locale: site.locale,
-      title: fm.title,
-      description: fm.description,
+      title: socialTitle,
+      description: socialDescription,
       publishedTime: fm.publishedAt,
       modifiedTime: fm.updatedAt,
       authors: [absoluteUrl(author.path)],
@@ -67,8 +74,8 @@ export async function articleMetadata(collection: Collection, { params }: SlugPa
       tags: fm.tags,
       images,
     },
-    twitter: { card: images ? "summary_large_image" : "summary", title: fm.title, description: fm.description },
-    ...(article.preview ? { robots: { index: false, follow: false } } : {}),
+    twitter: { card: images ? "summary_large_image" : "summary", title: socialTitle, description: socialDescription },
+    ...(article.preview ? { robots: { index: false, follow: false } } : fm.noindex ? { robots: { index: false, follow: true } } : {}),
   };
 }
 
@@ -101,6 +108,7 @@ export async function ArticleView({
     { name: fm.title, path: article.path },
   ];
   const hasToc = headings.length >= 2;
+  const ads = integrations().adsense;
 
   return (
     <article>
@@ -205,6 +213,9 @@ export async function ArticleView({
             <div className="prose prose-slate max-w-none prose-lg dark:prose-invert prose-headings:font-semibold prose-pre:my-0 prose-p:leading-8">
               <Content components={{ ...mdxComponents, nav: () => <TableOfContents headings={headings} id="toc-inline" /> }} />
             </div>
+
+            {!article.preview && <ArticleEngagement collection={collection} slug={article.slug} />}
+            {!article.preview && ads?.slots.articleEnd && <AdSlot client={ads.client} slot={ads.slots.articleEnd} test={ads.test} />}
 
             {fm.sources.length > 0 && (
               <section aria-labelledby="sources" className="mt-14 rounded-2xl border border-slate-200 p-6 dark:border-white/10">

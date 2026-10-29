@@ -41,31 +41,30 @@ curl https://jithendar.com/roboshop/api/catalogue/search/Atlas
 
 Run `docker build -t roboshop-catalogue-service:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
 
-## Product ingestion and startup
+## Where the catalogue lives
 
-Before opening its HTTP listener, the service validates `CATALOGUE_FILE` (default:
-service-owned `products.json`), ensures the slug index and inserts missing products
-with `$setOnInsert` upserts keyed by SKU. Redeploys do not replace existing rows:
-admin-edited prices, currencies, stock, revision numbers and archived flags remain.
-No order, payment, reservation or user collection is changed. Validation/database
-failures prevent startup; the connection is closed and Kubernetes can retry.
+Catalogue data is stored in MongoDB (`roboshop.products`); this service only reads it
+and holds no product data in its code or image. The products are defined in
+[`services/mongodb/catalog.js`](../mongodb/catalog.js), which is imported when MongoDB
+is set up and can be re-run to add products (see the MongoDB README).
 
-Deletion behavior is unchanged: deleting a configured seed SKU from MongoDB allows
-it to be reinserted on a later startup. Archive the listing to retire it permanently,
-or explicitly remove it from the configured seed file as well.
+At startup the service ensures the unique slug index and logs `catalogue_ready`, with
+outcome `empty` if no products have been imported yet. It writes no products, except an
+explicitly named `CATALOGUE_FILE` fixture (used by tests). Reads still hide archived,
+showcase and reference listings. Admin edits in MongoDB are never overwritten: every
+import is insert-only by SKU. Deleting a product lets a later import re-create it, so
+archive a product to retire it.
 
 From this service directory:
 
 ```bash
-npm run ingest -- /path/to/input-products.json   # validate/write the local seed file
-npm run publish:catalogue                      # explicit insert-only Mongo publication
+npm run ingest -- /path/to/products.json   # validated, insert-only import of extra products into MongoDB
 npm test
 ```
 
-All previous ingestion data and utilities now live here, including reference
-catalogues, guarded synthetic-data utilities, `migrate-catalogue.mjs`,
-`refresh-showcase.mjs` and `lib/price-migration.mjs`. These migrations are not run at
-startup. Python utilities use `requirements-tools.txt`; they are not new services.
+Reference catalogues, guarded synthetic-data utilities, `migrate-catalogue.mjs` and
+`lib/price-migration.mjs` remain here as explicit operator tools; none run at startup.
+Python utilities use `requirements-tools.txt` and read product data from `catalog.js`.
 
 ## Upgrade an existing installation
 

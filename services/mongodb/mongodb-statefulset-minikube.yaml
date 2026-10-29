@@ -74,12 +74,20 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: mongodb-data
+      # Init scripts run on an empty volume only: the application user and the catalogue.
       - name: init
-        configMap:
-          name: roboshop-config
-          items:
-          - key: 10-app-user.js
-            path: 10-app-user.js
+        projected:
           defaultMode: 365
+          sources:
+          - configMap:
+              name: roboshop-config
+              items:
+              - key: users.js
+                path: users.js
+          - configMap:
+              name: mongodb-catalog
+              items:
+              - key: 20-catalog.js
+                path: 20-catalog.js
   updateStrategy:
     type: RollingUpdate

@@ -32,10 +32,16 @@ export async function buildSitemap(now: Date = new Date()): Promise<MetadataRout
     if (items.length > 0) entries.push({ url: absoluteUrl(author.path), lastModified: newest(items) });
   }
   for (const page of await getPages()) {
+    if (page.frontmatter.noindex) continue;
     entries.push({ url: absoluteUrl(page.path), ...(page.frontmatter.updatedAt ? { lastModified: page.frontmatter.updatedAt } : {}) });
   }
-  for (const article of published.filter(isSelfCanonical)) {
-    entries.push({ url: absoluteUrl(article.path), lastModified: lastModified(article) });
+  for (const article of published.filter((a) => isSelfCanonical(a) && !a.frontmatter.noindex)) {
+    // Image sitemap entry: the public cover image the article actually shows.
+    const cover = article.frontmatter.featuredImage;
+    entries.push({ url: absoluteUrl(article.path), lastModified: lastModified(article), ...(cover ? { images: [absoluteUrl(cover.src)] } : {}) });
   }
+  // One sitemap holds up to 50,000 URLs (sitemaps.org / Google). Far below that today; split with
+  // generateSitemaps() and a sitemap index if it ever approaches the limit.
+  if (entries.length > 45_000) (await import("@/lib/log")).log.warn("sitemap approaching the 50,000 URL limit", { urls: entries.length });
   return entries;
 }

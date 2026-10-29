@@ -9,8 +9,7 @@
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test tests/*.test.mjs",
-    "ingest": "node import.mjs",
-    "publish:catalogue": "node publish-catalogue.mjs"
+    "ingest": "node import.mjs"
   },
   "dependencies": {
     "mongodb": "7.7.0"
