@@ -24,7 +24,7 @@ spec:
     helm:
       releaseName: jfrog
       valueFiles:
-      - $values/minikube/jfrog/values.yaml
-  - repoURL: https://github.com/mrjithendar/roboshop-ai.git
+      - $values/roboshop/minikube/jfrog/values.yaml
+  - repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
     ref: values

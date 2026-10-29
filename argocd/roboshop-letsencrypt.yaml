@@ -18,6 +18,6 @@ spec:
     - PruneLast=true
     - CreateNamespace=true
   source:
-    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
-    path: minikube/cert-manager/issuers
+    path: roboshop/minikube/cert-manager/issuers

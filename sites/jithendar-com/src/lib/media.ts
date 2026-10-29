@@ -306,3 +306,26 @@ export async function deleteMedia(actor: Actor, id: string) {
   await db.delete(schema.media).where(eq(schema.media.id, id));
   await audit(actor, "media.delete", id, { key: row.storageKey, backend: row.storageBackend });
 }
+
+/** How many posts/pages reference each media item (shown before deleting shared media). */
+export async function mediaUsage(ids: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (ids.length === 0) return out;
+  const db = await getDb();
+  const posts = await db.select({ body: schema.post.body, cover: schema.post.featuredImage, social: schema.post.socialImage }).from(schema.post);
+  const pages = await db.select({ body: schema.page.body }).from(schema.page);
+  const texts = [...posts.map((p) => `${p.body} ${p.cover?.src ?? ""} ${p.social?.src ?? ""}`), ...pages.map((p) => p.body)];
+  for (const id of ids) out.set(id, texts.filter((t) => t.includes(`${MEDIA_PREFIX}${id}/`)).length);
+  return out;
+}
+
+/** Edit an item's alt text/description (used as the default when it is inserted again). */
+export async function updateMediaAlt(actor: Actor, id: string, alt: string) {
+  if (actor.role !== "admin" && actor.role !== "author") throw new PostError("Not allowed.", 403);
+  const text = alt.trim().slice(0, 300);
+  const db = await getDb();
+  const [row] = await db.update(schema.media).set({ alt: text }).where(eq(schema.media.id, id)).returning({ id: schema.media.id, kind: schema.media.kind });
+  if (!row) throw new PostError("File not found.", 404);
+  if (row.kind === "images" && !text) throw new PostError("Images need alt text.", 400);
+  await audit(actor, "media.alt", id, {});
+}

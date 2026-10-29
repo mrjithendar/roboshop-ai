@@ -6,7 +6,8 @@ import { Alert } from "@/components/ui/form";
 import { getDb, schema } from "@/db";
 import { staffActor } from "@/lib/admin";
 import { flash } from "@/lib/flash";
-import { deleteMedia, mediaSrc } from "@/lib/media";
+import { deleteMedia, mediaSrc, mediaUsage, updateMediaAlt } from "@/lib/media";
+import { MediaItemActions } from "./MediaItemActions";
 import { requireRole } from "@/lib/session";
 import { MEDIA_KINDS, storageReady } from "@/lib/storage";
 import { MediaUploader } from "./MediaUploader";
@@ -21,6 +22,15 @@ async function remove(form: FormData) {
   await flash(String(form.get("back") || "/admin/media"), async () => {
     await deleteMedia(actor, String(form.get("id")));
     return "File deleted.";
+  });
+}
+
+async function saveAlt(form: FormData) {
+  "use server";
+  const actor = await staffActor();
+  await flash(String(form.get("back") || "/admin/media"), async () => {
+    await updateMediaAlt(actor, String(form.get("id")), String(form.get("alt") ?? ""));
+    return "Alt text saved.";
   });
 }
 
@@ -50,6 +60,7 @@ export default async function MediaPage({ searchParams }: { searchParams: FlashP
     storageReady(),
   ]);
   const pages = Math.max(1, Math.ceil((total?.n ?? 0) / PAGE_SIZE));
+  const usage = await mediaUsage(items.map((m) => m.id));
   const href = (k: string | undefined, p = 1) => {
     const q = new URLSearchParams({ ...(k ? { kind: k } : {}), ...(p > 1 ? { page: String(p) } : {}) }).toString();
     return q ? `/admin/media?${q}` : "/admin/media";
@@ -112,11 +123,7 @@ export default async function MediaPage({ searchParams }: { searchParams: FlashP
                     {m.storageBackend !== "r2" ? " · on S3" : ""}
                   </p>
                   <code className="block truncate text-[11px] text-slate-500" title={code}>{code}</code>
-                  <form action={remove} className="mt-auto pt-1">
-                    <input type="hidden" name="id" value={m.id} />
-                    <input type="hidden" name="back" value={here} />
-                    <button type="submit" className="min-h-6 text-red-600 underline">Delete</button>
-                  </form>
+                  <MediaItemActions id={m.id} alt={m.alt} uses={usage.get(m.id) ?? 0} back={here} saveAlt={saveAlt} remove={remove} />
                 </div>
               </li>
             );

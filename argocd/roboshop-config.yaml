@@ -18,8 +18,8 @@ spec:
     - PruneLast=true
     - CreateNamespace=true
   source:
-    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
-    path: minikube/roboshop
+    path: roboshop/minikube/roboshop
     directory:
       include: '{roboshop-ai-namespace.yaml,roboshop-config-configmap.yaml,roboshop-prefix-middleware.yaml,roboshop-https-middleware.yaml,roboshop-ingress.yaml,roboshop-http-ingress.yaml}'

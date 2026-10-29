@@ -18,6 +18,6 @@ spec:
     - PruneLast=true
     - CreateNamespace=true
   source:
-    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
-    path: observability/otel-collector
+    path: roboshop/observability/otel-collector

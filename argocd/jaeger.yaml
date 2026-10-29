@@ -18,8 +18,8 @@ spec:
     - PruneLast=true
     - CreateNamespace=true
   source:
-    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
-    path: observability/jaeger
+    path: roboshop/observability/jaeger
     directory:
       include: '{jaeger-service-minikube.yaml,jaeger-deployment-minikube.yaml}'

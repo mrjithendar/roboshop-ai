@@ -19,7 +19,7 @@ MongoDB stores editable products and public store settings for this gateway.
 The user service owns users and hashed sessions; `admin.py` enforces roles on
 product and store-setting operations. Login is mandatory for payment browser APIs; signed
 provider webhooks remain independent of browser sessions. See
-[identity and admin](../../docs/architecture/identity-and-admin.md).
+[identity and admin](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/architecture/identity-and-admin.md).
 
 
 ## Python runtime
@@ -39,7 +39,7 @@ once; the Java shipping consumer deduplicates event IDs and accepts only explici
 live merchant events. Test events route to `roboshop.test.orders`. Test reservations
 and sales are separate from live stock. Orders and purchase history retain immutable
 mode/demo provenance; test purchases never earn genuine verified-review badges.
-See [sandbox setup and audited reconciliation](../../docs/deployment/razorpay-sandbox.md).
+See [sandbox setup and audited reconciliation](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/deployment/razorpay-sandbox.md).
 
 Additional endpoints are `/api/compare` (2–4 distinct SKUs) and authenticated
 `/api/recommendations/personalized` (cart categories). MCP tools call these and the
@@ -47,12 +47,12 @@ same authenticated cart/admin endpoints; MCP never bypasses authorization.
 
 Private customer profiles, successful login metadata, saved addresses and immutable
 paid purchase history now live in MongoDB. The gateway retries pending history
-projections from its ledger. See [customer records](../../docs/architecture/customer-records.md)
+projections from its ledger. See [customer records](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/architecture/customer-records.md)
 for access rules, retention, backfill behavior and the remaining single-writer limit.
 
 ## Independent service build
 
-Run `docker build -t roboshop-ai-gateway:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+Run `docker build -t roboshop-ai-gateway:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/architecture/service-repositories.md).
 
 ## User-service integration
 
@@ -142,7 +142,7 @@ and persist settings. Enabling automatic Ollama-to-Bedrock failover requires bot
 providers to pass connection tests before the revision-checked commit. The private
 `GET /internal/llm/config` endpoint requires service authorization and lets the agent
 reject stale or disconnected configurations before each generation attempt. See
-[health contracts](../../docs/architecture/health-checks.md).
+[health contracts](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/architecture/health-checks.md).
 
 ## Transactional commerce migration
 
@@ -152,7 +152,7 @@ Schema/import are explicit operator operations. There is no dual-write or fallba
 on database failure. JSON remains the deployment default until an offline reviewed
 cutover; its one-writer requirement still applies. PostgreSQL supports concurrent
 gateway replicas with database reservations, idempotency and leased outbox workers.
-See the [migration, state machine, inventory and rollback guide](../../docs/deployment/postgres-commerce-migration.md).
+See the [migration, state machine, inventory and rollback guide](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/deployment/postgres-commerce-migration.md).
 
 ## FastAPI transport and operational contract
 

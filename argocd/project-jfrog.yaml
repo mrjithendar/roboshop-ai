@@ -8,6 +8,7 @@ spec:
     within jfrog
   sourceRepos:
   - https://github.com/mrjithendar/roboshop-ai.git
+  - https://github.com/mrjithendar/tools.git
   - https://charts.jfrog.io
   destinations:
   - namespace: jfrog

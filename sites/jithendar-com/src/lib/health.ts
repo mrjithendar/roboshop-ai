@@ -70,6 +70,20 @@ export async function systemChecks(): Promise<{ app: Record<string, string>; che
       return { status: "ok", detail: `PONG · ${used ?? "?"} used` };
     }),
     timed("Media storage (Cloudflare R2)", checkStorage),
+    timed("Scheduled publishing & IndexNow", async () => {
+      const db = await getDb();
+      const [r] = rowsOf<{ scheduled: number; overdue: number }>(
+        await db.execute(sql`select count(*)::int as scheduled, count(*) filter (where published_at < now() - interval '5 minutes')::int as overdue from post where status = 'scheduled' and deleted_at is null`),
+      );
+      const { jobSummary } = await import("./jobs");
+      const jobs = await jobSummary();
+      const { integrations } = await import("@/config/integrations");
+      const overdue = Number(r?.overdue ?? 0);
+      return {
+        status: overdue > 0 || (jobs.failed ?? 0) > 0 ? "degraded" : "ok",
+        detail: `${r?.scheduled ?? 0} scheduled${overdue ? `, ${overdue} overdue (worker not running?)` : ""} · IndexNow ${integrations().indexNowKey ? "on" : "off"}: last 7 days ${jobs.done ?? 0} sent, ${jobs.queued ?? 0} queued, ${jobs.failed ?? 0} failed`,
+      };
+    }),
     timed("Image generation (Gemini)", async () => {
       const c = geminiImageConfig();
       if (!c) return { status: "not configured", detail: "set GEMINI_API_KEY and GEMINI_IMAGE_MODEL to enable “Generate image”" };

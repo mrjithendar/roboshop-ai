@@ -59,9 +59,14 @@ const nextConfig: NextConfig = {
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Frame-Options", value: "DENY" },
+          // HTTPS only (Traefik redirects http → https). No includeSubDomains/preload: other hosts are not ours to commit.
+          { key: "Strict-Transport-Security", value: "max-age=31536000" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
         ],
       },
+      // Pages may not be framed by other sites; editor previews may be framed by the editor itself.
+      { source: "/((?!preview/).*)", headers: [{ key: "X-Frame-Options", value: "DENY" }] },
+      { source: "/preview/:path*", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, { key: "Cache-Control", value: "private, no-store" }] },
     ];
   },
 };

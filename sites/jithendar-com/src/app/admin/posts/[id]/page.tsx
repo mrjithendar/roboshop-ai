@@ -1,46 +1,43 @@
+import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { AdminHeader } from "@/components/admin/ui";
+import { getDb, schema } from "@/db";
 import { actorOf } from "@/lib/admin";
 import { getCategories } from "@/lib/categories";
 import { imageGenerationStatus } from "@/lib/image-generation";
-import { toIsoOffset } from "@/lib/dates-iso";
+import { rowToForm } from "@/lib/post-form";
 import { getPostRow, PostError } from "@/lib/posts";
+import { getAutosave } from "@/lib/revisions";
 import { requireRole } from "@/lib/session";
-import { PostEditor, type PostFormValue } from "../PostEditor";
+import { PostEditor } from "../PostEditor";
 
 export const metadata = { title: "Edit post" };
 
 export default async function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
-  const actor = actorOf(await requireRole("admin", "author"));
+  const user = await requireRole("admin", "author");
+  const actor = actorOf(user);
   const { id } = await params;
   const row = await getPostRow(actor, id).catch((e) => {
     if (e instanceof PostError) notFound();
     throw e;
   });
-  const [categories, imageGeneration] = await Promise.all([getCategories(), imageGenerationStatus()]);
-  const initial: PostFormValue = {
-    collection: row.collection as PostFormValue["collection"],
-    slug: row.slug,
-    title: row.title,
-    description: row.description,
-    body: row.body,
-    category: row.category,
-    tags: row.tags,
-    contentType: row.contentType,
-    status: row.status as PostFormValue["status"],
-    publishedAt: row.publishedAt ? toIsoOffset(row.publishedAt) : null,
-    updatedAt: row.updatedAt ? toIsoOffset(row.updatedAt) : null,
-    canonicalUrl: row.canonicalUrl,
-    featuredImage: row.featuredImage,
-    sources: row.sources,
-    sponsored: row.sponsored,
-    sponsor: row.sponsor,
-    related: row.related,
-  };
+  if (row.deletedAt) notFound();
+  const db = await getDb();
+  const [categories, imageGeneration, autosave, [author]] = await Promise.all([
+    getCategories(),
+    imageGenerationStatus(),
+    getAutosave(actor, "post", id),
+    db.select({ name: schema.user.name }).from(schema.user).where(eq(schema.user.id, row.authorId)),
+  ]);
   return (
-    <>
-      <AdminHeader title="Edit post" description={row.title} />
-      <PostEditor id={row.id} initial={initial} categories={categories} imageGeneration={imageGeneration} />
-    </>
+    <PostEditor
+      id={row.id}
+      initial={rowToForm(row)}
+      version={row.version}
+      autosaved={autosave ? { value: rowToForm(autosave.payload), savedAt: autosave.savedAt.toISOString(), baseVersion: autosave.baseVersion } : null}
+      userId={user.id}
+      authorName={author?.name ?? "Unknown"}
+      categories={categories}
+      imageGeneration={imageGeneration}
+    />
   );
 }

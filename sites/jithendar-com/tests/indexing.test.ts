@@ -29,8 +29,9 @@ describe("environment indexability", () => {
     expect(proxy(request("https://jithendar.com/")).headers.get("x-robots-tag")).toBeNull();
   });
 
-  it("robots.txt disallows everything outside production and lists both sitemaps in production", () => {
-    expect(robotsTxt(false)).toBe("User-agent: *\nDisallow: /\n");
+  it("robots.txt stays crawlable outside production (so the noindex header is seen) and lists both sitemaps in production", () => {
+    expect(robotsTxt(false)).toBe("User-agent: *\nAllow: /\n");
+    expect(robotsTxt(false)).not.toContain("Sitemap");
     const prod = robotsTxt(true);
     expect(prod).toContain("Sitemap: https://jithendar.com/sitemap.xml");
     expect(prod).toContain("Sitemap: https://jithendar.com/news-sitemap.xml");

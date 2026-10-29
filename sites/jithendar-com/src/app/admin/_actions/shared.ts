@@ -2,7 +2,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import type { FeaturedImage } from "@/db/schema";
 import { staffActor } from "@/lib/admin";
@@ -35,17 +35,25 @@ function bundledImages(): MediaItem[] {
   return found;
 }
 
-export async function listMedia(limit = 60): Promise<MediaItem[]> {
+/** Image library for pickers: newest first, searchable by alt text or file name, paged. */
+export async function listMedia(opts: { q?: string; page?: number } = {}): Promise<{ items: MediaItem[]; more: boolean }> {
   await staffActor();
   const db = await getDb();
+  const size = 24;
+  const page = Math.max(1, Math.floor(opts.page ?? 1));
+  const q = opts.q?.trim().slice(0, 100);
+  const like = q ? `%${q.replace(/[%_\\]/g, "\\$&")}%` : undefined;
   const rows = await db
     .select({ id: schema.media.id, filename: schema.media.filename, alt: schema.media.alt, width: schema.media.width, height: schema.media.height, context: schema.media.context })
     .from(schema.media)
-    .where(and(eq(schema.media.kind, "images"), eq(schema.media.status, "ready"), eq(schema.media.visibility, "public")))
+    .where(and(eq(schema.media.kind, "images"), eq(schema.media.status, "ready"), eq(schema.media.visibility, "public"), like ? or(ilike(schema.media.alt, like), ilike(schema.media.filename, like)) : undefined))
     .orderBy(desc(schema.media.createdAt))
-    .limit(limit);
-  const uploads = rows.map((r) => ({ id: r.id, src: mediaSrc(r), alt: r.alt, width: r.width ?? 0, height: r.height ?? 0, context: r.context }));
-  return [...uploads, ...bundledImages()];
+    .limit(size + 1)
+    .offset((page - 1) * size);
+  const uploads = rows.slice(0, size).map((r) => ({ id: r.id, src: mediaSrc(r), alt: r.alt, width: r.width ?? 0, height: r.height ?? 0, context: r.context }));
+  // Bundled site images are listed on the first page only (they are few and never change).
+  const bundled = page === 1 ? bundledImages().filter((b) => !q || b.src.toLowerCase().includes(q.toLowerCase())) : [];
+  return { items: [...uploads, ...bundled], more: rows.length > size };
 }
 
 export async function mediaUploadsEnabled(): Promise<boolean> {

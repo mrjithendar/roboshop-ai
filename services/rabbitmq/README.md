@@ -11,4 +11,4 @@ bash scripts/deploy/deploy-minikube.sh
 
 Paid-order events are consumed by shipping to create shipment requests. Preserve the PVC and credentials across deployments. For a private management session use `kubectl -n roboshop-ai port-forward service/rabbitmq 15672:15672`, then open localhost:15672. Do not publish the management UI directly.
 
-See the [Minikube deployment guide](../../minikube/roboshop/README.md) for secret initialization, dependency ordering and troubleshooting. Production database availability, backups and TLS require separate platform configuration.
+See the [Minikube deployment guide](https://github.com/mrjithendar/tools/blob/master/roboshop/minikube/roboshop/README.md) for secret initialization, dependency ordering and troubleshooting. Production database availability, backups and TLS require separate platform configuration.

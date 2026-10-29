@@ -13,7 +13,7 @@ integer minor units (paise for the INR catalogue). Historical EUR and USD orders
 fictional catalogue does not become a real fulfilment operation through this integration.
 
 The default is PAYMENT_MODE=test. Use the environment-specific test keys described
-in the [sandbox deployment and manual checklist](../../docs/deployment/razorpay-sandbox.md).
+in the [sandbox deployment and manual checklist](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/deployment/razorpay-sandbox.md).
 Demo inventory is rejected by live checkout. No mock-provider switch exists
 in production code. Tests inject a fake fetch implementation directly into the adapter.
 
@@ -60,7 +60,7 @@ Reference: [Razorpay integration steps](https://razorpay.com/docs/payments/payme
 
 ## Independent service build
 
-Run `docker build -t roboshop-payment-service:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+Run `docker build -t roboshop-payment-service:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/architecture/service-repositories.md).
 
 
 The gateway persists and reserves the checkout before calling this service. Mode

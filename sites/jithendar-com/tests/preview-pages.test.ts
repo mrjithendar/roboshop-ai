@@ -4,7 +4,7 @@ import { schema, setDbForTests, type Db } from "@/db";
 import { invalidateContent } from "@/lib/content";
 import type { Actor } from "@/lib/posts";
 import { createPreview, readPreview } from "@/lib/preview";
-import { deletePage, savePage } from "@/lib/site-pages";
+import { deletePage, savePage, trashPage } from "@/lib/site-pages";
 import { freshDb } from "./db-helpers";
 
 vi.mock("server-only", () => ({}));
@@ -49,11 +49,13 @@ describe("previews", () => {
 describe("page service", () => {
   const page = { slug: "about-me", title: "About me", description: "A description that is comfortably longer than fifty characters for pages.", body: "Hello" };
 
-  it("creates, renames with a redirect, and deletes pages", async () => {
-    expect(await savePage(author, null, page)).toBe("about-me");
+  it("creates, renames with a redirect, trashes and deletes pages", async () => {
+    expect((await savePage(author, null, page)).slug).toBe("about-me");
     await savePage(author, "about-me", { ...page, slug: "about" });
     const [moved] = await db.select().from(schema.redirect).where(eq(schema.redirect.fromPath, "/about-me"));
     expect(moved?.toPath).toBe("/about");
+    await expect(deletePage(admin, "about")).rejects.toMatchObject({ status: 409 });
+    await trashPage(admin, "about");
     await deletePage(admin, "about");
     expect(await db.select().from(schema.page)).toHaveLength(0);
   });

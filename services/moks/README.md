@@ -49,14 +49,14 @@ opens after three failures for 30 seconds, then permits one half-open recovery c
 explicit pinned-IP allowlist, 4096-token context and a 64 KiB response cap.
 OpenTelemetry and optional Langfuse record metadata only, never prompts or outputs.
 
-See [LLM operator setup](../../docs/deployment/llm-providers.md) for workload
+See [LLM operator setup](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/deployment/llm-providers.md) for workload
 identity, endpoint provisioning, activation, timeouts and verification commands.
 Install `requirements.txt` and run `python server.py` for native operation.
 The Dockerfile remains non-root and includes all provider modules via `*.py`.
 
 ## Independent service build
 
-Run `docker build -t roboshop-moks:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+Run `docker build -t roboshop-moks:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/architecture/service-repositories.md).
 
 
 `/health` is process-only liveness; `/ready` probes catalogue readiness with a

@@ -1,4 +1,3 @@
-import Script from "next/script";
 import { CONSENT_REGIONS, integrations } from "@/config/integrations";
 import { AdSenseLoader, GoogleAnalytics } from "./ThirdPartyClient";
 
@@ -26,9 +25,8 @@ export function ThirdParty() {
   if (!cfg.ga4 && !cfg.adsense) return null;
   return (
     <>
-      <Script id="consent-defaults" strategy="beforeInteractive">
-        {consentDefaultsScript(cfg.consentDefault)}
-      </Script>
+      {/* Inline and server-rendered, so it runs during parsing — before GA4 or AdSense (both load after hydration). */}
+      <script id="consent-defaults" dangerouslySetInnerHTML={{ __html: consentDefaultsScript(cfg.consentDefault) }} />
       {cfg.ga4 && <GoogleAnalytics measurementId={cfg.ga4} />}
       {cfg.adsense && <AdSenseLoader client={cfg.adsense.client} />}
     </>

@@ -24,10 +24,10 @@ spec:
     helm:
       releaseName: grafana
       valueFiles:
-      - $values/observability/grafana/values.yaml
-  - repoURL: https://github.com/mrjithendar/roboshop-ai.git
+      - $values/roboshop/observability/grafana/values.yaml
+  - repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
     ref: values
-  - repoURL: https://github.com/mrjithendar/roboshop-ai.git
+  - repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
-    path: observability/grafana/dashboards
+    path: roboshop/observability/grafana/dashboards

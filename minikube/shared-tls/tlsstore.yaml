@@ -1,9 +1,0 @@
-# The only default TLSStore watched by this Traefik instance.
-apiVersion: traefik.io/v1alpha1
-kind: TLSStore
-metadata:
-  name: default
-  namespace: jithendar
-spec:
-  defaultCertificate:
-    secretName: jithendar-com-tls

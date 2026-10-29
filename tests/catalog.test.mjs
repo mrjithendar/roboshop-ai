@@ -42,14 +42,10 @@ test('Python tools can read the JSON data block', () => {
   assert.deepEqual(JSON.parse(block), plan(source).products);
 });
 
-test('MongoDB setup mounts the current catalog.js', () => {
+// The ConfigMap and MongoDB manifests live in the tools repository (tools/roboshop/minikube/mongodb);
+// its own tests check the mounts. Here: the generated copy must match, when that checkout is present.
+test('tools ConfigMap copy matches catalog.js', { skip: existsSync(CONFIGMAP_FILE) ? false : 'tools checkout not found beside roboshop-ai (set TOOLS_DIR)' }, () => {
   assert.equal(readFileSync(CONFIGMAP_FILE, 'utf8'), configMap(source), 'run npm run catalog:configmap');
-  for (const manifest of ['minikube/mongodb/mongodb-deployment.yaml', 'services/mongodb/mongodb-statefulset-minikube.yaml']) {
-    const text = readFileSync(manifest, 'utf8');
-    assert.match(text, /mountPath: \/docker-entrypoint-initdb\.d/, manifest);
-    assert.match(text, /name: mongodb-catalog\n\s+items:\n\s+- key: 20-catalog\.js\n\s+path: 20-catalog\.js/, manifest);
-  }
-  assert.match(readFileSync('argocd/mongodb.yaml', 'utf8'), /mongodb-catalog-configmap\.yaml/);
 });
 
 test('catalogue data is no longer bundled in service code', () => {

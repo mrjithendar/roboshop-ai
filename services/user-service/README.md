@@ -46,7 +46,7 @@ ECR pull credentials and cert-manager TLS Secrets remain separate Kubernetes typ
 The manifest no longer reads the old private-CA/client-certificate settings.
 Retain `AUTH_ENCRYPTION_KEY` so existing MFA enrolments remain valid.
 Verify the SES domain/DNS and obtain production access for ordinary recipients.
-See [SES setup](../../infrastructure/README.md#amazon-ses-transactional-email).
+See [SES setup](https://github.com/mrjithendar/tools/blob/master/roboshop/infrastructure/README.md#amazon-ses-transactional-email).
 
 The gateway sends its validated client IP to the authenticated internal API;
 `TRUST_PROXY=false` prevents a second interpretation of browser forwarding headers.

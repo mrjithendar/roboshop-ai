@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { listMedia, mediaUploadsEnabled, uploadMedia, type MediaItem } from "@/app/admin/_actions/shared";
 import { Alert, Button, Field, Input } from "@/components/ui/form";
 import { Dialog } from "./Dialog";
 
-/** Modal: pick an image from the Media library, or upload one (only when R2 storage is configured). */
+const ACCEPT = "image/jpeg,image/png,image/webp,image/avif,image/gif";
+
+/**
+ * Pick an image from the media library (search, pages), or upload one by choosing, dropping or
+ * pasting a file. Uploads are validated server-side and stored in R2; only possible when storage is configured.
+ */
 export function MediaPicker({
   open,
   onClose,
@@ -20,61 +25,97 @@ export function MediaPicker({
   title?: string;
 }) {
   const [items, setItems] = useState<MediaItem[] | null>(null);
+  const [more, setMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [q, setQ] = useState("");
   const [uploads, setUploads] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [alt, setAlt] = useState("");
+  const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    Promise.all([listMedia(), mediaUploadsEnabled()]).then(([list, enabled]) => {
-      if (cancelled) return;
-      setItems(list);
-      setUploads(enabled);
-    });
+    const t = window.setTimeout(() => {
+      Promise.all([listMedia({ q, page }), page === 1 ? mediaUploadsEnabled() : Promise.resolve(null)]).then(([list, enabled]) => {
+        if (cancelled) return;
+        setItems((prev) => (page === 1 ? list.items : [...(prev ?? []), ...list.items]));
+        setMore(list.more);
+        if (enabled !== null) setUploads(enabled);
+      });
+    }, q ? 250 : 0);
     return () => {
       cancelled = true;
+      window.clearTimeout(t);
     };
-  }, [open]);
+  }, [open, q, page]);
 
   if (!open) return null;
 
-  function upload(form: FormData) {
+  function choose(f: File | null | undefined) {
+    if (!f) return;
+    if (!ACCEPT.split(",").includes(f.type)) return setError("Use a JPEG, PNG, WebP, AVIF or GIF image.");
     setError(null);
+    setFile(f);
+  }
+
+  function upload() {
+    if (!file) return setError("Choose, drop or paste an image first.");
+    if (!alt.trim()) return setError("Alt text is required.");
+    const form = new FormData();
+    form.set("file", file);
+    form.set("alt", alt.trim());
     form.set("context", context);
+    setError(null);
     start(async () => {
       const result = await uploadMedia(form);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      onSelect({ id: result.id, src: result.src, alt: String(form.get("alt")), width: result.width, height: result.height, context });
+      if (!result.ok) return setError(result.error);
+      setFile(null);
+      setAlt("");
+      onSelect({ id: result.id, src: result.src, alt: alt.trim(), width: result.width, height: result.height, context });
     });
   }
 
   return (
     <Dialog open={open} onClose={onClose} title={title}>
-      <div className="space-y-6">
+      <div className="space-y-6" onPaste={(e) => uploads && choose(Array.from(e.clipboardData.files)[0])}>
         {uploads ? (
-          <form action={upload} className="grid gap-4 rounded-xl border border-dashed border-slate-300 p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end dark:border-white/15">
-            <Field label="Upload a new image" htmlFor="mp-file" hint="JPEG, PNG, WebP, AVIF or GIF, up to 10 MB.">
-              <Input id="mp-file" name="file" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif" required />
-            </Field>
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => { e.preventDefault(); setDragging(false); choose(e.dataTransfer.files[0]); }}
+            className={`grid gap-4 rounded-xl border-2 border-dashed p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end ${dragging ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-slate-300 dark:border-white/15"}`}
+          >
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium text-ink dark:text-white">Upload a new image</p>
+              <button type="button" onClick={() => fileInput.current?.click()} className="block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-left text-sm dark:border-white/15 dark:bg-surface-dark-raised">
+                {file ? file.name : "Choose a file, drop it here, or paste"}
+              </button>
+              <input ref={fileInput} type="file" accept={ACCEPT} className="sr-only" tabIndex={-1} aria-hidden="true" onChange={(e) => choose(e.target.files?.[0])} />
+              <p className="text-xs text-slate-500">JPEG, PNG, WebP, AVIF or GIF, up to 10 MB.</p>
+            </div>
             <Field label="Alt text" htmlFor="mp-alt" hint="Describe the image for screen readers.">
-              <Input id="mp-alt" name="alt" required maxLength={200} />
+              <Input id="mp-alt" value={alt} onChange={(e) => setAlt(e.target.value)} maxLength={300} />
             </Field>
-            <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+            <Button type="button" onClick={upload} disabled={pending} className="w-full sm:w-auto">
               {pending ? "Uploading…" : "Upload"}
             </Button>
-          </form>
+            {pending && <div role="progressbar" aria-label="Uploading" className="h-1.5 overflow-hidden rounded-full bg-slate-200 sm:col-span-3 dark:bg-white/10"><div className="h-full w-1/3 animate-pulse bg-brand-600" /></div>}
+          </div>
         ) : (
           <Alert tone="info">Uploads are off until an admin configures media storage (Cloudflare R2) under Admin → Storage. You can still pick existing images.</Alert>
         )}
         {error && <Alert>{error}</Alert>}
+        <Field label="Search the library" htmlFor="mp-search">
+          <Input id="mp-search" type="search" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="Alt text or file name" />
+        </Field>
         {items === null ? (
           <p className="text-sm text-slate-500">Loading…</p>
         ) : items.length === 0 ? (
-          <p className="text-sm text-slate-500">No images in the library yet.</p>
+          <p className="text-sm text-slate-500">No images found.</p>
         ) : (
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
             {items.map((item) => (
@@ -91,6 +132,11 @@ export function MediaPicker({
               </li>
             ))}
           </ul>
+        )}
+        {more && (
+          <div className="text-center">
+            <Button type="button" variant="secondary" onClick={() => setPage((p) => p + 1)}>Load more</Button>
+          </div>
         )}
       </div>
     </Dialog>

@@ -8,4 +8,4 @@ Build/deploy from repository root: `bash build-images.sh` then `bash scripts/dep
 
 ## Independent service build
 
-Run `docker build -t roboshop-cart-service:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](../../docs/architecture/service-repositories.md).
+Run `docker build -t roboshop-cart-service:local .` from this directory. The Docker context is this folder, not the platform root. Dependencies and runtime libraries are owned here; see [repository split guidance](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/architecture/service-repositories.md).

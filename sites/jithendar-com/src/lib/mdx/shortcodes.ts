@@ -8,7 +8,8 @@ import { visit } from "unist-util-visit";
  *
  *   :::callout{type="info|tip|warning|danger" title="…"}  …  :::
  *   ::button[Label]{href="/path or https://…"}
- *   :::figure{caption="…"}  ![alt](/media/…)  :::
+ *   :::figure{caption="…" align="center|wide|full" size="small|medium|large"}  ![alt](/media/…)  :::
+ *   :::gallery{caption="…"}  ![a](/media/…) ![b](/media/…)  :::   (a responsive grid)
  *   :::details{summary="…"}  …  :::
  *   ::toc
  *   ::video{src="/media/<id>/clip.mp4" poster="/media/<id>/still.jpg" caption="…" ratio="16:9|4:3|1:1|9:16"}
@@ -94,9 +95,11 @@ export function remarkShortcodes() {
         data.hProperties = { href, className: ["shortcode-button"], ...(href.startsWith("https://") ? { rel: "noopener" } : {}) };
         return;
       }
-      if (n.name === "figure" && n.type === "containerDirective") {
+      if ((n.name === "figure" || n.name === "gallery") && n.type === "containerDirective") {
         data.hName = "figure";
-        data.hProperties = { className: ["shortcode-figure"] };
+        const align = ["center", "wide", "full"].includes(attrs.align ?? "") ? attrs.align! : "center";
+        const size = ["small", "medium", "large"].includes(attrs.size ?? "") ? attrs.size! : "large";
+        data.hProperties = { className: n.name === "gallery" ? ["shortcode-gallery", `align-${align}`] : ["shortcode-figure", `align-${align}`, `size-${size}`] };
         if (attrs.caption) n.children.push({ type: "paragraph", data: { hName: "figcaption" }, children: [text(attrs.caption)] });
         return;
       }

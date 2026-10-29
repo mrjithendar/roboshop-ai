@@ -24,7 +24,7 @@ spec:
     helm:
       releaseName: metrics-server
       valueFiles:
-      - $values/minikube/metrics-server/values.yaml
-  - repoURL: https://github.com/mrjithendar/roboshop-ai.git
+      - $values/roboshop/minikube/metrics-server/values.yaml
+  - repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
     ref: values

@@ -108,6 +108,10 @@ export function normalizeMarkdown(source: string): string {
     .replace(/\r\n/g, "\n")
     .split("\n")
     .map((l) => l.replace(/[ \t]+$/, "").replace(/^(\s*)[*+] /, "$1- "))
+    // An escaped underscore inside a word renders the same as a plain one (GFM: no intraword emphasis).
+    .map((l) => l.replace(/(\w)\\_(?=\w)/g, "$1_"))
+    // Escaped square brackets render as the same literal brackets.
+    .map((l) => l.replace(/\\([[\]])/g, "$1"))
     // Table cell padding is cosmetic.
     .map((l) => (l.startsWith("|") ? l.replace(/[ \t]*\|[ \t]*/g, "|").replace(/\|:?-+:?(?=\|)/g, (c) => c.replace(/-+/, "-")) : l))
     .join("\n")

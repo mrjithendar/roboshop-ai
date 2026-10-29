@@ -191,6 +191,16 @@ iframe {
 
 .prose .shortcode-figure { @apply my-8; }
 .prose .shortcode-figure figcaption { @apply mt-2 text-center text-sm text-slate-500 dark:text-slate-400; }
+.prose .shortcode-figure.size-small { @apply mx-auto max-w-xs; }
+.prose .shortcode-figure.size-medium { @apply mx-auto max-w-md; }
+/* Wide/full break out of the text column on large screens only; phones always use the column. */
+@media (min-width: 1024px) {
+  .prose .align-wide { margin-inline: -4rem; }
+}
+.prose .shortcode-gallery { @apply my-8; }
+.prose .shortcode-gallery > p { @apply my-0 grid grid-cols-2 gap-3 sm:grid-cols-3; }
+.prose .shortcode-gallery > p > img { @apply my-0 aspect-square h-full w-full rounded-lg object-cover; }
+.prose .shortcode-gallery figcaption { @apply mt-2 text-center text-sm text-slate-500 dark:text-slate-400; }
 
 .prose details.shortcode-details {
   @apply my-6 rounded-xl border border-slate-200 px-5 py-3 dark:border-white/10;

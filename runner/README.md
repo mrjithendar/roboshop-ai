@@ -1,6 +1,6 @@
 # Runner prerequisites
 
-> See [the script matrix](../docs/operations/scripts.md). Runner host setup remains CentOS Stream 9/10 with systemd.
+> See [the script matrix](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/operations/scripts.md). Runner host setup remains CentOS Stream 9/10 with systemd.
 
 
 

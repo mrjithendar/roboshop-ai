@@ -18,8 +18,8 @@ spec:
     - PruneLast=true
     - CreateNamespace=true
   source:
-    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
-    path: observability/prometheus
+    path: roboshop/observability/prometheus
     helm:
       releaseName: prometheus

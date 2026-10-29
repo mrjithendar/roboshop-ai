@@ -9,7 +9,7 @@ import { formatDate } from "@/lib/dates";
 import { compileMdx } from "@/lib/mdx/compile";
 import { breadcrumbLd } from "@/lib/seo/jsonld";
 
-const ORDER = ["about", "contact", "editorial-policy", "corrections-policy", "ai-use-policy", "privacy-policy", "terms"];
+const ORDER = ["about", "contact", "editorial-policy", "corrections-policy", "ai-use-policy", "privacy-policy", "cookies", "terms"];
 
 /** Static page layout, shared by the public page and the editor preview. */
 export async function PageView({ page, notice, after }: { page: Page; notice?: ReactNode; after?: ReactNode }) {
@@ -19,7 +19,9 @@ export async function PageView({ page, notice, after }: { page: Page; notice?: R
     { name: "Home", path: "/" },
     { name: fm.title, path: page.path },
   ];
-  const siblings = (await getPages()).sort((a, b) => ORDER.indexOf(a.slug) - ORDER.indexOf(b.slug));
+  // Menu order set in the editor; the historical order breaks ties (all pages start at 100).
+  const rank = (slug: string) => (ORDER.indexOf(slug) === -1 ? ORDER.length : ORDER.indexOf(slug));
+  const siblings = (await getPages()).sort((a, b) => a.frontmatter.sortOrder - b.frontmatter.sortOrder || rank(a.slug) - rank(b.slug));
 
   return (
     <>

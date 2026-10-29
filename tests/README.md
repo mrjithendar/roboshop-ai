@@ -64,4 +64,4 @@ provider mapping without AWS credentials or a running model server. The dedicate
 
 ## Robotics showcase
 
-`tests/python/test_showcase.py` covers review security, registration protection, currency and payment isolation. Its MongoDB tests use only 12 profiles/36 reviews and unique `roboshop_demo_test_*` databases. `tests/showcase-ui.test.mjs` exercises product pages with safe DOM rendering. NGINX tests cover direct slug refresh and unknown/private path 404 behavior. Full 10,000-profile seeds are never part of test or deployment startup. See [showcase operations](../docs/deployment/robotics-showcase.md).
+`tests/python/test_showcase.py` covers review security, registration protection, currency and payment isolation. Its MongoDB tests use only 12 profiles/36 reviews and unique `roboshop_demo_test_*` databases. `tests/showcase-ui.test.mjs` exercises product pages with safe DOM rendering. NGINX tests cover direct slug refresh and unknown/private path 404 behavior. Full 10,000-profile seeds are never part of test or deployment startup. See [showcase operations](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/deployment/robotics-showcase.md).

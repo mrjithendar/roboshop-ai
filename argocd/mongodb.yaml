@@ -31,8 +31,8 @@ spec:
     - RespectIgnoreDifferences=true
   # Live controller is a Deployment; services/mongodb's StatefulSet needs a data migration first.
   source:
-    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
-    path: minikube/mongodb
+    path: roboshop/minikube/mongodb
     directory:
       include: '{mongodb-data-pvc.yaml,mongodb-service.yaml,mongodb-catalog-configmap.yaml,mongodb-deployment.yaml}'

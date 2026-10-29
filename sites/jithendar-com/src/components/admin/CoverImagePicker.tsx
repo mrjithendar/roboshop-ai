@@ -17,7 +17,9 @@ export function CoverImagePicker({
   onChange,
   context,
   generate,
+  label = "Cover image",
 }: {
+  label?: string;
   value: FeaturedImage | null;
   onChange: (v: FeaturedImage | null) => void;
   context: string;
@@ -50,7 +52,7 @@ export function CoverImagePicker({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-medium text-ink dark:text-white">Cover image</p>
+      <p className="text-sm font-medium text-ink dark:text-white">{label}</p>
       {value ? (
         <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-white/10">
           <button

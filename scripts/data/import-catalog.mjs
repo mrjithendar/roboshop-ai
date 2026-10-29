@@ -3,7 +3,7 @@
 // driver, for local development and environments without mongosh.
 //
 //   npm run catalog:import            # insert missing products into MONGODB_URL / MONGODB_DATABASE
-//   npm run catalog:configmap         # refresh the Kubernetes ConfigMap copy of catalog.js
+//   npm run catalog:configmap         # refresh the ConfigMap copy in the tools repo (../tools or TOOLS_DIR)
 //
 // The script is executed against a recording shim first, so exactly the same calls run
 // here as under mongosh, and every product is validated before anything is written.
@@ -15,7 +15,9 @@ import { normalizeProducts } from '../../services/catalogue-service/lib/catalogu
 
 const ROOT = new URL('../../', import.meta.url);
 export const CATALOG_FILE = fileURLToPath(new URL('services/mongodb/catalog.js', ROOT));
-export const CONFIGMAP_FILE = fileURLToPath(new URL('minikube/mongodb/mongodb-catalog-configmap.yaml', ROOT));
+// Cluster configuration lives in the tools repository (expected beside this checkout).
+const TOOLS_DIR = process.env.TOOLS_DIR || fileURLToPath(new URL('../tools/', ROOT));
+export const CONFIGMAP_FILE = `${TOOLS_DIR.replace(/\/$/, '')}/roboshop/minikube/mongodb/mongodb-catalog-configmap.yaml`;
 
 /** The operations catalog.js performs, without touching a database. */
 export function plan(source = readFileSync(CATALOG_FILE, 'utf8'), env = {}) {
