@@ -113,7 +113,7 @@ Do not enable Force/Replace to resolve an immutable-field difference.
 | cert-manager, metrics-server, grafana | Pinned upstream Helm charts with Git-hosted values and existing release names. |
 | roboshop-letsencrypt, prometheus | Existing local charts and release names. |
 | wordpress | Retired 2026-10-27 after the site was compromised; replaced by the jithendar.com site, which CI deploys outside Argo CD (`sites/jithendar-com/docs/DEPLOYMENT.md`). Not a required workload. |
-| shared-tls | The single existing TLSStore in jithendar; no duplicate certificate or Traefik controller. The canonical Certificate belongs to jithendar.com, which CI deploys outside Argo CD (`sites/jithendar-com/deploy/production/certificate.yaml`). |
+| shared-tls | The single existing TLSStore in jithendar, from `shared-tls/` in the jithendar.com repository; no duplicate certificate or Traefik controller. The canonical Certificate belongs to jithendar.com, which CI deploys outside Argo CD (`sites/jithendar-com/deploy/production/certificate.yaml`). |
 | jfrog | Optional, currently absent. Manual sync only, requires bootstrap credentials, storage and host-capacity checks first. Public ingress remains a separate explicit exposure step. |
 
 Langfuse is a cloud integration and n8n has no deployment manifests, so neither

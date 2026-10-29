@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { authClient } from "@/lib/auth-client";
 import { loginHref } from "@/lib/safe-next";
+import { signOutAndLeave } from "@/lib/sign-out";
 import { LayoutIcon, SettingsIcon, SignOutIcon, UserIcon } from "./icons";
 import { UserAvatar } from "./UserAvatar";
 
@@ -37,10 +38,10 @@ export function AccountMenu() {
 }
 
 function Menu({ name, email, image, staff }: { name: string; email: string; image?: string | null; staff: boolean }) {
-  const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const wrapper = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const menuId = useId();
@@ -102,10 +103,11 @@ function Menu({ name, email, image, staff }: { name: string; email: string; imag
 
   async function signOut() {
     setSigningOut(true);
-    await authClient.signOut();
-    setOpen(false);
-    router.push("/");
-    router.refresh();
+    setSignOutError(null);
+    // On success the page is replaced by the sign-in page; only a failure comes back here.
+    const error = await signOutAndLeave();
+    setSigningOut(false);
+    setSignOutError(error);
   }
 
   const item =
@@ -163,6 +165,11 @@ function Menu({ name, email, image, staff }: { name: string; email: string; imag
             <button role="menuitem" tabIndex={-1} type="button" className={item} onClick={signOut} disabled={signingOut}>
               <SignOutIcon className="h-4 w-4" /> {signingOut ? "Signing out…" : "Sign out"}
             </button>
+            {signOutError && (
+              <p role="alert" className="px-3 pb-2 pt-1 text-xs text-red-700 dark:text-red-300">
+                {signOutError}
+              </p>
+            )}
           </div>
         </div>
       )}

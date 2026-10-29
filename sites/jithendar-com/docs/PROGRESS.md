@@ -1,5 +1,23 @@
 # Progress log — jithendar.com
 
+## Sign-out, password toggles, discussions, social-login audit, article header (2026-10-29, owner request)
+
+**What changed**
+- Sign-out (`docs/AUTH.md`): one `signOutAndLeave()` for every control — server-side session deletion, private browser data cleared, full `replace()` to `/login?signedOut=1`. Mobile admin menu now has Sign out (the sidebar block is desktop-only). `SessionGuard` on admin/account layouts (bfcache reload, session ended elsewhere/expired → login). `no-store` on admin, admin API, comment API and login. Accurate "session expired" vs "not signed in". A race between the guard and sign-out (found in browser checks) is handled by `isSigningOut()`.
+- `PasswordInput` with show/hide toggle on all password fields (login, sign-up, setup, admin secrets).
+- Discussions (`docs/COMMENTS.md`): replies (2 visible levels), Markdown + preview with server-side sanitising, likes, reports, edit/delete, permalinks, sort + paging, moderation tabs/actions with audit, per-post open/locked/closed, approval and edit-window settings. Replaces `CommentForm`/old `approvedComments`.
+- Article page: header spans the reading column plus the right column from `lg` (title 952px vs body 688px at 1440); standfirst stays at reading width; the cover image block is removed (cover still stored, edited, on cards, in Open Graph and Article JSON-LD). The now-unused "Cover image" Appearance toggle was removed (schema field kept).
+- Social login audit: already complete (Google/GitHub, PKCE/state/nonce, lowest role, no implicit linking, explicit linking, error messages). No code changes; added tests for comment-anchor return URLs and off-site/protocol-relative refusal.
+- Migration `0008_discussions.sql` (additive). New dev dependency `happy-dom@20.14.6` (DOM for the password toggle interaction tests only).
+
+**Files**: `src/lib/{sign-out,comments,comment-markdown,comment-types,session,settings}.ts`, `src/components/{SessionGuard,AccountMenu,Comments,icons}.tsx`, `src/components/ui/PasswordInput.tsx`, `src/components/discussion/*`, `src/components/admin/{AdminNav,ui}.tsx`, `src/app/{account/SignOutButton,account/layout,account/settings/SessionControls,admin/layout,admin/comments/page,login/page,login/LoginForm,setup/SetupForm,admin/storage/page,admin/backups/page,admin/appearance/panels}.tsx`, `src/app/_actions/{comments,public}.ts`, `src/app/api/comments/[postId]/route.ts`, `src/lib/pages/article.tsx`, `src/lib/site-config/schema.ts`, `src/db/schema.ts`, `src/db/migrations/0008_discussions.sql`, `src/app/globals.css`, `next.config.ts`, tests `discussions`, `password-input`, `sign-out`, `social-auth` (+ sign-out/return URL cases), `article-route.test.tsx` (renamed from .ts; cover case), docs `AUTH.md`, `COMMENTS.md`.
+
+**Commands**: lint pass; typecheck pass; vitest 35 files / 345 tests pass; production build pass; browser checks (Chrome, `next start`, 1440px and 390px) 45/45 pass.
+
+**Manual steps**: OAuth clients still need creating (`docs/AUTH.md`); no other configuration. Review comment settings in Admin → Appearance → General → Features before publishing.
+
+**Open**: no password-reset/change-password pages exist (reset emails point nowhere useful); social login not tested against real providers.
+
 ## Appearance & site settings (2026-10-29, owner request)
 
 **What changed**

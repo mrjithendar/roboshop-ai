@@ -124,6 +124,13 @@ const general = z.object({
   contact: z.object({ email: z.union([z.literal(""), z.email("Enter a valid email address.").max(200)]), location: text(80) }),
   social: z.object({ github: httpsOrEmpty, x: httpsOrEmpty, linkedin: httpsOrEmpty, youtube: httpsOrEmpty, mastodon: httpsOrEmpty }),
   features: z.object({ comments: z.boolean(), registration: z.boolean(), contactForm: z.boolean() }),
+  /** Comment rules (comments themselves are switched by features.comments; each post can also lock or close its discussion). */
+  discussion: z.object({
+    /** New comments from readers wait for a moderator. Authors' and admins' comments never wait. */
+    requireApproval: z.boolean(),
+    /** How long authors can edit their comment after posting (0 = no limit). */
+    editWindowMinutes: z.number().int().min(0).max(43200),
+  }),
   maintenance: z.object({ enabled: z.boolean(), message: text(300), retryAfterMinutes: z.number().int().min(5).max(1440) }),
 });
 
@@ -333,6 +340,7 @@ const blog = z.object({
     showAuthor: z.boolean(),
     showUpdated: z.boolean(),
     showReadingTime: z.boolean(),
+    /** Kept for stored and exported configs; the article page no longer shows the cover (cards and social previews do). */
     showCover: z.boolean(),
     toc: z.object({ enabled: z.boolean(), minHeadings: z.number().int().min(2).max(8) }),
     related: z.object({ enabled: z.boolean(), count: z.number().int().min(1).max(6) }),
@@ -472,6 +480,7 @@ export function defaultConfig(): SiteConfig {
       contact: { email: "", location: "" },
       social: { github: "https://github.com/mrjithendar", x: "https://x.com/imjithendar", linkedin: "https://www.linkedin.com/in/jithendardharmapuri", youtube: "", mastodon: "" },
       features: { comments: true, registration: true, contactForm: true },
+      discussion: { requireApproval: true, editWindowMinutes: 1440 },
       maintenance: { enabled: false, message: "We are making improvements and will be back shortly.", retryAfterMinutes: 30 },
     },
     branding: { showWordmark: true, logoLight: null, logoDark: null, logoMobile: null, favicon: null, appleIcon: null, socialImage: null },

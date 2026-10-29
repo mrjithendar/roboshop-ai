@@ -72,6 +72,12 @@ const nextConfig: NextConfig = {
       { source: "/account/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
       { source: "/account", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
       { source: "/api/auth/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
+      // Admin pages and APIs and the sign-in page: never stored, so Back after signing out asks the server again.
+      { source: "/admin", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
+      { source: "/admin/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
+      { source: "/api/admin/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
+      { source: "/api/comments/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
+      { source: "/login", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
     ];
   },
 };

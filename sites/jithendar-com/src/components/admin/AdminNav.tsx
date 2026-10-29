@@ -2,15 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { CloseIcon, MenuIcon } from "@/components/icons";
 
 export type NavItem = { href: string; label: string; badge?: number; section: string };
 
 const isActive = (href: string, pathname: string) => (href === "/admin" ? pathname === "/admin" : pathname.startsWith(href));
 
-/** Sidebar on large screens; below `lg` a "Menu" button (showing the current page) toggles the same list. */
-export function AdminNav({ items }: { items: NavItem[] }) {
+/**
+ * Sidebar on large screens; below `lg` a "Menu" button (showing the current page) toggles the same list.
+ * `account` (signed-in user and Sign out) is shown at the end of that menu on small screens, where the
+ * sidebar's own account block is hidden.
+ */
+export function AdminNav({ items, account }: { items: NavItem[]; account?: ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   // Close the menu after navigating (React's "adjust state on prop change" pattern, no effect needed).
@@ -64,6 +68,7 @@ export function AdminNav({ items }: { items: NavItem[] }) {
             </ul>
           </div>
         ))}
+        {account && <div className="border-t border-line px-3 pt-4 sm:col-span-2 lg:hidden">{account}</div>}
       </nav>
     </div>
   );

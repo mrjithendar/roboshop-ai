@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AdminNav, type NavItem } from "@/components/admin/AdminNav";
+import { SessionGuard } from "@/components/SessionGuard";
 import { getDb, schema } from "@/db";
+import { moderationCounts } from "@/lib/comments";
 import { requireRole } from "@/lib/session";
 import { SignOutButton } from "../account/SignOutButton";
 
@@ -13,8 +15,8 @@ export const dynamic = "force-dynamic";
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const user = await requireRole("admin", "author");
   const db = await getDb();
-  const [[pending], [unread]] = await Promise.all([
-    db.select({ n: count() }).from(schema.comment).where(eq(schema.comment.status, "pending")),
+  const [comments, [unread]] = await Promise.all([
+    moderationCounts(),
     db.select({ n: count() }).from(schema.contactMessage).where(eq(schema.contactMessage.status, "new")),
   ]);
   const isAdmin = user.role === "admin";
@@ -25,7 +27,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     { href: "/admin/media", label: "Media", section: "Content" },
     { href: "/admin/categories", label: "Categories", section: "Content" },
     { href: "/admin/tags", label: "Tags", section: "Content" },
-    { href: "/admin/comments", label: "Comments", badge: pending?.n, section: "Community" },
+    { href: "/admin/comments", label: "Comments", badge: comments.pending + comments.reported, section: "Community" },
     ...(isAdmin ? [{ href: "/admin/messages", label: "Messages", badge: unread?.n, section: "Community" }] : []),
     { href: "/admin/profile", label: "Author profile", section: "Account" },
     { href: "/admin/api-keys", label: "API keys", section: "Account" },
@@ -42,6 +44,14 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       : []),
   ];
 
+  const account = (
+    <>
+      <p className="truncate font-medium text-fg" title={user.name}>{user.name}</p>
+      <p className="truncate text-fg-subtle" title={user.email}>{user.email}</p>
+      <SignOutButton className="mt-3" />
+    </>
+  );
+
   return (
     <div data-admin-shell className="min-h-[calc(100dvh-var(--spacing-header))] bg-surface-muted lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]">
       <aside className="border-b border-line bg-canvas lg:sticky lg:top-header lg:h-[calc(100dvh-var(--spacing-header))] lg:overflow-y-auto lg:border-b-0 lg:border-r">
@@ -50,19 +60,14 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             <span className="text-sm font-semibold text-fg">Admin</span>
             <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-xs font-medium capitalize text-fg-muted">{user.role}</span>
           </Link>
-          <AdminNav items={items} />
-          <div className="mt-auto hidden border-t border-line px-3 pt-4 text-sm lg:block">
-            <p className="truncate font-medium text-fg" title={user.name}>{user.name}</p>
-            <p className="truncate text-fg-subtle" title={user.email}>{user.email}</p>
-            <div className="mt-3">
-              <SignOutButton />
-            </div>
-          </div>
+          <AdminNav items={items} account={<div className="text-sm">{account}</div>} />
+          <div className="mt-auto hidden border-t border-line px-3 pt-4 text-sm lg:block">{account}</div>
         </div>
       </aside>
       <div className="min-w-0 px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
         <div className="mx-auto max-w-6xl">{children}</div>
       </div>
+      <SessionGuard userId={user.id} />
     </div>
   );
 }

@@ -15,10 +15,10 @@ import { SocialButtons } from "./SocialButtons";
 export const metadata: Metadata = { title: "Sign in", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
-type Params = { setup?: string; next?: string; error?: string; reauth?: string; expired?: string };
+type Params = { setup?: string; next?: string; error?: string; reauth?: string; expired?: string; signedOut?: string };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Params> }) {
-  const { setup, next: rawNext, error, reauth, expired } = await searchParams;
+  const { setup, next: rawNext, error, reauth, expired, signedOut } = await searchParams;
   const next = safeNext(rawNext);
   const confirming = reauth === "1";
   const user = await getSessionUser();
@@ -43,7 +43,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </div>
         <div className="mt-8 space-y-6 rounded-xl border border-line bg-surface p-5 shadow-sm sm:p-8">
           {setup === "done" && <Alert tone="success">Setup complete. Sign in with the admin account you just created.</Alert>}
-          {expired === "1" && !message && <Alert tone="info">Your session has expired. Sign in again to continue.</Alert>}
+          {signedOut === "1" && !message && <Alert tone="success">You have signed out.</Alert>}
+          {expired === "1" && signedOut !== "1" && !message && <Alert tone="info">Your session has expired. Sign in again to continue.</Alert>}
           {message && <Alert>{message}</Alert>}
           <SocialButtons providers={providers} next={next} errorPath={errorPath} />
           {providers.length > 0 && siteKey && (

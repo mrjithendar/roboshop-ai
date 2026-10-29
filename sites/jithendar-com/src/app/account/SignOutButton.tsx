@@ -1,21 +1,34 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/form";
-import { authClient } from "@/lib/auth-client";
+import { signOutAndLeave } from "@/lib/sign-out";
 
-export function SignOutButton() {
-  const router = useRouter();
+export function SignOutButton({ className = "" }: { className?: string }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   return (
-    <Button
-      variant="secondary"
-      onClick={async () => {
-        await authClient.signOut();
-        router.push("/");
-        router.refresh();
-      }}
-    >
-      Sign out
-    </Button>
+    <div className={className}>
+      <Button
+        type="button"
+        variant="secondary"
+        loading={busy}
+        onClick={async () => {
+          setBusy(true);
+          setError(null);
+          // On success the browser is already loading the sign-in page; only failures return here.
+          const message = await signOutAndLeave();
+          setBusy(false);
+          setError(message);
+        }}
+      >
+        {busy ? "Signing out…" : "Sign out"}
+      </Button>
+      {error && (
+        <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-300">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }

@@ -11,6 +11,7 @@ export type Settings = {
   description: string;
   hero: { eyebrow: string; title: string; highlight: string; subtitle: string };
   features: { comments: boolean; registration: boolean; contactForm: boolean };
+  discussion: { requireApproval: boolean; editWindowMinutes: number };
   social: { github: string; x: string; linkedin: string };
   announcement: { enabled: boolean; text: string; href: string };
 };
@@ -24,6 +25,7 @@ export async function getSettings(): Promise<Settings> {
     description: c.general.description,
     hero: { eyebrow: hero?.eyebrow ?? "", title: hero?.heading ?? "", highlight: hero?.highlight ?? "", subtitle: hero?.subtitle ?? "" },
     features: c.general.features,
+    discussion: c.general.discussion,
     social: { github: c.general.social.github, x: c.general.social.x, linkedin: c.general.social.linkedin },
     announcement: { enabled: c.header.announcement.enabled, text: c.header.announcement.text, href: c.header.announcement.href },
   };

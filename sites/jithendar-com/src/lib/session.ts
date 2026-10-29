@@ -1,4 +1,4 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAuth, type Role } from "./auth";
 
@@ -14,10 +14,23 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   return { id: u.id, name: u.name, email: u.email, role, emailVerified: u.emailVerified, image: u.image ?? null, sessionCreatedAt: new Date(session.session.createdAt) };
 }
 
+/**
+ * Whether the browser still sends a session cookie the server no longer accepts (expired, revoked or signed out
+ * elsewhere), as opposed to never having signed in. Better Auth deletes the cookie on sign-out.
+ */
+async function hasStaleSessionCookie(): Promise<boolean> {
+  return (await cookies()).getAll().some((c) => c.name.endsWith("session_token") && c.value !== "");
+}
+
+/** The sign-in URL for a private page; says "session expired" only when there was a session. */
+async function signInRedirect(next: string): Promise<never> {
+  redirect(`/login?next=${encodeURIComponent(next)}${(await hasStaleSessionCookie()) ? "&expired=1" : ""}`);
+}
+
 /** Server components and actions: require one of the roles, otherwise send to /login. */
 export async function requireRole(...roles: Role[]): Promise<SessionUser> {
   const user = await getSessionUser();
-  if (!user) redirect("/login?next=/admin&expired=1");
+  if (!user) return signInRedirect("/admin");
   if (!roles.includes(user.role)) redirect("/account?denied=1");
   return user;
 }
@@ -25,7 +38,7 @@ export async function requireRole(...roles: Role[]): Promise<SessionUser> {
 /** Any signed-in user (account pages); otherwise to /login, returning to `next` afterwards. */
 export async function requireUser(next: string): Promise<SessionUser> {
   const user = await getSessionUser();
-  if (!user) redirect(`/login?next=${encodeURIComponent(next)}`);
+  if (!user) return signInRedirect(next);
   return user;
 }
 

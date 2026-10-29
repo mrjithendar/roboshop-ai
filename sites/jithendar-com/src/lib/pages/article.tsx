@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { ArticleCard } from "@/components/ArticleList";
@@ -117,76 +116,65 @@ export async function ArticleView({
 
   const column = "mx-auto w-full min-w-0 max-w-reading";
 
+  // From lg up, one three-column grid (gutter · reading column · gutter/sidebar): the header starts at the
+  // reading column and runs on into the right-hand column, so long titles get more room; the body stays at
+  // reading width and the table of contents sits beside the body, below the header.
+  // The cover image is not shown on the article page (it stays in the editor, on cards and in social previews).
   return (
     <article>
       {!article.preview && <JsonLd data={[articleLd(article, author), breadcrumbLd(crumbs)]} />}
       {notice}
       <Container className="pt-8 sm:pt-12">
-        <header className={column}>
-          {a.showBreadcrumbs && <Breadcrumbs crumbs={crumbs} />}
-          <div className={`${a.showBreadcrumbs ? "mt-8" : ""} flex flex-wrap items-center gap-2`}>
-            <Link href={`/category/${fm.category}`} className="inline-flex min-h-7 items-center gap-1.5 text-sm font-semibold text-accent-text hover:underline">
-              <CategoryIcon name={category?.icon ?? "layers"} className="h-4 w-4" />
-              {labelOf(cats, fm.category)}
-            </Link>
-            <ContentTypeBadge type={fm.contentType} />
-            {fm.sponsored && <SponsoredBadge />}
-            {article.preview && <PreviewBadge />}
-          </div>
-          <h1 className="mt-4 text-title font-bold text-fg text-balance [overflow-wrap:anywhere]">{fm.title}</h1>
-          <p className="mt-4 text-lg leading-8 text-fg-muted sm:text-xl sm:leading-8">{fm.description}</p>
-          <div className="mt-8 flex items-center gap-3 border-y border-line py-4">
-            {a.showAuthor && <Avatar name={author.frontmatter.name} size="sm" />}
-            <div className="min-w-0 text-sm leading-6">
-              {a.showAuthor && (
-                <p className="font-semibold text-fg">
-                  <Link href={author.path} rel="author" className="hover:underline">
-                    {author.frontmatter.name}
-                  </Link>
-                </p>
-              )}
-              <p className="flex flex-wrap items-center gap-x-2 text-fg-subtle">
-                <span>
-                  <time dateTime={fm.publishedAt}>{formatDateTime(fm.publishedAt!)}</time>
-                </span>
-                {a.showUpdated && fm.updatedAt && (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span>
-                      Updated <time dateTime={fm.updatedAt}>{formatDateTime(fm.updatedAt)}</time>
-                    </span>
-                  </>
-                )}
-                {a.showReadingTime && (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span className="inline-flex items-center gap-1">
-                      <ClockIcon className="h-3.5 w-3.5" /> {readingTimeMinutes(article.body)} min read
-                    </span>
-                  </>
-                )}
-              </p>
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,var(--container-reading))_minmax(0,1fr)] lg:gap-x-12">
+          <header className={`${column} lg:col-span-2 lg:col-start-2 lg:mx-0 lg:max-w-none`}>
+            {a.showBreadcrumbs && <Breadcrumbs crumbs={crumbs} />}
+            <div className={`${a.showBreadcrumbs ? "mt-8" : ""} flex flex-wrap items-center gap-2`}>
+              <Link href={`/category/${fm.category}`} className="inline-flex min-h-7 items-center gap-1.5 text-sm font-semibold text-accent-text hover:underline">
+                <CategoryIcon name={category?.icon ?? "layers"} className="h-4 w-4" />
+                {labelOf(cats, fm.category)}
+              </Link>
+              <ContentTypeBadge type={fm.contentType} />
+              {fm.sponsored && <SponsoredBadge />}
+              {article.preview && <PreviewBadge />}
             </div>
-          </div>
-        </header>
+            <h1 className="mt-4 text-title font-bold text-fg text-balance [overflow-wrap:anywhere]">{fm.title}</h1>
+            <p className="mt-4 max-w-reading text-lg leading-8 text-fg-muted sm:text-xl sm:leading-8">{fm.description}</p>
+            <div className="mt-8 flex items-center gap-3 border-y border-line py-4">
+              {a.showAuthor && <Avatar name={author.frontmatter.name} size="sm" />}
+              <div className="min-w-0 text-sm leading-6">
+                {a.showAuthor && (
+                  <p className="font-semibold text-fg">
+                    <Link href={author.path} rel="author" className="hover:underline">
+                      {author.frontmatter.name}
+                    </Link>
+                  </p>
+                )}
+                <p className="flex flex-wrap items-center gap-x-2 text-fg-subtle">
+                  <span>
+                    <time dateTime={fm.publishedAt}>{formatDateTime(fm.publishedAt!)}</time>
+                  </span>
+                  {a.showUpdated && fm.updatedAt && (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span>
+                        Updated <time dateTime={fm.updatedAt}>{formatDateTime(fm.updatedAt)}</time>
+                      </span>
+                    </>
+                  )}
+                  {a.showReadingTime && (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span className="inline-flex items-center gap-1">
+                        <ClockIcon className="h-3.5 w-3.5" /> {readingTimeMinutes(article.body)} min read
+                      </span>
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+          </header>
 
-        {a.showCover && fm.featuredImage && (
-          <figure className="mx-auto mt-8 max-w-4xl">
-            <Image
-              src={fm.featuredImage.src}
-              alt={fm.featuredImage.alt}
-              width={fm.featuredImage.width}
-              height={fm.featuredImage.height}
-              sizes="(min-width: 960px) 896px, 100vw"
-              loading="eager"
-              fetchPriority="high"
-              className="h-auto w-full rounded-xl border border-line"
-            />
-          </figure>
-        )}
-
-        <div className={`pb-4 pt-8 sm:pt-10 ${sidebarToc ? "xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,var(--container-reading))_minmax(0,1fr)] xl:gap-x-12" : ""}`}>
-          <div className={`${column} xl:col-start-2`}>
+          <div className={`${column} pb-4 pt-8 sm:pt-10 lg:col-start-2`}>
             {fm.sponsored && fm.sponsor && (
               <p className="mb-8 rounded-lg border border-yellow-300 bg-yellow-50 p-4 text-sm leading-6 text-yellow-950 dark:border-yellow-500/30 dark:bg-yellow-500/10 dark:text-yellow-100">
                 Sponsored by {fm.sponsor}. See the{" "}
@@ -276,7 +264,7 @@ export async function ArticleView({
           </div>
 
           {sidebarToc && (
-            <aside className="hidden xl:col-start-3 xl:block">
+            <aside className="hidden pt-10 xl:col-start-3 xl:row-start-2 xl:block">
               <div className="sticky top-[calc(var(--spacing-header)+2rem)] max-h-[calc(100dvh-var(--spacing-header)-4rem)] overflow-y-auto pb-4">
                 <TableOfContents headings={headings} />
               </div>

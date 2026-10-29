@@ -161,6 +161,12 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* Password fields have their own show/hide toggle (PasswordInput); hide Edge's built-in one. */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
 /* Not in @theme: plain custom properties with defaults, overridden by the configured theme. */
 :root {
   --article-size: 1.125rem;
@@ -486,3 +492,56 @@ body:has([data-admin-shell]) .site-header-inner {
   @apply rounded-xl border border-line px-5 py-3;
 }
 .prose details.shortcode-details summary { @apply cursor-pointer font-semibold text-fg; }
+
+/* --- Comments ------------------------------------------------------------------------------- */
+
+/* Rendered comment Markdown (lib/comment-markdown): compact reading text with the article's link and code styles. */
+.comment-body {
+  @apply text-[0.9375rem] leading-7 text-fg [overflow-wrap:anywhere];
+}
+.comment-body :where(p, ul, ol, blockquote, pre, table) {
+  margin-block: 0.6em;
+}
+.comment-body > :first-child {
+  margin-top: 0;
+}
+.comment-body > :last-child {
+  margin-bottom: 0;
+}
+.comment-body :where(ul) {
+  @apply list-disc pl-5;
+}
+.comment-body :where(ol) {
+  @apply list-decimal pl-5;
+}
+.comment-body :where(li) {
+  margin-block: 0.2em;
+}
+.comment-body :where(li > p) {
+  margin-block: 0;
+}
+.comment-body :where(a) {
+  @apply font-medium text-accent-text underline decoration-1 underline-offset-[3px];
+  text-decoration-color: color-mix(in oklch, currentColor 40%, transparent);
+}
+.comment-body :where(a:hover) {
+  text-decoration-color: currentColor;
+}
+.comment-body :where(blockquote) {
+  @apply border-l-2 border-accent pl-3 text-fg-muted;
+}
+.comment-body :where(:not(pre) > code) {
+  @apply rounded-md border border-line bg-surface-muted px-1.5 py-0.5 font-mono text-[0.85em] font-medium;
+}
+.comment-body :where(pre) {
+  @apply overflow-x-auto rounded-lg border border-line bg-surface-muted p-3 font-mono text-[0.8125rem] leading-6;
+}
+.comment-body :where(hr) {
+  @apply my-4 border-line;
+}
+.comment-body :where(table) {
+  @apply block max-w-full overflow-x-auto text-sm;
+}
+.comment-body :where(th, td) {
+  @apply border border-line px-2 py-1 text-left;
+}

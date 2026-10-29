@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Flash, type FlashParams } from "@/components/admin/Flash";
 import { AdminHeader, Card, StatusPill, Table, td, th } from "@/components/admin/ui";
 import { Alert, Button, Field, Input } from "@/components/ui/form";
@@ -90,7 +91,7 @@ export default async function StoragePage({ searchParams }: { searchParams: Flas
               </Field>
               <Field label="Bucket" htmlFor="bucket"><Input id="bucket" name="bucket" defaultValue={s?.bucket ?? ""} required /></Field>
               <Field label="Access key ID" htmlFor="accessKeyId" hint="An R2 API token scoped to this bucket (Object Read & Write)."><Input id="accessKeyId" name="accessKeyId" defaultValue={s?.accessKeyId ?? ""} required autoComplete="off" /></Field>
-              <Field label="Secret access key" htmlFor="secretAccessKey" hint={s ? "Leave empty to keep the stored key." : undefined}><Input id="secretAccessKey" name="secretAccessKey" type="password" autoComplete="off" required={!s} /></Field>
+              <Field label="Secret access key" htmlFor="secretAccessKey" hint={s ? "Leave empty to keep the stored key." : undefined}><PasswordInput id="secretAccessKey" name="secretAccessKey" autoComplete="off" required={!s} /></Field>
               <Field label="Public media URL (optional)" htmlFor="publicBaseUrl" hint="A custom domain connected to the bucket, e.g. https://media.jithendar.com. Leave empty to serve everything through the site.">
                 <Input id="publicBaseUrl" name="publicBaseUrl" type="url" defaultValue={s?.publicBaseUrl ?? ""} placeholder="https://media.example.com" />
               </Field>
@@ -158,7 +159,7 @@ export default async function StoragePage({ searchParams }: { searchParams: Flas
             <Field label="Region" htmlFor="ses-region"><Input id="ses-region" name="region" defaultValue={e?.region ?? "us-east-1"} required /></Field>
             <Field label="From address" htmlFor="ses-from" hint="A verified SES identity, e.g. Jithendar.com <no-reply@jithendar.com>"><Input id="ses-from" name="from" defaultValue={e?.from ?? ""} required /></Field>
             <Field label="Access key ID" htmlFor="ses-key"><Input id="ses-key" name="accessKeyId" defaultValue={e?.accessKeyId ?? ""} required autoComplete="off" /></Field>
-            <Field label="Secret access key" htmlFor="ses-secret" hint={e ? "Leave empty to keep the stored key." : undefined}><Input id="ses-secret" name="secretAccessKey" type="password" autoComplete="off" required={!e} /></Field>
+            <Field label="Secret access key" htmlFor="ses-secret" hint={e ? "Leave empty to keep the stored key." : undefined}><PasswordInput id="ses-secret" name="secretAccessKey" autoComplete="off" required={!e} /></Field>
             <Field label="Send a test email to" htmlFor="testTo"><Input id="testTo" name="testTo" type="email" defaultValue={me.email} required /></Field>
             <div className="sm:col-span-2"><Button type="submit" className="w-full sm:w-auto">Save and send test email</Button></div>
           </form>

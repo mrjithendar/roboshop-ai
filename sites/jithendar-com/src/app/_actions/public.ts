@@ -1,10 +1,8 @@
 "use server";
 
 import { headers } from "next/headers";
-import { submitComment } from "@/lib/comments";
 import { submitContact } from "@/lib/contact";
 import { PostError } from "@/lib/posts";
-import { getSessionUser } from "@/lib/session";
 
 export type PublicResult = { ok: true; message: string } | { ok: false; error: string; issues?: string[] };
 
@@ -21,15 +19,6 @@ async function guard(fn: () => Promise<string>): Promise<PublicResult> {
     log.error("public form failed", { err: error });
     return { ok: false, error: "Something went wrong. Please try again later." };
   }
-}
-
-export async function submitCommentAction(postId: string, body: string, token: string | null): Promise<PublicResult> {
-  const user = await getSessionUser();
-  if (!user) return { ok: false, error: "Please sign in to comment." };
-  return guard(async () => {
-    const status = await submitComment(user, postId, body, token, await clientIp());
-    return status === "approved" ? "Your comment is published." : "Thanks! Your comment will appear after moderation.";
-  });
 }
 
 export async function submitContactAction(data: { name: string; email: string; subject: string; message: string }, token: string | null): Promise<PublicResult> {

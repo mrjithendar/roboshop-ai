@@ -8,7 +8,13 @@ vi.mock("server-only", () => ({}));
 let requestCookie = "";
 vi.mock("next/headers", () => ({
   headers: async () => new Headers(requestCookie ? { cookie: requestCookie } : {}),
-  cookies: async () => ({ get: () => undefined, getAll: () => [], set: () => {}, delete: () => {}, has: () => false }),
+  cookies: async () => ({
+    get: () => undefined,
+    getAll: () => requestCookie.split("; ").filter(Boolean).map((c) => ({ name: c.slice(0, c.indexOf("=")), value: c.slice(c.indexOf("=") + 1) })),
+    set: () => {},
+    delete: () => {},
+    has: () => false,
+  }),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 
@@ -353,5 +359,67 @@ describe("sessions and admin access", () => {
     requestCookie = cookie;
     await expect(requireRole("admin", "author")).rejects.toMatchObject({ digest: expect.stringContaining("/account?denied=1") });
     await expect(editorActor()).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+describe("sign-out", () => {
+  it("invalidates the session server-side, so private pages and admin APIs refuse the old cookie", async () => {
+    const { cookie } = await signInWithGitHub();
+    const [u] = await db.select().from(schema.user);
+    await db.update(schema.user).set({ role: "admin" }).where(eq(schema.user.id, u!.id));
+    const { requireRole } = await import("@/lib/session");
+    const { GET: backup } = await import("@/app/api/admin/backup/route");
+    requestCookie = cookie;
+    await expect(requireRole("admin")).resolves.toMatchObject({ id: u!.id, role: "admin" });
+
+    const out = await post("/sign-out", {}, cookie);
+    expect(out.status).toBe(200);
+    // The response clears the session cookie…
+    const cleared = out.headers.getSetCookie().find((c) => c.includes("session_token="));
+    expect(cleared).toMatch(/session_token=;|Max-Age=0/);
+    // …and the session row is gone, so replaying the old cookie (Back button, another tab) gets nothing.
+    expect(await db.select().from(schema.session)).toHaveLength(0);
+    expect(await auth.api.getSession({ headers: new Headers({ cookie }) })).toBeNull();
+    await expect(requireRole("admin")).rejects.toMatchObject({ digest: expect.stringContaining("/login?next=%2Fadmin&expired=1") });
+    expect((await backup()).status).toBe(403);
+  });
+
+  it("sends a visitor without any session to sign in without claiming a session expired", async () => {
+    const { requireRole, requireUser } = await import("@/lib/session");
+    requestCookie = "";
+    await expect(requireRole("admin")).rejects.toMatchObject({ digest: expect.not.stringContaining("expired=1") });
+    await expect(requireUser("/account/settings")).rejects.toMatchObject({ digest: expect.stringContaining("/login?next=%2Faccount%2Fsettings") });
+  });
+
+  it("succeeds for an already expired session (and still clears the cookie)", async () => {
+    const { cookie } = await signInWithGitHub();
+    await db.update(schema.session).set({ expiresAt: new Date(Date.now() - 1000) });
+    const out = await post("/sign-out", {}, cookie);
+    expect(out.status).toBe(200);
+    expect(out.headers.getSetCookie().some((c) => c.includes("session_token="))).toBe(true);
+  });
+});
+
+describe("social sign-in return URLs", () => {
+  it("returns a new reader to the article comment they came from, with the lowest role", async () => {
+    const anchor = "/blog/published-tutorial#comment-0b1f6a4e-2c9d-4c1e-9f0a-1234567890ab";
+    const start = await startGitHub("/sign-in/social", { callbackURL: anchor, newUserCallbackURL: anchor });
+    expect(start.res.status).toBe(200);
+    const res = await callback(start.url!.searchParams.get("state")!, start.cookie);
+    expect(res.headers.get("location")).toBe(anchor);
+    const [u] = await db.select().from(schema.user);
+    expect(u!.role).toBe("user");
+  });
+
+  it("refuses off-site and protocol-relative return URLs", async () => {
+    for (const callbackURL of ["https://evil.example/steal", "//evil.example/x"]) {
+      const start = await startGitHub("/sign-in/social", { callbackURL });
+      expect(start.res.status).toBe(403);
+    }
+    const { safeNext } = await import("@/lib/safe-next");
+    expect(safeNext("/blog/x#comment-1")).toBe("/blog/x#comment-1");
+    expect(safeNext("//evil.example")).toBe("/account");
+    expect(safeNext("/\\evil.example")).toBe("/account");
+    expect(safeNext("/login?next=/login")).toBe("/account");
   });
 });

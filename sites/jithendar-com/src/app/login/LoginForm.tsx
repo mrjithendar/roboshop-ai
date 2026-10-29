@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Turnstile } from "@/components/Turnstile";
 import { Alert, Button, Field, Input } from "@/components/ui/form";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { authClient } from "@/lib/auth-client";
 import { PASSWORD_HINT, PASSWORD_MIN, passwordProblem } from "@/lib/password-policy";
 
@@ -81,7 +82,14 @@ export function LoginForm({ siteKey, registrationOpen, next }: { siteKey: string
           <Input id="email" name="email" type="email" autoComplete="email" required />
         </Field>
         <Field label="Password" htmlFor="password" hint={mode === "signup" ? PASSWORD_HINT : undefined}>
-          <Input id="password" name="password" type="password" autoComplete={mode === "signin" ? "current-password" : "new-password"} required minLength={mode === "signup" ? PASSWORD_MIN : 1} />
+          <PasswordInput
+            id="password"
+            name="password"
+            autoComplete={mode === "signin" ? "current-password" : "new-password"}
+            required
+            minLength={mode === "signup" ? PASSWORD_MIN : 1}
+            aria-describedby={mode === "signup" ? "password-hint" : undefined}
+          />
         </Field>
         <Turnstile siteKey={siteKey} onToken={setToken} resetKey={resetKey} />
         {error && <Alert>{error}</Alert>}

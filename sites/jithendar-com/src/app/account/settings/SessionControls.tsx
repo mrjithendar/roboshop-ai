@@ -1,13 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Alert, Button } from "@/components/ui/form";
-import { authClient } from "@/lib/auth-client";
+import { signOutAndLeave } from "@/lib/sign-out";
 import { signOutEverywhereAction } from "../actions";
 
 export function SessionControls() {
-  const router = useRouter();
   const [pending, start] = useTransition();
   const [which, setWhich] = useState<"here" | "all" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -23,9 +21,9 @@ export function SessionControls() {
           return;
         }
       }
-      await authClient.signOut();
-      router.push("/");
-      router.refresh();
+      // "All devices" already revoked this session too; sign-out then just clears the cookie.
+      const message = await signOutAndLeave();
+      if (message) setError(message);
     });
   }
 

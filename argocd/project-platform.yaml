@@ -8,6 +8,7 @@ spec:
   sourceRepos:
   - https://github.com/mrjithendar/roboshop-ai.git
   - https://github.com/mrjithendar/tools.git
+  - https://github.com/mrjithendar/jithendar.com.git
   - https://grafana-community.github.io/helm-charts
   - https://kubernetes-sigs.github.io/metrics-server/
   - quay.io/jetstack/charts

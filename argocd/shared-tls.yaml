@@ -18,8 +18,8 @@ spec:
     - PruneLast=true
     - CreateNamespace=true
   source:
-    repoURL: https://github.com/mrjithendar/tools.git
+    repoURL: https://github.com/mrjithendar/jithendar.com.git
     targetRevision: master
-    path: minikube/shared-tls
+    path: shared-tls
     directory:
       include: tlsstore.yaml

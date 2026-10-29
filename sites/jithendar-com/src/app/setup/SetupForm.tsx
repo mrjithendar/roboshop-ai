@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Alert, Button, Field, Input } from "@/components/ui/form";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { PASSWORD_HINT, PASSWORD_MIN } from "@/lib/password-policy";
 import { setupAction, type SetupState } from "./actions";
 
@@ -10,7 +11,7 @@ export function SetupForm() {
   return (
     <form action={action} className="space-y-5">
       <Field label="Setup token" htmlFor="token" hint="The ADMIN_BOOTSTRAP_TOKEN value from the Kubernetes Secret.">
-        <Input id="token" name="token" type="password" autoComplete="off" required />
+        <PasswordInput id="token" name="token" autoComplete="off" required aria-describedby="token-hint" />
       </Field>
       <Field label="Your name" htmlFor="name">
         <Input id="name" name="name" autoComplete="name" required />
@@ -19,7 +20,7 @@ export function SetupForm() {
         <Input id="email" name="email" type="email" autoComplete="email" required />
       </Field>
       <Field label="Password" htmlFor="password" hint={PASSWORD_HINT}>
-        <Input id="password" name="password" type="password" autoComplete="new-password" minLength={PASSWORD_MIN} required />
+        <PasswordInput id="password" name="password" autoComplete="new-password" minLength={PASSWORD_MIN} required aria-describedby="password-hint" />
       </Field>
       {state.error && <Alert>{state.error}</Alert>}
       <Button type="submit" disabled={pending} className="w-full">

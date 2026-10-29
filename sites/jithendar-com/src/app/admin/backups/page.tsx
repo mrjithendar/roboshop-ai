@@ -1,3 +1,4 @@
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Flash, type FlashParams } from "@/components/admin/Flash";
 import { AdminHeader, Card, StatusPill, Table, td, th } from "@/components/admin/ui";
 import { Button, Field, Input, Select, Textarea } from "@/components/ui/form";
@@ -79,7 +80,7 @@ export default async function BackupsPage({ searchParams }: { searchParams: Flas
             <Field label="Hour (UTC)" htmlFor="hourUtc" hint="21 UTC = 02:30 IST"><Input id="hourUtc" name="hourUtc" type="number" min={0} max={23} defaultValue={b.hourUtc} /></Field>
             <Field label="Keep last" htmlFor="retention" hint="Older backups are deleted."><Input id="retention" name="retention" type="number" min={1} max={365} defaultValue={b.retention} /></Field>
             <Field label="Backup passphrase" htmlFor="passphrase" hint={b.hasPassphrase ? "Set. Leave empty to keep it." : "Required, 12+ characters. Store it safely: without it backups cannot be restored."}>
-              <Input id="passphrase" name="passphrase" type="password" autoComplete="new-password" />
+              <PasswordInput id="passphrase" name="passphrase" autoComplete="new-password" />
             </Field>
             <div className="sm:col-span-4"><Button type="submit">Save</Button></div>
           </form>
@@ -94,7 +95,7 @@ export default async function BackupsPage({ searchParams }: { searchParams: Flas
             <Field label="Bucket" htmlFor="b-bucket"><Input id="b-bucket" name="bucket" defaultValue={b.s3?.bucket ?? ""} /></Field>
             <Field label="Folder" htmlFor="b-prefix"><Input id="b-prefix" name="prefix" defaultValue={b.s3?.prefix ?? "backups"} /></Field>
             <Field label="Access key ID" htmlFor="b-key"><Input id="b-key" name="accessKeyId" defaultValue={b.s3?.accessKeyId ?? ""} autoComplete="off" /></Field>
-            <Field label="Secret access key" htmlFor="b-secret" hint={b.s3 ? "Leave empty to keep." : undefined}><Input id="b-secret" name="secret" type="password" autoComplete="off" /></Field>
+            <Field label="Secret access key" htmlFor="b-secret" hint={b.s3 ? "Leave empty to keep." : undefined}><PasswordInput id="b-secret" name="secret" autoComplete="off" /></Field>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="forcePathStyle" defaultChecked={b.s3?.forcePathStyle ?? false} /> Path-style URLs</label>
             <Enabled on={b.s3?.enabled} />
             <SaveButtons />
@@ -109,7 +110,7 @@ export default async function BackupsPage({ searchParams }: { searchParams: Flas
             <Field label="Port" htmlFor="s-port"><Input id="s-port" name="port" type="number" defaultValue={b.sftp?.port ?? 22} /></Field>
             <Field label="Username" htmlFor="s-user"><Input id="s-user" name="username" defaultValue={b.sftp?.username ?? ""} autoComplete="off" /></Field>
             <Field label="Remote folder" htmlFor="s-path"><Input id="s-path" name="path" defaultValue={b.sftp?.path ?? "backups"} /></Field>
-            <Field label="Password" htmlFor="s-pass" hint={b.sftp ? "Leave empty to keep." : "Or use a private key."}><Input id="s-pass" name="password" type="password" autoComplete="off" /></Field>
+            <Field label="Password" htmlFor="s-pass" hint={b.sftp ? "Leave empty to keep." : "Or use a private key."}><PasswordInput id="s-pass" name="password" autoComplete="off" /></Field>
             <Field label="Private key (OpenSSH PEM)" htmlFor="s-key" hint={b.sftp?.auth === "key" ? "Set. Leave empty to keep." : undefined}><Textarea id="s-key" name="privateKey" rows={2} className="font-mono text-xs" /></Field>
             <Enabled on={b.sftp?.enabled} />
             <SaveButtons />

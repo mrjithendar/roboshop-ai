@@ -22,6 +22,8 @@ endpoints answer "provider not found".
 | Header | Account control at the far right: "Sign in" when signed out; avatar (initials fallback) with a menu (name, email, My profile, Account settings, Dashboard for authors/admins, Sign out). Read from `/api/auth/get-session` in the browser, so cached public HTML never contains account data | `src/components/AccountMenu.tsx` |
 | Avatars | Uploaded to R2 at `jithendar/www/media/images/avatars/{user-id}/{uuid}.webp`, served from `/media/avatars/{user-id}/{uuid}.webp` (only the current one) | `src/lib/avatar.ts` |
 | Sessions | 7 days, extended daily while used; HttpOnly, `SameSite=Lax`, `Secure` in production; sign-out deletes the session server-side | |
+| Sign-out | Every sign-out control (header menu on desktop and mobile, admin sidebar, admin mobile menu, Account settings) uses `signOutAndLeave()`: Better Auth sign-out (also fine when the session already expired), removes private browser data (the editor's local drafts `editor:*`, session storage; theme and dismissed banners stay), then a full `location.replace()` to `/login?signedOut=1` — no client router cache or component state survives, and the private page is not in Back history. A failed request leaves the user signed in with an error. `next` is kept only for public pages | `src/lib/sign-out.ts` |
+| Private pages after sign-out | Admin, admin API, comment API, account and login responses are `private, no-store`; every admin/account page checks the role itself; `SessionGuard` (admin and account layouts) reloads pages restored from the back/forward cache and leaves for `/login?expired=1&next=…` when the session ends in another tab or expires (Better Auth re-checks on focus). "Session expired" is shown only when a stale session cookie was sent | `src/components/SessionGuard.tsx`, `src/lib/session.ts` |
 | Editor | An expired session no longer navigates away from the editor: save/autosave return "session expired" and the draft stays in the browser's local copy | `editorActor()` in `src/lib/admin.ts` |
 | Caching | `/account/**` and `/api/auth/**` send `Cache-Control: private, no-store` | `next.config.ts` |
 | Rate limits | Better Auth: social sign-in 10/min, callbacks 20/min, link/unlink 10 per 10 min (Redis when configured, else Postgres). Profile edits 20 per 10 min and avatar changes 10/hour per user (`src/lib/rate-limit.ts`, same storage) | |
@@ -115,6 +117,15 @@ plain sentences from `src/lib/auth-errors.ts`: cancelled consent (`access_denied
 (`email_not_found`), expired or cross-browser attempt (`state_mismatch`), existing account not linked
 (`account_not_linked`), registration closed, provider unavailable, already linked to another user,
 stale session, last sign-in method.
+
+## Password fields
+
+Every password field (sign-in, sign-up, `/setup` token and password, admin secret keys and backup passwords)
+uses `PasswordInput`: hidden by default, an independent eye/eye-off `type="button"` toggle labelled "Show
+password"/"Hide password", focus and selection kept, back to hidden on submit (password managers see a normal
+password field), `autocomplete` unchanged. There is no password-reset or change-password page yet:
+`sendResetPassword` emails a Better Auth link, but no page handles its return — add one (with
+`PasswordInput`) before enabling reset emails.
 
 ## Tests
 

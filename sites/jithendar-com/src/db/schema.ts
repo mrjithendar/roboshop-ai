@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -146,6 +147,8 @@ export const post = pgTable(
     socialImage: jsonb("social_image").$type<FeaturedImage | null>(),
     /** Published but kept out of search results (noindex, not in sitemaps). */
     noindex: boolean("noindex").notNull().default(false),
+    /** Discussion under the post: open, locked (shown, no new comments or edits) or closed (not shown). */
+    discussion: text("discussion").notNull().default("open"),
     /** Optimistic concurrency: incremented by every committed save. */
     version: integer("version").notNull().default(1),
     /** In the trash (hidden everywhere; restorable) since this time. */
@@ -263,14 +266,70 @@ export const comment = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    /** Markdown source; rendered (and sanitised) on every read. Emptied when the author deletes the comment. */
     body: text("body").notNull(),
-    /** pending → approved | rejected | spam */
+    /** pending → approved ⇄ hidden | removed. Older rows may also be rejected or spam (treated like removed). */
     status: text("status").notNull().default("pending"),
     createdAt: ts("created_at").notNull().defaultNow(),
     moderatedAt: ts("moderated_at"),
     moderatedBy: text("moderated_by"),
+    /** The comment this one replies to (same post: enforced by the composite foreign key below) and its thread root. */
+    parentId: uuid("parent_id"),
+    rootId: uuid("root_id"),
+    /** Real nesting depth (0 = top level); the page indents at most MAX_DISPLAY_DEPTH levels. */
+    depth: integer("depth").notNull().default(0),
+    editedAt: ts("edited_at"),
+    /** Deleted by its author: kept as a neutral placeholder while replies exist. */
+    deletedAt: ts("deleted_at"),
+    /** Per-submission key from the composer: a resubmitted form returns the first comment instead of a duplicate. */
+    clientKey: text("client_key"),
   },
-  (t) => [index("comment_post_status_idx").on(t.postId, t.status), index("comment_status_idx").on(t.status, t.createdAt)],
+  (t) => [
+    index("comment_post_status_idx").on(t.postId, t.status),
+    index("comment_status_idx").on(t.status, t.createdAt),
+    uniqueIndex("comment_id_post_idx").on(t.id, t.postId),
+    index("comment_parent_idx").on(t.parentId),
+    uniqueIndex("comment_user_client_key_idx").on(t.userId, t.clientKey).where(sql`${t.clientKey} is not null`),
+    foreignKey({ name: "comment_parent_same_post_fk", columns: [t.parentId, t.postId], foreignColumns: [t.id, t.postId] }).onDelete("cascade"),
+  ],
+);
+
+/** One like per user per comment. */
+export const commentLike = pgTable(
+  "comment_like",
+  {
+    commentId: uuid("comment_id")
+      .notNull()
+      .references(() => comment.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ name: "comment_like_pk", columns: [t.commentId, t.userId] }), index("comment_like_user_idx").on(t.userId)],
+);
+
+/** Reader reports (one per user per comment); resolved by a moderator's decision. */
+export const commentReport = pgTable(
+  "comment_report",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    commentId: uuid("comment_id")
+      .notNull()
+      .references(() => comment.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** spam | abuse | off-topic | other */
+    reason: text("reason").notNull(),
+    note: text("note").notNull().default(""),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    resolvedAt: ts("resolved_at"),
+    resolvedBy: text("resolved_by"),
+    /** The moderation action that closed the report (approve = dismissed, hide, remove, purge). */
+    resolution: text("resolution"),
+  },
+  (t) => [uniqueIndex("comment_report_user_idx").on(t.commentId, t.userId), index("comment_report_open_idx").on(t.resolvedAt, t.createdAt)],
 );
 
 export const contactMessage = pgTable(

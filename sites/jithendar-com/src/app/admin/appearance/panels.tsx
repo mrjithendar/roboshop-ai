@@ -43,7 +43,9 @@ export function GeneralPanel() {
         </Grid>
       </Panel>
       <Panel title="Features">
-        <Toggle path="general.features.comments" label="Comments" hint="Signed-in readers can comment; comments are moderated." />
+        <Toggle path="general.features.comments" label="Comments" hint="Signed-in readers can comment and reply under posts. Each post can also lock or close its discussion (Admin → Comments → Discussions)." />
+        <Toggle path="general.discussion.requireApproval" label="New reader comments need approval" hint="When on, readers' comments appear after a moderator approves them. Authors' and admins' comments never wait." />
+        <NumberField path="general.discussion.editWindowMinutes" label="Readers can edit their comments for" min={0} max={43200} step={30} unit=" min" hint="0 means no time limit. Comments can always be deleted by their author." />
         <Toggle path="general.features.registration" label="Reader sign-up" hint="New accounts by email or Google/GitHub. Existing users can always sign in." />
         <Toggle path="general.features.contactForm" label="Contact form" hint="Shown on /contact; messages arrive in Admin → Messages." />
       </Panel>
@@ -331,7 +333,6 @@ export function BlogPanel() {
         <Toggle path="blog.article.showAuthor" label="Author in the byline" />
         <Toggle path="blog.article.showUpdated" label="“Updated” date" />
         <Toggle path="blog.article.showReadingTime" label="Reading time" />
-        <Toggle path="blog.article.showCover" label="Cover image" />
         <Toggle path="blog.article.showAuthorCard" label="Author card after the article" />
       </Panel>
       <Panel title="Table of contents">
