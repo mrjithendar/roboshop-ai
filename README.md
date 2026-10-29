@@ -66,7 +66,7 @@ Open **http://localhost:3000**. Ctrl+C stops the launcher’s child processes. `
 | `services/shipping-service` | Java/Gradle, PostgreSQL locations, quotes and shipment requests |
 | `services/payment-service` | Razorpay orders and captured-payment verification |
 | `services/moks`, `services/catalogue-service` | Shopping assistance and recommendations |
-| `services/mcp-server` | Diagnostics and MCP tools |
+| `services/mcp-server` | Private MCP server: catalogue search, comparison and the signed-in user's cart for AI clients |
 | `services/mongodb`, `services/postgres`, `services/redis`, `services/rabbitmq` | Data and messaging |
 | `observability/` | Prometheus, Grafana, Loki/Alloy, OpenTelemetry collector and Jaeger |
 

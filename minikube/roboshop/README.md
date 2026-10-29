@@ -64,13 +64,13 @@ curl -I https://jithendar.com/roboshop/
 
 Check DNS, public ports, issuer status and challenge events. Do not repeatedly delete certificates while troubleshooting. For blank pages or 404 assets, reload the rebuilt images and restart the frontend/NGINX deployments. Razorpay webhook URLs must include `/roboshop/api/payments/webhook` when using this ingress.
 
-MCP is a **stdio server**, not HTTP: its deployment keeps stdin open and intentionally has no Service or TCP health probe. A client can launch a separate protocol process through:
+The MCP server runs Streamable HTTP on the private `mcp-server:4107` Service (`/mcp`, with `/health` and `/ready` probes) and has no ingress. Each client sends its own RoboShop session as a bearer token; no shared session is stored in the cluster. Reach it with a port-forward:
 
 ```bash
-kubectl -n roboshop-ai exec -i deployment/mcp-server -- python services/mcp-server/server.py
+kubectl -n roboshop-ai port-forward service/mcp-server 4107:4107
 ```
 
-Do not add `-t` for stdio protocol clients. Set a valid `MCP_SESSION_TOKEN` in `roboshop-secrets` and restart the MCP deployment if authenticated tools require a customer session; no user session is fabricated automatically.
+See [services/mcp-server/README.md](../../services/mcp-server/README.md) for tools, authentication and the local demo.
 
 ## Files and dependencies
 

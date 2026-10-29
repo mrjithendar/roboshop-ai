@@ -85,8 +85,13 @@ test('MongoDB accounts, one super admin, server-side roles, persistent sessions 
     async function mcpCall(token, name, args = {}) {
       const child = spawn(process.env.PYTHON || 'python3', ['services/mcp-server/server.py'], { env: { ...process.env, GATEWAY_URL: base, PUBLIC_ORIGIN: base, MCP_SESSION_TOKEN: token }, stdio: ['pipe', 'pipe', 'pipe'] });
       let output = ''; child.stdout.on('data', chunk => output += chunk);
-      child.stdin.end([{ jsonrpc: '2.0', id: 1, method: 'initialize' }, { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name, arguments: args } }].map(JSON.stringify).join('\n') + '\n');
-      await once(child, 'exit'); return JSON.parse(output.trim().split('\n').at(-1)).result;
+      child.stdin.write([{ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'auth-test', version: '1' } } }, { jsonrpc: '2.0', method: 'notifications/initialized' }, { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name, arguments: args } }].map(JSON.stringify).join('\n') + '\n');
+      // Closing stdin cancels in-flight calls, so keep it open until the call is answered.
+      const answered = () => output.trim().split('\n').filter(Boolean).map(JSON.parse).find(m => m.id === 2);
+      for (let i = 0; i < 200 && !answered(); i++) await new Promise(r => setTimeout(r, 50));
+      child.stdin.end(); await once(child, 'exit'); const reply = answered();
+      // Admin write tools are not registered unless MCP_ENABLE_ADMIN_WRITES=true: a protocol error, not a result.
+      return reply.result ?? { isError: true, protocolError: reply.error };
     }
     assert.equal((await mcpCall(other.cookies.get('rs_auth'), 'admin_list_products')).isError, true);
     assert.equal((await mcpCall(other.cookies.get('rs_auth'), 'update_cart', { sku: 'RED', quantity: 1 })).isError, false);

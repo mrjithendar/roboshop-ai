@@ -1,0 +1,22 @@
+# Only pods explicitly labelled as MCP clients may reach the server inside the cluster.
+# kubectl port-forward is unaffected. Probes come from the node; most CNIs allow them.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mcp-server-clients
+  namespace: roboshop-ai
+  labels:
+    app.kubernetes.io/part-of: roboshop-ai
+spec:
+  podSelector:
+    matchLabels:
+      app: mcp-server
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          roboshop.ai/mcp-client: "true"
+    ports:
+    - port: 4107

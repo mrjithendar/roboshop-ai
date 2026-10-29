@@ -19,6 +19,12 @@ spec:
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       imagePullSecrets:
       - name: ecr-pull
       containers:
@@ -30,6 +36,12 @@ spec:
           value: http://ai-gateway:3000
         - name: MCP_TRANSPORT
           value: http
+        # Host headers accepted on /mcp (DNS-rebinding defence); the pod IP is accepted for probes.
+        - name: MCP_ALLOWED_HOSTS
+          value: mcp-server,mcp-server.roboshop-ai,mcp-server.roboshop-ai.svc,mcp-server.roboshop-ai.svc.cluster.local
+        # Admin create/update tools stay unregistered; use the admin console.
+        - name: MCP_ENABLE_ADMIN_WRITES
+          value: "false"
         resources:
           requests:
             cpu: 50m

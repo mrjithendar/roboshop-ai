@@ -22,4 +22,4 @@ spec:
     targetRevision: master
     path: services/mcp-server
     directory:
-      include: '{mcp-server-service-minikube.yaml,mcp-server-deployment-minikube.yaml}'
+      include: '{mcp-server-service-minikube.yaml,mcp-server-deployment-minikube.yaml,mcp-server-network-policy-minikube.yaml}'

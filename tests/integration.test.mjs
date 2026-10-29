@@ -153,9 +153,11 @@ test('full HTTP shopping flow, validation, metrics, traces, MCP and dependency f
     assert.ok(!JSON.stringify(traces).includes('security under 1000'));
     const mcp = spawn(process.env.PYTHON || 'python3', ['services/mcp-server/server.py'], { env, stdio: ['pipe', 'pipe', 'pipe'] }); children.push(mcp);
     let output = ''; mcp.stdout.on('data', d => output += d);
-    mcp.stdin.end([{ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'test', version: '1' } } }, { jsonrpc: '2.0', id: 2, method: 'tools/list' }, { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'search_products', arguments: { query: 'mining' } } }, { jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'execute_shell', arguments: {} } }].map(m => JSON.stringify(m)).join('\n') + '\n');
-    await once(mcp, 'exit'); const replies = output.trim().split('\n').map(JSON.parse);
-    assert.equal(replies[1].result.tools.length, 15); assert.equal(replies[2].result.isError, false); assert.equal(replies[3].error.code, -32602);
+    mcp.stdin.write([{ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'test', version: '1' } } }, { jsonrpc: '2.0', id: 2, method: 'tools/list' }, { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'search_products', arguments: { query: 'mining' } } }, { jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'execute_shell', arguments: {} } }].map(m => JSON.stringify(m)).join('\n') + '\n');
+    // Closing stdin shuts the server down and cancels in-flight calls: wait for every answer first.
+    for (let i = 0; i < 200 && output.trim().split('\n').filter(Boolean).length < 4; i++) await new Promise(r => setTimeout(r, 50));
+    mcp.stdin.end(); await once(mcp, 'exit'); const replies = output.trim().split('\n').map(JSON.parse).sort((a, b) => a.id - b.id);
+    assert.equal(replies[1].result.tools.length, 11 /* admin write tools are opt-in */); assert.equal(replies[2].result.isError, false); assert.ok(replies[3].error?.code === -32602 || replies[3].result?.isError === true, 'unknown tools are rejected (FastMCP returns an error result)');
     const serviceNames = new Set(traces.flatMap(t => t.resourceSpans.map(r => r.resource.attributes.find(a => a.key === 'service.name')?.value.stringValue)));
     for (const service of ['ai-gateway', 'moks', 'catalogue-service', 'payment-service', 'mcp-server']) assert.ok(serviceNames.has(service), `Missing spans for ${service}`);
     assert.ok(traces.some(t => t.resourceSpans.some(r => r.scopeSpans.some(s => s.spans.some(span => span.kind === 3 && span.parentSpanId)))), 'outbound client spans');
