@@ -1,8 +1,0 @@
-[
-  {"query":"security under 1000", "expectedSku":"RED", "budget":1000},
-  {"query":"robot for mining", "expectedSku":"RMC"},
-  {"query":"observability expert", "expectedSku":"STAN-1"},
-  {"query":"medical assistant under 1100", "expectedSku":"EMM", "budget":1100},
-  {"query":"security under 5", "expectedSku":null},
-  {"query":"waterproof submarine", "expectedSku":null}
-]

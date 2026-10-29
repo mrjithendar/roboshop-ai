@@ -1,41 +1,6 @@
 [
   [
     "Deployment",
-    "kube-system",
-    "metrics-server"
-  ],
-  [
-    "Deployment",
-    "monitoring",
-    "alloy"
-  ],
-  [
-    "Deployment",
-    "monitoring",
-    "grafana"
-  ],
-  [
-    "Deployment",
-    "monitoring",
-    "loki"
-  ],
-  [
-    "Deployment",
-    "monitoring",
-    "prometheus"
-  ],
-  [
-    "Deployment",
-    "observability",
-    "jaeger"
-  ],
-  [
-    "Deployment",
-    "observability",
-    "otel-collector"
-  ],
-  [
-    "Deployment",
     "roboshop-ai",
     "ai-gateway"
   ],

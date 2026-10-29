@@ -1,6 +1,0 @@
-{
-  "build-push-ecr.sh": "scripts/images/build-push-ecr.sh",
-  "scripts/dev.mjs": "scripts/dev/start.mjs",
-  "scripts/run-python.mjs": "scripts/lib/run-python.mjs",
-  "scripts/evaluate.py": "scripts/test/evaluate.py"
-}

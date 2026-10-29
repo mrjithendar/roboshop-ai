@@ -110,8 +110,10 @@ Do not enable Force/Replace to resolve an immutable-field difference.
 | roboshop-config | Shared ConfigMap, namespace and shop ingress; one owner for shared configuration. |
 | mongodb | Existing Deployment, Service and PVC baseline; **not** the repo's newer StatefulSet. A controller conversion needs a separate data migration. |
 | shopping-agent | Retired from the active catalog; functionality resides in Moks. Historical adoption files do not make it a required workload. |
-| cert-manager, metrics-server, grafana | Pinned upstream Helm charts with Git-hosted values and existing release names. |
-| roboshop-letsencrypt, prometheus | Existing local charts and release names. |
+| cert-manager, metrics-server | Pinned upstream Helm charts with Git-hosted values and existing release names. |
+| roboshop-letsencrypt | Existing local charts and release names. |
+
+The monitoring stack (Grafana, Prometheus, Loki/Alloy and the `logging` AppProject) is defined in the tools repo's `argocd/` catalog, not here; the tools scripts read both catalogs together.
 | wordpress | Retired 2026-10-27 after the site was compromised; replaced by the jithendar.com site, which CI deploys outside Argo CD (`sites/jithendar-com/docs/DEPLOYMENT.md`). Not a required workload. |
 | shared-tls | The single existing TLSStore in jithendar, from `shared-tls/` in the jithendar.com repository; no duplicate certificate or Traefik controller. The canonical Certificate belongs to jithendar.com, which CI deploys outside Argo CD (`sites/jithendar-com/deploy/production/certificate.yaml`). |
 | jfrog | Optional, currently absent. Manual sync only, requires bootstrap credentials, storage and host-capacity checks first. Public ingress remains a separate explicit exposure step. |
@@ -226,7 +228,7 @@ External Razorpay, SES, Turnstile, AWS and Langfuse values are not fabricated;
 configure them separately. Scheduled ECR refresh still requires AWS credentials.
 
 
-Logging uses Loki and Alloy: run `./deploy-argocd.sh loki grafana --context mk4`. See [logging setup](../observability/loki/README.md).
+Logging (Loki and Alloy), Grafana and Prometheus are defined in [tools/argocd](https://github.com/mrjithendar/tools/tree/master/argocd); from the tools checkout run `python3 scripts/argocd/deploy.py loki grafana --context mk4`.
 
 ### Data safety rules (enforced by `scripts/argocd/validate.py`)
 
