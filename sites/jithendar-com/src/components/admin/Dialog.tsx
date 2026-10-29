@@ -74,23 +74,23 @@ export function Dialog({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`flex h-dvh w-full flex-col overflow-hidden bg-white shadow-xl sm:h-auto sm:max-h-[90dvh] sm:rounded-2xl dark:bg-surface-dark-raised ${size === "md" ? "sm:max-w-2xl" : "sm:max-w-4xl"}`}
+        className={`flex h-dvh w-full flex-col overflow-hidden bg-surface shadow-xl sm:h-auto sm:max-h-[90dvh] sm:rounded-2xl ${size === "md" ? "sm:max-w-2xl" : "sm:max-w-4xl"}`}
       >
-        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-4 dark:border-white/10">
-          <h2 id={titleId} className="font-semibold text-ink dark:text-white">
+        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-line px-4 py-3 sm:px-6 sm:py-4">
+          <h2 id={titleId} className="font-semibold text-fg">
             {title}
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-ink dark:hover:bg-white/10 dark:hover:text-white"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 hover:bg-surface-sunken hover:text-fg"
           >
             <span aria-hidden="true">✕</span>
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">{children}</div>
-        {footer && <div className="shrink-0 border-t border-slate-200 px-4 py-3 sm:px-6 dark:border-white/10">{footer}</div>}
+        {footer && <div className="shrink-0 border-t border-line px-4 py-3 sm:px-6">{footer}</div>}
       </div>
     </div>
   );

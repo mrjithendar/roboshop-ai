@@ -8,11 +8,14 @@ import { integrations } from "@/config/integrations";
 import { absoluteUrl, isProductionEnv, site, siteUrl } from "@/config/site";
 import { ThirdParty } from "@/components/integrations/ThirdParty";
 import { getSettings } from "@/lib/settings";
+import { HideOnAdmin } from "@/components/HideOnAdmin";
+import { themeScript } from "@/components/theme/script";
 import "./globals.css";
 
 // next/font downloads these at build time and serves them from this site.
+// Inter is a variable font (one file covers 400–700); the mono face is only needed in code, so it is not preloaded.
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap" });
+const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap", preload: false });
 
 // No canonical here on purpose: every indexable page sets its own, and an inherited
 // root canonical would point unrelated pages at the homepage.
@@ -37,17 +40,21 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f1220" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e1013" },
   ],
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang={site.language} className={`${inter.variable} ${jetbrains.variable}`}>
+    // suppressHydrationWarning: the theme script may set data-theme on <html> before React hydrates.
+    <html lang={site.language} className={`${inter.variable} ${jetbrains.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="flex min-h-screen flex-col">
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:shadow-lg dark:focus:bg-surface-dark-raised"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2.5 focus:text-sm focus:font-semibold focus:shadow-lg"
         >
           Skip to content
         </a>
@@ -56,7 +63,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <main id="main" className="flex-1">
           {children}
         </main>
-        <SiteFooter />
+        <HideOnAdmin>
+          <SiteFooter />
+        </HideOnAdmin>
         <ThirdParty />
       </body>
     </html>

@@ -52,9 +52,9 @@ export function CoverImagePicker({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-medium text-ink dark:text-white">{label}</p>
+      <p className="text-sm font-medium text-fg">{label}</p>
       {value ? (
-        <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-white/10">
+        <div className="overflow-hidden rounded-xl border border-line">
           <button
             type="button"
             onClick={setFocal}
@@ -71,7 +71,7 @@ export function CoverImagePicker({
             />
           </button>
           <div className="space-y-3 p-3">
-            <p className="text-xs text-slate-500 dark:text-slate-400">Click the image to set the focal point kept in view when cards crop it.</p>
+            <p className="text-xs text-fg-subtle">Click the image to set the focal point kept in view when cards crop it.</p>
             <Field label="Alt text" htmlFor="cover-alt">
               <Input id="cover-alt" value={value.alt} onChange={(e) => onChange({ ...value, alt: e.target.value })} required />
             </Field>
@@ -91,7 +91,7 @@ export function CoverImagePicker({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="flex aspect-[16/9] w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 p-3 text-center text-sm text-slate-500 transition-colors hover:border-brand-400 hover:text-brand-700 dark:border-white/15 dark:text-slate-400"
+            className="flex aspect-[16/9] w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line-strong p-3 text-center text-sm text-fg-subtle transition-colors hover:border-brand-400 hover:text-brand-700"
           >
             <span className="text-2xl" aria-hidden="true">
               ＋

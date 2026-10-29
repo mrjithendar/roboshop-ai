@@ -31,7 +31,7 @@ export default async function ApiKeysPage({ searchParams }: { searchParams: Flas
         {keys.length === 0 && <tr><td className={td} colSpan={6}>No keys yet.</td></tr>}
         {keys.map(({ key: k, owner, state }) => (
           <tr key={k.id}>
-            <td className={td}><p className="font-medium text-ink dark:text-white">{k.name}</p><p className="text-xs text-slate-500">{owner}</p></td>
+            <td className={td}><p className="font-medium text-fg">{k.name}</p><p className="text-xs text-slate-500">{owner}</p></td>
             <td className={`${td} font-mono text-xs`}>{k.prefix}…</td>
             <td className={`${td} text-xs`}>{k.scopes.join(", ")}</td>
             <td className={td}><StatusPill status={state === "active" ? "approved" : state === "expired" ? "archived" : "rejected"} /> <span className="text-xs text-slate-500">{k.revokedAt ? "revoked" : k.expiresAt ? `expires ${formatDateTime(k.expiresAt.toISOString())}` : "no expiry"}</span></td>
@@ -41,7 +41,7 @@ export default async function ApiKeysPage({ searchParams }: { searchParams: Flas
         ))}
       </Table>
       <Card className="mt-8">
-        <h2 className="font-semibold text-ink dark:text-white">Using the API</h2>
+        <h2 className="font-semibold text-fg">Using the API</h2>
         <pre className="mt-3 overflow-x-auto rounded-xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">{`# List posts
 curl -H "Authorization: Bearer $KEY" https://jithendar.com/api/v1/posts?status=published
 
@@ -60,7 +60,7 @@ curl -X PATCH -H "Authorization: Bearer $KEY" -H "Content-Type: application/json
 
 # Delete
 curl -X DELETE -H "Authorization: Bearer $KEY" https://jithendar.com/api/v1/posts/<id>`}</pre>
-        <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">Limits: 120 requests per minute per key. Errors return JSON: <code>{"{ error: { message, issues } }"}</code>.</p>
+        <p className="mt-3 text-sm text-fg-muted">Limits: 120 requests per minute per key. Errors return JSON: <code>{"{ error: { message, issues } }"}</code>.</p>
       </Card>
     </>
   );

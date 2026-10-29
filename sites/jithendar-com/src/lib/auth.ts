@@ -1,6 +1,6 @@
 import { APIError, betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { createAuthMiddleware } from "better-auth/api";
+import { createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { admin, captcha, haveIBeenPwned } from "better-auth/plugins";
 import { adminAc, defaultStatements, userAc } from "better-auth/plugins/admin/access";
@@ -8,6 +8,7 @@ import { createAccessControl } from "better-auth/plugins/access";
 import { isProductionEnv, siteUrl } from "@/config/site";
 import { getDb, schema } from "@/db";
 import { sendMail } from "./mail";
+import { socialProviderConfig } from "./auth-providers";
 import { getSettings } from "./settings";
 import { passwordProblem, PASSWORD_MAX, PASSWORD_MIN } from "./password-policy";
 import { getRedis } from "./redis";
@@ -26,6 +27,14 @@ const PASSWORD_ENDPOINTS: Record<string, "password" | "newPassword"> = {
   "/admin/set-user-password": "newPassword",
   "/admin/create-user": "password",
 };
+
+/** Self-service sign-up paths: whoever arrives here gets the lowest role, whatever the request says. */
+export function isSelfRegistration(path: string | undefined): boolean {
+  return path === "/sign-up/email" || path === "/sign-in/social" || (path?.startsWith("/callback/") ?? false);
+}
+
+/** Changing connected accounts needs a session younger than this (seconds); older sessions sign in again first. */
+export const FRESH_SESSION_SECONDS = 60 * 60;
 
 const ac = createAccessControl(defaultStatements);
 const roles = { admin: adminAc, author: userAc, user: userAc };
@@ -76,7 +85,42 @@ async function createAuth() {
         await sendMail(user.email, "Verify your Jithendar.com account", `Confirm your email address: ${url}`);
       },
     },
-    session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24 },
+    // Google and GitHub (only those with credentials configured). Callback: {SITE_URL}/api/auth/callback/{provider}.
+    socialProviders: socialProviderConfig(),
+    account: {
+      // Provider access/refresh tokens are not used by the site; keep them encrypted at rest anyway.
+      encryptOAuthTokens: true,
+      accountLinking: {
+        enabled: true,
+        // Never link an OAuth identity to an existing user just because the email matches: linking is only
+        // the explicit, signed-in "Connect" flow on /account/settings, which proves control of both accounts.
+        disableImplicitLinking: true,
+        // The explicit flow already proves control, so a GitHub address may differ from the Google one.
+        allowDifferentEmails: true,
+        // The last way to sign in can never be removed.
+        allowUnlinkingAll: false,
+        updateUserInfoOnLink: false,
+      },
+    },
+    // OAuth callback failures land on the sign-in page with ?error=<code> (see lib/auth-errors.ts).
+    onAPIError: { errorURL: "/login" },
+    // 7-day sessions, extended daily while in use; account-linking changes need a sign-in within the last hour.
+    session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24, freshAge: FRESH_SESSION_SECONDS },
+    databaseHooks: {
+      user: {
+        create: {
+          before: async (user, ctx) => {
+            if (!isSelfRegistration(ctx?.path)) return;
+            // Social sign-up follows the same switch as email sign-up.
+            if (ctx?.path !== "/sign-up/email" && !(await getSettings()).features.registration) {
+              throw new APIError("FORBIDDEN", { message: "Registration is currently closed.", code: "REGISTRATION_CLOSED" });
+            }
+            // Self-registered accounts are always readers; staff roles are granted only by an admin (or /setup).
+            return { data: { ...user, role: "user", banned: false } };
+          },
+        },
+      },
+    },
     rateLimit: {
       enabled: true,
       storage: redis ? "secondary-storage" : "database",
@@ -86,10 +130,17 @@ async function createAuth() {
         "/sign-in/email": { window: 60, max: 5 },
         "/sign-up/email": { window: 3600, max: 5 },
         "/request-password-reset": { window: 3600, max: 3 },
+        "/sign-in/social": { window: 60, max: 10 },
+        "/callback/*": { window: 60, max: 20 },
+        "/link-social": { window: 600, max: 10 },
+        "/unlink-account": { window: 600, max: 10 },
       },
     },
     advanced: {
       useSecureCookies: isProductionEnv(),
+      // Callback/redirect URLs must be same-site (trustedOrigins). Explicit so tests run with the check on too
+      // (Better Auth turns it off by default under NODE_ENV=test).
+      disableOriginCheck: false,
       ipAddress: { ipAddressHeaders: ["x-forwarded-for", "x-real-ip"] },
     },
     hooks: {
@@ -97,6 +148,18 @@ async function createAuth() {
       before: createAuthMiddleware(async (ctx) => {
         if (ctx.path === "/sign-up/email" && !(await getSettings()).features.registration) {
           throw new APIError("FORBIDDEN", { message: "Registration is currently closed." });
+        }
+        // Profile edits go through /account (server-validated, allowlisted fields), not the generic endpoint.
+        if (ctx.path === "/update-user") {
+          throw new APIError("FORBIDDEN", { message: "Edit your profile from the account page.", code: "USE_ACCOUNT_PAGE" });
+        }
+        // Connecting a provider requires a recent sign-in, like disconnecting one (Better Auth's fresh-session rule).
+        if (ctx.path === "/link-social") {
+          const current = await getSessionFromCtx(ctx);
+          if (!current) throw new APIError("UNAUTHORIZED", { message: "Sign in first.", code: "UNAUTHORIZED" });
+          if (Date.now() - new Date(current.session.createdAt).getTime() >= FRESH_SESSION_SECONDS * 1000) {
+            throw new APIError("FORBIDDEN", { message: "Sign in again to connect an account.", code: "SESSION_NOT_FRESH" });
+          }
         }
         // Password composition rule on every endpoint that sets a password.
         const body = (ctx.body ?? {}) as { password?: unknown; newPassword?: unknown };

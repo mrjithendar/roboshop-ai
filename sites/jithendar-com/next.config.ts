@@ -67,6 +67,10 @@ const nextConfig: NextConfig = {
       // Pages may not be framed by other sites; editor previews may be framed by the editor itself.
       { source: "/((?!preview/).*)", headers: [{ key: "X-Frame-Options", value: "DENY" }] },
       { source: "/preview/:path*", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, { key: "Cache-Control", value: "private, no-store" }] },
+      // Per-user responses are never stored by browsers' shared caches or any proxy.
+      { source: "/account/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
+      { source: "/account", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
+      { source: "/api/auth/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
     ];
   },
 };

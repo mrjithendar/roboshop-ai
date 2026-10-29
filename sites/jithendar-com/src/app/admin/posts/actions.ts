@@ -3,7 +3,7 @@
 import { and, eq, inArray, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb, schema } from "@/db";
-import { run, staffActor, type ActionResult } from "@/lib/admin";
+import { editorActor, run, staffActor, type ActionResult } from "@/lib/admin";
 import { rowToForm, type PostFormValue } from "@/lib/post-form";
 import {
   ConflictError,
@@ -47,8 +47,8 @@ function failure(error: unknown): SaveResult {
  * newer save from another tab or editor; pass the latest version to overwrite deliberately.
  */
 export async function savePostAction(id: string | null, data: PostFormValue, intent: SaveIntent, baseVersion?: number): Promise<SaveResult> {
-  const actor = await staffActor();
   try {
+    const actor = await editorActor();
     if (!id) {
       const created = await createPost(actor, { ...data, status: data.status === "published" || data.status === "scheduled" ? "draft" : data.status });
       if (intent !== "publish") return ok(created, "Draft saved.");
@@ -75,8 +75,8 @@ export async function savePostAction(id: string | null, data: PostFormValue, int
 
 /** Debounced autosave: the user's working copy, never visible to readers until committed. */
 export async function autosavePostAction(id: string, baseVersion: number, data: PostFormValue): Promise<{ ok: true; savedAt: string } | { ok: false; error: string }> {
-  const actor = await staffActor();
   try {
+    const actor = await editorActor();
     await getPostRow(actor, id);
     const at = await saveAutosave(actor, "post", id, baseVersion, data);
     return { ok: true, savedAt: at.toISOString() };

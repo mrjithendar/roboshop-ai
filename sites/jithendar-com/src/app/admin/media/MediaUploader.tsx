@@ -100,7 +100,7 @@ export function MediaUploader() {
       )}
       <div className="space-y-2 sm:col-span-2 lg:col-span-4" aria-live="polite">
         {status && (
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-fg-muted">
             {status}
             {progress !== null && ` ${progress}%`}
           </p>

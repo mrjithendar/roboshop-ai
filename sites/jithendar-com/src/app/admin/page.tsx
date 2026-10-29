@@ -24,7 +24,7 @@ export default async function AdminDashboard() {
         title={`Welcome, ${user.name.split(" ")[0]}`}
         description="What needs attention across the publication."
         actions={
-          <Link href="/admin/posts/new" className="inline-flex items-center rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-ink">
+          <Link href="/admin/posts/new" className="inline-flex items-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent">
             New post
           </Link>
         }
@@ -39,15 +39,15 @@ export default async function AdminDashboard() {
       </div>
       {recent.length > 0 && (
         <Card className="mt-8">
-          <h2 className="font-semibold text-ink dark:text-white">Recent activity</h2>
-          <ul className="mt-4 divide-y divide-slate-100 text-sm dark:divide-white/5">
+          <h2 className="font-semibold text-fg">Recent activity</h2>
+          <ul className="mt-4 divide-y divide-line text-sm">
             {recent.map((e) => (
               <li key={e.id} className="flex flex-wrap justify-between gap-2 py-2.5">
                 <span>
-                  <span className="font-mono text-xs text-brand-700 dark:text-brand-300">{e.action}</span>{" "}
-                  <span className="text-slate-600 dark:text-slate-300">{e.target}</span>
+                  <span className="font-mono text-xs text-accent-text">{e.action}</span>{" "}
+                  <span className="text-fg-muted">{e.target}</span>
                 </span>
-                <span className="text-slate-500 dark:text-slate-400">
+                <span className="text-fg-subtle">
                   {e.actor} · {formatDateTime(e.createdAt.toISOString())}
                 </span>
               </li>

@@ -189,3 +189,94 @@ export function iconFor(name: string) {
 export function CategoryIcon({ name, ...props }: IconProps & { name: string }) {
   return createElement(iconFor(name), props);
 }
+
+export const ArrowLeft = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M19 12H5M11 6l-6 6 6 6" />
+  </Icon>
+);
+
+export const ChevronDown = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m6 9 6 6 6-6" />
+  </Icon>
+);
+
+export const SunIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+  </Icon>
+);
+
+export const MoonIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z" />
+  </Icon>
+);
+
+export const MonitorIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3" y="4" width="18" height="12" rx="2" />
+    <path d="M8 20h8M12 16v4" />
+  </Icon>
+);
+
+export const CopyIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="9" y="9" width="11" height="11" rx="2" />
+    <path d="M5 15V6a2 2 0 0 1 2-2h9" />
+  </Icon>
+);
+
+export const CheckIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m5 12 5 5 9-10" />
+  </Icon>
+);
+
+export const UserIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 20a8 8 0 0 1 16 0" />
+  </Icon>
+);
+
+export const SettingsIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" />
+    <circle cx="16" cy="6" r="2" />
+    <circle cx="10" cy="12" r="2" />
+    <circle cx="18" cy="18" r="2" />
+  </Icon>
+);
+
+export const LayoutIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <path d="M9 3v18M9 9h12" />
+  </Icon>
+);
+
+export const SignOutIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11" />
+  </Icon>
+);
+
+export const AlertIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7.5v5M12 16.5h0" />
+  </Icon>
+);
+
+/** Google "G" in its brand colours (required by Google's sign-in branding guidelines). */
+export const GoogleIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" {...p}>
+    <path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.46a5.52 5.52 0 0 1-2.4 3.62v3h3.88c2.27-2.09 3.58-5.17 3.58-8.81Z" />
+    <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.9l-3.88-3.01c-1.07.72-2.45 1.15-4.06 1.15-3.12 0-5.77-2.11-6.71-4.95H1.28v3.11A12 12 0 0 0 12 24Z" />
+    <path fill="#FBBC05" d="M5.29 14.29A7.2 7.2 0 0 1 4.91 12c0-.8.14-1.57.38-2.29V6.6H1.28A12 12 0 0 0 0 12c0 1.94.46 3.77 1.28 5.4l4.01-3.11Z" />
+    <path fill="#EA4335" d="M12 4.77c1.76 0 3.34.61 4.59 1.8l3.44-3.44A11.97 11.97 0 0 0 12 0 12 12 0 0 0 1.28 6.6l4.01 3.11C6.23 6.88 8.88 4.77 12 4.77Z" />
+  </svg>
+);

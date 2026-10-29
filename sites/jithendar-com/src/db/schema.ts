@@ -18,6 +18,8 @@ const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" 
 
 // --- Better Auth (email + password, admin plugin, database rate limiting) -------------
 
+export type SocialLinks = { github?: string; linkedin?: string; x?: string };
+
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -26,6 +28,10 @@ export const user = pgTable("user", {
   image: text("image"),
   createdAt: ts("created_at").notNull().defaultNow(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
+  // Private account profile (shown on /account; the public byline lives in author_profile).
+  bio: text("bio").notNull().default(""),
+  website: text("website"),
+  socialLinks: jsonb("social_links").$type<SocialLinks>().notNull().default({}),
   // admin plugin
   role: text("role").notNull().default("user"),
   banned: boolean("banned").default(false),

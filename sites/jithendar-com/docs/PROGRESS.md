@@ -1,5 +1,22 @@
 # Progress log — jithendar.com
 
+## Redesign + social sign-in, profiles and header account menu (2026-10-29, owner request)
+
+**What changed**
+- Design system (`docs/DESIGN_SYSTEM.md`): semantic colour tokens with one blue accent and a neutral grey scale, fluid type tokens, reading/page widths, radii, shadows, section rhythm; dark mode now follows the system *and* remembers an explicit choice (header toggle, footer System/Light/Dark) without a flash. Removed gradients, glass, grid backgrounds and the decorative hero mosaic; calmer category/type badges.
+- Public pages: new header (accent underline for the current section, search, theme, account control far right; search/theme move into the mobile menu on phones), footer, homepage (text intro, one primary action, featured + recent, compact topics, projects only when published), article page (≈70-character column, TOC in the right margin ≥1280px, labelled code blocks, contained sources/corrections, separated ad slot), listings, static pages, author, search, 404 and a new runtime error page.
+- Shared components: buttons/inputs/fields/alerts with sizes and states (16px inputs), pagination, tags, breadcrumbs, cards; ~40 files moved from duplicated light/dark class pairs to tokens.
+- Admin: full-height sidebar shell, full-width header, accent current state, table/stat/header primitives, loading skeleton; editor action bar no longer slides under the sticky header; an expired session during save/autosave shows a message instead of navigating away (draft kept locally).
+- Auth (`docs/AUTH.md`): Google + GitHub via Better Auth (PKCE, state, OIDC nonce, minimal scopes), buttons only when configured, readable callback errors, safe `next` handling, lowest role for every self-registration, no implicit account linking, explicit link/unlink with fresh-session rule and last-method protection, encrypted provider tokens, `/update-user` disabled.
+- Accounts: `/account` (avatar, display name, bio, website, social links; server-validated allowlist) and `/account/settings` (email, sign-in methods, sign out / sign out everywhere); header account menu (keyboard, outside click, Escape, focus return, viewport-safe). Avatars re-encoded to 512px WebP without metadata, stored in R2 under `images/avatars/{user-id}/`, old uploads deleted on replace/remove. App rate limits for profile and avatar changes. `Cache-Control: private, no-store` on account and auth routes.
+- Migration `0006_account_profile.sql` (additive, defaults). New direct dependency: `sharp@0.35.5` (already installed as Next's image engine; now declared because avatars use it directly).
+
+**Files**: `src/app/globals.css`, `src/app/{layout,page,error,not-found}.tsx`, `src/app/account/**`, `src/app/login/**`, `src/app/admin/{layout,loading}.tsx`, admin pages (token pass), `src/app/media/avatars/[userId]/[file]/route.ts`, `src/components/{AccountMenu,UserAvatar,HideOnAdmin,SiteHeader,NavLinks,SiteFooter,Logo,Container,PageHeader,ArticleList,TopicGrid,CodeBlock,TableOfContents,Pagination,TagList,Breadcrumbs,AuthorCard,CoverImage,ContentTypeBadge,categoryStyle,icons}.tsx`, `src/components/theme/*`, `src/components/ui/form.tsx`, `src/components/admin/{ui,AdminNav}.tsx`, `src/lib/{auth,auth-providers,auth-errors,avatar,avatar-url,profile,rate-limit,safe-next,session,admin}.ts`, `src/lib/mdx/compile.ts`, `src/lib/pages/*.tsx`, `src/db/schema.ts`, `next.config.ts`, `deploy/base/networkpolicy.yaml` (comment only), `scripts/set-oauth-config.sh`, `.env.example`, `package.json`, tests `social-auth`, `account-helpers`, docs `AUTH.md`, `DESIGN_SYSTEM.md`.
+
+**Commands**: see the final report of this change (lint, typecheck, 31 test files (278 tests), production build, browser checks at 320–1920px light/dark, account-menu keyboard flow, profile form, theme persistence).
+
+**Manual steps**: create the Google and GitHub OAuth clients (`docs/AUTH.md`), `scripts/set-oauth-config.sh mk4`, restart; verify live sign-in and avatar upload with R2.
+
 ## Search engines, analytics, AdSense and the block editor (2026-10-29, owner request)
 
 **What changed**

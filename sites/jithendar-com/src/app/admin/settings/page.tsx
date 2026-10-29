@@ -37,7 +37,7 @@ function Check({ name, label, checked, hint }: { name: string; label: string; ch
   return (
     <label className="flex items-start gap-3 text-sm">
       <input type="checkbox" name={name} defaultChecked={checked} className="mt-1" />
-      <span><span className="font-medium text-ink dark:text-white">{label}</span><br /><span className="text-slate-500">{hint}</span></span>
+      <span><span className="font-medium text-fg">{label}</span><br /><span className="text-slate-500">{hint}</span></span>
     </label>
   );
 }
@@ -51,7 +51,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Fla
       <Flash ok={sp.ok} error={sp.error} />
       <form action={save} className="space-y-6">
         <Card>
-          <h2 className="mb-4 font-semibold text-ink dark:text-white">Identity</h2>
+          <h2 className="mb-4 font-semibold text-fg">Identity</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Site name" htmlFor="siteName" hint="Used in page titles."><Input id="siteName" name="siteName" defaultValue={s.siteName} required /></Field>
             <Field label="Publication name" htmlFor="publicationName" hint="Used for news sitemaps and structured data."><Input id="publicationName" name="publicationName" defaultValue={s.publicationName} required /></Field>
@@ -59,7 +59,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Fla
           </div>
         </Card>
         <Card>
-          <h2 className="mb-4 font-semibold text-ink dark:text-white">Homepage hero</h2>
+          <h2 className="mb-4 font-semibold text-fg">Homepage hero</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Eyebrow" htmlFor="hero.eyebrow"><Input id="hero.eyebrow" name="hero.eyebrow" defaultValue={s.hero.eyebrow} /></Field>
             <Field label="Highlighted words (gradient)" htmlFor="hero.highlight"><Input id="hero.highlight" name="hero.highlight" defaultValue={s.hero.highlight} /></Field>
@@ -68,7 +68,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Fla
           </div>
         </Card>
         <Card>
-          <h2 className="mb-4 font-semibold text-ink dark:text-white">Features</h2>
+          <h2 className="mb-4 font-semibold text-fg">Features</h2>
           <div className="space-y-4">
             <Check name="features.comments" label="Comments" checked={s.features.comments} hint="Signed-in readers can comment; comments are moderated." />
             <Check name="features.registration" label="Reader sign-up" checked={s.features.registration} hint="Allow new reader accounts on /login." />
@@ -76,7 +76,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Fla
           </div>
         </Card>
         <Card>
-          <h2 className="mb-4 font-semibold text-ink dark:text-white">Social links (https://…, leave empty to hide)</h2>
+          <h2 className="mb-4 font-semibold text-fg">Social links (https://…, leave empty to hide)</h2>
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="GitHub" htmlFor="social.github"><Input id="social.github" name="social.github" type="url" defaultValue={s.social.github} /></Field>
             <Field label="X" htmlFor="social.x"><Input id="social.x" name="social.x" type="url" defaultValue={s.social.x} /></Field>
@@ -84,7 +84,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Fla
           </div>
         </Card>
         <Card>
-          <h2 className="mb-4 font-semibold text-ink dark:text-white">Announcement bar</h2>
+          <h2 className="mb-4 font-semibold text-fg">Announcement bar</h2>
           <div className="space-y-4">
             <Check name="announcement.enabled" label="Show the announcement bar" checked={s.announcement.enabled} hint="A thin bar above the header on every page." />
             <div className="grid gap-4 sm:grid-cols-2">

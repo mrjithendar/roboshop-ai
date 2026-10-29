@@ -162,7 +162,7 @@ export function GenerateImageDialog({
         {error && <Alert>{error}</Alert>}
         {phase.name === "preview" ? (
           <>
-            <figure className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
+            <figure className="overflow-hidden rounded-xl border border-line bg-surface-muted">
               {/* eslint-disable-next-line @next/next/no-img-element -- private, unaccepted preview (not optimisable) */}
               <img
                 src={phase.result.previewUrl}
@@ -171,7 +171,7 @@ export function GenerateImageDialog({
                 height={phase.result.height}
                 className="h-auto max-h-[50dvh] w-full object-contain"
               />
-              <figcaption className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+              <figcaption className="px-3 py-2 text-xs text-fg-subtle">
                 {phase.result.width}×{phase.result.height} · {phase.result.model} · not saved yet
               </figcaption>
             </figure>
@@ -195,7 +195,7 @@ export function GenerateImageDialog({
               </Select>
             </Field>
             {generating && (
-              <p role="status" className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+              <p role="status" className="flex items-center gap-3 text-sm text-fg-muted">
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" aria-hidden="true" />
                 Generating… this can take up to a minute.
               </p>

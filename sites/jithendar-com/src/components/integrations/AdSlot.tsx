@@ -30,8 +30,8 @@ export function AdSlot({ client, slot, test, minHeight = 280 }: { client: string
   }, []);
   if (!isTrackablePath(pathname)) return null;
   return (
-    <aside aria-label="Advertisement" className="my-10 border-y border-slate-200 py-3 dark:border-white/10">
-      <p className="mb-2 text-center text-[11px] uppercase tracking-wider text-slate-400">Advertisement</p>
+    <aside aria-label="Advertisement" className="my-12 rounded-lg border border-line bg-surface-muted px-3 pb-3 pt-2">
+      <p className="mb-2 text-center text-xs text-fg-subtle">Advertisement</p>
       <div style={{ minHeight }} className="w-full overflow-hidden">
         <ins
           ref={ins}

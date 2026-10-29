@@ -32,7 +32,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Fla
       <nav aria-label="Filter messages" className="mb-6 flex flex-wrap gap-2">
         {(["all", "new", "read", "archived"] as const).map((s) => (
           <Link key={s} href={`/admin/messages?status=${s}`} aria-current={s === status ? "page" : undefined}
-            className={`rounded-full px-3 py-1 text-sm font-medium capitalize ${s === status ? "bg-ink text-white dark:bg-white dark:text-ink" : "border border-slate-200 dark:border-white/10"}`}>
+            className={`rounded-full px-3 py-1 text-sm font-medium capitalize ${s === status ? "bg-fg text-canvas" : "border border-slate-200 dark:border-white/10"}`}>
             {s}
           </Link>
         ))}
@@ -43,15 +43,15 @@ export default async function MessagesPage({ searchParams }: { searchParams: Fla
           <Card key={m.id}>
             <details open={m.status === "new"}>
               <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2">
-                <span className="font-semibold text-ink dark:text-white">{m.subject}</span>
+                <span className="font-semibold text-fg">{m.subject}</span>
                 <span className="flex items-center gap-2 text-sm text-slate-500"><StatusPill status={m.status} />{formatDateTime(m.createdAt.toISOString())}</span>
               </summary>
-              <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">From {m.name} &lt;{m.email}&gt;</p>
+              <p className="mt-3 text-sm text-fg-muted">From {m.name} &lt;{m.email}&gt;</p>
               <p className="mt-3 whitespace-pre-line break-words text-slate-800 dark:text-slate-200">{m.message}</p>
               <form action={act} className="mt-4 flex flex-wrap gap-2">
                 <input type="hidden" name="id" value={m.id} />
                 <input type="hidden" name="back" value={status} />
-                <a href={`mailto:${m.email}?subject=${encodeURIComponent("Re: " + m.subject)}`} className="inline-flex items-center rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-ink">Reply by email</a>
+                <a href={`mailto:${m.email}?subject=${encodeURIComponent("Re: " + m.subject)}`} className="inline-flex items-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent">Reply by email</a>
                 {m.status === "new" && <Button type="submit" name="action" value="read" variant="secondary">Mark read</Button>}
                 {m.status !== "new" && <Button type="submit" name="action" value="new" variant="secondary">Mark unread</Button>}
                 {m.status !== "archived" && <Button type="submit" name="action" value="archived" variant="secondary">Archive</Button>}

@@ -90,8 +90,8 @@ export function MediaPicker({
             className={`grid gap-4 rounded-xl border-2 border-dashed p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end ${dragging ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-slate-300 dark:border-white/15"}`}
           >
             <div className="space-y-1.5">
-              <p className="text-sm font-medium text-ink dark:text-white">Upload a new image</p>
-              <button type="button" onClick={() => fileInput.current?.click()} className="block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-left text-sm dark:border-white/15 dark:bg-surface-dark-raised">
+              <p className="text-sm font-medium text-fg">Upload a new image</p>
+              <button type="button" onClick={() => fileInput.current?.click()} className="block w-full rounded-xl border border-line-strong bg-surface px-3 py-2.5 text-left text-sm">
                 {file ? file.name : "Choose a file, drop it here, or paste"}
               </button>
               <input ref={fileInput} type="file" accept={ACCEPT} className="sr-only" tabIndex={-1} aria-hidden="true" onChange={(e) => choose(e.target.files?.[0])} />
@@ -123,11 +123,11 @@ export function MediaPicker({
                 <button
                   type="button"
                   onClick={() => onSelect(item)}
-                  className="group block w-full overflow-hidden rounded-xl border border-slate-200 text-left focus-visible:ring-4 focus-visible:ring-brand-500/30 dark:border-white/10"
+                  className="group block w-full overflow-hidden rounded-xl border border-line text-left focus-visible:ring-4 focus-visible:ring-brand-500/30"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- admin thumbnails, no optimisation needed */}
                   <img src={item.src} alt={item.alt} loading="lazy" className="aspect-[4/3] w-full object-cover transition-transform group-hover:scale-105" />
-                  <span className="block truncate px-2 py-1.5 text-xs text-slate-600 dark:text-slate-300">{item.alt || "No alt text"}</span>
+                  <span className="block truncate px-2 py-1.5 text-xs text-fg-muted">{item.alt || "No alt text"}</span>
                 </button>
               </li>
             ))}

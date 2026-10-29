@@ -33,6 +33,6 @@ spec:
   source:
     repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
-    path: roboshop/minikube/mongodb
+    path: minikube/mongodb
     directory:
       include: '{mongodb-data-pvc.yaml,mongodb-service.yaml,mongodb-catalog-configmap.yaml,mongodb-deployment.yaml}'

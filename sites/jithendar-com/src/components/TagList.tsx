@@ -9,9 +9,9 @@ export function TagList({ tags }: { tags: string[] }) {
         <li key={tag}>
           <Link
             href={`/tag/${tagSlug(tag)}`}
-            className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-ink dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:text-white"
+            className="inline-flex min-h-8 items-center rounded-full border border-line bg-surface px-3 text-sm text-fg-muted transition-colors hover:border-line-strong hover:text-fg"
           >
-            #{tag}
+            <span className="text-fg-subtle" aria-hidden="true">#</span>{tag}
           </Link>
         </li>
       ))}

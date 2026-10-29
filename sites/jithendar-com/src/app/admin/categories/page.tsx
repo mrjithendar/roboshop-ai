@@ -69,7 +69,7 @@ export default async function CategoriesPage({ searchParams }: { searchParams: F
             <details>
               <summary className="flex cursor-pointer items-center gap-3">
                 <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ring-1 ring-inset ${toneFor(c.tone)}`}><CategoryIcon name={c.icon} className="h-5 w-5" /></span>
-                <span className="font-semibold text-ink dark:text-white">{c.label}</span>
+                <span className="font-semibold text-fg">{c.label}</span>
                 <span className="text-sm text-slate-500">/{c.slug} · {counts[i]} published</span>
               </summary>
               <form action={save} className="mt-5 space-y-4">
@@ -85,7 +85,7 @@ export default async function CategoriesPage({ searchParams }: { searchParams: F
           </Card>
         ))}
         <Card>
-          <h2 className="mb-4 font-semibold text-ink dark:text-white">New category</h2>
+          <h2 className="mb-4 font-semibold text-fg">New category</h2>
           <form action={save} className="space-y-4">
             <CategoryFields />
             <Button type="submit">Create category</Button>

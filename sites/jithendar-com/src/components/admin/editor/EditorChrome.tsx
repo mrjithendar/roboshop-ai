@@ -8,8 +8,8 @@ import { Dialog } from "../Dialog";
 
 export function Panel({ title, open = false, children }: { title: string; open?: boolean; children: ReactNode }) {
   return (
-    <details open={open} className="group rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-surface-dark-raised">
-      <summary className="flex cursor-pointer list-none items-center justify-between rounded-2xl px-4 py-3 text-sm font-semibold text-ink dark:text-white">
+    <details open={open} className="group rounded-2xl border border-line bg-surface">
+      <summary className="flex cursor-pointer list-none items-center justify-between rounded-2xl px-4 py-3 text-sm font-semibold text-fg">
         {title}
         <span aria-hidden="true" className="text-slate-400 transition-transform group-open:rotate-180">⌄</span>
       </summary>
@@ -48,11 +48,11 @@ export function SaveIndicator({ state, dirty, status }: { state: SaveState; dirt
 /** Approximation of a search result; real engines choose their own titles and snippets. */
 export function SearchPreview({ url, title, description }: { url: string; title: string; description: string }) {
   return (
-    <figure className="rounded-xl border border-slate-200 p-3 text-left dark:border-white/10">
+    <figure className="rounded-xl border border-line p-3 text-left">
       <figcaption className="mb-2 text-[11px] uppercase tracking-wide text-slate-400">Search result (approximation)</figcaption>
-      <p className="truncate text-xs text-slate-600 dark:text-slate-400">{url}</p>
+      <p className="truncate text-xs text-fg-muted">{url}</p>
       <p className="mt-0.5 line-clamp-2 text-base text-[#1a0dab] dark:text-[#8ab4f8]">{title || "Title"} | Jithendar.com</p>
-      <p className="mt-0.5 line-clamp-2 text-sm text-slate-700 dark:text-slate-300">{description || "Description"}</p>
+      <p className="mt-0.5 line-clamp-2 text-sm text-fg-muted">{description || "Description"}</p>
     </figure>
   );
 }
@@ -60,7 +60,7 @@ export function SearchPreview({ url, title, description }: { url: string; title:
 /** Approximation of a large social card. */
 export function SocialPreview({ title, description, image }: { title: string; description: string; image?: string }) {
   return (
-    <figure className="overflow-hidden rounded-xl border border-slate-200 dark:border-white/10">
+    <figure className="overflow-hidden rounded-xl border border-line">
       <figcaption className="px-3 pt-2 text-[11px] uppercase tracking-wide text-slate-400">Social card (approximation)</figcaption>
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element -- editor preview
@@ -70,8 +70,8 @@ export function SocialPreview({ title, description, image }: { title: string; de
       )}
       <div className="space-y-0.5 p-3">
         <p className="text-xs uppercase text-slate-500">jithendar.com</p>
-        <p className="line-clamp-2 text-sm font-semibold text-ink dark:text-white">{title || "Title"}</p>
-        <p className="line-clamp-2 text-xs text-slate-600 dark:text-slate-400">{description}</p>
+        <p className="line-clamp-2 text-sm font-semibold text-fg">{title || "Title"}</p>
+        <p className="line-clamp-2 text-xs text-fg-muted">{description}</p>
       </div>
     </figure>
   );
@@ -101,8 +101,8 @@ export function RevisionsPanel({ list, load, preview, kind }: { list: () => Prom
   return (
     <ol className="max-h-72 space-y-2 overflow-y-auto">
       {revs.map((r) => (
-        <li key={r.id} className="rounded-lg border border-slate-200 p-2 text-xs dark:border-white/10">
-          <p className="font-medium text-ink dark:text-white">
+        <li key={r.id} className="rounded-lg border border-line p-2 text-xs">
+          <p className="font-medium text-fg">
             v{r.version} · {r.reason}
           </p>
           <p className="text-slate-500">
@@ -169,7 +169,7 @@ export function PreviewDialog({ open, onClose, kind, payload }: { open: boolean;
       {error && <p className="text-sm text-red-600">{error}</p>}
       {!token && !error && <p className="text-sm text-slate-500">Rendering…</p>}
       {token && (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-slate-100 p-2 dark:border-white/10 dark:bg-black/30">
+        <div className="overflow-x-auto rounded-xl border border-line bg-slate-100 p-2 dark:bg-black/30">
           <iframe title={`Preview at ${width}px`} src={`/preview/${token}`} style={{ width }} className="mx-auto block h-[70dvh] max-w-none rounded-lg border-0 bg-white" />
         </div>
       )}

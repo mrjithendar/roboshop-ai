@@ -20,6 +20,6 @@ spec:
   source:
     repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
-    path: roboshop/minikube/shared-tls
+    path: minikube/shared-tls
     directory:
       include: tlsstore.yaml

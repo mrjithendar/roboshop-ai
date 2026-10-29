@@ -59,7 +59,7 @@ spec:
     ports:
     - port: 4318
       protocol: TCP
-  # Internet only (Turnstile, Cloudflare R2, Gemini API, breached-password check, SMTP, backup targets): never other cluster or private ranges.
+  # Internet only (Turnstile, Cloudflare R2, Gemini API, Google/GitHub OAuth token + profile endpoints, breached-password check, SMTP, backup targets): never other cluster or private ranges.
   - to:
     - ipBlock:
         cidr: 0.0.0.0/0

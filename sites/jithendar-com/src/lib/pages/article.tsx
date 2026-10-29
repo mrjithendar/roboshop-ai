@@ -5,10 +5,9 @@ import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { ArticleCard } from "@/components/ArticleList";
 import { AuthorCard, Avatar } from "@/components/AuthorCard";
-import { toneFor } from "@/components/categoryStyle";
 import { Comments } from "@/components/Comments";
 import { Container } from "@/components/Container";
-import { CategoryIcon, ClockIcon } from "@/components/icons";
+import { CategoryIcon, ChevronDown, ClockIcon } from "@/components/icons";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ContentTypeBadge, PreviewBadge, SponsoredBadge } from "@/components/ContentTypeBadge";
 import { JsonLd } from "@/components/JsonLd";
@@ -110,69 +109,74 @@ export async function ArticleView({
   const hasToc = headings.length >= 2;
   const ads = integrations().adsense;
 
+  const column = "mx-auto w-full min-w-0 max-w-reading";
+
   return (
     <article>
       {!article.preview && <JsonLd data={[articleLd(article, author), breadcrumbLd(crumbs)]} />}
       {notice}
-      <header className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white dark:border-white/10 dark:from-white/[0.03] dark:to-transparent">
-        <div className="bg-grid pointer-events-none absolute inset-0" aria-hidden="true" />
-        <Container className="relative py-12 sm:py-16">
-          <div className="max-w-3xl">
-            <Breadcrumbs crumbs={crumbs} />
-            <div className="mt-8 flex flex-wrap items-center gap-2">
-              <ContentTypeBadge type={fm.contentType} />
-              {fm.sponsored && <SponsoredBadge />}
-              {article.preview && <PreviewBadge />}
-              <Link
-                href={`/category/${fm.category}`}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-ink dark:text-slate-300 dark:hover:text-white"
-              >
-                <span className={`inline-flex h-6 w-6 items-center justify-center rounded-md ring-1 ring-inset ${toneFor(category?.tone ?? "slate")}`}>
-                  <CategoryIcon name={category?.icon ?? "layers"} className="h-3.5 w-3.5" />
+      <Container className="pt-8 sm:pt-12">
+        <header className={column}>
+          <Breadcrumbs crumbs={crumbs} />
+          <div className="mt-8 flex flex-wrap items-center gap-2">
+            <Link href={`/category/${fm.category}`} className="inline-flex min-h-7 items-center gap-1.5 text-sm font-semibold text-accent-text hover:underline">
+              <CategoryIcon name={category?.icon ?? "layers"} className="h-4 w-4" />
+              {labelOf(cats, fm.category)}
+            </Link>
+            <ContentTypeBadge type={fm.contentType} />
+            {fm.sponsored && <SponsoredBadge />}
+            {article.preview && <PreviewBadge />}
+          </div>
+          <h1 className="mt-4 text-title font-bold text-fg text-balance [overflow-wrap:anywhere]">{fm.title}</h1>
+          <p className="mt-4 text-lg leading-8 text-fg-muted sm:text-xl sm:leading-8">{fm.description}</p>
+          <div className="mt-8 flex items-center gap-3 border-y border-line py-4">
+            <Avatar name={author.frontmatter.name} size="sm" />
+            <div className="min-w-0 text-sm leading-6">
+              <p className="font-semibold text-fg">
+                <Link href={author.path} rel="author" className="hover:underline">
+                  {author.frontmatter.name}
+                </Link>
+              </p>
+              <p className="flex flex-wrap items-center gap-x-2 text-fg-subtle">
+                <span>
+                  <time dateTime={fm.publishedAt}>{formatDateTime(fm.publishedAt!)}</time>
                 </span>
-                {labelOf(cats, fm.category)}
-              </Link>
-            </div>
-            <h1 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-ink sm:text-4xl lg:text-[2.75rem] lg:leading-[1.15] dark:text-white">
-              {fm.title}
-            </h1>
-            <p className="mt-5 text-lg leading-8 text-slate-600 sm:text-xl dark:text-slate-300">{fm.description}</p>
-            <div className="mt-8 flex items-center gap-4">
-              <Avatar name={author.frontmatter.name} />
-              <div className="text-sm">
-                <p className="font-semibold text-ink dark:text-white">
-                  <Link href={author.path} rel="author" className="hover:underline">
-                    {author.frontmatter.name}
-                  </Link>
-                </p>
-                <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-slate-500 dark:text-slate-400">
-                  <span>
-                    Published <time dateTime={fm.publishedAt}>{formatDateTime(fm.publishedAt!)}</time>
-                  </span>
-                  {fm.updatedAt && (
-                    <>
-                      <span aria-hidden="true">·</span>
-                      <span>
-                        Updated <time dateTime={fm.updatedAt}>{formatDateTime(fm.updatedAt)}</time>
-                      </span>
-                    </>
-                  )}
-                  <span aria-hidden="true">·</span>
-                  <span className="inline-flex items-center gap-1">
-                    <ClockIcon className="h-3.5 w-3.5" /> {readingTimeMinutes(article.body)} min read
-                  </span>
-                </p>
-              </div>
+                {fm.updatedAt && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                      Updated <time dateTime={fm.updatedAt}>{formatDateTime(fm.updatedAt)}</time>
+                    </span>
+                  </>
+                )}
+                <span aria-hidden="true">·</span>
+                <span className="inline-flex items-center gap-1">
+                  <ClockIcon className="h-3.5 w-3.5" /> {readingTimeMinutes(article.body)} min read
+                </span>
+              </p>
             </div>
           </div>
-        </Container>
-      </header>
+        </header>
 
-      <Container className="py-12">
-        <div className={hasToc ? "grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[minmax(0,1fr)_240px]" : ""}>
-          <div className="mx-auto w-full min-w-0 max-w-3xl lg:mx-0">
+        {fm.featuredImage && (
+          <figure className="mx-auto mt-8 max-w-4xl">
+            <Image
+              src={fm.featuredImage.src}
+              alt={fm.featuredImage.alt}
+              width={fm.featuredImage.width}
+              height={fm.featuredImage.height}
+              sizes="(min-width: 960px) 896px, 100vw"
+              loading="eager"
+              fetchPriority="high"
+              className="h-auto w-full rounded-xl border border-line"
+            />
+          </figure>
+        )}
+
+        <div className={`pb-4 pt-8 sm:pt-10 ${hasToc ? "xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,var(--container-reading))_minmax(0,1fr)] xl:gap-x-12" : ""}`}>
+          <div className={`${column} xl:col-start-2`}>
             {fm.sponsored && fm.sponsor && (
-              <p className="mb-8 rounded-xl border border-yellow-300 bg-yellow-50 p-4 text-sm text-yellow-950 dark:border-yellow-500/30 dark:bg-yellow-500/10 dark:text-yellow-100">
+              <p className="mb-8 rounded-lg border border-yellow-300 bg-yellow-50 p-4 text-sm leading-6 text-yellow-950 dark:border-yellow-500/30 dark:bg-yellow-500/10 dark:text-yellow-100">
                 Sponsored by {fm.sponsor}. See the{" "}
                 <Link href="/editorial-policy" className="font-medium underline">
                   editorial policy
@@ -181,36 +185,24 @@ export async function ArticleView({
               </p>
             )}
             {fm.contentType === "curated" && (
-              <p className="mb-8 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-100">
+              <p className="mb-8 rounded-lg border border-line bg-surface-muted p-4 text-sm leading-6 text-fg-muted">
                 Curated summary: this piece summarises the sources listed at the end. Read them for full detail.
               </p>
             )}
 
-            {fm.featuredImage && (
-              <figure className="mb-10">
-                <Image
-                  src={fm.featuredImage.src}
-                  alt={fm.featuredImage.alt}
-                  width={fm.featuredImage.width}
-                  height={fm.featuredImage.height}
-                  sizes="(min-width: 1024px) 768px, 100vw"
-                  loading="eager"
-                  fetchPriority="high"
-                  className="h-auto w-full rounded-2xl border border-slate-200 dark:border-white/10"
-                />
-              </figure>
-            )}
-
             {hasToc && (
-              <details className="mb-10 rounded-xl border border-slate-200 p-4 lg:hidden dark:border-white/10">
-                <summary className="cursor-pointer text-sm font-semibold text-ink dark:text-white">On this page</summary>
-                <div className="mt-4">
+              <details className="group mb-8 rounded-lg border border-line bg-surface-muted xl:hidden">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-semibold text-fg [&::-webkit-details-marker]:hidden">
+                  On this page
+                  <ChevronDown className="h-4 w-4 text-fg-subtle transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="border-t border-line px-4 pb-4 pt-3">
                   <TableOfContents headings={headings} id="toc-heading-mobile" />
                 </div>
               </details>
             )}
 
-            <div className="prose prose-slate max-w-none prose-lg dark:prose-invert prose-headings:font-semibold prose-pre:my-0 prose-p:leading-8">
+            <div className="article-body prose max-w-none dark:prose-invert">
               <Content components={{ ...mdxComponents, nav: () => <TableOfContents headings={headings} id="toc-inline" /> }} />
             </div>
 
@@ -218,19 +210,19 @@ export async function ArticleView({
             {!article.preview && ads?.slots.articleEnd && <AdSlot client={ads.client} slot={ads.slots.articleEnd} test={ads.test} />}
 
             {fm.sources.length > 0 && (
-              <section aria-labelledby="sources" className="mt-14 rounded-2xl border border-slate-200 p-6 dark:border-white/10">
-                <h2 id="sources" className="text-lg font-semibold text-ink dark:text-white">
+              <section aria-labelledby="sources" className="mt-12 border-t border-line pt-8">
+                <h2 id="sources" className="text-lg font-semibold text-fg">
                   Sources
                 </h2>
-                <ol className="mt-4 space-y-3 text-sm">
+                <ol className="mt-4 space-y-3 text-[0.9375rem] leading-6">
                   {fm.sources.map((s, i) => (
                     <li key={s.url} className="flex gap-3">
-                      <span className="font-mono text-slate-400">{i + 1}.</span>
-                      <span>
-                        <a href={s.url} className="font-medium text-brand-700 underline decoration-brand-300 underline-offset-2 dark:text-brand-300" rel="noopener">
+                      <span className="w-5 shrink-0 text-right font-mono text-sm text-fg-subtle">{i + 1}.</span>
+                      <span className="min-w-0 [overflow-wrap:anywhere]">
+                        <a href={s.url} className="link" rel="noopener">
                           {s.title}
                         </a>
-                        <span className="text-slate-500 dark:text-slate-400"> — {s.publisher}</span>
+                        <span className="text-fg-subtle"> — {s.publisher}</span>
                       </span>
                     </li>
                   ))}
@@ -239,14 +231,14 @@ export async function ArticleView({
             )}
 
             {fm.corrections.length > 0 && (
-              <section aria-labelledby="corrections" className="mt-8 rounded-2xl border border-amber-200 bg-amber-50/60 p-6 dark:border-amber-500/30 dark:bg-amber-500/5">
-                <h2 id="corrections" className="text-lg font-semibold text-ink dark:text-white">
+              <section aria-labelledby="corrections" className="mt-8 rounded-xl border border-amber-200 bg-amber-50/70 p-5 sm:p-6 dark:border-amber-500/30 dark:bg-amber-500/5">
+                <h2 id="corrections" className="text-lg font-semibold text-fg">
                   Corrections
                 </h2>
-                <ul className="mt-4 space-y-3 text-sm text-slate-700 dark:text-slate-300">
+                <ul className="mt-3 space-y-2 text-[0.9375rem] leading-6 text-fg-muted">
                   {fm.corrections.map((c) => (
                     <li key={c.date}>
-                      <time dateTime={c.date} className="font-medium">
+                      <time dateTime={c.date} className="font-medium text-fg">
                         {formatDateTime(c.date)}
                       </time>
                       : {c.note}
@@ -254,14 +246,14 @@ export async function ArticleView({
                   ))}
                 </ul>
                 <p className="mt-4 text-sm">
-                  <Link href="/corrections-policy" className="font-medium text-brand-700 underline underline-offset-2 dark:text-brand-300">
+                  <Link href="/corrections-policy" className="link">
                     How corrections work
                   </Link>
                 </p>
               </section>
             )}
 
-            <footer className="mt-12 space-y-8 border-t border-slate-200 pt-8 dark:border-white/10">
+            <footer className="mt-12 space-y-8 border-t border-line pt-8">
               <TagList tags={fm.tags} />
               <AuthorCard author={author} />
             </footer>
@@ -270,8 +262,8 @@ export async function ArticleView({
           </div>
 
           {hasToc && (
-            <aside className="hidden lg:block">
-              <div className="sticky top-24">
+            <aside className="hidden xl:col-start-3 xl:block">
+              <div className="sticky top-[calc(var(--spacing-header)+2rem)] max-h-[calc(100dvh-var(--spacing-header)-4rem)] overflow-y-auto pb-4">
                 <TableOfContents headings={headings} />
               </div>
             </aside>
@@ -280,12 +272,12 @@ export async function ArticleView({
       </Container>
 
       {related.length > 0 && (
-        <section aria-labelledby="related" className="border-t border-slate-200 bg-slate-50/60 py-16 dark:border-white/10 dark:bg-white/[0.02]">
+        <section aria-labelledby="related" className="mt-section border-t border-line bg-surface-muted py-section">
           <Container>
-            <h2 id="related" className="text-2xl font-bold tracking-tight text-ink dark:text-white">
+            <h2 id="related" className="text-heading font-semibold text-fg">
               Related reading
             </h2>
-            <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
               {related.map((a) => (
                 <li key={a.path}>
                   <ArticleCard article={a} cats={cats} headingLevel={3} />

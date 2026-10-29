@@ -13,7 +13,7 @@ export type { PageFormValue };
 
 const BlockEditor = dynamic(() => import("@/components/admin/editor/BlockEditor").then((m) => m.BlockEditor), {
   ssr: false,
-  loading: () => <div className="min-h-[480px] animate-pulse rounded-2xl border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5" />,
+  loading: () => <div className="min-h-[480px] animate-pulse rounded-2xl border border-line bg-surface-muted" />,
 });
 
 const slugify = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^\w\s-]/g, "").trim().replace(/[\s_]+/g, "-").replace(/-+/g, "-").slice(0, 60);
@@ -113,8 +113,8 @@ export function PageEditor({
 
   return (
     <div>
-      <div className="sticky top-0 z-20 -mx-4 mb-6 flex flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50/95 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-xl sm:border dark:border-white/10 dark:bg-surface-dark/95">
-        <Link href="/admin/pages" className="rounded-lg px-2 py-2 text-sm font-medium text-slate-600 hover:text-ink dark:text-slate-300"
+      <div className="sticky top-header z-20 -mx-4 mb-6 flex flex-wrap items-center gap-2 border-b border-line bg-canvas px-4 py-2 sm:mx-0 sm:rounded-b-xl sm:border sm:border-t-0 sm:px-3 [[data-editor-focus]_&]:top-0">
+        <Link href="/admin/pages" className="inline-flex min-h-10 items-center rounded-lg px-2 text-sm font-medium text-fg-muted hover:bg-surface-sunken hover:text-fg"
           onClick={(e) => { if (dirty && !window.confirm("You have unsaved changes. Leave anyway?")) e.preventDefault(); }}>← Pages</Link>
         <SaveIndicator state={state} dirty={dirty} status="live" />
         <div className="ml-auto flex flex-wrap gap-2">
@@ -154,12 +154,12 @@ export function PageEditor({
           <label htmlFor="title" className="sr-only">Title</label>
           <textarea id="title" rows={1} value={v.title} maxLength={110} placeholder="Page title"
             onChange={(e) => { set("title", e.target.value.replace(/\n/g, " ")); if (!touched) set("slug", slugify(e.target.value)); }}
-            className="block w-full resize-none bg-transparent text-3xl font-bold tracking-tight text-ink placeholder:text-slate-400 focus:outline-none sm:text-4xl dark:text-white [field-sizing:content]" />
+            className="block w-full resize-none bg-transparent text-3xl font-bold tracking-tight text-fg placeholder:text-slate-400 focus:outline-none sm:text-4xl [field-sizing:content]" />
           <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
             <span className="font-mono text-xs">jithendar.com/</span>
             <label htmlFor="slug" className="sr-only">URL slug</label>
             <input id="slug" value={v.slug} onChange={(e) => { setTouched(true); set("slug", slugify(e.target.value)); }}
-              className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2 py-1 font-mono text-xs dark:border-white/10 dark:bg-surface-dark-raised" />
+              className="min-w-0 flex-1 rounded-md border border-line bg-surface px-2 py-1 font-mono text-xs" />
             {originalSlug && originalSlug !== v.slug && <span className="text-amber-700 dark:text-amber-300">The old URL will redirect here.</span>}
           </div>
           <BlockEditor key={editorKey} value={v.body} onChange={(md) => set("body", md)} mediaContext={`pages/${v.slug || "draft"}`} />
@@ -167,7 +167,7 @@ export function PageEditor({
 
         <aside id="page-settings" aria-label="Page settings" className={`${sidebar ? "fixed inset-0 z-50 overflow-y-auto bg-white p-4 dark:bg-surface-dark" : "hidden"} space-y-3 xl:static xl:block xl:bg-transparent xl:p-0`}>
           <div className="flex items-center justify-between xl:hidden">
-            <h2 className="font-semibold text-ink dark:text-white">Page settings</h2>
+            <h2 className="font-semibold text-fg">Page settings</h2>
             <Button type="button" variant="ghost" onClick={() => setSidebar(false)} aria-label="Close settings">✕</Button>
           </div>
           <Panel title="Summary" open>

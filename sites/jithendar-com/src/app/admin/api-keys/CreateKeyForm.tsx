@@ -22,7 +22,7 @@ export function CreateKeyForm() {
       <form action={action} className="grid gap-4 sm:grid-cols-[1fr_auto_160px_auto] sm:items-end">
         <Field label="Name" htmlFor="name" hint="What will use this key?"><Input id="name" name="name" required placeholder="e.g. n8n drafting workflow" /></Field>
         <fieldset className="space-y-1 text-sm">
-          <legend className="mb-1 font-medium text-ink dark:text-white">Scopes</legend>
+          <legend className="mb-1 font-medium text-fg">Scopes</legend>
           <label className="flex items-center gap-2"><input type="checkbox" name="scopes" value="posts:read" defaultChecked /> posts:read</label>
           <label className="flex items-center gap-2"><input type="checkbox" name="scopes" value="posts:write" /> posts:write</label>
         </fieldset>

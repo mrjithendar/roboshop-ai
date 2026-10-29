@@ -1,6 +1,7 @@
 import { evaluate } from "@mdx-js/mdx";
 import rehypeShiki from "@shikijs/rehype";
 import type { MDXContent } from "mdx/types";
+import type { ShikiTransformer } from "shiki";
 import * as runtime from "react/jsx-runtime";
 import rehypeSlug from "rehype-slug";
 import remarkDirective from "remark-directive";
@@ -9,6 +10,13 @@ import { collectHeadings, demoteH1, type Heading } from "./headings";
 import { remarkShortcodes } from "./shortcodes";
 import { rehypeSafeUrls } from "./safe-urls";
 import { rehypeTableScroll } from "./tables";
+
+/** Expose each fence's language on <pre data-language> so CodeBlock can label the block. */
+const languageAttribute: ShikiTransformer = {
+  pre(node) {
+    node.properties["data-language"] = this.options.lang;
+  },
+};
 
 export type CompiledMdx = { Content: MDXContent; headings: Heading[] };
 
@@ -36,7 +44,15 @@ export async function compileMdx(source: string): Promise<CompiledMdx> {
       rehypeTableScroll,
       rehypeSafeUrls,
       collectHeadings(headings),
-      [rehypeShiki, { themes: { light: "github-light", dark: "github-dark" }, lazy: true, fallbackLanguage: "text" }],
+      [
+        rehypeShiki,
+        {
+          themes: { light: "github-light", dark: "github-dark" },
+          lazy: true,
+          fallbackLanguage: "text",
+          transformers: [languageAttribute],
+        },
+      ],
     ],
   });
   const result = { Content, headings };

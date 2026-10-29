@@ -6,6 +6,7 @@ import { GitHubIcon, LinkedInIcon } from "@/components/icons";
 import { JsonLd } from "@/components/JsonLd";
 import { mdxComponents } from "@/components/Mdx";
 import { PageHeader } from "@/components/PageHeader";
+import { buttonClass } from "@/components/ui/form";
 import { Pagination } from "@/components/Pagination";
 import { getAuthor, type Article, type Paged } from "@/lib/content";
 import { compileMdx } from "@/lib/mdx/compile";
@@ -48,7 +49,7 @@ export async function AuthorProfilePage({ slug, paged }: { slug: string; paged: 
                 <a
                   href={url}
                   rel="me noopener"
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                  className={buttonClass("secondary", "sm")}
                 >
                   {url.includes("github.com") && <GitHubIcon className="h-4 w-4" />}
                   {url.includes("linkedin.com") && <LinkedInIcon className="h-4 w-4" />}
@@ -59,13 +60,13 @@ export async function AuthorProfilePage({ slug, paged }: { slug: string; paged: 
           </ul>
         )}
       </PageHeader>
-      <Container className="py-14">
+      <Container className="pt-10 sm:pt-12">
         {paged.page === 1 && hasBio && (
-          <div className="prose prose-slate prose-lg mb-16 max-w-3xl dark:prose-invert">
+          <div className="article-body prose mb-14 max-w-reading dark:prose-invert">
             <Content components={mdxComponents} />
           </div>
         )}
-        <h2 className="mb-8 text-2xl font-bold tracking-tight text-ink dark:text-white">Published work</h2>
+        <h2 className="mb-6 text-heading font-semibold text-fg">Published work</h2>
         <ArticleList articles={paged.items} emptyText="Nothing published yet" headingLevel={3} />
         <Pagination basePath={listing.basePath} page={paged.page} totalPages={paged.totalPages} />
       </Container>

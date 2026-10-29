@@ -67,23 +67,23 @@ export function ListingPage({ listing, paged }: { listing: Listing; paged: Paged
     <>
       <JsonLd data={breadcrumbLd(crumbs)} />
       <PageHeader title={listing.title} description={listing.description} eyebrow={listing.eyebrow} crumbs={crumbs} icon={listing.icon}>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-500 dark:text-slate-400">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-fg-subtle">
           <span>
             {count} {count === 1 ? "article" : "articles"}
           </span>
           {listing.feedHref && (
-            <a href={listing.feedHref} className="inline-flex items-center gap-1.5 font-medium text-slate-700 hover:text-ink dark:text-slate-300 dark:hover:text-white">
-              <RssIcon className="h-4 w-4 text-orange-500" /> RSS
+            <a href={listing.feedHref} className="inline-flex min-h-8 items-center gap-1.5 font-medium text-fg-muted hover:text-fg hover:underline">
+              <RssIcon className="h-4 w-4" /> RSS feed
             </a>
           )}
         </div>
         {listing.chips && listing.chips.length > 0 && (
-          <ul aria-label="Topics" className="mt-6 flex flex-wrap gap-2">
+          <ul aria-label="Topics" className="mt-5 flex flex-wrap gap-2">
             {listing.chips.map((chip) => (
               <li key={chip.href}>
                 <Link
                   href={chip.href}
-                  className="inline-flex rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-ink dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:border-white/20 dark:hover:text-white"
+                  className="inline-flex min-h-9 items-center rounded-full border border-line bg-surface px-3.5 text-sm font-medium text-fg-muted transition-colors hover:border-line-strong hover:text-fg"
                 >
                   {chip.label}
                 </Link>
@@ -92,7 +92,7 @@ export function ListingPage({ listing, paged }: { listing: Listing; paged: Paged
           </ul>
         )}
       </PageHeader>
-      <Container className="py-14">
+      <Container className="pt-10 sm:pt-12">
         <ArticleList articles={paged.items} emptyText={listing.emptyText ?? "Nothing published here yet"} />
         <Pagination basePath={listing.basePath} page={paged.page} totalPages={paged.totalPages} />
       </Container>

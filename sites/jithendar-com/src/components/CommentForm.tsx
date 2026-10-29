@@ -18,8 +18,8 @@ export function CommentForm({ postId, path, siteKey }: { postId: string; path: s
   if (isPending) return null;
   if (!session) {
     return (
-      <p className="rounded-xl border border-slate-200 p-4 text-sm dark:border-white/10">
-        <Link href={`/login?next=${encodeURIComponent(path + "#comments")}`} className="font-semibold text-brand-700 underline dark:text-brand-300">
+      <p className="rounded-xl border border-line p-4 text-sm">
+        <Link href={`/login?next=${encodeURIComponent(path + "#comments")}`} className="font-semibold text-accent-text underline">
           Sign in
         </Link>{" "}
         to join the discussion.
@@ -45,7 +45,7 @@ export function CommentForm({ postId, path, siteKey }: { postId: string; path: s
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <label htmlFor="comment" className="block text-sm font-medium text-ink dark:text-white">
+      <label htmlFor="comment" className="block text-sm font-medium text-fg">
         Comment as {session.user.name}
       </label>
       <Textarea id="comment" rows={4} value={body} onChange={(e) => setBody(e.target.value)} minLength={2} maxLength={5000} required placeholder="Add to the discussion…" />

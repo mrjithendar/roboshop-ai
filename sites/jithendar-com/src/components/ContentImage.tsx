@@ -2,12 +2,12 @@ import Image from "next/image";
 import type { ComponentProps } from "react";
 import { resolveImage } from "@/lib/media";
 
-const frame = "my-8 h-auto w-full rounded-xl border border-slate-200 dark:border-white/10";
+const frame = "my-8 h-auto w-full rounded-xl border border-line";
 
 /** Shown in place of media that cannot be loaded, so the reader still gets its description. */
 export function MediaUnavailable({ label, kind = "Image" }: { label?: string; kind?: string }) {
   return (
-    <span role="img" aria-label={label ? `${kind} unavailable: ${label}` : `${kind} unavailable`} className="my-8 flex min-h-24 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm text-slate-500 dark:border-white/15 dark:bg-white/5 dark:text-slate-400">
+    <span role="img" aria-label={label ? `${kind} unavailable: ${label}` : `${kind} unavailable`} className="my-8 flex min-h-24 items-center justify-center rounded-xl border border-dashed border-line-strong bg-surface-muted p-4 text-center text-sm text-fg-subtle">
       {kind} unavailable{label ? `: ${label}` : ""}
     </span>
   );

@@ -48,7 +48,7 @@ export default async function UsersPage({ searchParams }: { searchParams: FlashP
         {rows.map(({ user: u, profile }) => (
           <tr key={u.id}>
             <td className={td}>
-              <p className="font-medium text-ink dark:text-white">{u.name}{u.id === me.id && " (you)"}</p>
+              <p className="font-medium text-fg">{u.name}{u.id === me.id && " (you)"}</p>
               <p className="text-xs text-slate-500">{u.email}{profile && ` · /authors/${profile}`}</p>
             </td>
             <td className={td}>

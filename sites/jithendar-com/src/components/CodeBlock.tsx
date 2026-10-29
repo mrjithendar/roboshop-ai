@@ -1,11 +1,20 @@
 "use client";
 
 import { useRef, useState, type ComponentProps } from "react";
+import { CheckIcon, CopyIcon } from "./icons";
 
-/** Highlighted <pre> with a keyboard-accessible copy button and a screen-reader announcement. */
-export function CodeBlock(props: ComponentProps<"pre">) {
+const LANGUAGE_LABELS: Record<string, string> = {
+  ts: "TypeScript", tsx: "TSX", typescript: "TypeScript", js: "JavaScript", jsx: "JSX", javascript: "JavaScript",
+  sh: "Shell", bash: "Bash", zsh: "Shell", shell: "Shell", console: "Console", yaml: "YAML", yml: "YAML", json: "JSON",
+  dockerfile: "Dockerfile", docker: "Dockerfile", hcl: "HCL", terraform: "Terraform", tf: "Terraform", py: "Python", python: "Python",
+  go: "Go", rust: "Rust", java: "Java", sql: "SQL", html: "HTML", css: "CSS", md: "Markdown", markdown: "Markdown", toml: "TOML", ini: "INI",
+};
+
+/** Highlighted <pre> in a frame with its language and a keyboard-accessible, announced copy button. */
+export function CodeBlock({ "data-language": language, ...props }: ComponentProps<"pre"> & { "data-language"?: string }) {
   const pre = useRef<HTMLPreElement>(null);
   const [status, setStatus] = useState("");
+  const label = language && language !== "text" ? (LANGUAGE_LABELS[language] ?? language) : "";
 
   async function copy() {
     try {
@@ -17,17 +26,22 @@ export function CodeBlock(props: ComponentProps<"pre">) {
     setTimeout(() => setStatus(""), 2000);
   }
 
+  const copied = status === "Copied to clipboard";
   return (
-    <div className="group relative">
-      <pre ref={pre} {...props} />
-      <button
-        type="button"
-        onClick={copy}
-        className="absolute right-3 top-3 rounded-lg border border-slate-200 bg-white/90 px-2.5 py-1 font-sans text-xs font-semibold text-slate-700 shadow-sm backdrop-blur transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 dark:border-white/15 dark:bg-surface-dark-raised/90 dark:text-slate-200"
-      >
-        {status === "Copied to clipboard" ? "Copied" : "Copy"}
-        <span className="sr-only"> code</span>
-      </button>
+    <div className="code-block not-prose">
+      <div className="flex h-10 items-center justify-between gap-3 border-b border-line pl-4 pr-1.5">
+        <span className="font-mono text-xs text-fg-subtle">{label}</span>
+        <button
+          type="button"
+          onClick={copy}
+          className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 font-sans text-xs font-medium text-fg-muted transition-colors hover:bg-surface-sunken hover:text-fg"
+        >
+          {copied ? <CheckIcon className="h-3.5 w-3.5" /> : <CopyIcon className="h-3.5 w-3.5" />}
+          {copied ? "Copied" : "Copy"}
+          <span className="sr-only"> code{label ? ` (${label})` : ""}</span>
+        </button>
+      </div>
+      <pre ref={pre} {...props} tabIndex={0} />
       <span role="status" aria-live="polite" className="sr-only">
         {status}
       </span>

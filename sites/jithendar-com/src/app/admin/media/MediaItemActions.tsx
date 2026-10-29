@@ -20,7 +20,7 @@ export function MediaItemActions({ id, alt, uses, back, saveAlt, remove }: {
           <input type="hidden" name="id" value={id} />
           <input type="hidden" name="back" value={back} />
           <label className="sr-only" htmlFor={`alt-${id}`}>Alt text</label>
-          <textarea id={`alt-${id}`} name="alt" defaultValue={alt} rows={2} maxLength={300} className="w-full rounded-lg border border-slate-300 p-1.5 text-xs dark:border-white/15 dark:bg-surface-dark" />
+          <textarea id={`alt-${id}`} name="alt" defaultValue={alt} rows={2} maxLength={300} className="w-full rounded-lg border border-line-strong p-1.5 text-xs dark:bg-surface-dark" />
           <div className="flex gap-3"><button type="submit" className="font-semibold underline">Save</button><button type="button" className="underline" onClick={() => setEditing(false)}>Cancel</button></div>
         </form>
       ) : (

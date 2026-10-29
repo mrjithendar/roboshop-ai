@@ -85,11 +85,11 @@ function ProtectedView({ node, updateAttributes, deleteNode, selected }: NodeVie
   const [draft, setDraft] = useState(String(node.attrs.source));
   const source = String(node.attrs.source);
   return (
-    <NodeViewWrapper className={`not-prose my-4 rounded-xl border bg-slate-50 p-3 dark:bg-white/5 ${selected ? "border-brand-500 ring-2 ring-brand-500/30" : "border-slate-200 dark:border-white/10"}`} data-drag-handle>
+    <NodeViewWrapper className={`not-prose my-4 rounded-xl border bg-surface-muted p-3 ${selected ? "border-brand-500 ring-2 ring-brand-500/30" : "border-slate-200 dark:border-white/10"}`} data-drag-handle>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">{describe(source)}</span>
         <span className="flex gap-1">
-          <button type="button" className="rounded-md px-2 py-1 text-xs font-semibold text-brand-700 hover:bg-white dark:text-brand-300 dark:hover:bg-white/10" onClick={() => { setDraft(source); setOpen(true); }}>
+          <button type="button" className="rounded-md px-2 py-1 text-xs font-semibold text-accent-text hover:bg-white dark:hover:bg-white/10" onClick={() => { setDraft(source); setOpen(true); }}>
             Edit
           </button>
           <button type="button" className="rounded-md px-2 py-1 text-xs font-semibold text-red-600 hover:bg-white dark:hover:bg-white/10" onClick={() => deleteNode()}>
@@ -97,7 +97,7 @@ function ProtectedView({ node, updateAttributes, deleteNode, selected }: NodeVie
           </button>
         </span>
       </div>
-      <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words font-mono text-xs text-slate-700 dark:text-slate-300">{source}</pre>
+      <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words font-mono text-xs text-fg-muted">{source}</pre>
       <Dialog open={open} onClose={() => setOpen(false)} title={describe(source)} size="md"
         footer={<div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button type="button" onClick={() => { updateAttributes({ source: draft.replace(/\s+$/, "") }); setOpen(false); }}>Apply</Button></div>}>
         <Field label="Source" htmlFor="pb-source" hint="Shortcode syntax is documented in the editor help (?). Only listed shortcodes render on the site.">
@@ -225,7 +225,7 @@ function Tool({ label, active, onClick, children, disabled }: { label: string; a
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       className={`h-9 min-w-9 shrink-0 rounded-md px-2 text-sm font-semibold transition-colors disabled:opacity-40 ${
-        active ? "bg-ink text-white dark:bg-white dark:text-ink" : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10"
+        active ? "bg-accent text-on-accent" : "text-fg-muted hover:bg-surface-sunken"
       }`}
     >
       {children}
@@ -263,7 +263,7 @@ function Toolbar({ editor, onInsert, onLink, onImageAlt }: { editor: Editor; onI
       <Tool label="Insert block (or type / )" onClick={onInsert}>＋</Tool>
       <select
         aria-label="Block type"
-        className="h-9 shrink-0 rounded-md border border-slate-300 bg-white px-2 text-sm dark:border-white/15 dark:bg-surface-dark"
+        className="h-9 shrink-0 rounded-md border border-line-strong bg-white px-2 text-sm dark:bg-surface-dark"
         value={s.level}
         onChange={(e) => {
           const l = Number(e.target.value);
@@ -287,7 +287,7 @@ function Toolbar({ editor, onInsert, onLink, onImageAlt }: { editor: Editor; onI
       <Tool label="Quote" active={s.quote} onClick={() => c().toggleBlockquote().run()}>❝</Tool>
       <Tool label="Code block" active={s.codeBlock} onClick={() => c().toggleCodeBlock().run()}>{"{ }"}</Tool>
       {s.codeBlock && (
-        <select aria-label="Code language" className="h-9 shrink-0 rounded-md border border-slate-300 bg-white px-2 text-sm dark:border-white/15 dark:bg-surface-dark"
+        <select aria-label="Code language" className="h-9 shrink-0 rounded-md border border-line-strong bg-white px-2 text-sm dark:bg-surface-dark"
           value={s.language} onChange={(e) => c().updateAttributes("codeBlock", { language: e.target.value || null }).run()}>
           {LANGUAGES.map((l) => <option key={l} value={l}>{l || "Language…"}</option>)}
         </select>
@@ -459,12 +459,12 @@ export function BlockEditor({
           </Alert>
         </div>
       )}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-surface-dark-raised">
-        <div className="sticky top-16 z-10 flex flex-wrap items-center gap-2 rounded-t-2xl border-b border-slate-200 bg-white/95 px-2 py-1.5 backdrop-blur dark:border-white/10 dark:bg-surface-dark-raised/95">
-          <div role="tablist" aria-label="Editing mode" className="flex shrink-0 rounded-lg bg-slate-100 p-0.5 dark:bg-white/5">
+      <div className="rounded-xl border border-line bg-surface">
+        <div className="z-10 flex flex-wrap items-center gap-2 rounded-t-xl border-b border-line bg-surface px-2 py-1.5 sm:sticky sm:top-[calc(var(--spacing-header)+3.8rem)] [[data-editor-focus]_&]:sm:top-[3.8rem]">
+          <div role="tablist" aria-label="Editing mode" className="flex shrink-0 rounded-lg bg-surface-sunken p-0.5">
             {(["visual", "source"] as const).map((m) => (
               <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => switchTo(m)}
-                className={`rounded-md px-3 py-1.5 text-sm font-semibold ${mode === m ? "bg-white text-ink shadow-sm dark:bg-surface-dark-raised dark:text-white" : "text-slate-600 dark:text-slate-400"}`}>
+                className={`rounded-md px-3 py-1.5 text-sm font-semibold ${mode === m ? "bg-surface text-fg shadow-sm" : "text-fg-muted hover:text-fg"}`}>
                 {m === "visual" ? "Visual" : "Markdown"}
               </button>
             ))}
@@ -482,7 +482,7 @@ export function BlockEditor({
         {mode === "visual" && editor && (
           <div className="relative">
             <BubbleMenu editor={editor} shouldShow={({ editor: e, state }) => !state.selection.empty && !e.isActive("protectedBlock") && !e.isActive("image")}
-              className="flex gap-0.5 rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-white/10 dark:bg-surface-dark-raised">
+              className="flex gap-0.5 rounded-lg border border-line bg-surface p-1 shadow-lg">
               <Tool label="Bold" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}><b>B</b></Tool>
               <Tool label="Italic" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}><i>I</i></Tool>
               <Tool label="Strikethrough" active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}><s>S</s></Tool>
@@ -491,7 +491,7 @@ export function BlockEditor({
             </BubbleMenu>
             <EditorContent editor={editor} />
             {slash && (
-              <div role="listbox" aria-label="Insert block" className="absolute left-4 right-4 z-20 max-h-72 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl sm:right-auto sm:w-80 dark:border-white/10 dark:bg-surface-dark-raised"
+              <div role="listbox" aria-label="Insert block" className="absolute left-4 right-4 z-20 max-h-72 overflow-y-auto rounded-xl border border-line bg-surface p-1 shadow-xl sm:right-auto sm:w-80"
                 style={{ top: Math.max(8, (editor.view.coordsAtPos(editor.state.selection.from).bottom - (editor.view.dom.getBoundingClientRect().top ?? 0)) + 8) }}>
                 {items.length === 0 ? (
                   <p className="px-3 py-2 text-sm text-slate-500">No matching blocks</p>
@@ -512,7 +512,7 @@ export function BlockEditor({
             className="block min-h-[420px] w-full resize-y bg-transparent px-4 py-4 font-mono text-sm leading-6 text-ink focus:outline-none sm:px-6 sm:py-5 dark:text-slate-100" />
         )}
 
-        <div className="flex flex-wrap justify-between gap-2 border-t border-slate-200 px-4 py-2 text-xs text-slate-500 dark:border-white/10 dark:text-slate-400">
+        <div className="flex flex-wrap justify-between gap-2 border-t border-line px-4 py-2 text-xs text-fg-subtle">
           <span>{words} words · about {Math.max(1, Math.round(words / 220))} min read</span>
           <span className="hidden sm:inline">Type / for blocks · Alt Shift ↑/↓ moves a block</span>
         </div>
@@ -560,7 +560,7 @@ function InserterDialog({ open, onClose, onPick }: { open: boolean; onClose: () 
       <ul className="mt-4 grid gap-1 sm:grid-cols-2">
         {list.map((b) => (
           <li key={b.id}>
-            <button type="button" onClick={() => onPick(b)} className="block w-full rounded-lg border border-slate-200 px-3 py-2.5 text-left text-sm hover:border-brand-400 hover:bg-brand-50 dark:border-white/10 dark:hover:bg-white/5">
+            <button type="button" onClick={() => onPick(b)} className="block w-full rounded-lg border border-line px-3 py-2.5 text-left text-sm hover:border-brand-400 hover:bg-brand-50 dark:hover:bg-white/5">
               {b.label}
             </button>
           </li>
@@ -580,7 +580,7 @@ function ImageDialog({ image, onClose, onInsert }: { image: { src: string; alt: 
       footer={<div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button type="button" disabled={!alt.trim()} onClick={() => onInsert({ src: image.src, alt: alt.trim(), caption: caption.trim(), align, size })}>Insert</Button></div>}>
       <div className="space-y-4">
         {/* eslint-disable-next-line @next/next/no-img-element -- editor preview */}
-        <img src={image.src} alt="" width={image.width || undefined} height={image.height || undefined} className={`mx-auto h-auto rounded-lg border border-slate-200 dark:border-white/10 ${size === "small" ? "max-w-[40%]" : size === "medium" ? "max-w-[70%]" : "w-full"}`} />
+        <img src={image.src} alt="" width={image.width || undefined} height={image.height || undefined} className={`mx-auto h-auto rounded-lg border border-line ${size === "small" ? "max-w-[40%]" : size === "medium" ? "max-w-[70%]" : "w-full"}`} />
         <Field label="Alt text" htmlFor="img-alt" hint="Required. Describe what the image shows."><Input id="img-alt" value={alt} onChange={(e) => setAlt(e.target.value)} maxLength={300} data-autofocus /></Field>
         <Field label="Caption (optional)" htmlFor="img-caption"><Input id="img-caption" value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={300} /></Field>
         <div className="grid gap-4 sm:grid-cols-2">

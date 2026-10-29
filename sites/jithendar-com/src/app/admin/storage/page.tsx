@@ -71,10 +71,10 @@ export default async function StoragePage({ searchParams }: { searchParams: Flas
       <div className="space-y-6">
         <Card>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-semibold text-ink dark:text-white">Media storage (Cloudflare R2)</h2>
+            <h2 className="font-semibold text-fg">Media storage (Cloudflare R2)</h2>
             <StatusPill status={s?.verifiedAt ? "ok" : s ? "degraded" : "not configured"} />
           </div>
-          <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+          <p className="mb-4 text-sm text-fg-muted">
             Files are stored as <code className="break-all text-xs">{MEDIA_ROOT}/&#123;type&#125;/&#123;yyyy&#125;/&#123;mm&#125;/&#123;id&#125;.&#123;ext&#125;</code> in the bucket.
             Readers always use <code className="text-xs">/media/…</code> links on this site; large videos and documents are redirected to the public URL when one is set.
           </p>
@@ -104,15 +104,15 @@ export default async function StoragePage({ searchParams }: { searchParams: Flas
 
         {(migration.legacy > 0 || migration.migrated > 0) && (
           <Card>
-            <h2 className="font-semibold text-ink dark:text-white">Move existing media from S3 to R2</h2>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            <h2 className="font-semibold text-fg">Move existing media from S3 to R2</h2>
+            <p className="mt-2 text-sm text-fg-muted">
               {migration.legacy} file(s) are still read from the old S3 bucket; {migration.migrated} have been copied to R2. Copying is resumable (25 per run), verified, and never deletes
               anything from S3. Links do not change: posts keep using <code className="text-xs">/media/&#123;id&#125;/…</code>.
             </p>
             {!migration.sourceConfigured && <div className="mt-4"><Alert>The legacy S3 configuration is missing, so files cannot be copied or rolled back.</Alert></div>}
             <div className="mt-4 flex flex-wrap gap-2">
               {migration.legacy > 0 && (
-                <Link href="/admin/storage?plan=1" className="inline-flex items-center rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold dark:border-white/15">
+                <Link href="/admin/storage?plan=1" className="inline-flex items-center rounded-xl border border-line-strong px-4 py-2.5 text-sm font-semibold">
                   Dry run
                 </Link>
               )}
@@ -122,7 +122,7 @@ export default async function StoragePage({ searchParams }: { searchParams: Flas
                 </form>
               )}
               {migration.migrated > 0 && (
-                <a href="/api/admin/media-migration" download className="inline-flex items-center rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold dark:border-white/15">
+                <a href="/api/admin/media-migration" download className="inline-flex items-center rounded-xl border border-line-strong px-4 py-2.5 text-sm font-semibold">
                   Download manifest
                 </a>
               )}
@@ -151,7 +151,7 @@ export default async function StoragePage({ searchParams }: { searchParams: Flas
 
         <Card>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-semibold text-ink dark:text-white">Email (Amazon SES)</h2>
+            <h2 className="font-semibold text-fg">Email (Amazon SES)</h2>
             <StatusPill status={e?.verifiedAt ? "ok" : e ? "degraded" : "not configured"} />
           </div>
           <form action={saveEmail} className="grid gap-4 sm:grid-cols-2">

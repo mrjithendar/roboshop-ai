@@ -20,6 +20,6 @@ spec:
   source:
     repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
-    path: roboshop/observability/prometheus
+    path: observability/prometheus
     helm:
       releaseName: prometheus

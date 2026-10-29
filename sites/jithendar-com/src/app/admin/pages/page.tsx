@@ -24,7 +24,7 @@ export default async function PagesPage({ searchParams }: { searchParams: Promis
       <AdminHeader
         title="Pages"
         description="About, contact, policies and other standalone pages."
-        actions={<Link href="/admin/pages/new" className="inline-flex items-center rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-ink">New page</Link>}
+        actions={<Link href="/admin/pages/new" className="inline-flex items-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent">New page</Link>}
       />
       {missing.length > 0 && !trash && (
         <div className="mb-6 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-100">
@@ -40,12 +40,12 @@ export default async function PagesPage({ searchParams }: { searchParams: Promis
       )}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <nav aria-label="View" className="flex gap-1 text-sm">
-          <Link href="/admin/pages" aria-current={!trash ? "page" : undefined} className={`rounded-full px-3 py-1.5 font-medium ${!trash ? "bg-ink text-white dark:bg-white dark:text-ink" : "text-slate-600 dark:text-slate-300"}`}>Pages</Link>
-          <Link href="/admin/pages?view=trash" aria-current={trash ? "page" : undefined} className={`rounded-full px-3 py-1.5 font-medium ${trash ? "bg-ink text-white dark:bg-white dark:text-ink" : "text-slate-600 dark:text-slate-300"}`}>Trash</Link>
+          <Link href="/admin/pages" aria-current={!trash ? "page" : undefined} className={`rounded-full px-3 py-1.5 font-medium ${!trash ? "bg-accent text-on-accent" : "text-fg-muted"}`}>Pages</Link>
+          <Link href="/admin/pages?view=trash" aria-current={trash ? "page" : undefined} className={`rounded-full px-3 py-1.5 font-medium ${trash ? "bg-accent text-on-accent" : "text-fg-muted"}`}>Trash</Link>
         </nav>
         <form className="ml-auto flex gap-2">
           {trash && <input type="hidden" name="view" value="trash" />}
-          <input name="q" defaultValue={q} placeholder="Search pages" aria-label="Search pages" className="min-h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-white/15 dark:bg-surface-dark-raised" />
+          <input name="q" defaultValue={q} placeholder="Search pages" aria-label="Search pages" className="min-h-10 rounded-xl border border-line-strong bg-surface px-3 text-sm" />
         </form>
       </div>
       <Table head={<tr><th className={th}>Page</th><th className={th}>URL</th><th className={th}>Order</th><th className={th}>{trash ? "Trashed" : "Last saved"}</th></tr>}>
@@ -55,7 +55,7 @@ export default async function PagesPage({ searchParams }: { searchParams: Promis
         {pages.map((p) => (
           <tr key={p.slug}>
             <td className={`${td} min-w-48`}>
-              {trash ? <span className="font-medium">{p.title}</span> : <Link href={`/admin/pages/${p.slug}`} className="font-medium text-ink hover:underline dark:text-white">{p.title}</Link>}
+              {trash ? <span className="font-medium">{p.title}</span> : <Link href={`/admin/pages/${p.slug}`} className="font-medium text-fg hover:underline">{p.title}</Link>}
               <PageRowActions slug={p.slug} trash={trash} />
             </td>
             <td className={`${td} font-mono text-xs`}>/{p.slug}</td>

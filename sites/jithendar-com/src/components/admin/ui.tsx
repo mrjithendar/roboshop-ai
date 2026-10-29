@@ -2,26 +2,26 @@ import type { ReactNode } from "react";
 
 export function AdminHeader({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-ink dark:text-white">{title}</h1>
-        {description && <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{description}</p>}
+    <div className="mb-8 flex flex-col gap-4 border-b border-line pb-6 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0">
+        <h1 className="text-2xl font-semibold tracking-tight text-fg [overflow-wrap:anywhere]">{title}</h1>
+        {description && <p className="mt-1.5 max-w-2xl text-[0.9375rem] leading-6 text-fg-muted">{description}</p>}
       </div>
-      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+      {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
     </div>
   );
 }
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-surface-dark-raised ${className}`}>{children}</div>;
+  return <div className={`rounded-xl border border-line bg-surface p-5 sm:p-6 ${className}`}>{children}</div>;
 }
 
 export function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: ReactNode }) {
   return (
     <Card>
-      <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>
-      <p className="mt-2 text-3xl font-bold tracking-tight text-ink dark:text-white">{value}</p>
-      {hint && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{hint}</p>}
+      <p className="text-sm text-fg-subtle">{label}</p>
+      <p className="mt-1.5 text-3xl font-semibold tracking-tight text-fg tabular-nums">{value}</p>
+      {hint && <p className="mt-2 text-sm text-fg-subtle">{hint}</p>}
     </Card>
   );
 }
@@ -29,20 +29,20 @@ export function Stat({ label, value, hint }: { label: string; value: ReactNode; 
 const statusTones: Record<string, string> = {
   published: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300",
   review: "bg-amber-50 text-amber-800 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-300",
-  draft: "bg-slate-100 text-slate-700 ring-slate-600/20 dark:bg-white/10 dark:text-slate-300",
-  archived: "bg-slate-100 text-slate-500 ring-slate-600/10 dark:bg-white/5 dark:text-slate-400",
+  draft: "bg-surface-sunken text-fg-muted ring-slate-600/20",
+  archived: "bg-slate-100 text-fg-subtle ring-slate-600/10 dark:bg-white/5",
   pending: "bg-amber-50 text-amber-800 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-300",
   approved: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300",
-  rejected: "bg-slate-100 text-slate-600 ring-slate-600/20 dark:bg-white/10 dark:text-slate-300",
+  rejected: "bg-surface-sunken text-fg-muted ring-slate-600/20",
   spam: "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-500/10 dark:text-red-300",
-  new: "bg-brand-50 text-brand-700 ring-brand-600/20 dark:bg-brand-500/10 dark:text-brand-300",
-  read: "bg-slate-100 text-slate-700 ring-slate-600/20 dark:bg-white/10 dark:text-slate-300",
+  new: "bg-brand-50 text-accent-text ring-brand-600/20 dark:bg-brand-500/10",
+  read: "bg-surface-sunken text-fg-muted ring-slate-600/20",
   ok: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300",
   degraded: "bg-amber-50 text-amber-800 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-300",
   down: "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-500/10 dark:text-red-300",
   scheduled: "bg-sky-50 text-sky-800 ring-sky-600/20 dark:bg-sky-500/10 dark:text-sky-300",
   trash: "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-500/10 dark:text-red-300",
-  "not configured": "bg-slate-100 text-slate-600 ring-slate-600/20 dark:bg-white/10 dark:text-slate-300",
+  "not configured": "bg-surface-sunken text-fg-muted ring-slate-600/20",
 };
 
 export function StatusPill({ status }: { status: string }) {
@@ -53,15 +53,15 @@ export function StatusPill({ status }: { status: string }) {
   );
 }
 
-export const th = "px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400";
-export const td = "px-4 py-3 text-sm text-slate-700 dark:text-slate-300";
+export const th = "whitespace-nowrap px-4 py-2.5 text-left text-xs font-semibold text-fg-subtle";
+export const td = "px-4 py-3 align-top text-sm text-fg-muted";
 
 export function Table({ head, children }: { head: ReactNode; children: ReactNode }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-surface-dark-raised">
-      <table className="min-w-full divide-y divide-slate-200 dark:divide-white/10">
-        <thead className="bg-slate-50 dark:bg-white/[0.03]">{head}</thead>
-        <tbody className="divide-y divide-slate-100 dark:divide-white/5">{children}</tbody>
+    <div className="overflow-x-auto rounded-xl border border-line bg-surface" tabIndex={0} role="region" aria-label="Table (scrolls sideways)">
+      <table className="min-w-full divide-y divide-line">
+        <thead className="bg-surface-muted">{head}</thead>
+        <tbody className="divide-y divide-line [&>tr]:transition-colors [&>tr:hover]:bg-surface-muted">{children}</tbody>
       </table>
     </div>
   );

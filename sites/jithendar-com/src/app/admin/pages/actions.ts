@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { run, staffActor, type ActionResult } from "@/lib/admin";
+import { editorActor, run, staffActor, type ActionResult } from "@/lib/admin";
 import { ConflictError, PostError } from "@/lib/posts";
 import { clearAutosave, getAutosave, getRevision, listRevisions, saveAutosave } from "@/lib/revisions";
 import { deletePage, pageRowToForm, restorePage, savePage, trashPage, type PageFormValue } from "@/lib/site-pages";
@@ -11,8 +11,8 @@ export type PageSaveResult =
   | { ok: false; error: string; issues?: string[]; conflict?: { version: number; savedAt: string } };
 
 export async function savePageAction(originalSlug: string | null, data: PageFormValue, baseVersion?: number): Promise<PageSaveResult> {
-  const actor = await staffActor();
   try {
+    const actor = await editorActor();
     const row = await savePage(actor, originalSlug, data, { baseVersion });
     return { ok: true, slug: row.slug, version: row.version, savedAt: row.savedAt.toISOString(), message: "Saved. The page is live." };
   } catch (error) {
@@ -25,11 +25,11 @@ export async function savePageAction(originalSlug: string | null, data: PageForm
 }
 
 export async function autosavePageAction(slug: string, baseVersion: number, data: PageFormValue) {
-  const actor = await staffActor();
   try {
+    const actor = await editorActor();
     return { ok: true as const, savedAt: (await saveAutosave(actor, "page", slug, baseVersion, data)).toISOString() };
-  } catch {
-    return { ok: false as const, error: "Autosave failed." };
+  } catch (error) {
+    return { ok: false as const, error: error instanceof PostError ? error.message : "Autosave failed." };
   }
 }
 

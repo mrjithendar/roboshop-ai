@@ -89,7 +89,7 @@ export default async function MediaPage({ searchParams }: { searchParams: FlashP
             key={k ?? "all"}
             href={href(k)}
             aria-current={k === kind ? "page" : undefined}
-            className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium capitalize ${k === kind ? "bg-ink text-white dark:bg-white dark:text-ink" : "bg-white text-slate-600 ring-1 ring-slate-200 dark:bg-white/5 dark:text-slate-300 dark:ring-white/10"}`}
+            className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium capitalize ${k === kind ? "bg-fg text-canvas" : "bg-white text-fg-muted ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10"}`}
           >
             {k ?? "All"}
           </Link>
@@ -104,7 +104,7 @@ export default async function MediaPage({ searchParams }: { searchParams: FlashP
             const src = mediaSrc(m);
             const code = snippet(m);
             return (
-              <li key={m.id} className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-surface-dark-raised">
+              <li key={m.id} className="flex flex-col overflow-hidden rounded-xl border border-line bg-surface">
                 {m.kind === "images" && m.visibility === "public" ? (
                   // eslint-disable-next-line @next/next/no-img-element -- admin thumbnail
                   <img src={src} alt={m.alt} loading="lazy" width={m.width ?? undefined} height={m.height ?? undefined} className="aspect-[4/3] w-full bg-slate-100 object-cover dark:bg-white/5" />
@@ -115,7 +115,7 @@ export default async function MediaPage({ searchParams }: { searchParams: FlashP
                   </a>
                 )}
                 <div className="flex flex-1 flex-col gap-1 p-3 text-xs">
-                  <p className="truncate font-medium text-ink dark:text-white" title={m.alt || m.filename}>{m.alt || m.filename}</p>
+                  <p className="truncate font-medium text-fg" title={m.alt || m.filename}>{m.alt || m.filename}</p>
                   <p className="text-slate-500">
                     {m.width && m.height ? `${m.width}×${m.height} · ` : ""}
                     {size(m.sizeBytes)} · {m.kind}

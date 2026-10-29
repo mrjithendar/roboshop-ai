@@ -1,15 +1,14 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Turnstile } from "@/components/Turnstile";
 import { Alert, Button, Field, Input } from "@/components/ui/form";
-import { authClient, safeNext } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth-client";
 import { PASSWORD_HINT, PASSWORD_MIN, passwordProblem } from "@/lib/password-policy";
 
-export function LoginForm({ siteKey, registrationOpen }: { siteKey: string | undefined; registrationOpen: boolean }) {
+export function LoginForm({ siteKey, registrationOpen, next }: { siteKey: string | undefined; registrationOpen: boolean; next: string }) {
   const router = useRouter();
-  const params = useSearchParams();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [token, setToken] = useState<string | null>(null);
   const [resetKey, setResetKey] = useState(0);
@@ -44,28 +43,27 @@ export function LoginForm({ siteKey, registrationOpen }: { siteKey: string | und
       setResetKey((k) => k + 1); // tokens are single-use
       return;
     }
-    router.push(safeNext(params.get("next")));
+    router.push(next);
     router.refresh();
   }
 
-  if (!siteKey) return <Alert>Sign-in is unavailable: human verification is not configured.</Alert>;
+  if (!siteKey) return <Alert tone="info">Email sign-in is unavailable: human verification is not configured.</Alert>;
 
   return (
     <div>
       {registrationOpen && (
-        <div role="tablist" aria-label="Account" className="mb-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1 dark:bg-white/5">
+        <div role="group" aria-label="Email sign-in or new account" className="mb-5 grid grid-cols-2 rounded-lg bg-surface-sunken p-1">
           {(["signin", "signup"] as const).map((m) => (
             <button
               key={m}
               type="button"
-              role="tab"
-              aria-selected={mode === m}
+              aria-pressed={mode === m}
               onClick={() => {
                 setMode(m);
                 setError(null);
               }}
-              className={`rounded-lg py-2 text-sm font-semibold transition-colors ${
-                mode === m ? "bg-white text-ink shadow-sm dark:bg-surface-dark-raised dark:text-white" : "text-slate-600 dark:text-slate-400"
+              className={`min-h-10 rounded-md text-sm font-semibold transition-colors ${
+                mode === m ? "bg-surface text-fg shadow-sm" : "text-fg-muted hover:text-fg"
               }`}
             >
               {m === "signin" ? "Sign in" : "Create account"}
@@ -87,8 +85,8 @@ export function LoginForm({ siteKey, registrationOpen }: { siteKey: string | und
         </Field>
         <Turnstile siteKey={siteKey} onToken={setToken} resetKey={resetKey} />
         {error && <Alert>{error}</Alert>}
-        <Button type="submit" disabled={busy} className="w-full">
-          {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
+        <Button type="submit" loading={busy} size="lg" className="w-full">
+          {busy ? "Please wait…" : mode === "signin" ? "Sign in with email" : "Create account"}
         </Button>
       </form>
     </div>

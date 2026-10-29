@@ -10,8 +10,8 @@ export async function Comments({ postId, path }: { postId: string; path: string 
   if (!(await getSettings()).features.comments) return null;
   const comments = await approvedComments(postId);
   return (
-    <section id="comments" aria-labelledby="comments-title" className="mt-14 scroll-mt-24 border-t border-slate-200 pt-10 dark:border-white/10">
-      <h2 id="comments-title" className="text-2xl font-bold tracking-tight text-ink dark:text-white">
+    <section id="comments" aria-labelledby="comments-title" className="mt-14 scroll-mt-24 border-t border-line pt-10">
+      <h2 id="comments-title" className="text-2xl font-bold tracking-tight text-fg">
         {comments.length > 0 ? `Comments (${comments.length})` : "Comments"}
       </h2>
       <ol className="mt-6 space-y-6">
@@ -20,10 +20,10 @@ export async function Comments({ postId, path }: { postId: string; path: string 
             <Avatar name={c.author} size="sm" />
             <div className="min-w-0">
               <p className="text-sm">
-                <span className="font-semibold text-ink dark:text-white">{c.author}</span>{" "}
+                <span className="font-semibold text-fg">{c.author}</span>{" "}
                 <time dateTime={c.createdAt.toISOString()} className="text-slate-500">{formatDateTime(c.createdAt.toISOString())}</time>
               </p>
-              <p className="mt-1 whitespace-pre-line break-words text-slate-700 dark:text-slate-300">{c.body}</p>
+              <p className="mt-1 whitespace-pre-line break-words text-fg-muted">{c.body}</p>
             </div>
           </li>
         ))}

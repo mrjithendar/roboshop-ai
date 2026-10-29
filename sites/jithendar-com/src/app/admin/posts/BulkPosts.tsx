@@ -75,7 +75,7 @@ export function BulkPosts({ rows, trash = false }: { rows: PostRowView[]; trash?
   return (
     <div className="space-y-4">
       {selected.size > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-surface-dark-raised">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface p-3">
           <span className="mr-2 text-sm font-medium">{selected.size} selected</span>
           {trash ? (
             <>
@@ -99,9 +99,9 @@ export function BulkPosts({ rows, trash = false }: { rows: PostRowView[]; trash?
           {message.issues && <ul className="mt-2 list-disc pl-5">{message.issues.map((i) => <li key={i}>{i}</li>)}</ul>}
         </Alert>
       )}
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-surface-dark-raised">
-        <table className="min-w-full divide-y divide-slate-200 dark:divide-white/10">
-          <thead className="bg-slate-50 dark:bg-white/[0.03]">
+      <div className="overflow-x-auto rounded-2xl border border-line bg-surface shadow-sm">
+        <table className="min-w-full divide-y divide-line">
+          <thead className="bg-surface-muted">
             <tr>
               <th className={th}>
                 <input type="checkbox" aria-label="Select all posts" checked={all} onChange={() => setSelected(all ? new Set() : new Set(rows.map((r) => r.id)))} />
@@ -113,7 +113,7 @@ export function BulkPosts({ rows, trash = false }: { rows: PostRowView[]; trash?
               <th className={th}>{trash ? "Trashed" : "Last saved"}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+          <tbody className="divide-y divide-line">
             {rows.length === 0 && (
               <tr>
                 <td className={td} colSpan={6}>No posts match.</td>
@@ -126,9 +126,9 @@ export function BulkPosts({ rows, trash = false }: { rows: PostRowView[]; trash?
                 </td>
                 <td className={`${td} min-w-56`}>
                   {trash ? (
-                    <span className="font-medium text-ink dark:text-white">{r.title}</span>
+                    <span className="font-medium text-fg">{r.title}</span>
                   ) : (
-                    <Link href={`/admin/posts/${r.id}`} className="flex items-center gap-3 font-medium text-ink hover:underline dark:text-white">
+                    <Link href={`/admin/posts/${r.id}`} className="flex items-center gap-3 font-medium text-fg hover:underline">
                       {r.cover ? (
                         // eslint-disable-next-line @next/next/no-img-element -- admin thumbnail
                         <img src={r.cover} alt="" className="h-10 w-16 shrink-0 rounded-md object-cover" />
@@ -141,7 +141,7 @@ export function BulkPosts({ rows, trash = false }: { rows: PostRowView[]; trash?
                   <div className="mt-1 flex flex-wrap gap-x-3 text-xs">
                     {trash ? (
                       <>
-                        <button type="button" className="font-semibold text-brand-700 underline dark:text-brand-300" onClick={() => act("restore", [r.id])}>Restore</button>
+                        <button type="button" className="font-semibold text-accent-text underline" onClick={() => act("restore", [r.id])}>Restore</button>
                         <button type="button" className="font-semibold text-red-600 underline" onClick={() => act("delete", [r.id])}>Delete permanently</button>
                       </>
                     ) : (

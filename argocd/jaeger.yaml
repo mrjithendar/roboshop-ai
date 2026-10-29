@@ -20,6 +20,6 @@ spec:
   source:
     repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
-    path: roboshop/observability/jaeger
+    path: observability/jaeger
     directory:
       include: '{jaeger-service-minikube.yaml,jaeger-deployment-minikube.yaml}'

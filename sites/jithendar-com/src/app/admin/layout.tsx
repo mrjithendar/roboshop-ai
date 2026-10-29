@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AdminNav, type NavItem } from "@/components/admin/AdminNav";
-import { LogoMark } from "@/components/Logo";
 import { getDb, schema } from "@/db";
 import { requireRole } from "@/lib/session";
 import { SignOutButton } from "../account/SignOutButton";
@@ -44,27 +43,25 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black/30">
-      <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8">
-        <aside className="lg:sticky lg:top-24 lg:max-h-[calc(100dvh-7rem)] lg:self-start lg:overflow-y-auto">
-          <Link href="/admin" className="mb-4 flex items-center gap-2 px-1 lg:mb-6 lg:px-3">
-            <LogoMark className="h-7 w-7" />
-            <span className="font-semibold text-ink dark:text-white">Admin</span>
+    <div data-admin-shell className="min-h-[calc(100dvh-var(--spacing-header))] bg-surface-muted lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]">
+      <aside className="border-b border-line bg-canvas lg:sticky lg:top-header lg:h-[calc(100dvh-var(--spacing-header))] lg:overflow-y-auto lg:border-b-0 lg:border-r">
+        <div className="flex flex-col gap-3 px-4 py-3 sm:px-6 lg:min-h-full lg:gap-6 lg:px-4 lg:py-6">
+          <Link href="/admin" className="hidden items-center gap-2 px-3 lg:flex">
+            <span className="text-sm font-semibold text-fg">Admin</span>
+            <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-xs font-medium capitalize text-fg-muted">{user.role}</span>
           </Link>
           <AdminNav items={items} />
-          <div className="mt-3 flex items-center justify-between gap-3 px-1 text-sm lg:mt-8 lg:block lg:border-t lg:border-slate-200 lg:px-3 lg:pt-6 lg:dark:border-white/10">
-            <div className="min-w-0">
-              <p className="truncate font-medium text-ink dark:text-white">{user.name}</p>
-              <p className="truncate text-slate-500 dark:text-slate-400">
-                {user.email} · {user.role}
-              </p>
-            </div>
-            <div className="shrink-0 lg:mt-3">
+          <div className="mt-auto hidden border-t border-line px-3 pt-4 text-sm lg:block">
+            <p className="truncate font-medium text-fg" title={user.name}>{user.name}</p>
+            <p className="truncate text-fg-subtle" title={user.email}>{user.email}</p>
+            <div className="mt-3">
               <SignOutButton />
             </div>
           </div>
-        </aside>
-        <div className="min-w-0">{children}</div>
+        </div>
+      </aside>
+      <div className="min-w-0 px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
+        <div className="mx-auto max-w-6xl">{children}</div>
       </div>
     </div>
   );

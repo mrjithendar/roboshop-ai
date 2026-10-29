@@ -20,4 +20,4 @@ spec:
   source:
     repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
-    path: roboshop/observability/otel-collector
+    path: observability/otel-collector

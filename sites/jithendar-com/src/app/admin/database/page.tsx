@@ -47,13 +47,13 @@ export default async function DatabasePage({ searchParams }: { searchParams: Fla
       </div>
 
       <Card className="mb-6">
-        <h2 className="mb-1 text-lg font-semibold text-ink dark:text-white">Connection</h2>
+        <h2 className="mb-1 text-lg font-semibold text-fg">Connection</h2>
         <p className="mb-4 font-mono text-xs text-slate-500">{conn.target}</p>
         <dl className="grid gap-4 sm:grid-cols-4">
           {Object.entries(conn.details).map(([k, v]) => (
             <div key={k}>
               <dt className="text-xs uppercase tracking-wider text-slate-500">{k}</dt>
-              <dd className="mt-1 text-sm text-ink dark:text-white">{v}</dd>
+              <dd className="mt-1 text-sm text-fg">{v}</dd>
             </div>
           ))}
         </dl>
@@ -65,24 +65,24 @@ export default async function DatabasePage({ searchParams }: { searchParams: Fla
       {browse ? (
         <Card className="mb-6">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-ink dark:text-white">
+            <h2 className="text-lg font-semibold text-fg">
               <code>{browse.table}</code> <span className="text-sm font-normal text-slate-500">· {browse.total.toLocaleString()} rows · page {browse.page} of {pages}</span>
             </h2>
             <div className="flex gap-2 text-sm">
-              {browse.page > 1 && <Link className="rounded-lg border border-slate-300 px-3 py-1.5 dark:border-white/15" href={`/admin/database?table=${browse.table}&page=${browse.page - 1}`}>← Previous</Link>}
-              {browse.page < pages && <Link className="rounded-lg border border-slate-300 px-3 py-1.5 dark:border-white/15" href={`/admin/database?table=${browse.table}&page=${browse.page + 1}`}>Next →</Link>}
-              <Link className="rounded-lg border border-slate-300 px-3 py-1.5 dark:border-white/15" href="/admin/database">Close</Link>
+              {browse.page > 1 && <Link className="rounded-lg border border-line-strong px-3 py-1.5" href={`/admin/database?table=${browse.table}&page=${browse.page - 1}`}>← Previous</Link>}
+              {browse.page < pages && <Link className="rounded-lg border border-line-strong px-3 py-1.5" href={`/admin/database?table=${browse.table}&page=${browse.page + 1}`}>Next →</Link>}
+              <Link className="rounded-lg border border-line-strong px-3 py-1.5" href="/admin/database">Close</Link>
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-xs dark:divide-white/10">
+            <table className="min-w-full divide-y divide-line text-xs">
               <thead>
                 <tr>{browse.columns.map((c) => <th key={c} className="whitespace-nowrap px-3 py-2 text-left font-semibold text-slate-500">{c}</th>)}</tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+              <tbody className="divide-y divide-line">
                 {browse.rows.map((r, i) => (
                   <tr key={i}>
-                    {browse.columns.map((c) => <td key={c} className="max-w-xs truncate whitespace-nowrap px-3 py-2 font-mono text-slate-700 dark:text-slate-300" title={cell(r[c])}>{cell(r[c])}</td>)}
+                    {browse.columns.map((c) => <td key={c} className="max-w-xs truncate whitespace-nowrap px-3 py-2 font-mono text-fg-muted" title={cell(r[c])}>{cell(r[c])}</td>)}
                   </tr>
                 ))}
                 {browse.rows.length === 0 && <tr><td className="px-3 py-6 text-slate-500" colSpan={browse.columns.length}>No rows.</td></tr>}
@@ -106,7 +106,7 @@ export default async function DatabasePage({ searchParams }: { searchParams: Fla
       </Table>
 
       <Card className="mt-6">
-        <h2 className="mb-1 text-lg font-semibold text-ink dark:text-white">Maintenance</h2>
+        <h2 className="mb-1 text-lg font-semibold text-fg">Maintenance</h2>
         <p className="mb-4 text-sm text-slate-500">Safe housekeeping. Each run is recorded in the audit log. Postgres also autovacuums on its own.</p>
         <div className="flex flex-wrap gap-3">
           {Object.entries(MAINTENANCE).map(([task, label]) => (

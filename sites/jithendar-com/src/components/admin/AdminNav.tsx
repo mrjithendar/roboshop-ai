@@ -29,18 +29,18 @@ export function AdminNav({ items }: { items: NavItem[] }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls="admin-nav"
-        className="flex h-11 w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-ink shadow-sm lg:hidden dark:border-white/10 dark:bg-surface-dark-raised dark:text-white"
+        className="flex h-11 w-full items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 text-sm font-semibold text-fg lg:hidden"
       >
         <span className="flex min-w-0 items-center gap-2">
           {open ? <CloseIcon className="h-4 w-4 shrink-0" /> : <MenuIcon className="h-4 w-4 shrink-0" />}
           <span className="truncate">Menu{current ? ` · ${current.label}` : ""}</span>
         </span>
-        {pending > 0 && <span className="rounded-full bg-brand-600 px-2 py-0.5 text-xs font-semibold text-white">{pending}</span>}
+        {pending > 0 && <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-on-accent">{pending}<span className="sr-only"> items need attention</span></span>}
       </button>
-      <nav id="admin-nav" aria-label="Admin" className={`${open ? "mt-3 grid" : "hidden"} gap-6 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-2 lg:mt-0 lg:grid lg:grid-cols-1 lg:border-0 lg:bg-transparent lg:p-0 dark:border-white/10 dark:bg-surface-dark-raised lg:dark:bg-transparent`}>
+      <nav id="admin-nav" aria-label="Admin" className={`${open ? "mt-1 grid" : "hidden"} gap-5 rounded-lg border border-line bg-surface p-3 sm:grid-cols-2 lg:mt-0 lg:grid lg:grid-cols-1 lg:border-0 lg:bg-transparent lg:p-0`}>
         {sections.map((section) => (
           <div key={section}>
-            <p className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{section}</p>
+            <p className="px-3 text-xs font-semibold text-fg-subtle">{section}</p>
             <ul className="mt-2 space-y-0.5">
               {items
                 .filter((i) => i.section === section)
@@ -51,12 +51,12 @@ export function AdminNav({ items }: { items: NavItem[] }) {
                       <Link
                         href={item.href}
                         aria-current={active ? "page" : undefined}
-                        className={`flex min-h-10 items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          active ? "bg-slate-100 text-ink shadow-sm lg:bg-white dark:bg-white/10 dark:text-white" : "text-slate-600 hover:bg-slate-50 hover:text-ink lg:hover:bg-white/60 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
+                        className={`flex min-h-9 items-center justify-between rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                          active ? "bg-accent-soft text-accent-text" : "text-fg-muted hover:bg-surface-sunken hover:text-fg"
                         }`}
                       >
                         {item.label}
-                        {item.badge ? <span className="rounded-full bg-brand-600 px-2 py-0.5 text-xs font-semibold text-white">{item.badge}</span> : null}
+                        {item.badge ? <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-on-accent">{item.badge}<span className="sr-only"> pending</span></span> : null}
                       </Link>
                     </li>
                   );

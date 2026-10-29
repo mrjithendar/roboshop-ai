@@ -34,14 +34,14 @@ export async function PageView({ page, notice, after }: { page: Page; notice?: R
         crumbs={crumbs}
       >
         {fm.updatedAt && (
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-fg-subtle">
             Last updated <time dateTime={fm.updatedAt}>{formatDate(fm.updatedAt)}</time>
           </p>
         )}
       </PageHeader>
-      <Container className="py-14">
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-12">
-          <nav aria-label="Publication info" className="min-w-0 lg:sticky lg:top-24 lg:self-start">
+      <Container className="pt-8 sm:pt-12">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-16">
+          <nav aria-label="Publication info" className="min-w-0 lg:sticky lg:top-[calc(var(--spacing-header)+2rem)] lg:self-start">
             <ul className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:thin] lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0 lg:pb-0">
               {siblings.map((p) => {
                 const current = p.slug === page.slug;
@@ -50,10 +50,10 @@ export async function PageView({ page, notice, after }: { page: Page; notice?: R
                     <Link
                       href={p.path}
                       aria-current={current ? "page" : undefined}
-                      className={`block whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors lg:whitespace-normal ${
+                      className={`flex min-h-10 items-center whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors lg:whitespace-normal ${
                         current
-                          ? "bg-brand-50 text-brand-800 dark:bg-brand-500/15 dark:text-brand-200"
-                          : "text-slate-600 hover:bg-slate-50 hover:text-ink dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
+                          ? "bg-accent-soft text-accent-text"
+                          : "text-fg-muted hover:bg-surface-sunken hover:text-fg"
                       }`}
                     >
                       {p.frontmatter.title}
@@ -63,8 +63,8 @@ export async function PageView({ page, notice, after }: { page: Page; notice?: R
               })}
             </ul>
           </nav>
-          <div className="min-w-0 max-w-3xl">
-            <div className="prose prose-slate prose-lg max-w-none dark:prose-invert prose-headings:font-semibold prose-p:leading-8">
+          <div className="min-w-0 max-w-reading">
+            <div className="article-body prose max-w-none dark:prose-invert">
               <Content components={mdxComponents} />
             </div>
             {after}

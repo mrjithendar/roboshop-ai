@@ -61,12 +61,12 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
       <AdminHeader
         title="Posts"
         description="Write, review, schedule and publish articles, news and projects."
-        actions={<Link href="/admin/posts/new" className="inline-flex items-center rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-ink">New post</Link>}
+        actions={<Link href="/admin/posts/new" className="inline-flex items-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent">New post</Link>}
       />
       <nav aria-label="Filter by status" className="-mx-1 mb-4 flex gap-1 overflow-x-auto px-1 pb-1 text-sm">
         {STATUSES.map(([value, label]) => (
           <Link key={value} href={href({ status: value, page: undefined })} aria-current={status === value ? "page" : undefined}
-            className={`shrink-0 rounded-full px-3 py-1.5 font-medium ${status === value ? "bg-ink text-white dark:bg-white dark:text-ink" : "text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/5"}`}>
+            className={`shrink-0 rounded-full px-3 py-1.5 font-medium ${status === value ? "bg-fg text-canvas" : "text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/5"}`}>
             {label} <span className="opacity-60">({value ? (counts[value] ?? 0) : allCount})</span>
           </Link>
         ))}
@@ -80,7 +80,7 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
           <option value="news">News</option>
           <option value="projects">Projects</option>
         </Select>
-        <button type="submit" className="min-h-11 rounded-xl border border-slate-300 px-4 text-sm font-semibold dark:border-white/15">Search</button>
+        <button type="submit" className="min-h-11 rounded-xl border border-line-strong px-4 text-sm font-semibold">Search</button>
       </form>
       <BulkPosts
         trash={status === "trash"}

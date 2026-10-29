@@ -33,7 +33,7 @@ export default async function CommentsPage({ searchParams }: { searchParams: Fla
       <nav aria-label="Filter comments" className="mb-6 flex flex-wrap gap-2">
         {(["pending", "approved", "rejected", "spam", "all"] as const).map((s) => (
           <Link key={s} href={`/admin/comments?status=${s}`} aria-current={s === status ? "page" : undefined}
-            className={`rounded-full px-3 py-1 text-sm font-medium capitalize ${s === status ? "bg-ink text-white dark:bg-white dark:text-ink" : "border border-slate-200 dark:border-white/10"}`}>
+            className={`rounded-full px-3 py-1 text-sm font-medium capitalize ${s === status ? "bg-fg text-canvas" : "border border-slate-200 dark:border-white/10"}`}>
             {s}
           </Link>
         ))}
@@ -44,12 +44,12 @@ export default async function CommentsPage({ searchParams }: { searchParams: Fla
           <Card key={c.id}>
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <p>
-                <span className="font-semibold text-ink dark:text-white">{author}</span> <span className="text-slate-500">({email})</span> on{" "}
+                <span className="font-semibold text-fg">{author}</span> <span className="text-slate-500">({email})</span> on{" "}
                 <Link href={`/${collection}/${slug}#comments`} target="_blank" className="underline">{post}</Link>
               </p>
               <span className="flex items-center gap-2 text-slate-500"><StatusPill status={c.status} />{formatDateTime(c.createdAt.toISOString())}</span>
             </div>
-            <p className="mt-3 whitespace-pre-line break-words text-slate-700 dark:text-slate-300">{c.body}</p>
+            <p className="mt-3 whitespace-pre-line break-words text-fg-muted">{c.body}</p>
             <form action={moderate} className="mt-4 flex flex-wrap gap-2">
               <input type="hidden" name="id" value={c.id} />
               <input type="hidden" name="back" value={status} />

@@ -16,7 +16,7 @@ export function PageRowActions({ slug, trash }: { slug: string; trash: boolean }
     <div className="mt-1 flex flex-wrap gap-x-3 text-xs">
       {trash ? (
         <>
-          <button type="button" className="font-semibold text-brand-700 underline dark:text-brand-300" onClick={() => run(restorePageAction, `Restore /${slug}?`)}>Restore</button>
+          <button type="button" className="font-semibold text-accent-text underline" onClick={() => run(restorePageAction, `Restore /${slug}?`)}>Restore</button>
           <button type="button" className="font-semibold text-red-600 underline" onClick={() => run(deletePageAction, `Permanently delete /${slug}? This cannot be undone.`)}>Delete permanently</button>
         </>
       ) : (

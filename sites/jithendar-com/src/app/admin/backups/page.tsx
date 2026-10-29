@@ -64,14 +64,14 @@ export default async function BackupsPage({ searchParams }: { searchParams: Flas
         actions={
           <>
             <form action={runNow}><Button type="submit">Back up now</Button></form>
-            <a href="/api/admin/backup" download className="inline-flex items-center rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold dark:border-white/15">Download backup</a>
+            <a href="/api/admin/backup" download className="inline-flex items-center rounded-xl border border-line-strong px-4 py-2.5 text-sm font-semibold">Download backup</a>
           </>
         }
       />
       <Flash ok={sp.ok} error={sp.error} />
       <div className="space-y-6">
         <Card>
-          <h2 className="mb-4 font-semibold text-ink dark:text-white">Schedule and encryption</h2>
+          <h2 className="mb-4 font-semibold text-fg">Schedule and encryption</h2>
           <form action={general} className="grid gap-4 sm:grid-cols-4">
             <Field label="Schedule" htmlFor="schedule">
               <Select id="schedule" name="schedule" defaultValue={b.schedule}><option value="off">Off (manual only)</option><option value="daily">Daily</option><option value="weekly">Weekly</option></Select>
@@ -86,7 +86,7 @@ export default async function BackupsPage({ searchParams }: { searchParams: Flas
         </Card>
 
         <Card>
-          <div className="mb-4 flex items-center justify-between"><h2 className="font-semibold text-ink dark:text-white">Amazon S3 / S3-compatible</h2><StatusPill status={b.s3?.enabled ? "ok" : b.s3 ? "read" : "not configured"} /></div>
+          <div className="mb-4 flex items-center justify-between"><h2 className="font-semibold text-fg">Amazon S3 / S3-compatible</h2><StatusPill status={b.s3?.enabled ? "ok" : b.s3 ? "read" : "not configured"} /></div>
           <form action={destination} className="grid gap-4 sm:grid-cols-2">
             <input type="hidden" name="kind" value="s3" />
             <Field label="Endpoint (empty for AWS)" htmlFor="b-endpoint"><Input id="b-endpoint" name="endpoint" defaultValue={b.s3?.endpoint ?? ""} /></Field>
@@ -102,7 +102,7 @@ export default async function BackupsPage({ searchParams }: { searchParams: Flas
         </Card>
 
         <Card>
-          <div className="mb-4 flex items-center justify-between"><h2 className="font-semibold text-ink dark:text-white">SFTP</h2><StatusPill status={b.sftp?.enabled ? "ok" : b.sftp ? "read" : "not configured"} /></div>
+          <div className="mb-4 flex items-center justify-between"><h2 className="font-semibold text-fg">SFTP</h2><StatusPill status={b.sftp?.enabled ? "ok" : b.sftp ? "read" : "not configured"} /></div>
           <form action={destination} className="grid gap-4 sm:grid-cols-2">
             <input type="hidden" name="kind" value="sftp" />
             <Field label="Host" htmlFor="s-host"><Input id="s-host" name="host" defaultValue={b.sftp?.host ?? ""} /></Field>
@@ -117,7 +117,7 @@ export default async function BackupsPage({ searchParams }: { searchParams: Flas
         </Card>
 
         <Card>
-          <div className="mb-4 flex items-center justify-between"><h2 className="font-semibold text-ink dark:text-white">Google Drive</h2><StatusPill status={b.gdrive?.enabled ? "ok" : b.gdrive ? "read" : "not configured"} /></div>
+          <div className="mb-4 flex items-center justify-between"><h2 className="font-semibold text-fg">Google Drive</h2><StatusPill status={b.gdrive?.enabled ? "ok" : b.gdrive ? "read" : "not configured"} /></div>
           <form action={destination} className="grid gap-4 sm:grid-cols-2">
             <input type="hidden" name="kind" value="gdrive" />
             <Field label="Folder ID" htmlFor="g-folder" hint="From the folder URL: drive.google.com/drive/folders/<ID>"><Input id="g-folder" name="folderId" defaultValue={b.gdrive?.folderId ?? ""} /></Field>
@@ -130,7 +130,7 @@ export default async function BackupsPage({ searchParams }: { searchParams: Flas
         </Card>
 
         <div>
-          <h2 className="mb-3 font-semibold text-ink dark:text-white">Recent runs</h2>
+          <h2 className="mb-3 font-semibold text-fg">Recent runs</h2>
           <Table head={<tr><th className={th}>Started</th><th className={th}>Trigger</th><th className={th}>Status</th><th className={th}>File</th><th className={th}>Destinations</th></tr>}>
             {runs.length === 0 && <tr><td className={td} colSpan={5}>No backups yet.</td></tr>}
             {runs.map((r) => (
