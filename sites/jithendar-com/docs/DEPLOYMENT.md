@@ -24,9 +24,11 @@ Secrets (never in Git), created once by `scripts/create-secrets.sh`:
 |---|---|
 | `jithendar-postgres` | `password` |
 | `jithendar-redis` | `password` |
-| `jithendar-com-env` | `DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_SECRET`, `SETTINGS_ENCRYPTION_KEY`, `ADMIN_BOOTSTRAP_TOKEN`, `METRICS_TOKEN`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, optional `SMTP_URL`, `MAIL_FROM` |
+| `jithendar-com-env` | `DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_SECRET`, `SETTINGS_ENCRYPTION_KEY`, `ADMIN_BOOTSTRAP_TOKEN`, `METRICS_TOKEN`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, optional `SMTP_URL`, `MAIL_FROM`; media: `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, optional `R2_PUBLIC_BASE_URL`; optional `GEMINI_API_KEY`, `GEMINI_IMAGE_MODEL` (added with `scripts/set-media-config.sh`) |
 
-Back up `SETTINGS_ENCRYPTION_KEY` with your database backups: it decrypts the stored S3/backup credentials.
+Back up `SETTINGS_ENCRYPTION_KEY` with your database backups: it decrypts the stored storage/backup credentials.
+Gemini limits (`GEMINI_IMAGE_*`) are plain env values in `deploy/base/deployment.yaml`. Media architecture,
+R2 bucket setup (CORS, lifecycle) and the S3 → R2 migration: see `docs/MEDIA.md`.
 
 ## First-time setup
 
@@ -34,7 +36,7 @@ Back up `SETTINGS_ENCRYPTION_KEY` with your database backups: it decrypts the st
 2. `sites/jithendar-com/scripts/create-secrets.sh mk4` and keep the printed setup token.
 3. `sites/deploy.sh` (creates Postgres and Redis, runs database migrations on start, deploys the site).
 4. Open `https://jithendar.com/setup`, enter the token, and create the admin account. This also imports the existing articles and pages. `/setup` disappears once an admin exists.
-5. In the admin, configure media storage (S3) before uploading images.
+5. Create the R2 bucket, CORS and lifecycle rules (`docs/MEDIA.md` → Setup), then `scripts/set-media-config.sh mk4` and restart the deployment. (Alternatively configure R2 under Admin → Storage.)
 
 ## Routing
 

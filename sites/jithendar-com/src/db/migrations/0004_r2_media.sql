@@ -1,7 +1,7 @@
 -- Media moves to Cloudflare R2. Existing rows keep pointing at the legacy S3 bucket until migrated.
+-- The default stays 's3-legacy': the app always writes 'r2' explicitly, so only an older image (after a
+-- rollback, still uploading to S3) relies on the default, and its rows are then labelled correctly.
 ALTER TABLE "media" ADD COLUMN "storage_backend" text DEFAULT 's3-legacy' NOT NULL;
---> statement-breakpoint
-ALTER TABLE "media" ALTER COLUMN "storage_backend" SET DEFAULT 'r2';
 --> statement-breakpoint
 ALTER TABLE "media" ADD COLUMN "legacy_key" text;
 --> statement-breakpoint

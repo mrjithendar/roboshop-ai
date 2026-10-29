@@ -1,5 +1,21 @@
 # Progress log — jithendar.com
 
+## Responsive pages, R2 media, Gemini "Generate image" (2026-10-29, owner request)
+
+**What changed**
+- Media storage moved from S3 to Cloudflare R2 (S3 API): keys `jithendar/www/media/{type}/{yyyy}/{mm}/{id}.{ext}`; images, video, audio, PDF; presigned direct uploads with server-side verification (size, SHA-256, magic bytes); private files via 5-minute signed links; legacy S3 rows still served until migrated; resumable, verified, non-destructive S3 → R2 migration with dry run, manifest and rollback (Admin → Storage). Details: `docs/MEDIA.md`.
+- "Generate image" beside the cover controls: Gemini Interactions API (model from `GEMINI_IMAGE_MODEL`), preview → Use as cover / Regenerate / Discard, alt text required, per-user hourly + concurrency and site-wide daily limits, timeout + cancel, temp storage with 1 h app cleanup and 1-day R2 lifecycle backstop; prompts never stored.
+- Responsive: fixed page-level overflow on static pages (sidebar nav) and the contact form (Turnstile compact below 300 px); collapsible admin menu below `lg`; shared accessible dialog (full-screen on phones, focus trap, Escape); tables scroll in their own region; `::video`, `::audio`, `::embed` shortcodes in fixed-ratio frames; cover focal point; footer touch targets; `minmax(0,1fr)` grids.
+- Image pipeline bounded: fixed widths/quality, 12 MB source cap, no redirects, 200 MB LRU disk cache; LCP images eager + high priority (Next 16 deprecates `priority`).
+- Fixed: server-action uploads were capped at Next's 1 MB default (now 11 MB); local dev without `DATABASE_URL` crashed (PGlite bundled by Turbopack → now external).
+- New dependency: `@aws-sdk/s3-request-presigner@3.1157.0` (Cloudflare's documented way to presign R2 URLs; same SDK version as `client-s3`). Gemini uses `fetch` (no SDK).
+
+**Files**: `src/lib/{storage,storage-legacy,media,media-migration,gemini,image-generation,health,db-admin}.ts`, `src/lib/mdx/{shortcodes,tables,compile,html}.ts`, `src/app/media/[id]/[name]/route.ts`, `src/app/api/admin/{images,media-migration}/…`, `src/app/admin/{storage,media}/…`, `src/app/admin/_actions/shared.ts`, `src/components/admin/{Dialog,GenerateImageDialog,CoverImagePicker,MediaPicker,AdminNav}.tsx`, `src/components/{CoverImage,ContentImage,ContentMedia,Mdx,Turnstile,ContactForm,SiteFooter}.tsx`, `src/lib/pages/{article,page-view}.tsx`, `src/app/admin/layout.tsx`, `src/app/globals.css`, `src/db/{schema.ts,migrations/0004_r2_media.sql}`, `next.config.ts`, `deploy/base/{deployment,networkpolicy}.yaml`, `deploy/r2/{cors,lifecycle}.json`, `scripts/set-media-config.sh`, `.env.example`, `docs/{MEDIA,DEPLOYMENT}.md`, tests `media-storage`, `r2-config`, `image-generation`, `media-migration`, `responsive-content`.
+
+**Commands**: see the final report of this change (lint, typecheck, tests, build, browser audit at 320–1920 px).
+
+**Manual steps**: create the R2 bucket, token, CORS and lifecycle rules; `scripts/set-media-config.sh mk4`; choose `GEMINI_IMAGE_MODEL`; deploy; migrate legacy media if any (`docs/MEDIA.md`). Update the privacy policy to mention Gemini (editor-only) and YouTube/Vimeo embeds if used.
+
 ## CI deploys with kubectl, Argo CD removed (2026-10-27, owner request)
 
 - **Why the live site did not change:** the owner ran `kubectl apply -k` from a checkout one commit behind `origin/master`. The local overlay pinned the old image (`dcdd3d7`), and CI had already pinned the new one (`d54da88`, `sha256:430f…`). The CI `deploy` job for that run was also waiting for an Argo CD app that had been deleted.

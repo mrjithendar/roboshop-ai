@@ -207,8 +207,8 @@ export const media = pgTable(
     filename: text("filename").notNull(),
     contentType: text("content_type").notNull(),
     storageKey: text("storage_key").notNull().unique(),
-    /** "r2" or "s3-legacy" (rows uploaded before the move to R2). */
-    storageBackend: text("storage_backend").notNull().default("r2"),
+    /** "r2" or "s3-legacy" (rows uploaded before the move to R2). Always set explicitly when inserting. */
+    storageBackend: text("storage_backend").notNull().default("s3-legacy"),
     /** The S3 key the object was copied from (set by the R2 migration; used for rollback). */
     legacyKey: text("legacy_key"),
     /** images | videos | audio | documents */
