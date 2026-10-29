@@ -65,10 +65,12 @@ for (const edit of postEdits) {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`${BASE}${edit}`, { waitUntil: "load" });
   await page.waitForTimeout(1500);
-  const [popup] = await Promise.all([page.waitForEvent("popup", { timeout: 60000 }), page.getByRole("button", { name: /Preview/ }).click()]);
-  await popup.waitForURL(/\/preview\//, { timeout: 90000 });
-  previews.push(new URL(popup.url()).pathname);
-  await popup.close();
+  // Preview opens a dialog that renders /preview/<token> in an iframe.
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  const frame = page.locator('iframe[title^="Preview at"]');
+  await frame.waitFor({ timeout: 90000 });
+  previews.push(await frame.getAttribute("src"));
+  await page.keyboard.press("Escape");
 }
 const tag = (await allHrefs(previews[0] ?? "/", "^/tag/[a-z0-9-]+$"))[0] ?? "/blog";
 const category = (await allHrefs(previews[0] ?? "/", "^/category/[a-z0-9-]+$"))[0] ?? "/category/kubernetes";
