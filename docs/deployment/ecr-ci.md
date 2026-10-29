@@ -81,11 +81,11 @@ The workflow checks that its repository exists; it does not provision AWS resour
 | payment-service | roboshop-payment-service |
 | mcp-server | roboshop-mcp-server |
 | shipping-service | roboshop-shipping |
-| nginx | roboshop-nginx |
-| frontend | roboshop-frontend |
+| web | roboshop-web |
 
-The frontend image packages the TypeScript storefront and legacy product images.
-Nginx is a separate reverse-proxy image. Redis,
+The web image packages the TypeScript storefront, product images and the NGINX
+reverse proxy (`services/web`). The retired `roboshop-frontend` and `roboshop-nginx`
+repositories are kept for rollback until the migration in `services/web/README.md` is complete. Redis,
 RabbitMQ, MongoDB, PostgreSQL and observability components use upstream images;
 they have no custom Dockerfiles to publish.
 

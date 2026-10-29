@@ -2,11 +2,13 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { desc } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
+import type { FeaturedImage } from "@/db/schema";
 import { staffActor } from "@/lib/admin";
+import { acceptGeneration, discardGeneration } from "@/lib/image-generation";
 import { publicRoot, readLocalImage } from "@/lib/images";
-import { storeUpload } from "@/lib/media";
+import { completeUpload, createUploadIntent, mediaSrc, storeUpload, type UploadIntent, type UploadResult } from "@/lib/media";
 import { createPreview, type PreviewKind } from "@/lib/preview";
 import { PostError } from "@/lib/posts";
 import { storageReady } from "@/lib/storage";
@@ -39,9 +41,10 @@ export async function listMedia(limit = 60): Promise<MediaItem[]> {
   const rows = await db
     .select({ id: schema.media.id, filename: schema.media.filename, alt: schema.media.alt, width: schema.media.width, height: schema.media.height, context: schema.media.context })
     .from(schema.media)
+    .where(and(eq(schema.media.kind, "images"), eq(schema.media.status, "ready"), eq(schema.media.visibility, "public")))
     .orderBy(desc(schema.media.createdAt))
     .limit(limit);
-  const uploads = rows.map((r) => ({ id: r.id, src: `/media/${r.id}/${r.filename}`, alt: r.alt, width: r.width, height: r.height, context: r.context }));
+  const uploads = rows.map((r) => ({ id: r.id, src: mediaSrc(r), alt: r.alt, width: r.width ?? 0, height: r.height ?? 0, context: r.context }));
   return [...uploads, ...bundledImages()];
 }
 
@@ -65,4 +68,43 @@ export async function createPreviewAction(kind: PreviewKind, payload: unknown): 
   } catch (error) {
     return { ok: false, error: error instanceof PostError ? error.message : "Preview is unavailable right now." };
   }
+}
+
+const failure = (error: unknown) => ({ ok: false as const, error: error instanceof PostError ? error.message : "Something went wrong. Try again." });
+
+/** Direct upload, step 1: a short-lived presigned PUT for exactly the declared file. */
+export async function requestUpload(input: { filename: string; contentType: string; size: number; sha256: string; alt?: string; visibility?: string; context?: string }): Promise<({ ok: true } & UploadIntent) | { ok: false; error: string }> {
+  const actor = await staffActor();
+  try {
+    return { ok: true, ...(await createUploadIntent(actor, input)) };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+/** Direct upload, step 2: verify what arrived in R2 (size, checksum, real type). */
+export async function finishUpload(id: string): Promise<UploadResult> {
+  const actor = await staffActor();
+  try {
+    return await completeUpload(actor, id);
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+/** The author chose "Use as cover" for a generated image. */
+export async function acceptGeneratedImage(id: string, alt: string, context: string): Promise<{ ok: true; image: FeaturedImage } | { ok: false; error: string }> {
+  const actor = await staffActor();
+  try {
+    const { id: _mediaId, ...image } = await acceptGeneration(actor, id, { alt, context, name: context.split("/").pop() });
+    void _mediaId;
+    return { ok: true, image };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function discardGeneratedImage(id: string): Promise<void> {
+  const actor = await staffActor();
+  await discardGeneration(actor, id).catch(() => undefined);
 }

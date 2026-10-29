@@ -23,7 +23,7 @@ test('demo collection has 20 priced INR robots with bounded stock and dedicated 
  const rows=normalizeProducts(JSON.parse(readFileSync(new URL('../services/catalogue-service/products.json',import.meta.url))));
  assert.equal(rows.length,20);
  assert.ok(rank(rows,{query:'under 200',budget:200}).length>0);
- for(const p of rows){assert.equal(p.currency,'INR');assert.equal(p.priceType,'sale');assert.equal(p.showcase,false);assert.equal(p.demo,true);assert.equal(p.fulfilment,'simulated');assert.ok(p.price>=99&&p.price<=999);assert.ok(p.instock>=20&&p.instock<=50);assert.match(p.image,/product-media\/.*\.png$/);assert.ok(readFileSync(new URL('../services/frontend'+p.image,import.meta.url)).length>1000);}
+ for(const p of rows){assert.equal(p.currency,'INR');assert.equal(p.priceType,'sale');assert.equal(p.showcase,false);assert.equal(p.demo,true);assert.equal(p.fulfilment,'simulated');assert.ok(p.price>=99&&p.price<=999);assert.ok(p.instock>=20&&p.instock<=50);assert.match(p.image,/product-media\/.*\.png$/);assert.ok(readFileSync(new URL('../services/web/frontend'+p.image,import.meta.url)).length>1000);}
 });
 
 test('old concept catalogue retains demo classification after normalization', () => {

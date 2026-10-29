@@ -56,8 +56,7 @@ Open **http://localhost:3000**. Ctrl+C stops the launcher’s child processes. `
 
 | Folder | Responsibility |
 | --- | --- |
-| `services/frontend` | TypeScript storefront, product pages, cart and admin UI |
-| `services/nginx` | Edge proxy, asset routing and security headers |
+| `services/web` | Storefront (`frontend/`: TypeScript pages, cart, checkout, admin UI) and its NGINX (`nginx/`: asset routing, `/api` proxy, security headers), built and deployed as one `web` image |
 | `services/ai-gateway` | Public API routing, authorization and order ledger |
 | `services/user-service` | MongoDB accounts, sessions, profiles, MFA, email recovery and purchase history |
 | `services/catalogue-service` | MongoDB catalogue reads and legacy-compatible product APIs |
@@ -102,7 +101,7 @@ The gateway’s durable JSON order ledger remains single-writer: keep one gatewa
 
 ## Service ownership
 
-Services build from their own directories and own their dependency manifests, assets and service-specific tooling. For example: `docker build -t roboshop-frontend:local services/frontend`. Root scripts coordinate the platform. See [service boundaries and repository extraction](docs/architecture/service-repositories.md) for local tests, service-owned libraries and the future repository split.
+Services build from their own directories and own their dependency manifests, assets and service-specific tooling. For example: `docker build -t roboshop-web:local services/web`. Root scripts coordinate the platform. See [service boundaries and repository extraction](docs/architecture/service-repositories.md) for local tests, service-owned libraries and the future repository split.
 
 ### Moks — An AI agent for everyone.
 

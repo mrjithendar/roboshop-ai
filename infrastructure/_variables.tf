@@ -57,6 +57,7 @@ variable "ecr_repository_names" {
     "roboshop-cart-service",
     "roboshop-catalogue-service",
     "roboshop-currency-service",
+    # roboshop-frontend and roboshop-nginx: retired into roboshop-web; kept for rollback.
     "roboshop-frontend",
     "roboshop-mcp-server",
     "roboshop-nginx",
@@ -65,6 +66,7 @@ variable "ecr_repository_names" {
     "roboshop-moks",
     "roboshop-shopping-agent",
     "roboshop-user-service",
+    "roboshop-web",
     "roboshop-kafka-bridge",
   ]
 

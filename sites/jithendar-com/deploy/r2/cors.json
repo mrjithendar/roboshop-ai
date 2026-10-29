@@ -1,0 +1,11 @@
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": ["https://jithendar.com"],
+      "AllowedMethods": ["PUT"],
+      "AllowedHeaders": ["Content-Type", "Cache-Control"],
+      "ExposeHeaders": ["ETag"],
+      "MaxAgeSeconds": 3600
+    }
+  ]
+}

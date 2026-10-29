@@ -19,5 +19,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: nginx
+                # One web service: storefront files plus the /api proxy.
+                name: web
                 port: {number: 8080}

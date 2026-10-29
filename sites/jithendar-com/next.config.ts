@@ -10,11 +10,20 @@ const nextConfig: NextConfig = {
   // Traefik compresses responses (br/zstd/gzip, text only; see deploy/production/middlewares.yaml).
   compress: false,
   images: {
-    // Optimise only our own files: the optimiser cannot be used to resize arbitrary URLs.
+    // The transformation pipeline: next/image (sharp, inside the site's pods) resizes and re-encodes our
+    // own files only; R2 stores originals and never transforms anything. Requests are bounded:
+    // - sources: only /images/** (shipped with the site) and /media/** (uploads) — never arbitrary URLs;
+    // - widths: only the sizes below (srcset candidates), one quality, two formats → ≤ 20 variants per image;
+    // - originals over maximumResponseBody are refused; redirects are not followed;
+    // - variants are cached on disk (LRU, capped below the pod's 256 MiB emptyDir) for 30 days.
     localPatterns: [{ pathname: "/images/**" }, { pathname: "/media/**" }],
     formats: ["image/avif", "image/webp"],
     qualities: [75],
-    // Optimised variants are cached in .next/cache/images (a writable emptyDir in the pod).
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [96, 128, 256, 384],
+    maximumResponseBody: 12_000_000,
+    maximumRedirects: 0,
+    maximumDiskCacheSize: 200_000_000,
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
   // src/proxy.ts strips trailing slashes itself, after answering 410 for gone URLs in one hop.
@@ -29,9 +38,12 @@ const nextConfig: NextConfig = {
   // Pods run with a read-only root filesystem, and Next 16 writes regenerated ISR pages into
   // .next/server (route-cache) next to the build output. Keep the ISR cache in memory instead:
   // content ships inside the image, so a restarted pod simply regenerates pages on demand.
-  experimental: { isrFlushToDisk: false },
-  // ssh2 (SFTP backups) ships optional native add-ons; load it from node_modules instead of bundling.
-  serverExternalPackages: ["ssh2", "ssh2-sftp-client", "cpu-features"],
+  // Server actions accept image uploads up to 10 MB (plus multipart overhead); larger files
+  // (video, audio, PDF) go straight to R2 with presigned URLs and never pass through the app.
+  experimental: { isrFlushToDisk: false, serverActions: { bodySizeLimit: "11mb" } },
+  // ssh2 (SFTP backups) ships optional native add-ons; PGlite (local dev only) loads its WASM from a
+  // file URL that bundling breaks. Load both from node_modules instead of bundling.
+  serverExternalPackages: ["ssh2", "ssh2-sftp-client", "cpu-features", "@electric-sql/pglite"],
   async redirects() {
     return redirects.map(({ source, destination }) => ({ source, destination, permanent: true }));
   },

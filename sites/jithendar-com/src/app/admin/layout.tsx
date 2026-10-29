@@ -45,19 +45,21 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-black/30">
-      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-8 lg:grid-cols-[240px_minmax(0,1fr)] sm:px-8">
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <Link href="/admin" className="mb-6 flex items-center gap-2 px-3">
+      <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8">
+        <aside className="lg:sticky lg:top-24 lg:max-h-[calc(100dvh-7rem)] lg:self-start lg:overflow-y-auto">
+          <Link href="/admin" className="mb-4 flex items-center gap-2 px-1 lg:mb-6 lg:px-3">
             <LogoMark className="h-7 w-7" />
             <span className="font-semibold text-ink dark:text-white">Admin</span>
           </Link>
           <AdminNav items={items} />
-          <div className="mt-8 border-t border-slate-200 px-3 pt-6 text-sm dark:border-white/10">
-            <p className="font-medium text-ink dark:text-white">{user.name}</p>
-            <p className="truncate text-slate-500 dark:text-slate-400">
-              {user.email} · {user.role}
-            </p>
-            <div className="mt-3">
+          <div className="mt-3 flex items-center justify-between gap-3 px-1 text-sm lg:mt-8 lg:block lg:border-t lg:border-slate-200 lg:px-3 lg:pt-6 lg:dark:border-white/10">
+            <div className="min-w-0">
+              <p className="truncate font-medium text-ink dark:text-white">{user.name}</p>
+              <p className="truncate text-slate-500 dark:text-slate-400">
+                {user.email} · {user.role}
+              </p>
+            </div>
+            <div className="shrink-0 lg:mt-3">
               <SignOutButton />
             </div>
           </div>

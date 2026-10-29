@@ -116,3 +116,37 @@ test('subpath HTML links and module assets survive ingress prefix stripping', {s
     if(edge) await edge.stop(); await new Promise(r=>backend.close(r)); rmSync(dir,{recursive:true,force:true});
   }
 });
+
+test('one web service: no page fallback for APIs, traces forwarded, GET-only pages', {skip: process.env.NGINX_TEST !== 'true', timeout:30000}, async()=>{
+  const dir=mkdtempSync(join(tmpdir(),'roboshop-web-'));
+  let seen=[];
+  const backend=createServer((req,res)=>{seen.push({url:req.url,headers:req.headers});
+    if(req.url.startsWith('/api/missing')){res.writeHead(404,{'content-type':'application/json'});res.end('{"error":"Not found"}');return;}
+    res.writeHead(200,{'content-type':'application/json'});res.end('{}');});
+  const gatewayPort=await listen(backend);
+  const probe=createServer(); const port=await listen(probe); await new Promise(r=>probe.close(r));
+  const base=`http://127.0.0.1:${port}`; let web;
+  try {
+    web=await startNginx({port,gatewayPort,directory:dir});
+    const health=await fetch(base+'/health'); assert.deepEqual(await health.json(),{status:'ok',service:'web'});
+    // A missing API route is the gateway's 404 JSON, never storefront HTML.
+    let r=await fetch(base+'/api/missing/thing?x=1'); assert.equal(r.status,404);
+    assert.match(r.headers.get('content-type'),/json/); assert.deepEqual(await r.json(),{error:'Not found'});
+    for(const path of ['/unknown','/products/','/admin/','/src/app.ts','/dist/index.html','/nginx.conf','/start.sh','/product.html','/fonts/LICENSE','/package.json']){
+      r=await fetch(base+path); assert.equal(r.status,404,path); assert.doesNotMatch(await r.text(),/Find your kind of robot/,path);
+    }
+    // Deep links keep their query strings and serve the matching page.
+    r=await fetch(base+'/products/arduino-alvik?ref=email'); assert.equal(r.status,200); assert.match(await r.text(),/product-main/);
+    r=await fetch(base+'/?cart=1'); assert.equal(r.status,200);
+    assert.equal((await fetch(base+'/checkout/',{method:'HEAD'})).status,200);
+    assert.equal((await fetch(base+'/',{method:'POST',body:'x'})).status,403);
+    // W3C trace context and a request ID reach the gateway untouched.
+    const traceparent='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'; seen=[];
+    r=await fetch(base+'/api/products',{headers:{traceparent,tracestate:'vendor=1'}});
+    assert.equal(seen[0].headers.traceparent,traceparent); assert.equal(seen[0].headers.tracestate,'vendor=1');
+    assert.match(seen[0].headers['x-request-id'],/^[a-f0-9]{32}$/);
+    // Optional Moks routes fail as gateway errors when Moks is absent, not as pages.
+    r=await fetch(base+'/moks/available'); assert.ok(r.status>=500,`moks ${r.status}`); assert.doesNotMatch(await r.text(),/Find your kind of robot/);
+    assert.ok(web.logs().includes('"service":"web"')); assert.ok(!web.logs().includes('ref=email'));
+  } finally { if(web) await web.stop(); await new Promise(r=>backend.close(r)); rmSync(dir,{recursive:true,force:true}); }
+});

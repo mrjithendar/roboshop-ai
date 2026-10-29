@@ -1,11 +1,12 @@
-import { HeadBucketCommand, S3Client } from "@aws-sdk/client-s3";
 import { connect as tlsConnect } from "node:tls";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { rowsOf } from "@/db/rows";
 import { emailSummary } from "./mail";
 import { getRedis } from "./redis";
-import { unseal, type Sealed } from "./secrets";
+import { geminiImageConfig } from "./gemini";
+import { generationUsage } from "./image-generation";
+import { checkStorage } from "./storage";
 import { turnstileSecret, turnstileSiteKey } from "./turnstile";
 
 export type Check = { name: string; status: "ok" | "degraded" | "down" | "not configured"; ms: number | null; detail: string };
@@ -68,14 +69,15 @@ export async function systemChecks(): Promise<{ app: Record<string, string>; che
       const used = (await redis.info("memory")).match(/used_memory_human:(\S+)/)?.[1];
       return { status: "ok", detail: `PONG · ${used ?? "?"} used` };
     }),
-    timed("Media storage (S3)", async () => {
-      const db = await getDb();
-      const [row] = await db.select().from(schema.setting).where(eq(schema.setting.key, "storage"));
-      const c = row?.value as { endpoint: string; region: string; bucket: string; forcePathStyle: boolean; accessKeyId: string; secretAccessKey: Sealed; verifiedAt: string | null } | undefined;
-      if (!c) return { status: "not configured", detail: "uploads disabled until configured" };
-      const s3 = new S3Client({ region: c.region, ...(c.endpoint ? { endpoint: c.endpoint } : {}), forcePathStyle: c.forcePathStyle, credentials: { accessKeyId: c.accessKeyId, secretAccessKey: unseal(c.secretAccessKey) } });
-      await s3.send(new HeadBucketCommand({ Bucket: c.bucket }));
-      return { status: c.verifiedAt ? "ok" : "degraded", detail: `bucket ${c.bucket}${c.verifiedAt ? "" : " (not verified)"}` };
+    timed("Media storage (Cloudflare R2)", checkStorage),
+    timed("Image generation (Gemini)", async () => {
+      const c = geminiImageConfig();
+      if (!c) return { status: "not configured", detail: "set GEMINI_API_KEY and GEMINI_IMAGE_MODEL to enable “Generate image”" };
+      const usage = await generationUsage();
+      const total = Object.values(usage).reduce((a, b) => a + b, 0);
+      const failed = (usage.failed ?? 0) + (usage.cancelled ?? 0);
+      // No live call: every request to the model costs money. Failures in the last day show here instead.
+      return { status: total > 2 && failed / total > 0.5 ? "degraded" : "ok", detail: `${c.model} · ${c.imageSize} · last 24 h: ${total} request(s), ${usage.accepted ?? 0} accepted, ${failed} failed/cancelled` };
     }),
     timed("Email (Amazon SES)", async () => {
       const e = await emailSummary();

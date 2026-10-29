@@ -96,7 +96,7 @@ To override the list, add the complete desired list to your environment tfvars:
 ```hcl
 ecr_repository_names = [
   "roboshop-ai-gateway",
-  "roboshop-frontend",
+  "roboshop-web",
   "roboshop-shipping",
 ]
 ```

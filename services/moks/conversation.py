@@ -60,16 +60,36 @@ def conversation(message, history=None):
     return question, turns
 
 
+REFERENCE = re.compile(r'\b(those|these|them|that one|this one|it|which one|which of|both|the (?:first|second|third|last)(?: (?:one|two|three))?|first (?:one|two|three)|top (?:two|three))\b', re.I)
+SINGULAR = re.compile(r'\b(that one|this one|it|the (?:first|second|third|last)(?: one)?)\b', re.I)
+# An explicit topic change starts a fresh search even if it mentions earlier products.
+TOPIC_CHANGE = re.compile(r'\b(forget|ignore|never ?mind|instead|start over|something else|new search)\b', re.I)
+POSITIONS = {'first': 0, 'second': 1, 'third': 2, 'last': -1}
+COUNTS = {'one': 1, 'two': 2, 'three': 3}
+
+
 def reference_skus(products, question, history):
-    if not re.search(r'\b(those|these|them|that one|this one|it|which one)\b', question, re.I):
-        return None  # No reference requested: a fresh search.
+    """SKUs the question refers to, in the order they were shown; None for a fresh search."""
+    if TOPIC_CHANGE.search(question) or not REFERENCE.search(question):
+        return None
     # Only the most recent product-bearing turn is used, in stored order. Old
     # prices/descriptions are never retrieval evidence. Resolve against today's
     # catalogue; legacy saved turns have slugs but no SKU.
-    for turn in reversed(history):
-        refs = turn.get('products', [])
-        if refs:
-            return [p['sku'] for p in products if any(
-                p['sku'] == r.get('sku') or (p.get('slug') or p['sku'].lower()) == r.get('slug')
-                for r in refs)]
-    return []
+    refs = next((turn.get('products') for turn in reversed(history) if turn.get('products')), [])
+    def resolve(ref):
+        return next((p['sku'] for p in products
+                     if p['sku'] == ref.get('sku') or (p.get('slug') or p['sku'].lower()) == ref.get('slug')), None)
+    shown = [resolve(ref) for ref in refs]  # Positions follow what the customer saw.
+    current = list(dict.fromkeys(sku for sku in shown if sku))
+    ordinal = re.search(r'\b(?:the )?(first|second|third|last|top)(?: (one|two|three))?\b', question, re.I)
+    if ordinal:
+        word, count = ordinal[1].lower(), COUNTS.get((ordinal[2] or 'one').lower(), 1)
+        start = 0 if word == 'top' else POSITIONS[word]
+        chosen = shown[-1:] if start < 0 else shown[start:start + count]
+        if len(chosen) < count or not all(chosen):
+            return []  # Points past what was shown, or at a product that is gone: clarify.
+        return chosen
+    if SINGULAR.search(question) and len(current) > 1:
+        names = [p['name'] for sku in current for p in products if p['sku'] == sku]
+        raise Clarification('Which one do you mean: ' + ', '.join(names[:-1]) + ' or ' + names[-1] + '?')
+    return current

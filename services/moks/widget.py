@@ -127,6 +127,21 @@ def authenticated(environ):
         return False
 
 
+PRICE_LABELS = {'reference': 'Reference price, not sold here', 'on-request': 'Price on request',
+                'illustrative': 'Illustrative price, not an offer'}
+
+
+def card(p):
+    """Public card: today's price and provenance from the gateway response, never internal fields."""
+    price_type = p.get('priceType') if p.get('priceType') in ('sale', 'reference', 'on-request', 'illustrative') else 'sale'
+    price = p.get('price') if price_type != 'on-request' and type(p.get('price')) in (int, float) else None
+    labels = [PRICE_LABELS[price_type]] if price_type in PRICE_LABELS else []
+    if p.get('demo') or p.get('showcase') or p.get('fulfilment') == 'simulated':
+        labels.append('Simulated inventory')
+    return {'name': p['name'], 'slug': p.get('slug') or p['sku'].lower(), 'price': price,
+            'currency': p.get('currency') if price is not None else None, 'priceType': price_type, 'label': '; '.join(labels)}
+
+
 def protection_ready():
     return len(os.getenv('LLM_SERVICE_TOKEN', '')) >= 32
 
@@ -220,10 +235,12 @@ def _application(environ, start_response):
         if result.get('mode') == 'provider-unavailable':
             return send(503, {'code': 'feature-unavailable', 'feature': 'moks', 'error': result.get('answer', 'Assistant unavailable.')})
         return send(200, {'answer': result.get('answer', ''), 'notice': result.get('notice', ''), 'mode': result.get('mode', 'ai'),
-                          'products': [{'name': p['name'], 'slug': p.get('slug') or p['sku'].lower()} for p in result.get('products', [])][:20]})
+                          'products': [card(p) for p in result.get('products', [])][:20]})
     except HTTPError as error:
         print(json.dumps({'service': 'moks', 'event': 'upstream_http_error', 'status': error.code}), flush=True)
-        return send(401 if error.code in (401, 403) else 429 if error.code == 429 else 503, {'code': 'feature-unavailable', 'feature': 'moks', 'error': 'Assistant unavailable. Please try later.'})
+        if error.code == 429:
+            return send(429, {'code': 'assistant-busy', 'feature': 'moks', 'error': 'Moks is busy. Please try again in a moment.'})
+        return send(401 if error.code in (401, 403) else 503, {'code': 'feature-unavailable', 'feature': 'moks', 'error': 'Assistant unavailable. Please try later.'})
     except Exception as error:
         log_event('request_failed', status=503, errorType=type(error).__name__)
         return send(503, {'code': 'feature-unavailable', 'feature': 'moks', 'error': 'Assistant unavailable.'})

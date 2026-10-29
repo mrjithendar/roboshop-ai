@@ -31,6 +31,9 @@ const featuredImage = z.strictObject({
   alt: z.string().min(1, "alt text is required"),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
+  /** Focal point (0–100 %) kept in view when the cover is cropped; default centre. */
+  focalX: z.number().min(0).max(100).optional(),
+  focalY: z.number().min(0).max(100).optional(),
 });
 
 export const articleFrontmatter = z

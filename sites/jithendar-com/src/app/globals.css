@@ -42,6 +42,19 @@ body {
   @apply outline-2 outline-offset-2 outline-brand-500;
 }
 
+/* Comfortable touch targets for native checkboxes and radios (labels extend the target further). */
+input[type="checkbox"],
+input[type="radio"] {
+  @apply h-[1.125rem] w-[1.125rem] shrink-0 accent-brand-600;
+}
+
+/* Keep wide media and embeds inside the viewport everywhere. */
+img,
+video,
+iframe {
+  max-width: 100%;
+}
+
 /* Brand gradient text for hero accents. */
 .text-gradient {
   @apply bg-gradient-to-r from-brand-600 to-accent-500 bg-clip-text text-transparent dark:from-brand-300 dark:to-accent-400;
@@ -101,8 +114,58 @@ body {
   }
 }
 
+/* Long URLs, identifiers and hashes wrap instead of widening the page on phones. */
+.prose {
+  overflow-wrap: break-word;
+}
+.prose a,
+.prose :not(pre) > code {
+  overflow-wrap: anywhere;
+}
+
+/* Tables scroll inside their own region (rehypeTableScroll) rather than overflowing the page. */
+.prose .table-scroll {
+  @apply my-8 overflow-x-auto rounded-xl border border-slate-200 dark:border-white/10;
+  overscroll-behavior-x: contain;
+}
+.prose .table-scroll > table {
+  @apply my-0 min-w-full;
+}
+.prose .table-scroll th,
+.prose .table-scroll td {
+  @apply whitespace-nowrap px-3 sm:whitespace-normal;
+}
 .prose table {
   @apply text-sm;
+}
+
+/* Video, audio and embeds: fixed aspect-ratio boxes, so nothing shifts while they load. */
+.prose .media-figure {
+  @apply my-8;
+}
+.prose .media-figure figcaption {
+  @apply mt-2 text-center text-sm text-slate-500 dark:text-slate-400;
+}
+.prose .media-frame {
+  @apply relative w-full overflow-hidden rounded-xl border border-slate-200 bg-black dark:border-white/10;
+}
+.prose .media-frame > video,
+.prose .media-frame > iframe {
+  @apply absolute inset-0 m-0 h-full w-full border-0 object-contain;
+}
+.prose .ratio-16-9 { aspect-ratio: 16 / 9; }
+.prose .ratio-4-3 { aspect-ratio: 4 / 3; }
+.prose .ratio-1-1 { aspect-ratio: 1 / 1; }
+.prose .ratio-9-16 { aspect-ratio: 9 / 16; @apply mx-auto max-w-sm; }
+.prose audio {
+  @apply w-full;
+}
+
+/* Images in prose never exceed their column. */
+.prose img,
+.prose svg,
+.prose video {
+  @apply h-auto max-w-full;
 }
 
 .prose blockquote {

@@ -38,9 +38,9 @@ export async function PageView({ page, notice, after }: { page: Page; notice?: R
         )}
       </PageHeader>
       <Container className="py-14">
-        <div className="grid gap-12 lg:grid-cols-[220px_minmax(0,1fr)]">
-          <nav aria-label="Publication info" className="lg:sticky lg:top-24 lg:self-start">
-            <ul className="flex gap-2 overflow-x-auto pb-2 lg:flex-col lg:gap-1 lg:overflow-visible lg:pb-0">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-12">
+          <nav aria-label="Publication info" className="min-w-0 lg:sticky lg:top-24 lg:self-start">
+            <ul className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:thin] lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0 lg:pb-0">
               {siblings.map((p) => {
                 const current = p.slug === page.slug;
                 return (
@@ -48,7 +48,7 @@ export async function PageView({ page, notice, after }: { page: Page; notice?: R
                     <Link
                       href={p.path}
                       aria-current={current ? "page" : undefined}
-                      className={`block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      className={`block whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors lg:whitespace-normal ${
                         current
                           ? "bg-brand-50 text-brand-800 dark:bg-brand-500/15 dark:text-brand-200"
                           : "text-slate-600 hover:bg-slate-50 hover:text-ink dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"

@@ -18,7 +18,7 @@ and user service, never Moks itself. Credentials and provider settings are uncha
 ## Upgrade from Finder and shopping-agent
 
 Create the `roboshop-moks` ECR repository with the infrastructure Terraform before
-building. Build/push `moks`, `nginx`, and `frontend`; deploy Moks before switching
+building. Build/push `moks` and `web`; deploy Moks before switching
 the gateway configuration and proxy. Apply `minikube/roboshop/roboshop-ai-namespace.yaml, minikube/roboshop/roboshop-config-configmap.yaml` and
 restart `ai-gateway` to read `AGENT_URL=http://moks:4103`.
 Once Moks and the new proxy/widget work, remove the obsolete Deployments and
@@ -71,6 +71,122 @@ provider diagnostics are cached at authenticated `/internal/llm/readiness`.
 They do not gate pod readiness or trigger fallback by themselves. Enabled policies
 must successfully test both providers before the gateway commits them.
 
+## Recommendations and conversation
+
+### Request flow
+
+```text
+widget (/moks/chat) → gateway /api/chat → Moks /internal/chat → provider (Bedrock or Ollama)
+```
+
+1. **Widget:** checks the signed-in session and the Origin. It sends only `{message}`; the
+   browser can never supply history or a user ID.
+2. **Gateway:** loads that account's own saved history (the last two turns, as SKU and slug
+   references only). It adds the active provider snapshot, and passes the SKUs that cannot
+   be shown. Sold-out sale items are hidden; reference listings stay visible because they
+   are labelled information that can never be bought.
+3. **Moks:** works through four separate inputs, without a model:
+   - **Question:** the customer's current text.
+   - **History:** untrusted, budgeted text.
+   - **Structured references:** resolved against *today's* catalogue.
+   - **Retrieval query:** what retrieval actually searches.
+
+   Retrieval builds the evidence (at most four products), and the model receives only that
+   evidence. Vague requests and ambiguous references are answered with one deterministic
+   question, with no model call.
+4. **Cards:** the model ends its reply with `Products: <SKUs>` (or `none`). Moks keeps only
+   SKUs that were in the evidence, strips the line from the reply, and returns those
+   products as cards, at most three, in the model's order. Unknown SKUs are dropped and
+   counted as validation failures. If the line is missing, only products the reply names
+   become cards.
+5. **Back at the gateway:** the gateway re-applies live stock, saves the turn for that
+   account, and the widget renders cards with today's price and a provenance label. Saved
+   history shows names only, never old prices.
+
+### Tools
+
+Moks is read-only. It reads the catalogue snapshot through the gateway and calls no MCP
+tools: the gateway calls Moks, so routing Moks through the MCP server would create a loop.
+It has no cart, order, payment or account actions.
+
+### Retrieval rules
+
+- **Hard filters before ranking:**
+  - archived and sold-out listings (reference listings stay)
+  - an explicit currency, with no conversion
+  - budget, where on-request prices never satisfy a budget
+  - "in stock", "buy now" or "can buy", which exclude reference, illustrative, on-request
+    and showcase listings
+- **Budget formats:**
+  - `under INR 5,000`, `below ₹5000`, `budget of €200`, `under 5000 rupees`, `under Rs. 500`, `under 10k INR`
+  - Indian grouping (`1,00,000`)
+  - Two currencies, two amounts or a bare `¥` get a clarification.
+- **Words:** matched whole, tolerating plurals and suffixes (educational/education,
+  vacuums/vacuum, LawnPilot/lawn). Generic words ("help", "works", "on", "robotic", "home")
+  never match on their own.
+- **Requirements:** product-type words are hard requirements. Other words are requirements
+  when some listing meets all of them. Otherwise the closest listings are kept, and each
+  carries a `notStated` list so the reply says what is not confirmed. Without any product
+  type, at least half the descriptive words must match.
+- **Fields searched:** specifications, compatibility, use cases, product type and
+  categories, as well as names and descriptions.
+
+### Conversation
+
+| Customer says | Moks does |
+|---|---|
+| "Which of those is cheaper?" | Uses the products from the previous answer, with current prices |
+| "Compare the first two." / "the second one" | Takes them by the position they were shown |
+| "Does that one support carpets?" | Uses the single earlier product; if there were several, asks which one, by name |
+| "Forget those. Show me an educational robot." | Starts a fresh search |
+| "Only show products under INR 5,000." | Narrows the latest search topic with the new budget; the question itself is unchanged |
+| "Compare the first two." with no earlier products | Asks which products to compare |
+
+No paid rewriting call is made: references and refinements are resolved deterministically.
+History and prompt limits stay `MOKS_HISTORY_MAX_CHARS` (4000) and `MOKS_PROMPT_MAX_CHARS`
+(14000), and the current question is never truncated.
+
+### Outcomes and observability
+
+- **Distinct outcomes:**
+  - not configured: "Please connect an LLM to get results."
+  - provider unavailable: 503 `feature-unavailable`
+  - assistant busy: gateway 429 `assistant-busy`
+  - invalid input: 400
+  - clarification: `status: clarification`
+  - nothing matches: a normal reply with no cards
+- **Span attributes:**
+  - `rag.retrieve` records `roboshop.retrieval.mode` (search, reference, refinement,
+    clarification or introduction) and `roboshop.retrieval.candidates`.
+  - `shopping_agent.recommend` records `roboshop.agent.instructions_version`,
+    `roboshop.response.cards` and `roboshop.response.unsupported_references`.
+  - Provider spans keep model, token usage, latency and failover reason.
+- **Privacy:** no question text, prompt or reply is recorded unless the existing synthetic
+  capture switch is set.
+
+### Verify locally
+
+```bash
+cd services/moks && python -m unittest discover -s tests          # agent, widget engine, tracing
+node --test services/moks/tests/widget.test.mjs                   # from the repo root; needs jsdom
+python evaluations/moks/run.py                                    # 42-case offline evaluation
+python evaluations/moks/run.py --ask "robot vacuum under 10k INR" --ask "Compare the first two."
+```
+
+See [evaluations/moks](../../evaluations/moks/README.md) for the dataset, baseline-versus-final
+results and the human rubric.
+
+### Known limitations
+
+- **Keyword retrieval:** synonyms are a short hand-written list, and prefix matching can
+  over-match (for example "card" and "cardboard").
+  - On this catalogue, the measured failures were word forms, generic words and
+    references, not missing meaning, so no vector store or embeddings were added.
+  - Revisit if evaluations show paraphrase misses that synonyms cannot cover.
+- **References** look only at the most recent turn that showed products.
+- **Model compliance:** a model that ignores the `Products:` line falls back to name
+  matching. The quality of real model prose is unverified until scored with the human rubric.
+
 ## LangChain and LangGraph
 
 Every configured chat now runs a LangGraph `StateGraph`:
@@ -87,7 +203,7 @@ breaking, and the one-attempt fallback policy. No extra service, API key, hosted
 LangGraph deployment, or LangSmith account is needed.
 
 Catalogue retrieval stays deterministic: current stock, budget, archive status and
-provenance filter the evidence. At most four matches are sent to the model.
+provenance filter the evidence. At most four matches are sent to the model; at most three become cards.
 Comparison and clarification remain grounded model responses, not autonomous
 order-placement tools. The graph has no loops or retry policy. There is one
 logical generation call; only the existing router may attempt the configured
@@ -116,8 +232,8 @@ to activate this change; the compatibility widget URL and gateway APIs remain un
 
 ```bash
 # First create roboshop-moks via the infrastructure Terraform (review its plan).
-bash scripts/images/build-push-ecr.sh moks nginx frontend
-bash scripts/deploy/deploy-minikube.sh moks nginx frontend
+bash scripts/images/build-push-ecr.sh moks web
+bash scripts/deploy/deploy-minikube.sh moks web
 ```
 
 The deployment script also updates only `AGENT_URL` in the existing ConfigMap and

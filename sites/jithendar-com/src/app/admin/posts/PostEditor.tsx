@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { CoverImagePicker } from "@/components/admin/CoverImagePicker";
+import type { GenerateOptions } from "@/components/admin/GenerateImageDialog";
 import { openPreview } from "@/components/admin/openPreview";
 import dynamic from "next/dynamic";
 import { Alert, Button, Field, Input, Select, Textarea } from "@/components/ui/form";
@@ -62,7 +63,17 @@ const textToSources = (t: string): Source[] =>
     .filter((p) => p.length >= 3 && p[0])
     .map(([title, url, publisher]) => ({ title: title!, url: url!, publisher: publisher! }));
 
-export function PostEditor({ id, initial, categories }: { id: string | null; initial: PostFormValue; categories: { slug: string; label: string }[] }) {
+export function PostEditor({
+  id,
+  initial,
+  categories,
+  imageGeneration,
+}: {
+  id: string | null;
+  initial: PostFormValue;
+  categories: { slug: string; label: string }[];
+  imageGeneration: GenerateOptions;
+}) {
   const router = useRouter();
   const [v, setV] = useState<PostFormValue>(initial);
   const [slugTouched, setSlugTouched] = useState(Boolean(id));
@@ -119,7 +130,7 @@ export function PostEditor({ id, initial, categories }: { id: string | null; ini
   }
 
   return (
-    <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
       <div className="space-y-6">
         <Field label="Title" htmlFor="title" hint={`${v.title.length}/110`}>
           <Input id="title" value={v.title} maxLength={110} className="text-lg font-semibold"
@@ -189,7 +200,12 @@ export function PostEditor({ id, initial, categories }: { id: string | null; ini
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-surface-dark-raised">
-          <CoverImagePicker value={v.featuredImage} onChange={(img) => set("featuredImage", img)} context={context} />
+          <CoverImagePicker
+            value={v.featuredImage}
+            onChange={(img) => set("featuredImage", img)}
+            context={context}
+            generate={{ ...imageGeneration, title: v.title, summary: v.description }}
+          />
         </div>
 
         <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-surface-dark-raised">

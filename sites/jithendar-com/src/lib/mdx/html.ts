@@ -8,6 +8,7 @@ import remarkRehype from "remark-rehype";
 import { unified } from "unified";
 import { demoteH1 } from "./headings";
 import { remarkShortcodes } from "./shortcodes";
+import { rehypeTableScroll } from "./tables";
 
 /**
  * Markdown → HTML string with the same plugins as the site renderer (GFM, shortcodes, heading ids,
@@ -23,6 +24,7 @@ export async function markdownToHtml(markdown: string): Promise<string> {
     .use(remarkRehype)
     .use(demoteH1)
     .use(rehypeSlug)
+    .use(rehypeTableScroll)
     .use(rehypeShiki, { themes: { light: "github-light", dark: "github-dark" }, lazy: true, fallbackLanguage: "text" })
     .use(rehypeStringify)
     .process(markdown);

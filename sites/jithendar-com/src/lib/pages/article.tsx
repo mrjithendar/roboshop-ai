@@ -161,8 +161,8 @@ export async function ArticleView({
       </header>
 
       <Container className="py-12">
-        <div className={hasToc ? "grid gap-12 lg:grid-cols-[minmax(0,1fr)_240px]" : ""}>
-          <div className="mx-auto w-full max-w-3xl lg:mx-0">
+        <div className={hasToc ? "grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[minmax(0,1fr)_240px]" : ""}>
+          <div className="mx-auto w-full min-w-0 max-w-3xl lg:mx-0">
             {fm.sponsored && fm.sponsor && (
               <p className="mb-8 rounded-xl border border-yellow-300 bg-yellow-50 p-4 text-sm text-yellow-950 dark:border-yellow-500/30 dark:bg-yellow-500/10 dark:text-yellow-100">
                 Sponsored by {fm.sponsor}. See the{" "}
@@ -186,7 +186,8 @@ export async function ArticleView({
                   width={fm.featuredImage.width}
                   height={fm.featuredImage.height}
                   sizes="(min-width: 1024px) 768px, 100vw"
-                  priority
+                  loading="eager"
+                  fetchPriority="high"
                   className="h-auto w-full rounded-2xl border border-slate-200 dark:border-white/10"
                 />
               </figure>

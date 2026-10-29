@@ -4,14 +4,24 @@ import { resolveImage } from "@/lib/media";
 
 const frame = "my-8 h-auto w-full rounded-xl border border-slate-200 dark:border-white/10";
 
+/** Shown in place of media that cannot be loaded, so the reader still gets its description. */
+export function MediaUnavailable({ label, kind = "Image" }: { label?: string; kind?: string }) {
+  return (
+    <span role="img" aria-label={label ? `${kind} unavailable: ${label}` : `${kind} unavailable`} className="my-8 flex min-h-24 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm text-slate-500 dark:border-white/15 dark:bg-white/5 dark:text-slate-400">
+      {kind} unavailable{label ? `: ${label}` : ""}
+    </span>
+  );
+}
+
 /**
  * Markdown images (`![alt](/images/x.png)` or uploaded `/media/<id>/x.png`) rendered through next/image:
- * intrinsic size (no layout shift), AVIF/WebP, responsive sizes and native lazy loading.
+ * intrinsic size (no layout shift), AVIF/WebP at the width the layout needs (srcset + sizes) and
+ * native lazy loading. SVGs are served as-is (scaled by CSS) since they are already resolution-independent.
  */
 export async function ContentImage({ src, alt = "", title }: ComponentProps<"img">) {
   const image = typeof src === "string" ? await resolveImage(src) : undefined;
-  // Remote or missing images render nothing: no third-party requests, no broken frames.
-  if (!image) return null;
+  // Remote images are never loaded (no third-party requests); missing ones show their alt text.
+  if (!image) return <MediaUnavailable label={alt} />;
   return (
     <Image
       src={image.src}

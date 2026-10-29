@@ -49,5 +49,5 @@ and unsent drafts are not stored; old browser-only conversations cannot be recov
 Chat text is personal data: include this collection in backup/access/retention policies.
 No existing user records are migrated or deleted.
 
-Build and deploy `ai-gateway`, `moks`, and `nginx` for history support. StatefulSet
+Build and deploy `ai-gateway`, `moks`, and `web` for history support. StatefulSet
 conversion alone does not enable the application changes.

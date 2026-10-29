@@ -11,7 +11,7 @@
   shadow.innerHTML = `<style>
     :host{all:initial;font:15px system-ui;color:#172026;position:fixed;bottom:20px;right:20px;z-index:10000} :host([hidden]){display:none}
     *{box-sizing:border-box}button{cursor:pointer;font:inherit;border:0;border-radius:24px;padding:12px 18px;background:#193d37;color:white}button:disabled{opacity:.6}
-    section{width:min(380px,calc(100vw - 32px));max-height:calc(100dvh - 110px);overflow:auto;background:white;border:1px solid #ddd;border-radius:20px;box-shadow:0 12px 60px #0003;padding:18px;margin-bottom:12px}header{display:flex;justify-content:space-between;align-items:center}h2{font-size:19px;margin:0}#verification-status{font-size:12px;color:#596962}#error{background:#fff4df;border-radius:10px;padding:10px;font-size:13px}#suggestions{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}#suggestions button{font-size:12px;padding:8px 10px;background:#eef5f2;color:#193d37}.reply{background:#f1f6f4;padding:12px;border-radius:12px}.reply{overflow-wrap:anywhere;line-height:1.6}.reply p{white-space:normal;margin:0 0 10px}.reply p:last-child{margin-bottom:0}.reply h3{font-size:15px;line-height:1.4;margin:14px 0 8px}.reply h3:first-child{margin-top:0}.reply ul,.reply ol{padding-left:22px;margin:8px 0 12px}.reply li{margin:5px 0}.reply hr{border:0;border-top:1px solid #dce5df;margin:12px 0}.reply code{font-size:.9em;background:#e4ece7;border-radius:4px;padding:1px 4px}.product-links{display:grid;gap:6px;margin-top:14px}.product-links a{display:block;border:1px solid #d1dfd7;border-radius:10px;padding:9px 12px;background:white;text-decoration:none;font-weight:600}.product-links a:hover{background:#e6f0ea}.question{font-weight:600}#send{width:100%}a{border-bottom:1px solid #e1eae5}p{white-space:pre-wrap;line-height:1.5}#messages{max-height:min(48vh,400px);overflow:auto}textarea{font:inherit;width:100%;padding:12px;border:1px solid #999;border-radius:10px;resize:vertical;margin:10px 0}a{display:block;color:#176958;padding:8px 0}small{display:block;color:#555;margin:10px 0}[hidden]{display:none!important}
+    section{width:min(380px,calc(100vw - 32px));max-height:calc(100dvh - 110px);overflow:auto;background:white;border:1px solid #ddd;border-radius:20px;box-shadow:0 12px 60px #0003;padding:18px;margin-bottom:12px}header{display:flex;justify-content:space-between;align-items:center}h2{font-size:19px;margin:0}#verification-status{font-size:12px;color:#596962}#error{background:#fff4df;border-radius:10px;padding:10px;font-size:13px}#suggestions{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}#suggestions button{font-size:12px;padding:8px 10px;background:#eef5f2;color:#193d37}.reply{background:#f1f6f4;padding:12px;border-radius:12px}.reply{overflow-wrap:anywhere;line-height:1.6}.reply p{white-space:normal;margin:0 0 10px}.reply p:last-child{margin-bottom:0}.reply h3{font-size:15px;line-height:1.4;margin:14px 0 8px}.reply h3:first-child{margin-top:0}.reply ul,.reply ol{padding-left:22px;margin:8px 0 12px}.reply li{margin:5px 0}.reply hr{border:0;border-top:1px solid #dce5df;margin:12px 0}.reply code{font-size:.9em;background:#e4ece7;border-radius:4px;padding:1px 4px}.product-links{display:grid;gap:6px;margin-top:14px}.product-links a{display:block;border:1px solid #d1dfd7;border-radius:10px;padding:9px 12px;background:white;text-decoration:none;font-weight:600}.product-links a:hover{background:#e6f0ea}.product-links a:focus-visible,button:focus-visible,textarea:focus-visible{outline:3px solid #176958;outline-offset:2px}.product-links .provenance{display:block;margin:4px 0 0;font-weight:400;font-size:12px;color:#4b5a54}.question{font-weight:600}#send{width:100%}a{border-bottom:1px solid #e1eae5}p{white-space:pre-wrap;line-height:1.5}#messages{max-height:min(48vh,400px);overflow:auto}textarea{font:inherit;width:100%;padding:12px;border:1px solid #999;border-radius:10px;resize:vertical;margin:10px 0}a{display:block;color:#176958;padding:8px 0}small{display:block;color:#555;margin:10px 0}[hidden]{display:none!important}
   </style><section hidden aria-label="Shopping assistant"><header><h2>Moks</h2><small>An AI agent for everyone.</small><button id="close" aria-label="Close assistant">&times;</button></header><div id="messages" role="log" aria-live="polite"><p>Tell me your task, budget and must-have features. I can help shortlist options and explain trade-offs.</p></div><div id="suggestions"><button type="button">Help me choose</button><button type="button">Compare my options</button><button type="button">Find an option under ₹500</button></div><p id="error" role="alert" hidden></p><div id="login-required" hidden><p>Please sign in to use Moks.</p><a id="login-link">Sign in</a></div><form><label for="question">Your question</label><textarea id="question" maxlength="1000" required rows="2"></textarea><button id="send" disabled>Find a match</button></form><small>Check product details before purchasing. Follow-ups use context from this open conversation. Check current prices and availability on product pages.</small></section><button id="open" aria-expanded="false"> Moks</button>`;
   // Render a deliberately small Markdown subset with DOM nodes only. Model HTML,
   // images, and links remain inert text; clickable product links come from the API.
@@ -77,6 +77,14 @@
       if (typeof product.name !== 'string' || typeof product.slug !== 'string') continue;
       const link = document.createElement('a'); link.textContent = product.name;
       link.href = new URL('products/' + encodeURIComponent(product.slug), shop.href.replace(/\/?$/, '/')).href;
+      // Today's price and provenance from the reply; saved history keeps names only, never stale prices.
+      const details = [];
+      if (typeof product.price === 'number' && /^[A-Z]{3}$/.test(product.currency || '')) {
+        try { details.push(new Intl.NumberFormat(undefined, { style: 'currency', currency: product.currency }).format(product.price)); }
+        catch { details.push(product.currency + ' ' + product.price); }
+      }
+      if (typeof product.label === 'string' && product.label) details.push(product.label.slice(0, 120));
+      if (details.length) { const note = document.createElement('small'); note.className = 'provenance'; note.textContent = details.join(' · '); link.append(note); }
       links.append(link);
     }
     if (links.childElementCount) reply.append(links);
@@ -133,7 +141,7 @@
       const r = await call('chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message }) });
       const data = await r.json().catch(() => ({}));
       if (r.status === 401) { signedIn = false; input.value = message; renderAccess(); return; }
-      if ([400, 403, 429].includes(r.status)) { showError(r.status === 429 ? 'Too many requests. Wait a minute, then retry.' : 'Your question could not be accepted. Please try again.'); input.value = message; return; }
+      if ([400, 403, 429].includes(r.status)) { showError(r.status === 429 ? (data.code === 'assistant-busy' ? 'Moks is busy. Please try again in a moment.' : 'Too many requests. Wait a minute, then retry.') : 'Your question could not be accepted. Please try again.'); input.value = message; return; }
       if (data.code === 'ai-not-configured') { aiConfigured = false; input.value = message; showError('Please connect an LLM to get results. A store administrator needs to configure Ollama or Amazon Bedrock.'); return; }
       if (!r.ok) throw Error();
       const reply = pending; renderAnswer(reply, data.answer || data.notice || 'Please try another question.'); get('#messages').append(reply);
@@ -141,7 +149,11 @@
       else if (data.mode === 'provider-unavailable') showError('The AI provider is unavailable. Please try again shortly.');
       productLinks(reply, data.products);
       get('#messages').scrollTop = get('#messages').scrollHeight;
-    } catch { input.value = message; showError('Your question could not be completed. Please try again shortly. Your conversation has been kept.'); }
+    } catch (error) {
+      // Never resent automatically: the question returns to the box for the customer to decide.
+      input.value = message;
+      showError(error && error.name === 'TimeoutError' ? 'Moks took too long to answer. Your question is still in the box; send it again if you still need it.' : 'Your question could not be completed. Please try again shortly. Your conversation has been kept.');
+    }
     finally { if (pending.textContent === 'Checking the catalogue…') { pending.remove(); line.remove(); } busy = false; get('#send').textContent = 'Find a match'; renderAccess(); if (signedIn) input.focus(); else get('#login-link').focus(); }
   };
   renderAccess();

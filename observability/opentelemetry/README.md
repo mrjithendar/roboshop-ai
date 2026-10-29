@@ -59,8 +59,7 @@ Client spans use known URL templates where available, otherwise just the method.
 | shipping-service | Spring MVC, JDBC/Redis, Spring AMQP | `POST /api/shipping/quote`, `shipping.calculate`, automatic Rabbit consumer observation, `shipping.record_request` |
 | currency-service | Go net/http, hourly ECB refresh | `GET /rates`, `currency.refresh_rates`, fixed ECB HTTP client span; bounded OTLP export |
 | kafka-bridge | Python worker, pika + librdkafka | `process roboshop.kafka.orders`, `publish roboshop.orders.live.v1` or `.test.v1`; headers link consumer → producer |
-| nginx | Stock NGINX reverse proxy | W3C headers forwarded; safe access-log correlation. **No native spans**: image has no OTel module |
-| frontend | TypeScript browser UI, stock NGINX static server | Safe access logs; no browser RUM/SDK or native NGINX spans installed |
+| web | Stock NGINX serving the TypeScript storefront and proxying `/api` | W3C headers forwarded; safe access-log correlation (`"service":"web"`). **No native spans**: image has no OTel module; no browser RUM/SDK |
 | mongodb, postgres, redis | Database infrastructure | Client spans above; not instrumented database-server processes |
 | rabbitmq, kafka | Messaging infrastructure | Producer/consumer spans above; broker metrics/logs remain separate |
 | otel-collector, jaeger | Trace transport/backend | Collector filtering/privacy/batching; no application generations |

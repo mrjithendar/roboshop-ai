@@ -7,8 +7,8 @@ also include the namespace, e.g. `traefik-alloy-logs-role-binding.yaml`.
 
 Examples:
 
-- `services/frontend/frontend-deployment-minikube.yaml`
-- `services/frontend/frontend-service-minikube.yaml`
+- `services/web/web-deployment-minikube.yaml`
+- `services/web/web-service-minikube.yaml`
 - `minikube/roboshop/roboshop-config-configmap.yaml`
 - `observability/prometheus/templates/prometheus-data-pvc.yaml`
 

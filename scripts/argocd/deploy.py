@@ -17,7 +17,7 @@ ARGOCD_CHART_VERSION = '10.10.5'
 # require an explicit name so this shortcut does not restore retired workloads.
 ROBOSHOP = ['roboshop-config', 'currency-service', 'catalogue-service',
             'user-service', 'cart-service', 'payment-service', 'shipping-service',
-            'ai-gateway', 'mcp-server', 'moks', 'frontend', 'nginx']
+            'ai-gateway', 'mcp-server', 'moks', 'web']
 
 
 def catalog():
@@ -53,7 +53,7 @@ def source_drift(live, desired):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, epilog=
-        'Examples: ./deploy-argocd.sh roboshop | ./deploy-argocd.sh frontend nginx | '
+        'Examples: ./deploy-argocd.sh roboshop | ./deploy-argocd.sh web | '
         './deploy-argocd.sh status. Requires kubectl and Python with PyYAML. '
         'Apps deploy their configured Git revision; commit/push workload changes first.')
     parser.add_argument('apps', nargs='*', default=['all'],

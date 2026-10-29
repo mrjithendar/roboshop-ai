@@ -5,7 +5,6 @@ resources:
 - cart-service.yaml
 - catalogue-service.yaml
 - currency-service.yaml
-- frontend.yaml
 - grafana.yaml
 - jaeger.yaml
 # - jfrog.yaml
@@ -14,7 +13,6 @@ resources:
 - metrics-server.yaml
 - moks.yaml
 - mongodb.yaml
-- nginx.yaml
 - otel-collector.yaml
 - payment-service.yaml
 - postgres.yaml
@@ -28,5 +26,6 @@ resources:
 - shared-tls.yaml
 - shipping-service.yaml
 - user-service.yaml
+- web.yaml
 - loki.yaml
 - project-logging.yaml

@@ -5,11 +5,11 @@ Each application under `services/<name>/` owns its runtime source, Dockerfile, `
 ## Build one service
 
 ```bash
-cd services/frontend
+cd services/web
 npm ci
 npm test
 # From this directory:
-docker build -t roboshop-frontend:local .
+docker build -t roboshop-web:local .
 ```
 
 For a Node backend, run `npm ci` and `npm start` inside its folder. For Python, create a virtual environment there, install `requirements.txt`, and run `python server.py`. Configure service URLs and credentials in the environment. Services communicate through HTTP, MongoDB, Redis and RabbitMQ; independent source does not remove those runtime dependencies.

@@ -18,17 +18,17 @@ New payments are INR-only. Checkout converts source prices and shipping into INR
 
 The quote service refuses stale (>2 hours since refresh) or date-expired (>7 days) feeds for new cross-currency checkout; it never silently charges the original currency instead. Same-currency checkout needs no rate fetch. Quote signing reuses the existing internal `PAYMENT_SERVICE_TOKEN`; no new secret is introduced. A token/key rotation invalidates unused quotes but does not modify reserved orders. All replicas must share that token and currency configuration. JSON remains a single-writer backend; the PostgreSQL backend performs validation/conversion inside its reservation transaction with no rate-service I/O under locks. Redis cart data remains in the source currency.
 
-Publish ai-gateway, payment-service, user-service and frontend, then run Deploy-Minikube to apply the consolidated ConfigMap and restart workloads. The Go rate service API is unchanged. Test/demo inventory remains restricted to Razorpay Test Mode; currency conversion never enables live sales for it.
+Publish ai-gateway, payment-service, user-service and web, then run Deploy-Minikube to apply the consolidated ConfigMap and restart workloads. The Go rate service API is unchanged. Test/demo inventory remains restricted to Razorpay Test Mode; currency conversion never enables live sales for it.
 
 ## Build and deployment
 
-The service has its own `Dockerfile`, `currency-service-minikube.yaml`, and `ci-currency-service.yml` workflow. The existing reusable publisher builds `roboshop-currency-service:latest` in ECR. The Terraform ECR list includes its repository; apply infrastructure before publishing the new image. Publish currency-service, frontend and nginx images, then run Deploy-Minikube. It applies/restarts this optional service without adding rollout waits. No new secrets or ConfigMaps are needed. Outbound HTTPS to the ECB must be available.
+The service has its own `Dockerfile`, `currency-service-minikube.yaml`, and `ci-currency-service.yml` workflow. The existing reusable publisher builds `roboshop-currency-service:latest` in ECR. The Terraform ECR list includes its repository; apply infrastructure before publishing the new image. Publish currency-service and web images, then run Deploy-Minikube. It applies/restarts this optional service without adding rollout waits. No new secrets or ConfigMaps are needed. Outbound HTTPS to the ECB must be available.
 
 Local tests (no live rate requests):
 
 ```sh
 (cd services/currency-service && go test -race ./...)
-npm --prefix services/frontend test
+npm --prefix services/web/frontend test
 ```
 
 For a local service run: `cd services/currency-service && go run .` (port 4111). This starts the real ECB refresh; tests mock it. Payment services never call this service.

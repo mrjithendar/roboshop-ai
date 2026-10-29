@@ -1,0 +1,90 @@
+# Minikube sandbox deployment: storefront files and the reverse proxy in one container.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: roboshop-ai
+  labels:
+    app.kubernetes.io/part-of: roboshop-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+        app.kubernetes.io/part-of: roboshop-ai
+    spec:
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:
+      - name: ecr-pull
+      containers:
+      - name: web
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-web:latest
+        imagePullPolicy: Always
+        env:
+        # Traefik strips /roboshop; HTML attributes are rewritten back to it.
+        - name: FRONTEND_BASE_PATH
+          value: /roboshop
+        # NGINX runtime DNS resolution needs full Kubernetes service names.
+        - name: GATEWAY_HOST
+          value: ai-gateway.roboshop-ai.svc.cluster.local
+        - name: GATEWAY_PORT
+          value: '3000'
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        ports:
+        - name: http
+          containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: roboshop-config
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        # Rendered configuration, pid file and NGINX temporary paths.
+        - name: tmp
+          mountPath: /tmp
+        startupProbe:
+          httpGet: &liveness
+            path: /health
+            port: http
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 120
+        livenessProbe:
+          httpGet: *liveness
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 5
+        # Gateway core dependencies only; never LLM or other optional features.
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          timeoutSeconds: 4
+          periodSeconds: 10
+          failureThreshold: 3
+      volumes:
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate

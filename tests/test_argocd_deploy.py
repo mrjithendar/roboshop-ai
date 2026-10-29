@@ -21,14 +21,14 @@ def test_roboshop_preview_never_touches_cluster(capsys):
         deploy.main()
     run.assert_not_called()
     output = capsys.readouterr().out
-    assert 'frontend' in output
+    assert 'web' in output
     assert 'product-ingestion' not in output
     assert 'shopping-agent' not in output
     assert 'mongodb' not in output
 
 
 def test_unknown_app_fails_before_cluster_access():
-    with patch('sys.argv', ['deploy', 'frontend', 'typo']), patch.object(deploy.subprocess, 'check_output') as run:
+    with patch('sys.argv', ['deploy', 'web', 'typo']), patch.object(deploy.subprocess, 'check_output') as run:
         with pytest.raises(SystemExit):
             deploy.main()
     run.assert_not_called()
@@ -42,10 +42,10 @@ def healthy(app):
 
 def test_existing_settings_preserved_and_no_pruning():
     # Matches Git except a live-only setting, which must survive untouched.
-    app = deploy.catalog()[0]['frontend']
+    app = deploy.catalog()[0]['web']
     app['spec']['syncPolicy']['syncOptions'] = app['spec']['syncPolicy']['syncOptions'] + ['RespectIgnoreDifferences=true']
     listing = json.dumps({'items': [healthy(app)]})
-    with patch('sys.argv', ['deploy', 'frontend']), patch.object(deploy.subprocess, 'check_output',
+    with patch('sys.argv', ['deploy', 'web']), patch.object(deploy.subprocess, 'check_output',
             side_effect=['crd/applications', 'crd/appprojects', listing, 'appproject/platform', 'patched\n', listing]) as run:
         deploy.main()
     commands = [call.args[0] for call in run.call_args_list]
@@ -108,10 +108,10 @@ def test_missing_git_sync_options_added_and_live_extras_kept():
 
 
 def test_synced_app_tracking_no_resources_fails():
-    app = deploy.catalog()[0]['frontend']
+    app = deploy.catalog()[0]['web']
     empty = healthy(app); empty['status']['resources'] = []
     listing = json.dumps({'items': [empty]})
-    with patch('sys.argv', ['deploy', 'frontend']), patch.object(deploy.subprocess, 'check_output',
+    with patch('sys.argv', ['deploy', 'web']), patch.object(deploy.subprocess, 'check_output',
             side_effect=['crd', 'crd', listing, 'appproject/platform', 'patched', listing]):
         with pytest.raises(RuntimeError, match='tracks no resources'):
             deploy.main()
@@ -121,14 +121,14 @@ def test_status_warns_about_drift_and_empty_apps(capsys):
     git = deploy.catalog()[0]['ai-gateway']
     stale = json.loads(json.dumps(git))
     stale['spec']['source']['directory']['include'] = 'ai-gateway-minikube.yaml'
-    good = healthy(deploy.catalog()[0]['frontend'])
+    good = healthy(deploy.catalog()[0]['web'])
     with patch('sys.argv', ['deploy', 'status']), patch.object(deploy.subprocess, 'check_output',
             side_effect=['crd', 'crd', 'NAME SYNC\n', json.dumps({'items': [stale, good]})]) as run:
         deploy.main()
     out = capsys.readouterr().out
     assert 'ai-gateway: live source/destination differs from Git' in out
     assert 'ai-gateway: tracks no resources' in out
-    assert 'frontend' not in out.replace('NAME SYNC', '')
+    assert 'web' not in out.replace('NAME SYNC', '')
     assert not any('patch' in c.args[0] for c in run.call_args_list)
 
 
@@ -204,14 +204,14 @@ def test_helm_list_version_compatibility_and_pending_release(help_text, uses_all
 
 
 def test_missing_controller_installed_before_application_sync():
-    healthy = {'metadata': {'name': 'frontend'}, 'spec': {'project': 'platform'},
+    healthy = {'metadata': {'name': 'web'}, 'spec': {'project': 'platform'},
                'status': {'operationState': {'phase': 'Succeeded'},
                           'sync': {'status': 'Synced'}, 'health': {'status': 'Healthy'},
-                          'resources': [{'kind': 'Deployment', 'name': 'frontend'}]}}
+                          'resources': [{'kind': 'Deployment', 'name': 'web'}]}}
     responses = ['', '--all-namespaces', '[]', '', 'established', 'established',
                  '{"items":[]}', 'appproject/platform', 'created', 'patched',
                  json.dumps({'items': [healthy]})]
-    with patch('sys.argv', ['deploy', 'frontend', '--context', 'fresh']), patch.object(deploy.shutil, 'which', return_value='/bin/helm'), patch.object(deploy.subprocess, 'check_output', side_effect=responses) as read, patch.object(deploy.subprocess, 'check_call') as install:
+    with patch('sys.argv', ['deploy', 'web', '--context', 'fresh']), patch.object(deploy.shutil, 'which', return_value='/bin/helm'), patch.object(deploy.subprocess, 'check_output', side_effect=responses) as read, patch.object(deploy.subprocess, 'check_call') as install:
         deploy.main()
     assert len([c for c in install.call_args_list if c.args[0][0] == 'helm']) == 1
     assert all('fresh' in c.args[0] for c in install.call_args_list)
@@ -219,7 +219,7 @@ def test_missing_controller_installed_before_application_sync():
 
 
 def test_failed_automatic_install_never_deploys_apps():
-    with patch('sys.argv', ['deploy', 'frontend']), patch.object(deploy.shutil, 'which', return_value='/bin/helm'), patch.object(deploy.subprocess, 'check_output', side_effect=['', '', '[]', '']) as read, patch.object(deploy.subprocess, 'check_call', side_effect=deploy.subprocess.CalledProcessError(1, 'helm')):
+    with patch('sys.argv', ['deploy', 'web']), patch.object(deploy.shutil, 'which', return_value='/bin/helm'), patch.object(deploy.subprocess, 'check_output', side_effect=['', '', '[]', '']) as read, patch.object(deploy.subprocess, 'check_call', side_effect=deploy.subprocess.CalledProcessError(1, 'helm')):
         with pytest.raises(deploy.subprocess.CalledProcessError):
             deploy.main()
     assert not any('patch' in call.args[0] or 'create' in call.args[0] for call in read.call_args_list)
@@ -233,7 +233,7 @@ def test_cert_manager_sync_carries_namespace_and_ssa_options(existing):
         options.append('RespectIgnoreDifferences=true')
     app['status'] = {'operationState': {'phase': 'Succeeded'},
                      'sync': {'status': 'Synced'}, 'health': {'status': 'Healthy'},
-                     'resources': [{'kind': 'Deployment', 'name': 'frontend'}]}
+                     'resources': [{'kind': 'Deployment', 'name': 'web'}]}
     responses = ['crd/applications', 'crd/appprojects', json.dumps({'items': [app] if existing else []}), 'appproject/platform']
     if not existing:
         responses.append('created')
@@ -265,15 +265,15 @@ def test_unhealthy_pending_install_stops_without_release_mutation():
 
 
 def test_namespace_applied_before_sync_and_deduplicated():
-    app = deploy.catalog()[0]['frontend']
+    app = deploy.catalog()[0]['web']
     app['status'] = {'operationState': {'phase': 'Succeeded'}, 'sync': {'status': 'Synced'}, 'health': {'status': 'Healthy'},
-                     'resources': [{'kind': 'Deployment', 'name': 'frontend'}]}
+                     'resources': [{'kind': 'Deployment', 'name': 'web'}]}
     events = []
     responses = iter(['crd', 'crd', json.dumps({'items':[app]}), 'project', 'patched', json.dumps({'items':[app]})])
     def read(command, **kwargs):
         events.append(command)
         return next(responses)
-    with patch('sys.argv', ['deploy', 'frontend', 'frontend']), patch.object(deploy.subprocess, 'check_output', side_effect=read), patch.object(deploy.subprocess, 'check_call', side_effect=lambda c: events.append(c)):
+    with patch('sys.argv', ['deploy', 'web', 'web']), patch.object(deploy.subprocess, 'check_output', side_effect=read), patch.object(deploy.subprocess, 'check_call', side_effect=lambda c: events.append(c)):
         deploy.main()
     applies = [c for c in events if 'apply' in c]
     assert len(applies) == 1

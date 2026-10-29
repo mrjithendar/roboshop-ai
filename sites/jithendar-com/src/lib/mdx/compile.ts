@@ -7,6 +7,7 @@ import remarkDirective from "remark-directive";
 import remarkGfm from "remark-gfm";
 import { collectHeadings, demoteH1, type Heading } from "./headings";
 import { remarkShortcodes } from "./shortcodes";
+import { rehypeTableScroll } from "./tables";
 
 export type CompiledMdx = { Content: MDXContent; headings: Heading[] };
 
@@ -31,6 +32,7 @@ export async function compileMdx(source: string): Promise<CompiledMdx> {
     rehypePlugins: [
       demoteH1,
       rehypeSlug,
+      rehypeTableScroll,
       collectHeadings(headings),
       [rehypeShiki, { themes: { light: "github-light", dark: "github-dark" }, lazy: true, fallbackLanguage: "text" }],
     ],

@@ -45,6 +45,8 @@ export function Turnstile({ siteKey, onToken, resetKey = 0 }: { siteKey: string;
         widget.current = window.turnstile.render(ref.current, {
           sitekey: siteKey,
           theme: "auto",
+          // The standard widget is 300px wide; on the narrowest phones use the 150px compact one.
+          size: ref.current.clientWidth < 300 ? "compact" : "normal",
           callback: (t: string) => callback.current(t),
           "expired-callback": () => callback.current(null),
           "error-callback": () => callback.current(null),
@@ -58,5 +60,5 @@ export function Turnstile({ siteKey, onToken, resetKey = 0 }: { siteKey: string;
     };
   }, [siteKey, resetKey]);
 
-  return <div ref={ref} className="min-h-[65px]" />;
+  return <div ref={ref} className="min-h-[65px] max-w-full" />;
 }

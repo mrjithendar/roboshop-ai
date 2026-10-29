@@ -57,11 +57,6 @@
   [
     "Deployment",
     "roboshop-ai",
-    "frontend"
-  ],
-  [
-    "Deployment",
-    "roboshop-ai",
     "mcp-server"
   ],
   [
@@ -73,11 +68,6 @@
     "Deployment",
     "roboshop-ai",
     "mongodb"
-  ],
-  [
-    "Deployment",
-    "roboshop-ai",
-    "nginx"
   ],
   [
     "Deployment",
@@ -103,6 +93,11 @@
     "Deployment",
     "roboshop-ai",
     "user-service"
+  ],
+  [
+    "Deployment",
+    "roboshop-ai",
+    "web"
   ],
   [
     "StatefulSet",

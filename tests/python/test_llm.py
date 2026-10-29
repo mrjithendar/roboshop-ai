@@ -20,7 +20,8 @@ sys.path[:0] = [
 ]
 from llm_config import validate_config, endpoints, unconfigured, UNCONFIGURED
 from llm import LLMConfiguration
-from agent import answer
+from moks_agent import import_agent
+answer = import_agent().answer
 from providers import invoke, ProviderError
 import providers
 import bedrock_provider
@@ -373,7 +374,7 @@ class ProviderTests(unittest.TestCase):
             self.assertEqual(json.loads(prompt)["catalogueEvidence"][0]["sku"], "RED")
             self.assertEqual(revision, 4)
             return {
-                "answer": "Grounded answer",
+                "answer": "Grounded answer\nProducts: RED",  # recommended SKUs, validated against evidence
                 "provider": "bedrock",
                 "model": config["model"],
                 "input_tokens": 10,
@@ -498,6 +499,18 @@ class GatewayBoundaryTests(unittest.TestCase):
         self.assertNotIn("provider", public)
         self.assertNotIn("endpoint", public)
 
+    def test_chat_keeps_reference_listings_but_hides_sold_out_offers(self):
+        self.db.llm_configuration.insert_one({"_id":"active","revision":1,"config":BEDROCK})
+        reference = {"sku":"REF-1","name":"Reference","description":"r","categories":["robot"],"price":10,"currency":"USD",
+                     "priceType":"reference","collection":"reference","instock":0}
+        sold_out = dict(PRODUCTS[0], sku="GONE", instock=0)
+        self.gateway.catalogue = Mock(return_value=[reference, sold_out, PRODUCTS[2]])
+        reply = {"answer":"ok","mode":"ai","products":[reference, sold_out, PRODUCTS[2]]}
+        with patch.object(gateway_module, "request", return_value=reply) as remote:
+            result = self.gateway.handle(req("/api/chat", "POST", {"message":"robots"}, token="Bearer " + "a"*64))
+        self.assertEqual(remote.call_args.args[1]["unavailableSkus"], ["GONE"])
+        self.assertEqual([p["sku"] for p in result["products"]], ["REF-1", PRODUCTS[2]["sku"]])
+
     def test_chat_capacity_keeps_configuration_reads_available(self):
         self.db.llm_configuration.insert_one({"_id":"active","revision":1,"config":BEDROCK})
         self.gateway.catalogue = Mock(return_value=PRODUCTS)
@@ -506,7 +519,7 @@ class GatewayBoundaryTests(unittest.TestCase):
         try:
             with patch.object(gateway_module, "request") as remote:
                 result = self.gateway.handle(req("/api/chat", "POST", {"message":"help"}, token="Bearer " + "a"*64))
-                self.assertEqual(result[1],503)
+                self.assertEqual((result[1], result[0]["code"]), (429, "assistant-busy"))
                 remote.assert_not_called()
             active = self.gateway.handle(req("/internal/llm/config", "GET", token="Bearer " + "a"*64))
             self.assertEqual(active["config"], BEDROCK)

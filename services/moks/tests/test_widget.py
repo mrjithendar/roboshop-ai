@@ -39,6 +39,27 @@ class FinderTests(unittest.TestCase):
             self.assertIn('session', backend.call_args.kwargs)
             self.assertNotIn('verificationToken',body)
 
+    def test_cards_show_current_price_and_provenance_only(self):
+        products=[{'name':'Rover','sku':'REF','price':194.95,'currency':'USD','priceType':'reference','collection':'reference','description':'internal','score':3},
+                  {'name':'Quad','sku':'ASK','price':0,'currency':'USD','priceType':'on-request'},
+                  {'name':'Pet','sku':'PET','price':5499,'currency':'INR','priceType':'sale','demo':True,'fulfilment':'simulated'},
+                  {'name':'Edu','sku':'EDU','price':4499,'currency':'INR','priceType':'sale'}]
+        with patch.object(s,'authenticated',return_value=True),patch.object(s,'upstream',return_value={'answer':'x','products':products,'mode':'ai'}):
+            cards=self.call({'message':'robots'})[2]['products']
+        self.assertEqual(cards[0],{'name':'Rover','slug':'ref','price':194.95,'currency':'USD','priceType':'reference','label':'Reference price, not sold here'})
+        self.assertEqual((cards[1]['price'],cards[1]['currency'],cards[1]['label']),(None,None,'Price on request'))
+        self.assertEqual(cards[2]['label'],'Simulated inventory')
+        self.assertEqual(cards[3]['label'],'')
+
+    def test_busy_assistant_is_distinct_from_unavailable(self):
+        from urllib.error import HTTPError
+        with patch.object(s,'authenticated',return_value=True),patch.object(s,'upstream',side_effect=HTTPError('u',429,'busy',{},None)):
+            status,_,body=self.call({'message':'robots'})
+        self.assertTrue(status.startswith('429'));self.assertEqual(body['code'],'assistant-busy')
+        with patch.object(s,'authenticated',return_value=True),patch.object(s,'upstream',side_effect=HTTPError('u',503,'down',{},None)):
+            status,_,body=self.call({'message':'robots'})
+        self.assertTrue(status.startswith('503'));self.assertEqual(body['code'],'feature-unavailable')
+
     def test_logout_and_expiry_rechecked_on_every_message(self):
         with patch.object(s,'authenticated',side_effect=[True,False]),patch.object(s,'upstream',return_value={'answer':'OK'}) as backend:
             self.assertTrue(self.call({'message':'first'})[0].startswith('200'))

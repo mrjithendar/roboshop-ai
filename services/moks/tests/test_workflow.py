@@ -19,7 +19,9 @@ CONFIG = dict(provider='ollama', model='mock')
 
 
 def generated(*args):
-    return dict(answer='Grounded answer', provider='ollama', model='mock', input_tokens=20, output_tokens=5)
+    # Like a compliant model: recommend every evidence product on the final Products line.
+    skus = [p['sku'] for p in json.loads(args[2])['catalogueEvidence']] if len(args) > 2 else []
+    return dict(answer='Grounded answer\nProducts: ' + (', '.join(skus) or 'none'), provider='ollama', model='mock', input_tokens=20, output_tokens=5)
 
 
 class WorkflowTests(unittest.TestCase):
@@ -32,7 +34,7 @@ class WorkflowTests(unittest.TestCase):
             self.assertTrue(evidence[0]['demo'])
             self.assertEqual(evidence[0]['description'], 'security {untrusted}')
             self.assertFalse(get_tracing_context()['enabled'])
-            return generated()
+            return generated(config, system, prompt)
         call = Mock(side_effect=provider)
         with patch.dict(os.environ, {'LANGSMITH_TRACING': 'true'}):
             result = answer([PRODUCT, {**PRODUCT, 'sku':'HIDDEN', 'archived':True}], 'security', CONFIG, 7, call)
@@ -66,7 +68,7 @@ class WorkflowTests(unittest.TestCase):
         def run(sku):
             def provider(config, system, prompt, revision, purpose):
                 self.assertEqual(json.loads(prompt)['catalogueEvidence'][0]['sku'], sku)
-                return generated()
+                return generated(config, system, prompt)
             return answer([{**PRODUCT, 'sku':sku}], 'security', CONFIG, generate=provider)['products'][0]['sku']
         with ThreadPoolExecutor(max_workers=4) as pool:
             self.assertEqual(list(pool.map(run, ['A','B','C','D'])), ['A','B','C','D'])

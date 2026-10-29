@@ -4,7 +4,7 @@ updates:
 - package-ecosystem: npm
   directories:
   - /
-  - /services/frontend
+  - /services/web/frontend
   - /services/catalogue-service
   - /services/payment-service
   schedule:
@@ -28,11 +28,10 @@ updates:
   - /services/cart-service
   - /services/catalogue-service
   - /services/currency-service
-  - /services/frontend
   - /services/kafka-bridge
   - /services/mcp-server
   - /services/moks
-  - /services/nginx
+  - /services/web
   - /services/payment-service
   - /services/shipping-service
   - /services/user-service

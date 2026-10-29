@@ -85,3 +85,23 @@ test('history outage blocks new messages rather than silently losing continuity'
  assert.match(ui.shadow.querySelector('#error').textContent,/saved conversation could not be loaded/);
  ui.setHistoryOk(true);await ui.poll();await settle();assert.equal(ui.shadow.querySelector('#send').disabled,false);
 });
+
+test('cards show current price and provenance; busy and timeout keep the draft without resending',async t=>{
+ const ui=await setup(t,true);ui.shadow.querySelector('#open').click();await settle();
+ const original=ui.w.fetch;let chats=0,mode='cards';
+ ui.w.fetch=async(url,options)=>{if(!String(url).endsWith('/chat'))return original(url,options);chats++;
+  if(mode==='busy')return{ok:false,status:429,json:async()=>({code:'assistant-busy'})};
+  if(mode==='timeout'){const e=new Error('timed out');e.name='TimeoutError';throw e;}
+  if(mode==='slow')return new Promise(()=>{});
+  return{ok:true,status:200,json:async()=>({answer:'Try **Rover**.',products:[{name:'Rover',slug:'ref',price:194.95,currency:'USD',priceType:'reference',label:'Reference price, not sold here'}]})};};
+ await ui.submit();
+ const note=ui.shadow.querySelector('.product-links .provenance');
+ assert.match(note.textContent,/194\.95/);assert.match(note.textContent,/Reference price, not sold here/);
+ mode='busy';await ui.submit();assert.match(ui.shadow.querySelector('#error').textContent,/Moks is busy/);assert.equal(ui.shadow.querySelector('textarea').value,'Help me choose');
+ mode='timeout';const before=chats;await ui.submit();
+ assert.match(ui.shadow.querySelector('#error').textContent,/took too long/);assert.equal(chats,before+1);assert.equal(ui.shadow.querySelector('textarea').value,'Help me choose');
+ mode='slow';const form=ui.shadow.querySelector('form');ui.shadow.querySelector('textarea').value='first';
+ form.dispatchEvent(new ui.w.Event('submit',{cancelable:true}));await settle();
+ ui.shadow.querySelector('textarea').value='second';form.dispatchEvent(new ui.w.Event('submit',{cancelable:true}));await settle();
+ assert.equal(chats,before+2,'a second submission while busy is ignored');assert.equal(ui.shadow.querySelector('#send').disabled,true);
+});

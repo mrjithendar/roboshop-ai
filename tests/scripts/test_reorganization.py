@@ -30,7 +30,7 @@ class ReorganizationTests(unittest.TestCase):
     path=tools/name;path.write_text(f'#!/bin/sh\ntouch "{marker}"\nexit 97\n');path.chmod(0o755)
    env={**os.environ,'PATH':str(tools)+':'+os.environ['PATH'],'AWS_ACCOUNT_ID':'123456789012','AWS_REGION':'us-east-1'}
    for script in ('build-push-ecr.sh',MAPPING['build-push-ecr.sh']):
-    for args in (['--help'],['--dry-run','frontend','shipping-service']):
+    for args in (['--help'],['--dry-run','web','shipping-service']):
      result=subprocess.run(['bash',str(export/script),*args],cwd=temp,env=env,capture_output=True,text=True)
      self.assertEqual(result.returncode,0,result.stderr)
      if args[0]=='--dry-run':

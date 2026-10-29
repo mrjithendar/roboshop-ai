@@ -4,8 +4,8 @@ import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
 import { normalizeProducts } from '../services/catalogue-service/lib/catalogue.mjs';
 const products = normalizeProducts(JSON.parse(await readFile('services/catalogue-service/showcase-reference.json', 'utf8')));
-const html = await readFile('services/frontend/dist/product.html', 'utf8');
-const script = (await Promise.all(['paths.js','account.js','product.js'].map(async name => (await readFile('services/frontend/dist/'+name,'utf8')).replace(/^import .*$/gm,'').replace(/^export /gm,'').replaceAll('import.meta.url',JSON.stringify('https://shop.example/paths.js'))))).join('\n');
+const html = await readFile('services/web/frontend/dist/product.html', 'utf8');
+const script = (await Promise.all(['paths.js','account.js','product.js'].map(async name => (await readFile('services/web/frontend/dist/'+name,'utf8')).replace(/^import .*$/gm,'').replace(/^export /gm,'').replaceAll('import.meta.url',JSON.stringify('https://shop.example/paths.js'))))).join('\n');
 async function setup(t, missing = false) {
   const p = products[0], calls = [];
   const dom = new JSDOM(html, { url: `https://shop.example/products/${p.slug}`, runScripts: 'outside-only' }); t.after(() => dom.window.close());

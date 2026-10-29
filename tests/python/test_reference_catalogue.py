@@ -15,7 +15,8 @@ from store import Store
 from server import Gateway
 from product_details import related, require_purchasable
 from catalogue import retrieve
-from agent import answer
+from moks_agent import import_agent
+answer = import_agent().answer
 
 ROWS = json.loads((ROOT / 'services/catalogue-service/reference-products.json').read_text())
 

@@ -5,7 +5,7 @@ on:
   #   paths:
   #     - 'services/ai-gateway/**'
   #     - 'services/moks/**'
-  #     - 'services/frontend/**'
+  #     - 'services/web/frontend/**'
   #     - 'tests/**'
   #     - '.github/workflows/llm-checks.yml'
   # push:
@@ -13,7 +13,7 @@ on:
   #   paths:
   #     - 'services/ai-gateway/**'
   #     - 'services/moks/**'
-  #     - 'services/frontend/**'
+  #     - 'services/web/frontend/**'
   #     - 'tests/**'
   #     - '.github/workflows/llm-checks.yml'
 permissions:
@@ -40,4 +40,4 @@ jobs:
       - run: python scripts/test/evaluate.py
       - run: npm ci
       - run: npm run frontend:build
-      - run: node --test services/frontend/tests/admin-ui.test.mjs services/frontend/tests/frontend.test.mjs
+      - run: node --test services/web/frontend/tests/admin-ui.test.mjs services/web/frontend/tests/frontend.test.mjs

@@ -63,7 +63,7 @@ From the repository root (requires `kubectl`, Python 3 and PyYAML):
 ./deploy-argocd.sh list
 ./deploy-argocd.sh roboshop --dry-run
 ./deploy-argocd.sh roboshop
-./deploy-argocd.sh frontend nginx
+./deploy-argocd.sh web
 ./deploy-argocd.sh status
 ```
 
@@ -106,7 +106,7 @@ Do not enable Force/Replace to resolve an immutable-field difference.
 
 | Applications | Sources and migration notes |
 | --- | --- |
-| ai-gateway, cart-service, catalogue-service, currency-service, frontend, jaeger, kafka-bridge, mcp-server, moks, nginx, otel-collector, payment-service, postgres, rabbitmq, redis, shipping-service, user-service | Explicitly named `services/<service>/*-minikube.yaml` resource files are loaded. `postgres` owns shipping-db; `kafka-bridge` owns the Kafka StatefulSet and bridge sidecar. |
+| ai-gateway, cart-service, catalogue-service, currency-service, jaeger, kafka-bridge, mcp-server, moks, otel-collector, payment-service, postgres, rabbitmq, redis, shipping-service, user-service, web | Explicitly named `services/<service>/*-minikube.yaml` resource files are loaded. `postgres` owns shipping-db; `kafka-bridge` owns the Kafka StatefulSet and bridge sidecar. |
 | roboshop-config | Shared ConfigMap, namespace and shop ingress; one owner for shared configuration. |
 | mongodb | Existing Deployment, Service and PVC baseline; **not** the repo's newer StatefulSet. A controller conversion needs a separate data migration. |
 | shopping-agent | Retired from the active catalog; functionality resides in Moks. Historical adoption files do not make it a required workload. |

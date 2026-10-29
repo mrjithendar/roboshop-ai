@@ -15,7 +15,8 @@ sys.path[:0] = [
     str(ROOT / "services/ai-gateway"),
     str(ROOT / "services/moks"),
 ]
-from agent import answer
+from moks_agent import import_agent
+answer = import_agent().answer
 from catalogue import retrieve
 from store import Store, cents
 from accounts import hash_password, verify

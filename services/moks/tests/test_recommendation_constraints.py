@@ -12,7 +12,8 @@ def product(sku,price=400,currency='INR',kind='vacuum',**extra):
     return dict(sku=sku,name='Robot '+kind,description=kind,categories=[kind],price=price,currency=currency,instock=3,priceType='sale',**extra)
 class Constraints(unittest.TestCase):
     def run_answer(self,question,products,history=None):
-        provider=Mock(return_value={'answer':'ok','input_tokens':1,'output_tokens':1})
+        # A compliant model names the evidence SKUs it recommends on the final Products line.
+        provider=Mock(side_effect=lambda config,system,prompt,*a:{'answer':'ok\nProducts: '+(', '.join(p['sku'] for p in json.loads(prompt)['catalogueEvidence']) or 'none'),'input_tokens':1,'output_tokens':1})
         result=answer(products,question,CONFIG,generate=provider,history=history)
         if result['status']=='success':
             provider.assert_called_once()

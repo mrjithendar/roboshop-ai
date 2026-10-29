@@ -30,9 +30,9 @@ export function ContactForm({ siteKey }: { siteKey: string | undefined }) {
   }
 
   return (
-    <section aria-labelledby="contact-form-title" className="mt-12 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-white/10 dark:bg-surface-dark-raised">
+    <section aria-labelledby="contact-form-title" className="mt-12 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-8 dark:border-white/10 dark:bg-surface-dark-raised">
       <h2 id="contact-form-title" className="text-xl font-semibold text-ink dark:text-white">Send a message</h2>
-      <form onSubmit={submit} className="mt-6 grid gap-5 sm:grid-cols-2">
+      <form onSubmit={submit} className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2">
         <Field label="Name" htmlFor="c-name"><Input id="c-name" name="name" autoComplete="name" required maxLength={100} /></Field>
         <Field label="Email" htmlFor="c-email"><Input id="c-email" name="email" type="email" autoComplete="email" required maxLength={200} /></Field>
         <div className="sm:col-span-2"><Field label="Subject" htmlFor="c-subject"><Input id="c-subject" name="subject" required maxLength={150} /></Field></div>

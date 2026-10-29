@@ -77,7 +77,7 @@ export function BulkPosts({ rows }: { rows: PostRowView[] }) {
                 <td className={td}>
                   <input type="checkbox" aria-label={`Select ${r.title}`} checked={selected.has(r.id)} onChange={() => toggle(r.id)} />
                 </td>
-                <td className={td}>
+                <td className={`${td} min-w-56`}>
                   <Link href={`/admin/posts/${r.id}`} className="flex items-center gap-3 font-medium text-ink hover:underline dark:text-white">
                     {r.cover ? (
                       // eslint-disable-next-line @next/next/no-img-element -- admin thumbnail

@@ -1,0 +1,67 @@
+# NGINX configuration for the web service
+
+These templates configure the single `web` container (see [../README.md](../README.md)):
+NGINX serves the storefront files built from `../frontend` and sends `/api/*` to the Python AI gateway. The gateway continues to own session cookies, request validation and payment checks. Java shipping, PostgreSQL, Redis and RabbitMQ stay behind the application services.
+
+```text
+Browser → NGINX :8080 (HTTP) / :8443 (optional HTTPS)
+           ├── /, /admin, compiled JS/CSS, /images/*.png → files in ${WEB_ROOT}
+           ├── /api/* → AI gateway :3000 → application services
+           ├── /health → NGINX liveness
+           └── /ready → gateway /api/ready → core dependencies only
+```
+
+## Read the configuration in this order
+
+| File | What it controls |
+| --- | --- |
+| `nginx.conf` | Worker processes, timeouts, request size, writable temporary paths and included files. |
+| `http/05-trusted-load-balancer.conf` | Optional client-IP trust when a known load balancer sits in front of NGINX; disabled by default. |
+| `http/10-logging.conf` | JSON access logs with route groups, timings and request IDs. Omits query strings, cookies and bodies from access logs. |
+| `http/20-upstream.conf` | Gateway hostname/port, connection reuse and DNS refresh after service replacement. |
+| `snippets/static.conf` | GET-only storefront files and the `/roboshop` HTML attribute rewrite. |
+| `http/30-compression.conf` | Gzip for public text assets. |
+| `http/40-cache-policy.conf` | HTML/JS/CSS revalidation, image caching, and no-store for APIs/errors. |
+| `servers/http.conf` | Default HTTP listener for local use or a TLS-terminating ingress. |
+| `servers/https.conf` | Optional HTTPS listener and HTTP-to-HTTPS redirect. |
+| `snippets/routes.conf` | Which URLs serve files, proxy requests or return 404. |
+| `snippets/proxy.conf` | Forwarding headers, API timeouts and proxy behavior. |
+| `snippets/security-headers.conf` | Browser security headers, including the Razorpay-compatible CSP. |
+| `start.sh` | Validates settings, renders templates, checks configuration and starts NGINX. |
+| `../Dockerfile` | Builds the storefront and packages it with this configuration in one image. |
+
+`http/` files are included inside the main `http` block. One selected server file includes the routes, which include reusable proxy/header settings. `start.sh` substitutes only explicitly listed environment variables, leaving NGINX variables such as `$uri` and `$scheme` intact. Generated configuration lives under `/tmp/roboshop-nginx`; source files remain read-only.
+
+## Minikube
+
+Build and publish the `web` image, then sync the `web` Argo CD Application (see [../README.md](../README.md) for the migration order). Traefik and cert-manager terminate HTTPS at `https://jithendar.com/roboshop/` and strip `/roboshop` before forwarding to the `web` Service.
+
+```bash
+kubectl -n roboshop-ai logs deployment/web --tail=100
+kubectl -n roboshop-ai exec deployment/web -- nginx -t -c /tmp/roboshop-nginx/nginx.conf
+```
+
+## Proxy and payment behavior
+
+- NGINX overwrites incoming client-IP forwarding headers. `TRUST_PROXY=true` is enabled on the private gateway so its existing limits apply per client rather than per proxy. Do not publish that gateway directly with this flag enabled. Behind a load balancer, configure only its actual trusted CIDRs in `05-trusted-load-balancer.conf`.
+- Original host/port, cookies, Origin, trace headers and webhook signature headers pass through. Payment webhook bodies are forwarded unchanged.
+- API responses are never cached or compressed, and NGINX does not retry requests automatically. Gateway mutation limits and idempotency remain authoritative.
+- `/metrics`, hidden files, source paths and unknown assets are not exposed. Missing assets and API routes return 404 rather than the storefront HTML.
+- Browser security headers are set at server scope. Adding a location-level `add_header` can suppress inherited headers; keep shared headers in the supplied snippet.
+
+## Tests
+
+`npm run test:nginx` requires NGINX 1.28+ and `envsubst` on the PATH. It starts an isolated temporary proxy and checks assets, caching, cookies, forwarded-header replacement, webhook bytes/signatures, error handling and readiness. Use `NGINX_TEST=true npm test` to run the complete checkout flow through NGINX as well (requires the test PostgreSQL setup).
+
+To test a built image instead of a local NGINX, set `NGINX_TEST_IMAGE=roboshop-web:local` (Linux host networking). No real payments are made.
+
+## Image
+
+Built from `services/web` (context) by `../Dockerfile`; see [../README.md](../README.md).
+
+`/health` is local liveness. `/ready` proxies only gateway core readiness with a
+one-second connect and two-second read timeout, without credentials or retries.
+It is also available on the HTTP listener in TLS mode instead of redirecting the
+Kubernetes probe. An AI/Finder/recommendation/telemetry failure never changes this
+result.
+See [health contracts](../../docs/architecture/health-checks.md).

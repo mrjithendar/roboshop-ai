@@ -33,7 +33,7 @@ function Column({ title, links }: { title: string; links: { href: string; label:
       <ul className="mt-4 space-y-3">
         {links.map((l) => (
           <li key={l.href}>
-            <Link href={l.href} className="text-sm text-slate-600 transition-colors hover:text-ink dark:text-slate-400 dark:hover:text-white">
+            <Link href={l.href} className="inline-block py-1 text-sm text-slate-600 transition-colors hover:text-ink dark:text-slate-400 dark:hover:text-white">
               {l.label}
             </Link>
           </li>
@@ -94,7 +94,7 @@ export async function SiteFooter() {
           <ul className="flex flex-wrap gap-x-5 gap-y-2">
             {policies.map((p) => (
               <li key={p.href}>
-                <Link href={p.href} className="transition-colors hover:text-ink dark:hover:text-white">
+                <Link href={p.href} className="inline-block py-1 transition-colors hover:text-ink dark:hover:text-white">
                   {p.label}
                 </Link>
               </li>

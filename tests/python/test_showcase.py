@@ -422,10 +422,10 @@ class ShowcaseTests(unittest.TestCase):
         result = gateway.handle(request("/api/products/" + slug))
         self.assertEqual(result["product"]["sku"], PRODUCTS[0]["sku"])
         self.assertNotIn(PRODUCTS[0]["sku"], [p["sku"] for p in result["related"]])
-        static = Path(directory.name) / "services/frontend/dist"
+        static = Path(directory.name) / "services/web/frontend/dist"
         static.mkdir(parents=True)
         (static / "product.html").write_bytes(
-            (ROOT / "services/frontend/product.html").read_bytes()
+            (ROOT / "services/web/frontend/product.html").read_bytes()
         )
         with patch("server.STATIC_ROOT", static):
             for _ in range(2):

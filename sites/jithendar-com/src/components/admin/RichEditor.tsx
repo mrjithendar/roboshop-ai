@@ -155,7 +155,7 @@ export function RichEditor({
     ],
     content: value,
     contentType: "markdown",
-    editorProps: { attributes: { class: "prose prose-slate max-w-none min-h-[420px] px-6 py-5 focus:outline-none dark:prose-invert" } },
+    editorProps: { attributes: { class: "prose prose-slate max-w-none min-h-[420px] px-4 py-4 sm:px-6 sm:py-5 focus:outline-none dark:prose-invert" } },
     onUpdate: ({ editor: e }) => {
       const md = e.getMarkdown();
       latest.current = md;
@@ -269,11 +269,11 @@ export function RichEditor({
         )}
         {mode === "markdown" && (
           <textarea ref={textarea} value={value} onChange={(e) => setMarkdown(e.target.value)} spellCheck
-            aria-label="Markdown source" className="block min-h-[420px] w-full resize-y bg-transparent px-6 py-5 font-mono text-sm leading-6 text-ink focus:outline-none dark:text-slate-100" />
+            aria-label="Markdown source" className="block min-h-[420px] w-full resize-y bg-transparent px-4 py-4 font-mono sm:px-6 sm:py-5 text-sm leading-6 text-ink focus:outline-none dark:text-slate-100" />
         )}
         {mode === "preview" && (
           // Rendered by the server with the site's safe Markdown pipeline (no raw HTML or scripts).
-          <div className="prose prose-slate max-w-none px-6 py-5 dark:prose-invert" dangerouslySetInnerHTML={{ __html: preview }} />
+          <div className="prose prose-slate max-w-none px-4 py-4 sm:px-6 sm:py-5 dark:prose-invert" dangerouslySetInnerHTML={{ __html: preview }} />
         )}
 
         <div className="flex justify-between border-t border-slate-200 px-4 py-2 text-xs text-slate-500 dark:border-white/10 dark:text-slate-400">

@@ -27,7 +27,9 @@ export const postInput = z.object({
   publishedAt: isoDateTime.nullish(),
   updatedAt: isoDateTime.nullish(),
   canonicalUrl: z.string().nullish(),
-  featuredImage: z.object({ src: z.string(), alt: z.string(), width: z.number(), height: z.number() }).nullish(),
+  featuredImage: z
+    .object({ src: z.string(), alt: z.string(), width: z.number(), height: z.number(), focalX: z.number().min(0).max(100).optional(), focalY: z.number().min(0).max(100).optional() })
+    .nullish(),
   sources: z.array(z.object({ title: z.string(), url: z.string(), publisher: z.string() })).default([]),
   corrections: z.array(z.object({ date: z.string(), note: z.string() })).default([]),
   sponsored: z.boolean().default(false),
@@ -42,7 +44,7 @@ export type PostRow = typeof schema.post.$inferSelect;
 export class PostError extends Error {
   constructor(
     message: string,
-    readonly status: 400 | 403 | 404 | 409 = 400,
+    readonly status: number = 400,
     readonly issues: string[] = [],
   ) {
     super(message);

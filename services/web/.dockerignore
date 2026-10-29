@@ -1,0 +1,14 @@
+# Patterns use **/ because sources live one level down (frontend/, nginx/).
+.git
+**/.env
+**/.env.*
+!**/.env.example
+**/.DS_Store
+**/node_modules
+**/dist
+**/tests
+**/coverage
+**/*.log
+**/__pycache__
+**/*.md
+*-minikube.yaml

@@ -101,6 +101,7 @@ export const MAINTENANCE = {
   "purge-verifications": "Delete expired verification codes",
   "purge-previews": "Delete expired previews",
   "purge-rate-limits": "Delete rate-limit entries older than a day",
+  "purge-media-temp": "Delete abandoned uploads and unaccepted generated images (and their R2 objects)",
   vacuum: "VACUUM ANALYZE (reclaim space, refresh planner statistics)",
 } as const;
 
@@ -125,6 +126,12 @@ export async function runMaintenance(actor: Actor, task: string): Promise<string
     case "purge-rate-limits":
       message = `${await deleted(sql`delete from rate_limit where last_request < ${Date.now() - 86_400_000} returning id`)} rate-limit entr(ies) deleted.`;
       break;
+    case "purge-media-temp": {
+      const { purgeStaleUploads } = await import("./media");
+      const { expireGenerations } = await import("./image-generation");
+      message = `${await purgeStaleUploads()} abandoned upload(s) and ${await expireGenerations()} unaccepted generated image(s) deleted.`;
+      break;
+    }
     case "vacuum":
       await db.execute(sql`vacuum (analyze)`);
       message = "VACUUM ANALYZE finished.";

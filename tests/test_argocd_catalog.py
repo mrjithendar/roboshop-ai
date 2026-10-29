@@ -13,7 +13,8 @@ def test_catalog_has_unique_safe_ownership():
     assert {'moks','catalogue-service'} <= names
     assert not {'shopping-agent','product-ingestion','jfrog'} & names
     assert not {'argocd','traefik','coredns','kube-proxy','kindnet'}&names
-    assert len(apps)==25
+    assert len(apps)==24  # frontend + nginx consolidated into web
+    assert owners[('apps','Deployment','roboshop-ai','web')]=='web'
     assert 'cert-manager' not in names
     assert owners[('apps','Deployment','roboshop-ai','mongodb')]=='mongodb'
     assert ('apps','StatefulSet','roboshop-ai','mongodb') not in owners
@@ -106,6 +107,20 @@ def test_external_validation_calls_required_inventory(monkeypatch):
     import pytest
     with pytest.raises(AssertionError,match='Unmanaged workloads'):
         module.validate(external=True)
+
+
+def test_frontend_and_nginx_are_retired_into_web():
+    import json
+    import yaml
+    inventory={tuple(row) for row in json.loads((ROOT/'argocd/workload-inventory.json').read_text())}
+    assert ('Deployment','roboshop-ai','web') in inventory
+    assert not {('Deployment','roboshop-ai','frontend'),('Deployment','roboshop-ai','nginx')} & inventory
+    resources=yaml.safe_load((ROOT/'argocd/kustomization.yaml').read_text())['resources']
+    assert 'web.yaml' in resources and not {'frontend.yaml','nginx.yaml'} & set(resources)
+    assert not (ROOT/'services/frontend').exists() and not (ROOT/'services/nginx').exists()
+    for name in ('roboshop-ingress.yaml','roboshop-http-ingress.yaml'):
+        ingress=yaml.safe_load((ROOT/'minikube/roboshop'/name).read_text())
+        assert ingress['spec']['rules'][0]['http']['paths'][0]['backend']['service']['name']=='web'
 
 
 def test_retired_ingestion_has_no_deployable_or_runtime_references():

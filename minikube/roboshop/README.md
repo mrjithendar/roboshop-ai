@@ -47,7 +47,7 @@ Open **https://jithendar.com/roboshop/** (admin: `/roboshop/admin`). HTTP redire
 
 Prerequisites: DNS points to Vultr, Traefik exposes public ports 80/443, and cert-manager's `letsencrypt-prod` ClusterIssuer is Ready. The deploy script checks these cluster resources, applies the named `*-ingress.yaml` and `*-middleware.yaml` resources, and waits up to three minutes for the certificate. This certificate and its TLS Secret live in `roboshop-ai` because TLS Secrets cannot be referenced across namespaces.
 
-On the Minikube host, rebuild the frontend and NGINX changes using the fixed local tag:
+On the Minikube host, rebuild the web image (storefront and NGINX) using the fixed local tag:
 
 ```bash
 bash build-images.sh
@@ -62,7 +62,7 @@ kubectl -n roboshop-ai describe certificate jithendar-com
 curl -I https://jithendar.com/roboshop/
 ```
 
-Check DNS, public ports, issuer status and challenge events. Do not repeatedly delete certificates while troubleshooting. For blank pages or 404 assets, reload the rebuilt images and restart the frontend/NGINX deployments. Razorpay webhook URLs must include `/roboshop/api/payments/webhook` when using this ingress.
+Check DNS, public ports, issuer status and challenge events. Do not repeatedly delete certificates while troubleshooting. For blank pages or 404 assets, reload the rebuilt images and restart the web deployment. Razorpay webhook URLs must include `/roboshop/api/payments/webhook` when using this ingress.
 
 The MCP server runs Streamable HTTP on the private `mcp-server:4107` Service (`/mcp`, with `/health` and `/ready` probes) and has no ingress. Each client sends its own RoboShop session as a bearer token; no shared session is stored in the cluster. Reach it with a port-forward:
 
@@ -79,7 +79,7 @@ See [services/mcp-server/README.md](../../services/mcp-server/README.md) for too
 | Data and messaging | mongodb, postgres (workload `shipping-db`), redis, rabbitmq |
 | Tracing | jaeger, otel-collector |
 | APIs and AI | catalogue-service, catalogue-service, moks, payment-service, shipping-service, user-service, ai-gateway |
-| Web and tools | frontend, nginx, mcp-server |
+| Web and tools | web (storefront + NGINX), mcp-server |
 
 - `minikube/roboshop/roboshop-ai-namespace.yaml, minikube/roboshop/roboshop-config-configmap.yaml`: namespace and the single `roboshop-config` ConfigMap (environment settings and service configuration files).
 - `minikube/roboshop/deployment.py`: renderer and first-install credential initialization.

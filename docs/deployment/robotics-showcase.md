@@ -134,7 +134,7 @@ Create `roboshop-registration` using your existing secret manager, with a `TURNS
 ```sh
 npm run frontend:build
 .venv/bin/python -m unittest discover -s tests/python -v
-node --test tests/showcase-ui.test.mjs services/frontend/tests/frontend.test.mjs services/frontend/tests/admin-ui.test.mjs tests/catalogue.test.mjs
+node --test tests/showcase-ui.test.mjs services/web/frontend/tests/frontend.test.mjs services/web/frontend/tests/admin-ui.test.mjs tests/catalogue.test.mjs
 # With disposable MongoDB / PostgreSQL and a built shipping jar:
 MONGODB_URL=<isolated-test-uri> npm test
 NGINX_TEST=true node --test tests/nginx.test.mjs

@@ -34,7 +34,7 @@ for (const name of names) {
     env.UPSTREAM_ORIGIN ??= env.PUBLIC_ORIGIN || env.AI_GATEWAY_URL;
     env.ALLOWED_ORIGINS ??= env.UPSTREAM_ORIGIN;
   }
-  if (name === 'ai-gateway') { env.FRONTEND_DIST = resolve(root, 'services/frontend/dist'); env.DATA_DIR ??= resolve(root, '.data'); }
+  if (name === 'ai-gateway') { env.FRONTEND_DIST = resolve(root, 'services/web/frontend/dist'); env.DATA_DIR ??= resolve(root, '.data'); }
   delete env.OPENAI_API_KEY; delete env.OPENAI_MODEL; delete env.ASSISTANT_AI_ENABLED;
   if (['ai-gateway', 'moks'].includes(name)) env.LLM_SERVICE_TOKEN = llmToken;
   else { delete env.LLM_SERVICE_TOKEN; delete env.OLLAMA_ENDPOINTS_JSON; }

@@ -83,6 +83,8 @@ class ReadinessTests(unittest.TestCase):
         spec = importlib.util.spec_from_file_location('readiness_agent', ROOT/'services/moks/server.py')
         agent = importlib.util.module_from_spec(spec)
         with patch.object(sys, 'path', [str(ROOT/'services/moks'), *sys.path]):
+            from moks_agent import import_agent
+            import_agent()  # Both services ship a `catalogue` module.
             spec.loader.exec_module(agent)
         with patch.object(agent, 'route', side_effect=AssertionError('No model probes')), patch.object(agent, 'request') as check:
             self.assertEqual(agent.handle(self.req('/ready')), {'status':'ready'})
@@ -95,7 +97,7 @@ class ReadinessTests(unittest.TestCase):
 
     def test_manifests_use_local_liveness_and_scoped_readiness(self):
         import yaml
-        paths = {'ai-gateway':'/health/ready', 'nginx':'/ready',
+        paths = {'ai-gateway':'/health/ready', 'web':'/ready',
                  'moks':'/ready', 'catalogue-service':'/api/catalogue/ready'}
         for name, path in paths.items():
             with self.subTest(service=name):

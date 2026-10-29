@@ -105,7 +105,8 @@ export const authorProfile = pgTable("author_profile", {
 
 export type Source = { title: string; url: string; publisher: string };
 export type Correction = { date: string; note: string };
-export type FeaturedImage = { src: string; alt: string; width: number; height: number };
+/** Cover image. `focalX`/`focalY` (0–100, default 50) keep the subject in view when cards crop it. */
+export type FeaturedImage = { src: string; alt: string; width: number; height: number; focalX?: number; focalY?: number };
 
 export const post = pgTable(
   "post",
@@ -193,21 +194,73 @@ export const contactMessage = pgTable(
   (t) => [index("contact_status_idx").on(t.status, t.createdAt)],
 );
 
-/** Uploaded images. Bytes live in S3 at `storageKey`; this row holds metadata only. */
-export const media = pgTable("media", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  filename: text("filename").notNull(),
-  contentType: text("content_type").notNull(),
-  storageKey: text("storage_key").notNull().unique(),
-  /** Folder context, e.g. posts/blog/my-post, pages/about, authors/jane, library. */
-  context: text("context").notNull().default("library"),
-  sizeBytes: integer("size_bytes").notNull(),
-  width: integer("width").notNull(),
-  height: integer("height").notNull(),
-  alt: text("alt").notNull().default(""),
-  uploadedBy: text("uploaded_by").references(() => user.id, { onDelete: "set null" }),
-  createdAt: ts("created_at").notNull().defaultNow(),
-});
+/**
+ * Uploaded media. Bytes live in object storage at `storageKey`; this row holds metadata only.
+ * New objects go to Cloudflare R2 under jithendar/www/media/{kind}/{yyyy}/{mm}/{id}.{ext};
+ * rows created before R2 stay on the legacy S3 bucket until the migration tool copies them.
+ * Public URLs are always /media/{id}/{filename}, so moving bytes never changes a reference.
+ */
+export const media = pgTable(
+  "media",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    filename: text("filename").notNull(),
+    contentType: text("content_type").notNull(),
+    storageKey: text("storage_key").notNull().unique(),
+    /** "r2" or "s3-legacy" (rows uploaded before the move to R2). */
+    storageBackend: text("storage_backend").notNull().default("r2"),
+    /** The S3 key the object was copied from (set by the R2 migration; used for rollback). */
+    legacyKey: text("legacy_key"),
+    /** images | videos | audio | documents */
+    kind: text("kind").notNull().default("images"),
+    /** public (served at /media/…) or private (staff only, short-lived signed links). */
+    visibility: text("visibility").notNull().default("public"),
+    /** pending (presigned upload not yet verified) or ready. */
+    status: text("status").notNull().default("ready"),
+    checksumSha256: text("checksum_sha256"),
+    /** Folder context, e.g. posts/blog/my-post, pages/about, authors/jane, library. */
+    context: text("context").notNull().default("library"),
+    sizeBytes: integer("size_bytes").notNull(),
+    /** Pixel size for images (null for audio and documents). */
+    width: integer("width"),
+    height: integer("height"),
+    alt: text("alt").notNull().default(""),
+    uploadedBy: text("uploaded_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("media_status_created_idx").on(t.status, t.createdAt)],
+);
+
+/**
+ * AI image generations (Gemini). Prompts are not stored: only their SHA-256 and length.
+ * An unaccepted result lives under jithendar/www/tmp/generated/ until accepted, discarded or expired.
+ */
+export const imageGeneration = pgTable(
+  "image_generation",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+    model: text("model").notNull(),
+    aspectRatio: text("aspect_ratio").notNull(),
+    imageSize: text("image_size").notNull(),
+    promptSha256: text("prompt_sha256").notNull(),
+    promptChars: integer("prompt_chars").notNull(),
+    /** running → succeeded → accepted | discarded | expired; or failed | cancelled */
+    status: text("status").notNull(),
+    errorCode: text("error_code"),
+    tempKey: text("temp_key"),
+    contentType: text("content_type"),
+    sizeBytes: integer("size_bytes"),
+    width: integer("width"),
+    height: integer("height"),
+    checksumSha256: text("checksum_sha256"),
+    latencyMs: integer("latency_ms"),
+    mediaId: uuid("media_id").references(() => media.id, { onDelete: "set null" }),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    completedAt: ts("completed_at"),
+  },
+  (t) => [index("image_generation_user_created_idx").on(t.userId, t.createdAt), index("image_generation_status_idx").on(t.status, t.createdAt)],
+);
 
 export const apiKey = pgTable(
   "api_key",

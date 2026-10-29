@@ -616,12 +616,16 @@ class Gateway:
                 log_event("ai_not_configured", reason="superadmin_configuration_required")
                 return unconfigured()
             products = self.catalogue(timeout=2)
+            # Reference listings are information, never sold here: keep them visible to the
+            # assistant, which labels them, while purchasable stock stays authoritative.
+            def listed(p):
+                return p.get("collection") == "reference" or self.store.available(p) > 0
             with self.store.lock:
-                unavailable = [
-                    p["sku"] for p in products if self.store.available(p) < 1
-                ]
+                unavailable = [p["sku"] for p in products if not listed(p)]
             if not self.chat_slots.acquire(blocking=False):
-                return self.feature_unavailable("finder")
+                # Admission rejection, distinct from an unavailable provider.
+                return {"code": "assistant-busy", "feature": "finder", "available": True, "products": [],
+                        "error": "Moks is busy. Please try again in a moment."}, 429, [("Retry-After", "5")]
             try:
                 payload = {
                     "message": message,
@@ -652,7 +656,7 @@ class Gateway:
                 result["products"] = [
                     {**p, "instock": self.store.available(p)}
                     for p in result["products"]
-                    if self.store.available(p) > 0
+                    if listed(p)
                 ]
             self.chat_history.save(user["id"], message, result)
             return result
