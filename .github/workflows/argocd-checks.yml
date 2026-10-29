@@ -1,0 +1,36 @@
+name: Argo CD catalog checks
+# Cluster configuration lives here (roboshop/); microservice manifests are read from roboshop-ai.
+on:
+  pull_request:
+    paths: ['roboshop/argocd/**', 'roboshop/minikube/**', 'roboshop/observability/**', 'roboshop/scripts/argocd/**', 'roboshop/scripts/lib/**', 'roboshop/tests/**', '.github/workflows/argocd-checks.yml']
+  push:
+    branches: [master]
+    paths: ['roboshop/argocd/**', 'roboshop/minikube/**', 'roboshop/observability/**', 'roboshop/scripts/argocd/**', 'roboshop/scripts/lib/**', 'roboshop/tests/**', '.github/workflows/argocd-checks.yml']
+  # roboshop-ai manifest changes do not trigger this repository: validate daily as well.
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ROBOSHOP_AI_DIR: ${{ github.workspace }}/roboshop-ai
+    defaults:
+      run:
+        working-directory: tools/roboshop
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with: {path: tools, persist-credentials: false}
+      - uses: actions/checkout@v7.0.1
+        with: {repository: mrjithendar/roboshop-ai, path: roboshop-ai, persist-credentials: false}
+      - uses: actions/setup-python@v7
+        with: {python-version: '3.14'}
+      - uses: azure/setup-kubectl@v4
+        with: {version: v1.35.0}
+      - uses: azure/setup-helm@v4.3.1
+      - run: python -m pip install PyYAML pytest
+      - run: python scripts/argocd/validate.py --external-charts
+      - run: python -m pytest -q tests/test_argocd_catalog.py tests/test_mongodb_catalog.py minikube/test-wordpress.py minikube/test-jfrog.py

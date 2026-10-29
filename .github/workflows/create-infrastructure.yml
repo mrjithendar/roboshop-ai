@@ -1,0 +1,60 @@
+name: Create infrastructure
+
+on:
+  workflow_dispatch:
+  push:
+    # branches: [master, main]
+    # Storefront source and NGINX configuration ship in one image.
+    paths:
+      - 'roboshop/infrastructure/**'
+      - '.github/workflows/create-infrastructure.yml'
+
+permissions:
+  contents: read
+
+# Both Terraform states are deployed together; never cancel an active apply.
+concurrency:
+  group: terraform-infrastructure-dev
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    runs-on: [self-hosted, linux]
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: bash
+    env:
+      AWS_REGION: us-east-1
+      AWS_DEFAULT_REGION: us-east-1
+      TF_IN_AUTOMATION: 'true'
+      TF_INPUT: 'false'
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.16.6
+          terraform_wrapper: false
+
+      - name: terraform format check
+        run: |
+          terraform -chdir=roboshop/infrastructure fmt -check
+          
+      - name: terraform init & validate
+        run: |
+          terraform -chdir=roboshop/infrastructure init -input=false -no-color
+          terraform -chdir=roboshop/infrastructure validate -no-color
+
+      - name: terraform plan
+        run: |
+          umask 077
+          terraform -chdir=roboshop/infrastructure plan -input=false -no-color -lock-timeout=5m \
+            -out=tf.tfplan --var-file=vars/terraform.tfvars
+
+      - name: terraform apply
+        run: terraform -chdir=roboshop/infrastructure apply -input=false -no-color -lock-timeout=5m tf.tfplan
