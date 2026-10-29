@@ -160,3 +160,7 @@ and `ai-gateway` to enable the integration; no checkout dependency on Kafka is a
 ### Create missing Minikube secrets
 
 From `../tools/roboshop`, use `./create-secrets.sh --context mk4` to preview, then add `--apply` to create missing RoboShop, monitoring and WordPress credentials. Optional `--all` includes JFrog; `--ecr` refreshes image-pull tokens using existing AWS authentication. Existing credentials are preserved. See [secret setup and recovery safeguards](https://github.com/mrjithendar/tools/blob/master/roboshop/scripts/setup/SECRETS.md).
+
+## License
+
+Copyright (c) 2026 Jithendar Dharmapuri. All rights reserved. This is proprietary software; no use, copying, modification or distribution is permitted without written permission. See [LICENSE](LICENSE).
