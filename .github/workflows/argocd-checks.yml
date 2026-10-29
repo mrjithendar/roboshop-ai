@@ -1,12 +1,12 @@
 name: Argo CD catalog checks
-# Cluster configuration lives here (roboshop/); microservice manifests are read from roboshop-ai.
+# Argo CD manifests live here; the validator and catalog tests are read from mrjithendar/tools.
 on:
   pull_request:
-    paths: ['roboshop/argocd/**', 'roboshop/minikube/**', 'roboshop/observability/**', 'roboshop/scripts/argocd/**', 'roboshop/scripts/lib/**', 'roboshop/tests/**', '.github/workflows/argocd-checks.yml']
+    paths: ['argocd/**', '.github/workflows/argocd-checks.yml']
   push:
     branches: [master]
-    paths: ['roboshop/argocd/**', 'roboshop/minikube/**', 'roboshop/observability/**', 'roboshop/scripts/argocd/**', 'roboshop/scripts/lib/**', 'roboshop/tests/**', '.github/workflows/argocd-checks.yml']
-  # roboshop-ai manifest changes do not trigger this repository: validate daily as well.
+    paths: ['argocd/**', '.github/workflows/argocd-checks.yml']
+  # tools changes do not trigger this repository: validate daily as well.
   schedule:
     - cron: '30 2 * * *'
   workflow_dispatch:
@@ -20,12 +20,12 @@ jobs:
       ROBOSHOP_AI_DIR: ${{ github.workspace }}/roboshop-ai
     defaults:
       run:
-        working-directory: tools/roboshop
+        working-directory: tools
     steps:
       - uses: actions/checkout@v7.0.1
-        with: {path: tools, persist-credentials: false}
+        with: {path: roboshop-ai, persist-credentials: false}
       - uses: actions/checkout@v7.0.1
-        with: {repository: mrjithendar/roboshop-ai, path: roboshop-ai, persist-credentials: false}
+        with: {repository: mrjithendar/tools, path: tools, persist-credentials: false}
       - uses: actions/setup-python@v7
         with: {python-version: '3.14'}
       - uses: azure/setup-kubectl@v4

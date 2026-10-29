@@ -6,7 +6,7 @@ on:
     # branches: [master, main]
     # Storefront source and NGINX configuration ship in one image.
     paths:
-      - 'roboshop/infrastructure/**'
+      - 'infrastructure/**'
       - '.github/workflows/create-infrastructure.yml'
 
 permissions:
@@ -43,18 +43,18 @@ jobs:
 
       - name: terraform format check
         run: |
-          terraform -chdir=roboshop/infrastructure fmt -check
+          terraform -chdir=infrastructure fmt -check
           
       - name: terraform init & validate
         run: |
-          terraform -chdir=roboshop/infrastructure init -input=false -no-color
-          terraform -chdir=roboshop/infrastructure validate -no-color
+          terraform -chdir=infrastructure init -input=false -no-color
+          terraform -chdir=infrastructure validate -no-color
 
       - name: terraform plan
         run: |
           umask 077
-          terraform -chdir=roboshop/infrastructure plan -input=false -no-color -lock-timeout=5m \
+          terraform -chdir=infrastructure plan -input=false -no-color -lock-timeout=5m \
             -out=tf.tfplan --var-file=vars/terraform.tfvars
 
       - name: terraform apply
-        run: terraform -chdir=roboshop/infrastructure apply -input=false -no-color -lock-timeout=5m tf.tfplan
+        run: terraform -chdir=infrastructure apply -input=false -no-color -lock-timeout=5m tf.tfplan
