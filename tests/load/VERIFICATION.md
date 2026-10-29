@@ -44,7 +44,6 @@ PY=tests/load/.venv/bin/python
 "$PY" -m unittest discover -s services/moks/tests
 "$PY" -m unittest discover -s services/ai-gateway/tests
 "$PY" -m unittest discover -s tests/python
-"$PY" -m unittest discover -s evaluations/agents
 "$PY" -m unittest discover -s tests/load -p 'test_*.py'
 for scenario in browse session cart checkout idempotency chat isolation limited-stock; do
   WARMUP_SECONDS=1 PACE_SECONDS=1 "$PY" tests/load/lab.py run \

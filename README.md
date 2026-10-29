@@ -52,10 +52,10 @@ npm ci
 python3 -m venv .venv
 .venv/bin/python -m pip install -r services/ai-gateway/requirements.txt -r services/user-service/requirements.txt -r services/moks/requirements.txt
 export PYTHON="$PWD/.venv/bin/python"
-npm run dev
+npm run frontend:build && npm run shipping:build
 ```
 
-Open **http://localhost:3000**. Ctrl+C stops the launcher’s child processes. `npm run dev` builds the frontend and shipping application first. `python3 scripts/data/generate-secrets.py` can generate fresh native-development credentials; it does not provision database accounts or replace Minikube’s secret initialization.
+There is no all-in-one local launcher any more: run the services you need (see each service's README), or use the Minikube deployment.
 
 ## Services
 
@@ -96,8 +96,6 @@ Application metrics are private `/metrics` endpoints. Configure scrape targets i
 npm run frontend:typecheck
 npm run frontend:build
 npm test
-npm run evaluate
-python3 tests/minikube-manifests.test.py
 ```
 
 Full tests require the documented language dependencies and local integration services; see [test instructions](tests/README.md). Per-service CI builds/pushes images to ECR; see [ECR setup](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/deployment/ecr-ci.md).
@@ -149,7 +147,7 @@ and `python3 -c 'import yaml'` as the runner user.
 Build and push one service using its **Actions → service image → Run workflow** entry.
 Omit `--service` to build every application image. Image publishing is separate from Argo CD deployment.
 
-Build images with `bash scripts/images/build-push-ecr.sh frontend`, then update
+Images are built and pushed to ECR by each service's CI workflow (`.github/workflows/ci-<service>.yml`, which calls `publish-ecr.yml`) on pushes to `master`; then update
 the application's image reference in Git and sync it through Argo CD.
 
 ### Kafka analytics stream

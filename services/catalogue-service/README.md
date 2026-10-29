@@ -23,7 +23,7 @@ Configuration: `MONGODB_URL`, `MONGODB_DATABASE` (default `roboshop`), port 4108
 ## Build and deploy
 
 ```bash
-bash scripts/images/build-push-ecr.sh catalogue-service
+# Images are built and pushed to ECR by each service's CI workflow (`.github/workflows/ci-<service>.yml`, which calls `publish-ecr.yml`) on pushes to `master`.
 bash scripts/deploy/deploy-minikube.sh catalogue-service
 ```
 

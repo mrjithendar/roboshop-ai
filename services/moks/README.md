@@ -169,12 +169,7 @@ History and prompt limits stay `MOKS_HISTORY_MAX_CHARS` (4000) and `MOKS_PROMPT_
 ```bash
 cd services/moks && python -m unittest discover -s tests          # agent, widget engine, tracing
 node --test services/moks/tests/widget.test.mjs                   # from the repo root; needs jsdom
-python evaluations/moks/run.py                                    # 42-case offline evaluation
-python evaluations/moks/run.py --ask "robot vacuum under 10k INR" --ask "Compare the first two."
 ```
-
-See [evaluations/moks](../../evaluations/moks/README.md) for the dataset, baseline-versus-final
-results and the human rubric.
 
 ### Known limitations
 
@@ -232,7 +227,7 @@ to activate this change; the compatibility widget URL and gateway APIs remain un
 
 ```bash
 # First create roboshop-moks via the infrastructure Terraform (review its plan).
-bash scripts/images/build-push-ecr.sh moks web
+# Images are built and pushed to ECR by each service's CI workflow (`.github/workflows/ci-<service>.yml`, which calls `publish-ecr.yml`) on pushes to `master`.
 bash scripts/deploy/deploy-minikube.sh moks web
 ```
 

@@ -21,7 +21,7 @@ Migrations run inside shipping startup before HTTP/message processing, in a tran
 
 Copy `.env.example` to `.env`, preserving any existing credentials. Set separate strong URL-safe `SHIPPING_DB_PASSWORD` (schema owner) and `SHIPPING_APP_PASSWORD` (restricted runtime service). Then:
 
-For local Node development with an existing PostgreSQL server, set `SHIPPING_DATABASE_URL` to the runtime user's connection URL and `SHIPPING_MIGRATION_DATABASE_URL` to the schema owner's URL, set `SHIPPING_DB_TLS=false` only for loopback development, then run `npm ci`, `npm run shipping:build`, `npm run dev`. Java 21 or newer is required locally. Tests require a dedicated test database through `SHIPPING_DATABASE_URL` (plus owner credentials in `SHIPPING_MIGRATION_DATABASE_URL` when using a restricted runtime role); CI supplies a real PostgreSQL service.
+For local Node development with an existing PostgreSQL server, set `SHIPPING_DATABASE_URL` to the runtime user's connection URL and `SHIPPING_MIGRATION_DATABASE_URL` to the schema owner's URL, set `SHIPPING_DB_TLS=false` only for loopback development, then run `npm ci` and `npm run shipping:build`, and start the built application. Java 21 or newer is required locally. Tests require a dedicated test database through `SHIPPING_DATABASE_URL` (plus owner credentials in `SHIPPING_MIGRATION_DATABASE_URL` when using a restricted runtime role); CI supplies a real PostgreSQL service.
 
 ## Kubernetes / production
 

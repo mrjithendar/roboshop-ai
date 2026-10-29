@@ -10,12 +10,10 @@ From the repository root:
 npm ci
 npm run frontend:typecheck
 npm run frontend:build
-npm run dev
 ```
 
 The build produces `dist/index.html`, `dist/admin.html`, `dist/styles.css`, and compiled JavaScript modules. `dist/`
-is ignored by Git. Never edit generated JavaScript. Rebuild after source edits;
-`npm run dev` builds once on startup and does not provide a watch server.
+is ignored by Git. Never edit generated JavaScript. Rebuild after source edits (there is no watch server).
 
 ## Deployment
 

@@ -25,8 +25,8 @@ provider webhooks remain independent of browser sessions. See
 ## Python runtime
 
 `server.py` is the service entry point (FastAPI/Uvicorn, port 3000). Install this directory's
-`requirements.txt` for native execution; `npm run dev` uses the `PYTHON` environment
-variable or `python3`. The image contains Python gateway code and its local libraries only.
+`requirements.txt` for native execution (`python3 server.py`; the root npm scripts use the `PYTHON`
+environment variable or `python3`). The image contains Python gateway code and its local libraries only.
 
 Delegated authentication, public settings, admin role checks, CSRF/origin checks, payment
 verification and the single-writer JSON ledger preserve existing formats. A

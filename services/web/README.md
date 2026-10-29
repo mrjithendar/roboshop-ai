@@ -27,7 +27,7 @@ Browser → Traefik (TLS, strips /roboshop) → web :8080
 | `web-deployment-minikube.yaml`, `web-service-minikube.yaml` | Kubernetes resources, synced by the `web` Argo CD Application. |
 
 Build context is this directory, as with every other service, so the shared
-`publish-ecr.yml` workflow and `scripts/images/build-push-ecr.sh` need no special case.
+`publish-ecr.yml` workflow needs no special case.
 
 ## Build and run locally
 
@@ -42,7 +42,7 @@ npm run frontend:build
 npm run test:nginx                     # starts this service against a mock gateway
 ```
 
-During native development (`npm run dev`), the gateway still serves
+During native development, the gateway still serves
 `frontend/dist` directly, so no NGINX is needed.
 
 ## Configuration
@@ -98,7 +98,7 @@ take effect only when synced. Removing `frontend.yaml` and `nginx.yaml` from the
 2. **Start web without moving traffic:**
 
    ```bash
-   ./deploy-argocd.sh web
+   ../tools/deploy-argocd.sh web
    kubectl -n roboshop-ai rollout status deployment/web
    kubectl -n roboshop-ai port-forward svc/web 18080:8080 &
    curl -fsS localhost:18080/ready && curl -fsS localhost:18080/ | grep -q 'Find your kind of robot'
@@ -109,11 +109,11 @@ take effect only when synced. Removing `frontend.yaml` and `nginx.yaml` from the
 3. **Switch the ingress**, only after step 2 succeeds:
 
    ```bash
-   ./deploy-argocd.sh roboshop-config
+   ../tools/deploy-argocd.sh roboshop-config
    curl -fsSI https://jithendar.com/roboshop/ && curl -fsS https://jithendar.com/roboshop/api/ready
    ```
 
-   Do **not** use `./deploy-argocd.sh roboshop` for this step. That shortcut syncs
+   Do **not** use `../tools/deploy-argocd.sh roboshop` for this step. That shortcut syncs
    `roboshop-config` first.
 4. **Retire the old workloads** after a soak period. Remove only the Applications'
    tracking, then delete the resources explicitly:

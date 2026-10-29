@@ -11,7 +11,6 @@ resources:
 - mongodb.yaml
 - payment-service.yaml
 - postgres.yaml
-- project-platform.yaml
 - rabbitmq.yaml
 - redis.yaml
 - roboshop-config.yaml

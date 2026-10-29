@@ -3,7 +3,7 @@
 ```bash
 ./bootstrap-cluster.sh --dry-run
 ./bootstrap-cluster.sh --context mk4
-./deploy-argocd.sh
+../tools/deploy-argocd.sh
 ```
 
 Or run both stages with `./bootstrap-cluster.sh --deploy-apps`.
@@ -21,11 +21,10 @@ Do not use cascading deletion or delete cert-manager CRDs/certificates.
 
 On the Minikube Linux host, expose Traefik ports separately:
 `PROFILE=mk4 bash minikube/expose-ingress.sh`. Allow host ports 80/443 and point
-DNS at the host. Then deploy the issuer and certificate sources in order:
-`./deploy-argocd.sh roboshop-letsencrypt`, `./deploy-argocd.sh shared-tls`. The
-jithendar.com site (deployed by its own CI with `kubectl apply -k sites/jithendar-com/deploy/production`,
-not by Argo CD) owns the canonical certificate; bootstrap does not claim that
-trusted public TLS is already ready.
+DNS at the host. The Let's Encrypt ClusterIssuer (`roboshop-letsencrypt`) and the shared TLSStore
+(`shared-tls`) are no longer defined in this catalog; they keep running in the cluster as they are.
+The jithendar.com site (its own repository, `kubectl apply -k k8s/`, not Argo CD) owns the canonical
+certificate; bootstrap does not claim that trusted public TLS is already ready.
 
 # mk4 Argo CD applications
 
@@ -37,13 +36,13 @@ releases, CRDs and installation scripts remain externally managed.
 
 ## Simple deployment commands
 
-On a new cluster, `./deploy-argocd.sh` automatically installs the missing
+On a new cluster, `../tools/deploy-argocd.sh` automatically installs the missing
 controller before deploying applications (requires Kubernetes Helm). No separate
 install command is needed. Controller-only installation remains available:
 
 ```bash
-./deploy-argocd.sh install --dry-run
-./deploy-argocd.sh install --context mk4
+../tools/deploy-argocd.sh install --dry-run
+../tools/deploy-argocd.sh install --context mk4
 ```
 
 This downloads pinned Argo CD chart 10.10.5 from the official HTTPS Helm
@@ -59,12 +58,12 @@ creates credentials, Traefik, certificates, or public ingress. `status`, `list`,
 From the repository root (requires `kubectl`, Python 3 and PyYAML):
 
 ```bash
-./deploy-argocd.sh                # Deploy every Application in the Argo CD catalog
-./deploy-argocd.sh list
-./deploy-argocd.sh roboshop --dry-run
-./deploy-argocd.sh roboshop
-./deploy-argocd.sh web
-./deploy-argocd.sh status
+../tools/deploy-argocd.sh                # Deploy every Application in the Argo CD catalog
+../tools/deploy-argocd.sh list
+../tools/deploy-argocd.sh roboshop --dry-run
+../tools/deploy-argocd.sh roboshop
+../tools/deploy-argocd.sh web
+../tools/deploy-argocd.sh status
 ```
 
 The default context is `mk4`; use `--context NAME` or `KUBE_CONTEXT` to change it.
@@ -74,7 +73,7 @@ this). For existing Applications it first aligns `source`/`sources` and
 `destination` with the Git file (a stale path or include would otherwise render
 nothing); other live settings such as sync policy are preserved. An app that
 syncs while tracking no resources is reported as an error, not success.
-`./deploy-argocd.sh status` warns about both conditions without changing anything.
+`../tools/deploy-argocd.sh status` warns about both conditions without changing anything.
 Commit and push workload changes first: Argo CD deploys the configured Git
 revision, not uncommitted local workload files.
 
@@ -86,7 +85,7 @@ wait to fail rather than silently skipping an app.
 
 Use `roboshop` for just the current shop services and shared configuration,
 excluding legacy apps and data/messaging infrastructure.
-Use `./deploy-argocd.sh --dry-run` to preview the complete selection.
+Use `../tools/deploy-argocd.sh --dry-run` to preview the complete selection.
 
 ## Register the catalog
 
@@ -177,7 +176,7 @@ upgrade; reuse of healthy workloads does not repair Helm release metadata.
 
 ### Namespace creation before sync
 
-`deploy-argocd.sh` applies the selected applications' destination Namespace
+`tools/deploy-argocd.sh` applies the selected applications' destination Namespace
 manifests from `minikube/namespaces/` before creating projects or requesting
 syncs. It deduplicates namespaces and uses minimal server-side manifests to
 preserve existing labels and annotations. It never deletes or prunes namespaces.
@@ -247,5 +246,5 @@ These rules come from a real incident: a UI "sync all" with Prune deleted
   passwords. Restore the backed-up Secret instead; `--accept-new-credentials`
   exists only for a lost Secret, followed by resetting the database users
   (`scripts/reset-mongo-password.sh` for MongoDB).
-- `./deploy-argocd.sh` aligns live Application sources with Git and never prunes.
-  Avoid Prune in the Argo CD UI; run `./deploy-argocd.sh status` first.
+- `../tools/deploy-argocd.sh` aligns live Application sources with Git and never prunes.
+  Avoid Prune in the Argo CD UI; run `../tools/deploy-argocd.sh status` first.

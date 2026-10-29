@@ -15,7 +15,7 @@ gzip copy to match the SQL exactly. After editing shipping.sql regenerate with:
 python3 -c "import gzip,pathlib; p=pathlib.Path('services/postgres/shipping.sql'); p.with_suffix('.sql.gz').write_bytes(gzip.compress(p.read_bytes(),mtime=0))"
 ```
 
-Publish changes before running `./deploy-argocd.sh postgres`. Shipping-service
+Publish changes before running `../tools/deploy-argocd.sh postgres`. Shipping-service
 may retry during initial import; it verifies the expected seed before serving.
 Database credentials remain in roboshop-secrets. Existing database passwords
 must match that Secret; changing it does not rotate database roles. Back up data

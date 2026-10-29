@@ -83,9 +83,8 @@ python -m unittest discover -s tests -v
 docker build -t roboshop-user-service:local .
 ```
 
-The root `npm run dev` starts user-service and passes an ephemeral shared service
-token to the gateway/user processes if none is configured. Supply MongoDB and SMTP
-configuration separately. The superadmin setup command now runs
+For native runs, set the shared service token for the gateway and user processes yourself
+(there is no root launcher). Supply MongoDB and SMTP configuration separately. The superadmin setup command now runs
 `services/user-service/bootstrap.py`; `npm run admin:bootstrap` points there.
 It still accepts `SUPERADMIN_EMAIL`, `SUPERADMIN_NAME`, and `SUPERADMIN_PASSWORD`
 from the environment and refuses to create a second superadmin. Keep passwords

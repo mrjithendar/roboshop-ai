@@ -10,10 +10,8 @@ From the repository root:
 npm ci
 npm run frontend:typecheck
 npm run frontend:build
-npm run dev
 sh
-bash build-images.sh
-bash deploy-minikube.sh
+bash ../tools/deploy-minikube.sh   # images are built by CI (ci-<service>.yml)
 # Storefront: http://localhost:3000
 ```
 

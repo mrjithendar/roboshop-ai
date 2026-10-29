@@ -28,7 +28,7 @@ First run the existing Create infrastructure workflow to create the new
 Then, from the repository root on your build host:
 
 ```bash
-bash scripts/images/build-push-ecr.sh kafka-bridge ai-gateway
+# Images are built and pushed to ECR by each service's CI workflow (`.github/workflows/ci-<service>.yml`, which calls `publish-ecr.yml`) on pushes to `master`.
 bash scripts/deploy/deploy-minikube.sh kafka-bridge ai-gateway
 ```
 
