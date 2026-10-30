@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 700" width="720" height="700" role="img" aria-labelledby="eks-shopping-request-title eks-shopping-request-desc" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
+<title id="eks-shopping-request-title">RoboShop AI on EKS: a normal shopping request</title>
+<desc id="eks-shopping-request-desc">A browser request resolves through DNS to the NLB, which forwards TCP to the Istio ingress gateway. The gateway terminates TLS and routes to web. web serves static pages directly and proxies API calls to ai-gateway with mutual TLS between sidecars. ai-gateway validates the session with user-service, reads products from catalogue-service and the cart from cart-service, then returns JSON through the same path.</desc>
+<defs><marker id="eks-shopping-request-arrow-sync" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker><marker id="eks-shopping-request-arrow-async" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#be123c"/></marker><marker id="eks-shopping-request-arrow-telemetry" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#15803d"/></marker><marker id="eks-shopping-request-arrow-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#a21caf"/></marker><marker id="eks-shopping-request-arrow-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker></defs>
+<rect width="100%" height="100%" rx="18" fill="#ffffff"/>
+<text x="24" y="40" font-size="20" font-weight="700" fill="#0f172a" text-anchor="start">A normal shopping request</text>
+<text x="24" y="62" font-size="12.5" font-weight="400" fill="#475569" text-anchor="start">Product page + cart: what is actually called. No AI, no queues.</text>
+<rect x="21.142857142857146" y="86" width="77.71428571428571" height="44" rx="10" fill="#f8fafc" stroke="#334155" stroke-width="1.6"/>
+<text x="60.0" y="113" font-size="11.5" font-weight="700" fill="#0f172a" text-anchor="middle">Browser</text>
+<path d="M60.0,130 L60.0,630" stroke="#cbd5e1" stroke-width="1.4" stroke-dasharray="4 4"/>
+<rect x="106.85714285714286" y="86" width="77.71428571428571" height="44" rx="10" fill="#fff7ed" stroke="#c2410c" stroke-width="1.6"/>
+<text x="145.71428571428572" y="113" font-size="11.5" font-weight="700" fill="#431407" text-anchor="middle">NLB</text>
+<path d="M145.71428571428572,130 L145.71428571428572,630" stroke="#cbd5e1" stroke-width="1.4" stroke-dasharray="4 4"/>
+<rect x="192.57142857142856" y="86" width="77.71428571428571" height="44" rx="10" fill="#eef2ff" stroke="#4338ca" stroke-width="1.6"/>
+<text x="231.42857142857142" y="113" font-size="11.5" font-weight="700" fill="#1e1b4b" text-anchor="middle">Istio GW</text>
+<path d="M231.42857142857142,130 L231.42857142857142,630" stroke="#cbd5e1" stroke-width="1.4" stroke-dasharray="4 4"/>
+<rect x="278.2857142857143" y="86" width="77.71428571428571" height="44" rx="10" fill="#eef2ff" stroke="#4338ca" stroke-width="1.6"/>
+<text x="317.1428571428571" y="113" font-size="11.5" font-weight="700" fill="#1e1b4b" text-anchor="middle">web</text>
+<path d="M317.1428571428571,130 L317.1428571428571,630" stroke="#cbd5e1" stroke-width="1.4" stroke-dasharray="4 4"/>
+<rect x="364.0" y="86" width="77.71428571428571" height="44" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="402.85714285714283" y="113" font-size="11.5" font-weight="700" fill="#064e3b" text-anchor="middle">ai-gateway</text>
+<path d="M402.85714285714283,130 L402.85714285714283,630" stroke="#cbd5e1" stroke-width="1.4" stroke-dasharray="4 4"/>
+<rect x="449.7142857142857" y="86" width="77.71428571428571" height="44" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="488.57142857142856" y="113" font-size="11.5" font-weight="700" fill="#064e3b" text-anchor="middle">user</text>
+<path d="M488.57142857142856,130 L488.57142857142856,630" stroke="#cbd5e1" stroke-width="1.4" stroke-dasharray="4 4"/>
+<rect x="535.4285714285713" y="86" width="77.71428571428571" height="44" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="574.2857142857142" y="113" font-size="11.5" font-weight="700" fill="#064e3b" text-anchor="middle">catalogue</text>
+<path d="M574.2857142857142,130 L574.2857142857142,630" stroke="#cbd5e1" stroke-width="1.4" stroke-dasharray="4 4"/>
+<rect x="621.1428571428571" y="86" width="77.71428571428571" height="44" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="660.0" y="113" font-size="11.5" font-weight="700" fill="#064e3b" text-anchor="middle">cart</text>
+<path d="M660.0,130 L660.0,630" stroke="#cbd5e1" stroke-width="1.4" stroke-dasharray="4 4"/>
+<path d="M60.0,166 L141.71428571428572,166" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-shopping-request-arrow-sync)"/>
+<text x="102.85714285714286" y="159" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">HTTPS (TCP)</text>
+<circle cx="44.0" cy="166" r="10" fill="#0f172a"/>
+<text x="44.0" y="170.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+<path d="M145.71428571428572,210 L227.42857142857142,210" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-shopping-request-arrow-sync)"/>
+<text x="188.57142857142856" y="203" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">PROXY v2 + TLS</text>
+<circle cx="129.71428571428572" cy="210" r="10" fill="#0f172a"/>
+<text x="129.71428571428572" y="214.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+<path d="M231.42857142857142,248 L265.42857142857144,248 L265.42857142857144,262 L235.42857142857142,262" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-shopping-request-arrow-sync)"/>
+<text x="273.42857142857144" y="258" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="start" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">TLS ends, route</text>
+<circle cx="215.42857142857142" cy="254" r="10" fill="#0f172a"/>
+<text x="215.42857142857142" y="258.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+<path d="M231.42857142857142,298 L313.1428571428571,298" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-shopping-request-arrow-sync)"/>
+<text x="274.2857142857143" y="291" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">mTLS</text>
+<circle cx="215.42857142857142" cy="298" r="10" fill="#0f172a"/>
+<text x="215.42857142857142" y="302.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+<path d="M317.1428571428571,336 L351.1428571428571,336 L351.1428571428571,350 L321.1428571428571,350" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-shopping-request-arrow-sync)"/>
+<text x="359.1428571428571" y="346" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="start" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">static page</text>
+<circle cx="301.1428571428571" cy="342" r="10" fill="#0f172a"/>
+<text x="301.1428571428571" y="346.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">5</text>
+<path d="M317.1428571428571,386 L398.85714285714283,386" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-shopping-request-arrow-sync)"/>
+<text x="360.0" y="379" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">/api/* mTLS</text>
+<circle cx="301.1428571428571" cy="386" r="10" fill="#0f172a"/>
+<text x="301.1428571428571" y="390.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">6</text>
+<path d="M402.85714285714283,430 L484.57142857142856,430" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-shopping-request-arrow-sync)"/>
+<text x="445.71428571428567" y="423" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">session check</text>
+<circle cx="386.85714285714283" cy="430" r="10" fill="#0f172a"/>
+<text x="386.85714285714283" y="434.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">7</text>
+<path d="M402.85714285714283,474 L570.2857142857142,474" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-shopping-request-arrow-sync)"/>
+<text x="488.57142857142856" y="467" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">products</text>
+<circle cx="386.85714285714283" cy="474" r="10" fill="#0f172a"/>
+<text x="386.85714285714283" y="478.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">8</text>
+<path d="M402.85714285714283,518 L656.0,518" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-shopping-request-arrow-sync)"/>
+<text x="531.4285714285714" y="511" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">cart lines</text>
+<circle cx="386.85714285714283" cy="518" r="10" fill="#0f172a"/>
+<text x="386.85714285714283" y="522.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">9</text>
+<path d="M402.85714285714283,562 L321.1428571428571,562" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-shopping-request-arrow-sync)"/>
+<text x="360.0" y="555" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">JSON</text>
+<circle cx="418.85714285714283" cy="562" r="10" fill="#0f172a"/>
+<text x="418.85714285714283" y="566.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">10</text>
+<path d="M317.1428571428571,606 L64.0,606" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-shopping-request-arrow-sync)"/>
+<text x="188.57142857142856" y="599" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">response (via Istio GW, NLB)</text>
+<circle cx="333.1428571428571" cy="606" r="10" fill="#0f172a"/>
+<text x="333.1428571428571" y="610.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">11</text>
+<path d="M40,660 L68,660" stroke="#475569" stroke-width="1.8" marker-end="url(#eks-shopping-request-arrow-sync)"/>
+<text x="78" y="664.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Synchronous HTTP (Istio mTLS between pods)</text>
+</svg>

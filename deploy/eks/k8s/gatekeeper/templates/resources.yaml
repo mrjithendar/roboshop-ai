@@ -1,0 +1,30 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: roboshopresources
+  annotations:
+    description: Every container declares CPU and memory requests and a memory limit.
+spec:
+  crd:
+    spec:
+      names:
+        kind: RoboShopResources
+  targets:
+  - target: admission.k8s.gatekeeper.sh
+    rego: |
+      package roboshopresources
+
+      containers[c] {
+        c := input.review.object.spec.containers[_]
+      }
+      containers[c] {
+        c := input.review.object.spec.initContainers[_]
+      }
+
+      violation[{"msg": msg}] {
+        c := containers[_]
+        field := ["requests.cpu", "requests.memory", "limits.memory"][_]
+        parts := split(field, ".")
+        not c.resources[parts[0]][parts[1]]
+        msg := sprintf("container %v: resources.%v is required", [c.name, field])
+      }

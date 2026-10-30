@@ -1,0 +1,148 @@
+# EKS-only split of shipping-service: the same image with the RabbitMQ consumer enabled and no
+# Service. KEDA scales this Deployment on roboshop.shipping.orders depth (../../keda). The
+# HTTP Deployment (shipping-service) runs with MESSAGING_ENABLED=false, so request traffic
+# and queue consumption scale independently and never compete for one HPA.
+#
+# Safe to run N replicas because (verified in code):
+# - OrderEvents.java acknowledges only after the INSERT commits (Spring AMQP AUTO ack);
+# - shipping.shipment_requests has event_id UNIQUE / order_id PRIMARY KEY and the insert uses
+#   ON CONFLICT DO NOTHING, so redelivered events are counted as duplicates, not reprocessed;
+# - Migrator serializes concurrent starts with pg_advisory_xact_lock;
+# - failures retry 5 times (1s..10s backoff) and then dead-letter to roboshop.shipping.failed.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shipping-worker
+  labels:
+    app.kubernetes.io/part-of: roboshop-ai
+spec:
+  replicas: 1   # KEDA owns replicas after the ScaledObject is applied
+  selector:
+    matchLabels:
+      app: shipping-worker
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "4106"
+        prometheus.io/path: /metrics
+      labels:
+        app: shipping-worker
+        app.kubernetes.io/part-of: roboshop-ai
+    spec:
+      serviceAccountName: shipping-worker
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      # Unacknowledged messages return to the queue if a pod is killed mid-message; 60s lets
+      # Spring's graceful shutdown finish in-flight deliveries first.
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      # Interruption-tolerant: may run on the Spot pool (k8s/karpenter/nodepool-spot.yaml).
+      tolerations:
+      - key: roboshop.dev/spot
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 50
+            preference:
+              matchExpressions:
+              - key: karpenter.sh/capacity-type
+                operator: In
+                values: ["spot"]
+      containers:
+      - name: shipping-worker
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-shipping:latest
+        env:
+        - name: SHIPPING_APP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: roboshop-secrets
+              key: SHIPPING_APP_PASSWORD
+        - name: SHIPPING_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: roboshop-secrets
+              key: SHIPPING_DB_PASSWORD
+        - name: RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: roboshop-secrets
+              key: RABBITMQ_PASSWORD
+        - name: SHIPPING_DATABASE_URL
+          value: postgresql://shipping_app:$(SHIPPING_APP_PASSWORD)@shipping-db:5432/shipping
+        - name: SHIPPING_MIGRATION_DATABASE_URL
+          value: postgresql://shipping:$(SHIPPING_DB_PASSWORD)@shipping-db:5432/shipping
+        - name: SHIPPING_DB_TLS
+          value: 'false'
+        - name: SHIPPING_TRACING_ENABLED
+          value: 'true'
+        - name: CACHE_ENABLED
+          value: 'false'
+        - name: MESSAGING_ENABLED
+          value: 'true'
+        - name: RABBITMQ_HOST
+          value: rabbitmq
+        - name: RABBITMQ_PORT
+          value: '5672'
+        - name: RABBITMQ_USERNAME
+          value: roboshop
+        - name: OTEL_SERVICE_NAME
+          value: shipping-worker
+        envFrom:
+        - configMapRef:
+            name: roboshop-config
+        resources:
+          requests:
+            cpu: 100m
+            memory: 320Mi
+          limits:
+            cpu: 500m
+            memory: 768Mi
+        ports:
+        - name: http
+          containerPort: 4106
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          capabilities:
+            drop: ["ALL"]
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 4106
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 120
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 4106
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /api/shipping/ready
+            port: 4106
+          periodSeconds: 10
+          timeoutSeconds: 3
+      volumes:
+      - name: tmp
+        emptyDir: {}

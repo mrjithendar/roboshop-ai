@@ -1,0 +1,29 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: roboshoprequiredlabels
+  annotations:
+    description: Workloads carry ownership and environment labels.
+spec:
+  crd:
+    spec:
+      names:
+        kind: RoboShopRequiredLabels
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            labels:
+              type: array
+              items:
+                type: string
+  targets:
+  - target: admission.k8s.gatekeeper.sh
+    rego: |
+      package roboshoprequiredlabels
+
+      violation[{"msg": msg}] {
+        label := input.parameters.labels[_]
+        not input.review.object.metadata.labels[label]
+        msg := sprintf("%v %v: label %v is required", [input.review.object.kind, input.review.object.metadata.name, label])
+      }

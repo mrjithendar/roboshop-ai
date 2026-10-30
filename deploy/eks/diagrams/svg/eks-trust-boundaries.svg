@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 860" width="720" height="860" role="img" aria-labelledby="eks-trust-boundaries-title eks-trust-boundaries-desc" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
+<title id="eks-trust-boundaries-title">RoboShop AI on EKS: Istio trust and authorization boundaries</title>
+<desc id="eks-trust-boundaries-desc">Three separate controls. Gatekeeper admission policies decide which pods may be created in roboshop-ai: approved, digest-pinned images, resources, non-root, no token mount, labels, and public exposure only through the Istio gateway. Inside the mesh, every application pod has a sidecar with its own ServiceAccount identity; mutual TLS is strict, a namespace-wide allow-nothing policy denies everything, and one ALLOW policy per service admits only the verified callers. Data stores run without sidecars behind Kubernetes NetworkPolicies enforced by the VPC CNI. Applications enforce user-level authorization themselves.</desc>
+<defs><marker id="eks-trust-boundaries-arrow-sync" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker><marker id="eks-trust-boundaries-arrow-async" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#be123c"/></marker><marker id="eks-trust-boundaries-arrow-telemetry" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#15803d"/></marker><marker id="eks-trust-boundaries-arrow-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#a21caf"/></marker><marker id="eks-trust-boundaries-arrow-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker></defs>
+<rect width="100%" height="100%" rx="18" fill="#ffffff"/>
+<text x="24" y="40" font-size="20" font-weight="700" fill="#0f172a" text-anchor="start">Trust and authorization boundaries</text>
+<text x="24" y="62" font-size="12.5" font-weight="400" fill="#475569" text-anchor="start">Admission, workload identity and user authorization are separate layers.</text>
+<rect x="12" y="80" width="696" height="96" rx="14" fill="#fdf4ff" stroke="#a21caf" stroke-width="1.4"/>
+<text x="26" y="100" font-size="11" font-weight="700" fill="#475569" text-anchor="start">1. ADMISSION (GATEKEEPER, ROBOSHOP-AI ONLY)</text>
+<text x="28" y="128" font-size="12" font-weight="400" fill="#4a044e" text-anchor="start">approved registry + digest · requests/limits · non-root, no privilege escalation,</text>
+<text x="28" y="144" font-size="12" font-weight="400" fill="#4a044e" text-anchor="start">drop ALL · no token mount · owner/env labels · LoadBalancer only in istio-ingress</text>
+<rect x="12" y="190" width="696" height="448" rx="14" fill="#f6fdf9" stroke="#047857" stroke-width="1.4"/>
+<text x="26" y="210" font-size="11" font-weight="700" fill="#475569" text-anchor="start">2. MESH (ISTIO SIDECARS, MTLS STRICT, ALLOW-NOTHING + PER-EDGE ALLOW)</text>
+<rect x="40" y="228" width="170" height="52" rx="10" fill="#eef2ff" stroke="#4338ca" stroke-width="1.6"/>
+<text x="125.0" y="250.0" font-size="14" font-weight="700" fill="#1e1b4b" text-anchor="middle">ingress gateway</text>
+<text x="125.0" y="269.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">sa/istio-ingressgateway</text>
+<rect x="276" y="228" width="170" height="52" rx="10" fill="#eef2ff" stroke="#4338ca" stroke-width="1.6"/>
+<text x="361.0" y="250.0" font-size="14" font-weight="700" fill="#1e1b4b" text-anchor="middle">web</text>
+<text x="361.0" y="269.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">sa/web</text>
+<rect x="510" y="228" width="170" height="52" rx="10" fill="#f5f3ff" stroke="#6d28d9" stroke-width="1.6"/>
+<text x="595.0" y="250.0" font-size="14" font-weight="700" fill="#2e1065" text-anchor="middle">moks</text>
+<text x="595.0" y="269.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">sa/moks</text>
+<rect x="40" y="330" width="170" height="56" rx="10" fill="#f5f3ff" stroke="#6d28d9" stroke-width="1.6"/>
+<text x="125.0" y="354.0" font-size="14" font-weight="700" fill="#2e1065" text-anchor="middle">mcp-server</text>
+<text x="125.0" y="373.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">no in-mesh callers</text>
+<rect x="276" y="330" width="170" height="56" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="2.4"/>
+<text x="361.0" y="354.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">ai-gateway</text>
+<text x="361.0" y="373.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">sa/ai-gateway</text>
+<path d="M210,254 L276,254" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-trust-boundaries-arrow-sync)"/>
+<path d="M446,254 L510,254" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-trust-boundaries-arrow-sync)"/>
+<path d="M361,280 L361,330" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-trust-boundaries-arrow-sync)"/>
+<path d="M595,280 L595,358 L446,358" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-start="url(#eks-trust-boundaries-arrow-sync)" marker-end="url(#eks-trust-boundaries-arrow-sync)"/>
+<text x="520" y="350" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">both ways</text>
+<path d="M210,358 L276,358" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-trust-boundaries-arrow-sync)"/>
+<rect x="40" y="450" width="100" height="48" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="90.0" y="479.5" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">user</text>
+<path d="M361,386 L361,420 L90,420 L90,450" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-trust-boundaries-arrow-sync)"/>
+<rect x="150" y="450" width="100" height="48" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="200.0" y="479.5" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">catalogue</text>
+<path d="M361,386 L361,420 L200,420 L200,450" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-trust-boundaries-arrow-sync)"/>
+<rect x="260" y="450" width="100" height="48" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="310.0" y="479.5" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">cart</text>
+<path d="M361,386 L361,420 L310,420 L310,450" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-trust-boundaries-arrow-sync)"/>
+<rect x="370" y="450" width="100" height="48" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="420.0" y="479.5" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">payment</text>
+<path d="M361,386 L361,420 L420,420 L420,450" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-trust-boundaries-arrow-sync)"/>
+<rect x="480" y="450" width="100" height="48" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="530.0" y="479.5" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">shipping</text>
+<path d="M361,386 L361,420 L530,420 L530,450" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-trust-boundaries-arrow-sync)"/>
+<rect x="590" y="450" width="100" height="48" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="640.0" y="479.5" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">currency</text>
+<path d="M361,386 L361,420 L640,420 L640,450" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-trust-boundaries-arrow-sync)"/>
+<rect x="40" y="522" width="640" height="100" rx="10" fill="#fef2f2" stroke="#dc2626" stroke-width="1.4" stroke-dasharray="6 4"/>
+<text x="360" y="548" font-size="14" font-weight="700" fill="#7f1d1d" text-anchor="middle">Everything else is denied</text>
+<text x="56" y="572" font-size="11.5" font-weight="400" fill="#7f1d1d" text-anchor="start">Also allowed (not drawn): web → currency · moks → catalogue, user · user → shipping.</text>
+<text x="56" y="588" font-size="11.5" font-weight="400" fill="#7f1d1d" text-anchor="start">Denied, for example: cart → payment, any pod → mcp-server.</text>
+<text x="56" y="604" font-size="11.5" font-weight="400" fill="#7f1d1d" text-anchor="start">Rolled out in dry-run (denials only logged), then enforced.</text>
+<rect x="12" y="652" width="696" height="110" rx="14" fill="#fffcf5" stroke="#b45309" stroke-width="1.4"/>
+<text x="26" y="672" font-size="11" font-weight="700" fill="#475569" text-anchor="start">3. OUTSIDE THE MESH (NETWORKPOLICY VIA VPC CNI)</text>
+<path d="M28,692 a80.0,8 0 0 0 160,0 a80.0,8 0 0 0 -160,0 v50 a80.0,8 0 0 0 160,0 v-50" fill="#fffbeb" stroke="#b45309" stroke-width="1.6"/>
+<text x="108.0" y="716.0" font-size="13.5" font-weight="700" fill="#451a03" text-anchor="middle">MongoDB</text>
+<text x="108.0" y="735.0" font-size="11.5" font-weight="400" fill="#334155" text-anchor="middle">gateway, user, catalogue</text>
+<path d="M200,692 a80.0,8 0 0 0 160,0 a80.0,8 0 0 0 -160,0 v50 a80.0,8 0 0 0 160,0 v-50" fill="#fffbeb" stroke="#b45309" stroke-width="1.6"/>
+<text x="280.0" y="716.0" font-size="13.5" font-weight="700" fill="#451a03" text-anchor="middle">Redis</text>
+<text x="280.0" y="735.0" font-size="11.5" font-weight="400" fill="#334155" text-anchor="middle">cart, shipping</text>
+<path d="M372,692 a80.0,8 0 0 0 160,0 a80.0,8 0 0 0 -160,0 v50 a80.0,8 0 0 0 160,0 v-50" fill="#fffbeb" stroke="#b45309" stroke-width="1.6"/>
+<text x="452.0" y="716.0" font-size="13.5" font-weight="700" fill="#451a03" text-anchor="middle">PostgreSQL</text>
+<text x="452.0" y="735.0" font-size="11.5" font-weight="400" fill="#334155" text-anchor="middle">shipping + worker</text>
+<path d="M544,692 a80.0,8 0 0 0 160,0 a80.0,8 0 0 0 -160,0 v50 a80.0,8 0 0 0 160,0 v-50" fill="#fffbeb" stroke="#b45309" stroke-width="1.6"/>
+<text x="624.0" y="716.0" font-size="13.5" font-weight="700" fill="#451a03" text-anchor="middle">RabbitMQ</text>
+<text x="624.0" y="735.0" font-size="11.5" font-weight="400" fill="#334155" text-anchor="middle">gateway, workers; KEDA :15672</text>
+<rect x="12" y="776" width="696" height="72" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="796" font-size="11" font-weight="700" fill="#475569" text-anchor="start">LEGEND</text>
+<path d="M40,812 L68,812" stroke="#475569" stroke-width="1.8" marker-end="url(#eks-trust-boundaries-arrow-sync)"/>
+<text x="78" y="816.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Allowed call (mTLS)</text>
+<rect x="225.3" y="804" width="24" height="16" rx="8" fill="#ecfdf5" stroke="#047857" stroke-width="1.4"/>
+<text x="257.3" y="816.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Meshed workload</text>
+<rect x="377.8" y="804" width="24" height="16" rx="8" fill="#fffbeb" stroke="#b45309" stroke-width="1.4"/>
+<text x="409.8" y="816.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Not meshed</text>
+</svg>

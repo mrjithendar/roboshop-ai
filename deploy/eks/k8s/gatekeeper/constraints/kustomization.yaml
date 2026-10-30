@@ -1,0 +1,5 @@
+# Applied after the templates' CRDs exist (RUNBOOK.md step F2); kept separate for that reason.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- constraints.yaml

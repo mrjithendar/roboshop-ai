@@ -1,0 +1,184 @@
+# Service-to-service authorization (L4/L7 identity), separate from:
+#   - Gatekeeper: what may be admitted to the cluster;
+#   - the applications: which *user* may do what (sessions, roles, cart ownership, super admin).
+# allow-nothing denies every request to meshed pods in this namespace; each ALLOW below opens one
+# verified call edge. Render with AUTHZ_DRY_RUN=true first: Istio then only logs would-be
+# denials (istio.io/dry-run) so missing edges show up before anything is blocked.
+# mcp-server and shipping-worker have no in-mesh callers; reach mcp-server with kubectl port-forward.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-nothing
+  namespace: roboshop-ai
+  annotations:
+    istio.io/dry-run: "${AUTHZ_DRY_RUN}"
+spec: {}
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: web
+  namespace: roboshop-ai
+  annotations:
+    istio.io/dry-run: "${AUTHZ_DRY_RUN}"
+spec:
+  selector:
+    matchLabels:
+      app: web
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/istio-ingress/sa/istio-ingressgateway
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: ai-gateway
+  namespace: roboshop-ai
+  annotations:
+    istio.io/dry-run: "${AUTHZ_DRY_RUN}"
+spec:
+  selector:
+    matchLabels:
+      app: ai-gateway
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/roboshop-ai/sa/web
+        - cluster.local/ns/roboshop-ai/sa/moks
+        - cluster.local/ns/roboshop-ai/sa/mcp-server
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: user-service
+  namespace: roboshop-ai
+  annotations:
+    istio.io/dry-run: "${AUTHZ_DRY_RUN}"
+spec:
+  selector:
+    matchLabels:
+      app: user-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/roboshop-ai/sa/ai-gateway
+        - cluster.local/ns/roboshop-ai/sa/moks
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: catalogue-service
+  namespace: roboshop-ai
+  annotations:
+    istio.io/dry-run: "${AUTHZ_DRY_RUN}"
+spec:
+  selector:
+    matchLabels:
+      app: catalogue-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/roboshop-ai/sa/ai-gateway
+        - cluster.local/ns/roboshop-ai/sa/moks
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: cart-service
+  namespace: roboshop-ai
+  annotations:
+    istio.io/dry-run: "${AUTHZ_DRY_RUN}"
+spec:
+  selector:
+    matchLabels:
+      app: cart-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/roboshop-ai/sa/ai-gateway
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: payment-service
+  namespace: roboshop-ai
+  annotations:
+    istio.io/dry-run: "${AUTHZ_DRY_RUN}"
+spec:
+  selector:
+    matchLabels:
+      app: payment-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/roboshop-ai/sa/ai-gateway
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: shipping-service
+  namespace: roboshop-ai
+  annotations:
+    istio.io/dry-run: "${AUTHZ_DRY_RUN}"
+spec:
+  selector:
+    matchLabels:
+      app: shipping-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/roboshop-ai/sa/ai-gateway
+        - cluster.local/ns/roboshop-ai/sa/user-service
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: currency-service
+  namespace: roboshop-ai
+  annotations:
+    istio.io/dry-run: "${AUTHZ_DRY_RUN}"
+spec:
+  selector:
+    matchLabels:
+      app: currency-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/roboshop-ai/sa/ai-gateway
+        - cluster.local/ns/roboshop-ai/sa/web
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: moks
+  namespace: roboshop-ai
+  annotations:
+    istio.io/dry-run: "${AUTHZ_DRY_RUN}"
+spec:
+  selector:
+    matchLabels:
+      app: moks
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/roboshop-ai/sa/web
+        - cluster.local/ns/roboshop-ai/sa/ai-gateway

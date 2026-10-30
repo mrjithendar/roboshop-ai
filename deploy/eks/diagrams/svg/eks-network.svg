@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 900" width="720" height="900" role="img" aria-labelledby="eks-network-title eks-network-desc" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
+<title id="eks-network-title">RoboShop AI on EKS: AWS network and ingress topology</title>
+<desc id="eks-network-desc">One VPC across two or three Availability Zones. Public subnets hold only the Network Load Balancer and NAT gateways. Private subnets hold the EKS control-plane network interfaces, the managed system node group and Karpenter nodes, with EBS volumes in the same zone as their pods. Internet traffic enters through the NLB to the Istio ingress gateway pods by IP. Outbound traffic from nodes leaves through NAT; S3 traffic uses a gateway endpoint. Operators reach the Kubernetes API through an endpoint restricted to their own CIDR, or privately from inside the VPC.</desc>
+<defs><marker id="eks-network-arrow-sync" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker><marker id="eks-network-arrow-async" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#be123c"/></marker><marker id="eks-network-arrow-telemetry" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#15803d"/></marker><marker id="eks-network-arrow-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#a21caf"/></marker><marker id="eks-network-arrow-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker></defs>
+<rect width="100%" height="100%" rx="18" fill="#ffffff"/>
+<text x="24" y="40" font-size="20" font-weight="700" fill="#0f172a" text-anchor="start">AWS network and ingress</text>
+<text x="24" y="62" font-size="12.5" font-weight="400" fill="#475569" text-anchor="start">Private nodes; only the NLB and NAT gateways are public.</text>
+<rect x="180" y="84" width="160" height="50" rx="10" fill="#f8fafc" stroke="#334155" stroke-width="1.6"/>
+<text x="260.0" y="105.0" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">Customers</text>
+<text x="260.0" y="124.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">internet</text>
+<rect x="370" y="84" width="160" height="50" rx="10" fill="#fff7ed" stroke="#c2410c" stroke-width="1.6"/>
+<text x="450.0" y="105.0" font-size="14" font-weight="700" fill="#431407" text-anchor="middle">Route 53</text>
+<text x="450.0" y="124.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">your hostname</text>
+<rect x="560" y="84" width="140" height="50" rx="10" fill="#f8fafc" stroke="#334155" stroke-width="1.6"/>
+<text x="630.0" y="105.0" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">Operator</text>
+<text x="630.0" y="124.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">/32 or VPN</text>
+<path d="M340,109 L370,109" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-network-arrow-sync)"/>
+<text x="355" y="100" font-size="11" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">DNS</text>
+<rect x="12" y="152" width="696" height="640" rx="14" fill="#fffaf5" stroke="#c2410c" stroke-width="1.4"/>
+<text x="26" y="172" font-size="11" font-weight="700" fill="#475569" text-anchor="start">VPC 10.40.0.0/16 · 2–3 AZS</text>
+<rect x="28" y="196" width="664" height="112" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="42" y="216" font-size="11" font-weight="700" fill="#475569" text-anchor="start">PUBLIC SUBNETS (/24 PER AZ)</text>
+<rect x="48" y="228" width="250" height="62" rx="10" fill="#fff7ed" stroke="#c2410c" stroke-width="1.6"/>
+<text x="173.0" y="245.5" font-size="14" font-weight="700" fill="#431407" text-anchor="middle">Network Load Balancer</text>
+<text x="173.0" y="264.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">TCP 80/443 · IP targets</text>
+<text x="173.0" y="283.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">proxy protocol v2</text>
+<rect x="318" y="228" width="150" height="62" rx="10" fill="#fff7ed" stroke="#c2410c" stroke-width="1.6"/>
+<text x="393.0" y="255.0" font-size="14" font-weight="700" fill="#431407" text-anchor="middle">NAT gateway</text>
+<text x="393.0" y="274.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">1 (demo) or per AZ</text>
+<rect x="488" y="228" width="130" height="62" rx="10" fill="#fff7ed" stroke="#c2410c" stroke-width="1.6"/>
+<text x="553.0" y="255.0" font-size="14" font-weight="700" fill="#431407" text-anchor="middle">Internet</text>
+<text x="553.0" y="274.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">gateway</text>
+<path d="M260,134 L260,228" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-network-arrow-sync)"/>
+<path d="M468,259 L488,259" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-network-arrow-sync)"/>
+<rect x="28" y="324" width="664" height="404" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="42" y="344" font-size="11" font-weight="700" fill="#475569" text-anchor="start">PRIVATE SUBNETS · NO PUBLIC IPS</text>
+<rect x="48" y="358" width="300" height="66" rx="10" fill="#eef2ff" stroke="#4338ca" stroke-width="1.6"/>
+<text x="198.0" y="387.0" font-size="14" font-weight="700" fill="#1e1b4b" text-anchor="middle">Istio ingress gateway pods</text>
+<text x="198.0" y="406.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">registered as NLB targets</text>
+<rect x="372" y="358" width="300" height="66" rx="10" fill="#fdf4ff" stroke="#a21caf" stroke-width="1.6"/>
+<text x="522.0" y="387.0" font-size="14" font-weight="700" fill="#4a044e" text-anchor="middle">EKS control plane ENIs</text>
+<text x="522.0" y="406.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">API: private + allow-listed public</text>
+<path d="M260,290 L260,358" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-network-arrow-sync)"/>
+<text x="268" y="319" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="start" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">client traffic</text>
+<path d="M650,134 L650,358" fill="none" stroke="#a21caf" stroke-width="1.8" stroke-dasharray="2 4" stroke-linejoin="round" marker-end="url(#eks-network-arrow-control)"/>
+<text x="642" y="319" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="end" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">kubectl</text>
+<rect x="48" y="444" width="300" height="92" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="198.0" y="467.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">System node group</text>
+<text x="198.0" y="486.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">On-Demand · m7g.large × 2</text>
+<text x="198.0" y="505.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">tainted CriticalAddonsOnly</text>
+<text x="198.0" y="524.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">Karpenter, istiod, controllers</text>
+<rect x="372" y="444" width="300" height="92" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="522.0" y="467.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">Karpenter nodes</text>
+<text x="522.0" y="486.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">arm64 · On-Demand pool</text>
+<text x="522.0" y="505.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">+ tainted Spot pool</text>
+<text x="522.0" y="524.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">apps, gateway, data stores</text>
+<path d="M348,490 L360,490 M372,490 L360,490" stroke="#475569" stroke-width="1.8" fill="none"/>
+<path d="M360,490 L360,290" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-network-arrow-sync)"/>
+<text x="366" y="319" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="start" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">egress</text>
+<rect x="48" y="556" width="300" height="70" rx="10" fill="#fff7ed" stroke="#c2410c" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="198.0" y="577.5" font-size="14" font-weight="700" fill="#431407" text-anchor="middle">Interface endpoints</text>
+<text x="198.0" y="596.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">ECR, STS, Logs, Secrets Manager,</text>
+<text x="198.0" y="615.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">SQS, EC2</text>
+<rect x="284" y="547" width="56" height="18" rx="9" fill="#ffffff" stroke="#c2410c" stroke-width="1.2"/>
+<text x="312" y="560" font-size="10.5" font-weight="600" fill="#c2410c" text-anchor="middle" font-style="italic">optional</text>
+<path d="M372,564 a70.0,8 0 0 0 140,0 a70.0,8 0 0 0 -140,0 v54 a70.0,8 0 0 0 140,0 v-54" fill="#fffbeb" stroke="#b45309" stroke-width="1.6"/>
+<text x="442.0" y="590.0" font-size="13.5" font-weight="700" fill="#451a03" text-anchor="middle">EBS gp3</text>
+<text x="442.0" y="609.0" font-size="11.5" font-weight="400" fill="#334155" text-anchor="middle">encrypted, zonal</text>
+<rect x="532" y="556" width="140" height="70" rx="10" fill="#fff7ed" stroke="#c2410c" stroke-width="1.6"/>
+<text x="602.0" y="577.5" font-size="14" font-weight="700" fill="#431407" text-anchor="middle">S3 endpoint</text>
+<text x="602.0" y="596.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">gateway, free</text>
+<text x="602.0" y="615.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">(ECR layers)</text>
+<path d="M442,536 L442,556" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-network-arrow-sync)"/>
+<text x="48" y="652" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">Egress via NAT: ECR auth, STS, AWS APIs, Razorpay, Bedrock (if configured),</text>
+<text x="48" y="668" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">Let&#x27;s Encrypt and Docker Hub image pulls. Restrict further with endpoints</text>
+<text x="48" y="684" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">and Istio egress controls for production.</text>
+<rect x="12" y="808" width="696" height="80" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="828" font-size="11" font-weight="700" fill="#475569" text-anchor="start">LEGEND</text>
+<path d="M40,836 L68,836" stroke="#475569" stroke-width="1.8" marker-end="url(#eks-network-arrow-sync)"/>
+<text x="78" y="840.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Traffic</text>
+<path d="M144.9,836 L172.9,836" stroke="#a21caf" stroke-width="1.8" stroke-dasharray="2 4" marker-end="url(#eks-network-arrow-control)"/>
+<text x="182.9" y="840.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Operator / API</text>
+<rect x="296.7" y="828" width="24" height="16" rx="8" fill="#fff7ed" stroke="#c2410c" stroke-width="1.4"/>
+<text x="328.7" y="840.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">AWS-managed</text>
+<rect x="40" y="858" width="24" height="16" rx="8" fill="#ecfdf5" stroke="#047857" stroke-width="1.4"/>
+<text x="72" y="870.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">EC2 capacity</text>
+<rect x="172.4" y="858" width="24" height="16" rx="8" fill="#fffbeb" stroke="#b45309" stroke-width="1.4"/>
+<text x="204.4" y="870.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Storage</text>
+<rect x="271.3" y="858" width="24" height="16" rx="4" fill="#ffffff" stroke="#64748b" stroke-width="1.4" stroke-dasharray="4 3"/>
+<text x="303.3" y="870.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Optional, cost driver</text>
+</svg>

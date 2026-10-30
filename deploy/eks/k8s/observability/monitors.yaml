@@ -1,0 +1,40 @@
+# Application + Envoy metrics, merged by the sidecar on :15020 (plaintext, outside mTLS), so
+# Prometheus needs no mesh certificate. Pods opt in with prometheus.io/scrape annotations.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: roboshop-mesh
+  namespace: monitoring
+spec:
+  namespaceSelector:
+    matchNames: ["roboshop-ai", "istio-ingress"]
+  selector: {}
+  podMetricsEndpoints:
+  - port: http-envoy-prom        # selects one target per pod; the address is rewritten below
+    path: /stats/prometheus
+    interval: 30s
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+      regex: "true"
+      action: keep
+    - sourceLabels: [__meta_kubernetes_pod_ip]
+      regex: (.+)
+      replacement: ${1}:15020
+      targetLabel: __address__
+    - sourceLabels: [__meta_kubernetes_pod_label_app]
+      targetLabel: app
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: istiod
+  namespace: monitoring
+spec:
+  namespaceSelector:
+    matchNames: ["istio-system"]
+  selector:
+    matchLabels:
+      app: istiod
+  endpoints:
+  - port: http-monitoring
+    interval: 30s

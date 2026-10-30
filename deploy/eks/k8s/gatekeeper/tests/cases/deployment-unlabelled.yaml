@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unlabelled
+  namespace: roboshop-ai
+  labels:
+    app.kubernetes.io/part-of: roboshop-ai
+spec:
+  selector:
+    matchLabels: {app: x}
+  template:
+    metadata:
+      labels: {app: x}
+    spec:
+      containers:
+      - name: x
+        image: x

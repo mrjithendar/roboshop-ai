@@ -1,0 +1,40 @@
+# OPTIONAL and NOT applied by default (not listed in kustomization.yaml). For a self-hosted
+# Ollama endpoint only. Apply deliberately: GPU instances are the largest cost driver here.
+# The pool is tainted so only pods that request nvidia.com/gpu and tolerate the taint land on it,
+# and the limit caps it at one GPU. You also need the NVIDIA device plugin and an arm64-capable
+# model image (g5g instances are Graviton + NVIDIA T4G).
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: gpu
+spec:
+  weight: 1
+  template:
+    metadata:
+      labels:
+        roboshop.dev/pool: gpu
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: default
+      taints:
+      - key: nvidia.com/gpu
+        value: "true"
+        effect: NoSchedule
+      requirements:
+      - key: kubernetes.io/arch
+        operator: In
+        values: ["arm64"]
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values: ["on-demand"]
+      - key: karpenter.k8s.aws/instance-family
+        operator: In
+        values: ["g5g"]
+      expireAfter: 720h
+  limits:
+    nvidia.com/gpu: "1"
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 10m

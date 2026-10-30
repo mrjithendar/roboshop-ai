@@ -1,0 +1,455 @@
+# EKS overlay over the lab manifests in services/*. Build with ../../scripts/render.sh, which
+# pins image digests and substitutes ${PUBLIC_HOST}, ${ENVIRONMENT}, ${OWNER} and ${IMAGE_TAG}.
+# The base files live outside this directory, so the build needs --load-restrictor LoadRestrictionsNone.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: roboshop-ai
+
+resources:
+- serviceaccounts.yaml
+# Applications (authoritative manifests, shared with the Minikube lab)
+- ../../../../services/web/web-deployment-minikube.yaml
+- ../../../../services/web/web-service-minikube.yaml
+- ../../../../services/ai-gateway/ai-gateway-deployment-minikube.yaml
+- ../../../../services/ai-gateway/ai-gateway-service-minikube.yaml
+- ../../../../services/ai-gateway/gateway-data-pvc-minikube.yaml
+- ../../../../services/user-service/user-service-deployment-minikube.yaml
+- ../../../../services/user-service/user-service-service-minikube.yaml
+- ../../../../services/catalogue-service/catalogue-service-deployment-minikube.yaml
+- ../../../../services/catalogue-service/catalogue-service-service-minikube.yaml
+- ../../../../services/cart-service/cart-service-deployment-minikube.yaml
+- ../../../../services/cart-service/cart-service-service-minikube.yaml
+- ../../../../services/payment-service/payment-service-deployment-minikube.yaml
+- ../../../../services/payment-service/payment-service-service-minikube.yaml
+- ../../../../services/shipping-service/shipping-service-deployment-minikube.yaml
+- ../../../../services/shipping-service/shipping-service-service-minikube.yaml
+- ../../../../services/currency-service/currency-service-deployment-minikube.yaml
+- ../../../../services/currency-service/currency-service-service-minikube.yaml
+- ../../../../services/moks/moks-deployment-minikube.yaml
+- ../../../../services/moks/moks-service-minikube.yaml
+- ../../../../services/mcp-server/mcp-server-deployment-minikube.yaml
+- ../../../../services/mcp-server/mcp-server-service-minikube.yaml
+- shipping-worker.yaml
+# Demo-profile data stores (single replica, EBS gp3). Production: see ../../README.md#production.
+- data/mongodb.yaml
+- ../../../../services/redis/redis-deployment-minikube.yaml
+- ../../../../services/redis/redis-service-minikube.yaml
+- ../../../../services/rabbitmq/rabbitmq-statefulset-minikube.yaml
+- ../../../../services/rabbitmq/rabbitmq-service-minikube.yaml
+- ../../../../services/rabbitmq/rabbitmq-data-pvc-minikube.yaml
+- ../../../../services/postgres/shipping-db-deployment-minikube.yaml
+- ../../../../services/postgres/shipping-db-service-minikube.yaml
+- ../../../../services/postgres/shipping-postgres-pvc-minikube.yaml
+- ../../../../services/kafka-bridge/kafka-statefulset-minikube.yaml
+- ../../../../services/kafka-bridge/kafka-service-minikube.yaml
+- pdbs.yaml
+- network-policies.yaml
+
+configMapGenerator:
+- name: roboshop-config
+  envs:
+  - config/roboshop.env
+  files:
+  - 10-app-user.js=config/10-app-user.js
+  - 10-shipping-role.sh=../../../../services/postgres/10-shipping-role.sh
+  - redis.conf=../../../../services/redis/redis.conf
+  - rabbitmq.conf=../../../../services/rabbitmq/rabbitmq.conf
+- name: mongodb-catalog
+  files:
+  - 20-catalog.js=../../../../services/mongodb/catalog.js
+  options:
+    disableNameSuffixHash: true
+
+labels:
+- pairs:
+    app.kubernetes.io/part-of: roboshop-ai
+    roboshop.dev/environment: ${ENVIRONMENT}
+    roboshop.dev/owner: ${OWNER}
+  includeSelectors: false
+  includeTemplates: true
+
+patches:
+# Lab-only settings that do not exist on EKS: Minikube node pinning and the ecr-pull Secret
+# (EKS nodes pull from ECR with their node role). Images are pinned by digest in render.sh.
+- target:
+    kind: (Deployment|StatefulSet)
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: any
+    spec:
+      template:
+        spec:
+          nodeSelector: null
+          imagePullSecrets: null
+# PVCs: encrypted gp3, bound in the zone where the pod is first scheduled.
+- target:
+    kind: PersistentVolumeClaim
+  patch: |-
+    - op: add
+      path: /spec/storageClassName
+      value: gp3-encrypted
+- target:
+    kind: Deployment
+    name: web
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: web
+    spec:
+      replicas: 2
+      strategy:
+        type: RollingUpdate
+      template:
+        spec:
+          serviceAccountName: web
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 101
+            runAsGroup: 101
+            seccompProfile:
+              type: RuntimeDefault
+- target:
+    kind: Deployment
+    name: ai-gateway
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ai-gateway
+    spec:
+      replicas: 1
+      template:
+        metadata:
+          annotations:
+            # Istio merges these app metrics with Envoy's on :15020 (mTLS-safe scraping).
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "3000"
+            prometheus.io/path: /metrics
+        spec:
+          serviceAccountName: ai-gateway
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+- target:
+    kind: Deployment
+    name: user-service
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: user-service
+    spec:
+      replicas: 2
+      strategy:
+        type: RollingUpdate
+      template:
+        metadata:
+          annotations:
+            # Istio merges these app metrics with Envoy's on :15020 (mTLS-safe scraping).
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "4109"
+            prometheus.io/path: /metrics
+        spec:
+          serviceAccountName: user-service
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+- target:
+    kind: Deployment
+    name: catalogue-service
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: catalogue-service
+    spec:
+      replicas: 2
+      strategy:
+        type: RollingUpdate
+      template:
+        metadata:
+          annotations:
+            # Istio merges these app metrics with Envoy's on :15020 (mTLS-safe scraping).
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "4108"
+            prometheus.io/path: /metrics
+        spec:
+          serviceAccountName: catalogue-service
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+- target:
+    kind: Deployment
+    name: cart-service
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: cart-service
+    spec:
+      replicas: 2
+      strategy:
+        type: RollingUpdate
+      template:
+        metadata:
+          annotations:
+            # Istio merges these app metrics with Envoy's on :15020 (mTLS-safe scraping).
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "4107"
+            prometheus.io/path: /metrics
+        spec:
+          serviceAccountName: cart-service
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+- target:
+    kind: Deployment
+    name: payment-service
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: payment-service
+    spec:
+      replicas: 2
+      strategy:
+        type: RollingUpdate
+      template:
+        metadata:
+          annotations:
+            # Istio merges these app metrics with Envoy's on :15020 (mTLS-safe scraping).
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "4105"
+            prometheus.io/path: /metrics
+        spec:
+          serviceAccountName: payment-service
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+- target:
+    kind: Deployment
+    name: shipping-service
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: shipping-service
+    spec:
+      replicas: 2
+      strategy:
+        type: RollingUpdate
+      template:
+        metadata:
+          annotations:
+            # Istio merges these app metrics with Envoy's on :15020 (mTLS-safe scraping).
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "4106"
+            prometheus.io/path: /metrics
+        spec:
+          serviceAccountName: shipping-service
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+- target:
+    kind: Deployment
+    name: currency-service
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: currency-service
+    spec:
+      replicas: 2
+      strategy:
+        type: RollingUpdate
+      template:
+        metadata:
+          annotations:
+            # Istio merges these app metrics with Envoy's on :15020 (mTLS-safe scraping).
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "4111"
+            prometheus.io/path: /metrics
+        spec:
+          serviceAccountName: currency-service
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            seccompProfile:
+              type: RuntimeDefault
+- target:
+    kind: Deployment
+    name: moks
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: moks
+    spec:
+      replicas: 1
+      strategy:
+        type: RollingUpdate
+      template:
+        metadata:
+          annotations:
+            # Istio merges these app metrics with Envoy's on :15020 (mTLS-safe scraping).
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "4103"
+            prometheus.io/path: /metrics
+        spec:
+          serviceAccountName: moks
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+- target:
+    kind: Deployment
+    name: mcp-server
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: mcp-server
+    spec:
+      replicas: 1
+      strategy:
+        type: RollingUpdate
+      template:
+        spec:
+          serviceAccountName: mcp-server
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+- target:
+    kind: Deployment
+    name: redis
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: redis
+    spec:
+      template:
+        metadata:
+          labels:
+            sidecar.istio.io/inject: "false"
+            roboshop.dev/policy-exception: stateful-entrypoint
+        spec:
+          serviceAccountName: redis
+- target:
+    kind: StatefulSet
+    name: rabbitmq
+  patch: |-
+    apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      name: rabbitmq
+    spec:
+      template:
+        metadata:
+          labels:
+            sidecar.istio.io/inject: "false"
+            roboshop.dev/policy-exception: stateful-entrypoint
+        spec:
+          serviceAccountName: rabbitmq
+- target:
+    kind: Deployment
+    name: shipping-db
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: shipping-db
+    spec:
+      template:
+        metadata:
+          labels:
+            sidecar.istio.io/inject: "false"
+            roboshop.dev/policy-exception: stateful-entrypoint
+        spec:
+          serviceAccountName: shipping-db
+- target:
+    kind: StatefulSet
+    name: kafka
+  patch: |-
+    apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      name: kafka
+    spec:
+      template:
+        metadata:
+          labels:
+            sidecar.istio.io/inject: "false"
+            roboshop.dev/policy-exception: stateful-entrypoint
+        spec:
+          serviceAccountName: kafka
+# The Recreate strategy and single replica keep the JSON ledger single-writer (see
+# services/ai-gateway/README.md). On EBS, fsGroup already makes the volume writable, so the
+# root chown init container used on Minikube hostPath is removed.
+- target:
+    kind: Deployment
+    name: ai-gateway
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ai-gateway
+    spec:
+      template:
+        spec:
+          initContainers:
+          - name: data-permissions
+            $patch: delete
+# HTTP-only shipping-service; queue consumption moved to shipping-worker.
+- target:
+    kind: Deployment
+    name: shipping-service
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/env/12/value
+      value: "false"
+# Served at the domain root instead of the lab's /roboshop prefix.
+- target:
+    kind: Deployment
+    name: web
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/env/0/value
+      value: ""
+# The lab's Kafka init container declares no resources; admission policy requires them.
+- target:
+    kind: StatefulSet
+    name: kafka
+  patch: |-
+    - op: add
+      path: /spec/template/spec/initContainers/0/resources
+      value:
+        requests: {cpu: 10m, memory: 32Mi}
+        limits: {memory: 64Mi}

@@ -1,0 +1,60 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: roboshopimages
+  annotations:
+    description: Images must come from an approved registry prefix and be pinned by digest.
+spec:
+  crd:
+    spec:
+      names:
+        kind: RoboShopImages
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            allowedPrefixes:
+              type: array
+              items:
+                type: string
+            digestExemptContainers:
+              description: Injected containers whose version is pinned by their controller (Istio).
+              type: array
+              items:
+                type: string
+  targets:
+  - target: admission.k8s.gatekeeper.sh
+    rego: |
+      package roboshopimages
+
+      containers[c] {
+        c := input.review.object.spec.containers[_]
+      }
+      containers[c] {
+        c := input.review.object.spec.initContainers[_]
+      }
+      containers[c] {
+        c := input.review.object.spec.ephemeralContainers[_]
+      }
+
+      approved(image) {
+        prefix := input.parameters.allowedPrefixes[_]
+        startswith(image, prefix)
+      }
+
+      violation[{"msg": msg}] {
+        c := containers[_]
+        not approved(c.image)
+        msg := sprintf("container %v: image %v is not from an approved registry", [c.name, c.image])
+      }
+
+      digest_exempt(c) {
+        c.name == input.parameters.digestExemptContainers[_]
+      }
+
+      violation[{"msg": msg}] {
+        c := containers[_]
+        not contains(c.image, "@sha256:")
+        not digest_exempt(c)
+        msg := sprintf("container %v: image %v must be pinned by digest (@sha256:...)", [c.name, c.image])
+      }

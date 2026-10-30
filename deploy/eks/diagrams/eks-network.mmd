@@ -1,0 +1,35 @@
+%%{init: {"theme": "base", "flowchart": {"curve": "basis"}, "themeVariables": {"fontFamily": "arial, sans-serif", "fontSize": "15px", "primaryTextColor": "#0f172a", "lineColor": "#475569"}}}%%
+%% AWS network and ingress. Evidence: deploy/eks/terraform/network.tf, eks.tf, platform/values/istio-gateway.yaml.
+flowchart TB
+  cust[Customers]:::client -.->|DNS| r53[Route 53]:::aws
+  op[Operator /32 or VPN]:::client
+  subgraph vpc[VPC 10.40.0.0/16, 2-3 AZs]
+    subgraph pub[Public subnets]
+      nlb[NLB TCP 80/443<br/>IP targets, proxy protocol v2]:::aws
+      nat[NAT gateway]:::aws --> igwy[Internet gateway]:::aws
+    end
+    subgraph priv[Private subnets, no public IPs]
+      gwpods[Istio ingress gateway pods]:::edge
+      cp[EKS control plane ENIs]:::control
+      sys[System node group<br/>On-Demand, tainted]:::svc
+      karp[Karpenter nodes<br/>arm64 On-Demand + Spot]:::svc
+      ebs[(EBS gp3 encrypted)]:::store
+      s3ep[S3 gateway endpoint]:::aws
+      ifep[Interface endpoints<br/>optional]:::ext
+    end
+  end
+  cust --> nlb --> gwpods
+  op -.->|kubectl| cp
+  sys -->|egress| nat
+  karp -->|egress| nat
+  karp --> ebs
+  classDef client fill:#f8fafc,stroke:#334155,color:#0f172a
+  classDef edge fill:#eef2ff,stroke:#4338ca,color:#1e1b4b
+  classDef svc fill:#ecfdf5,stroke:#047857,color:#064e3b
+  classDef ai fill:#f5f3ff,stroke:#6d28d9,color:#2e1065
+  classDef store fill:#fffbeb,stroke:#b45309,color:#451a03
+  classDef bus fill:#fff1f2,stroke:#be123c,color:#4c0519
+  classDef aws fill:#fff7ed,stroke:#c2410c,color:#431407
+  classDef ext fill:#f1f5f9,stroke:#64748b,color:#0f172a,stroke-dasharray:5 4
+  classDef obs fill:#f0fdf4,stroke:#15803d,color:#14532d
+  classDef control fill:#fdf4ff,stroke:#a21caf,color:#4a044e

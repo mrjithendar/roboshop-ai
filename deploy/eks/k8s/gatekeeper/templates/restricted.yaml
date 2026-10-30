@@ -1,0 +1,77 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: roboshoprestricted
+  annotations:
+    description: >-
+      Non-root, no privilege escalation, all capabilities dropped, no privileged mode, no host
+      namespaces or hostPath, and no auto-mounted service-account token.
+spec:
+  crd:
+    spec:
+      names:
+        kind: RoboShopRestricted
+  targets:
+  - target: admission.k8s.gatekeeper.sh
+    rego: |
+      package roboshoprestricted
+
+      pod := input.review.object
+
+      containers[c] {
+        c := pod.spec.containers[_]
+      }
+      containers[c] {
+        c := pod.spec.initContainers[_]
+      }
+
+      non_root(c) {
+        c.securityContext.runAsNonRoot == true
+      }
+      non_root(c) {
+        not c.securityContext.runAsNonRoot == false
+        pod.spec.securityContext.runAsNonRoot == true
+      }
+
+      drops_all(c) {
+        upper(c.securityContext.capabilities.drop[_]) == "ALL"
+      }
+
+      violation[{"msg": msg}] {
+        c := containers[_]
+        not non_root(c)
+        msg := sprintf("container %v: runAsNonRoot must be true (pod or container securityContext)", [c.name])
+      }
+      violation[{"msg": msg}] {
+        c := containers[_]
+        not c.securityContext.allowPrivilegeEscalation == false
+        msg := sprintf("container %v: allowPrivilegeEscalation must be false", [c.name])
+      }
+      violation[{"msg": msg}] {
+        c := containers[_]
+        c.securityContext.privileged == true
+        msg := sprintf("container %v: privileged mode is not allowed", [c.name])
+      }
+      violation[{"msg": msg}] {
+        c := containers[_]
+        not drops_all(c)
+        msg := sprintf("container %v: capabilities.drop must include ALL", [c.name])
+      }
+      violation[{"msg": msg}] {
+        c := containers[_]
+        count(object.get(c, ["securityContext", "capabilities", "add"], [])) > 0
+        msg := sprintf("container %v: adding capabilities is not allowed", [c.name])
+      }
+      violation[{"msg": msg}] {
+        field := ["hostNetwork", "hostPID", "hostIPC"][_]
+        pod.spec[field] == true
+        msg := sprintf("%v is not allowed", [field])
+      }
+      violation[{"msg": msg}] {
+        v := pod.spec.volumes[_]
+        v.hostPath
+        msg := sprintf("volume %v: hostPath is not allowed", [v.name])
+      }
+      violation[{"msg": "automountServiceAccountToken must be false (no RoboShop workload calls the Kubernetes API)"}] {
+        not pod.spec.automountServiceAccountToken == false
+      }

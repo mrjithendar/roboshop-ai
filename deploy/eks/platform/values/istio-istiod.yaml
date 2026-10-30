@@ -1,0 +1,35 @@
+# Sidecar mode with the Istio CNI node agent (no privileged istio-init container in app pods).
+pilot:
+  nodeSelector:
+    roboshop.dev/pool: system
+  tolerations:
+  - key: CriticalAddonsOnly
+    operator: Exists
+  autoscaleMin: 2
+  env:
+    # Native sidecars: the proxy starts before and stops after the app, so Jobs complete and
+    # draining workers keep their network until they exit.
+    ENABLE_NATIVE_SIDECARS: "true"
+global:
+  proxy:
+    resources:
+      requests: {cpu: 20m, memory: 64Mi}
+      limits: {memory: 256Mi}
+istio_cni:
+  enabled: true
+meshConfig:
+  accessLogFile: /dev/stdout
+  accessLogEncoding: JSON
+  # No automatic HTTP retries anywhere unless a VirtualService opts in (k8s/istio/routes.yaml).
+  defaultHttpRetryPolicy:
+    attempts: 0
+  enableTracing: true
+  defaultConfig:
+    holdApplicationUntilProxyStarts: true
+  extensionProviders:
+  - name: otel
+    opentelemetry:
+      service: otel-agent.observability.svc.cluster.local
+      port: 4317
+  defaultProviders:
+    tracing: ["otel"]

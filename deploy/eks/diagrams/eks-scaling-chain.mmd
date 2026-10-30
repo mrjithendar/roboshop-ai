@@ -1,0 +1,17 @@
+%% KEDA -> Karpenter scaling. Evidence: deploy/eks/k8s/keda/scaledobject.yaml, k8s/karpenter/*.yaml.
+sequenceDiagram
+  autonumber
+  participant Q as RabbitMQ shipping.orders
+  participant K as KEDA
+  participant H as HPA
+  participant P as shipping-worker pods
+  participant C as Karpenter
+  participant E as EC2 arm64
+  K->>Q: poll depth every 15 s (monitoring user)
+  K->>H: target = ceil(messages / 20), 1..4
+  H->>P: scale up (+1 pod/min)
+  P-->>C: Pending pods (no room)
+  C->>E: launch node (spot or general NodePool, within limits)
+  E-->>P: node Ready, pods scheduled
+  Note over K,H: queue empty -> cooldown 300 s -> scale down
+  Note over C,E: consolidate within NodePool disruption budget

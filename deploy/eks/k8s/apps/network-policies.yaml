@@ -1,0 +1,148 @@
+# Ingress isolation for roboshop-ai. These objects are ENFORCED ONLY because the VPC CNI add-on
+# is installed with enableNetworkPolicy=true (terraform/eks.tf). Without a policy engine they
+# are silently ignored. Egress is left open here (DNS, AWS APIs, Razorpay, Bedrock); restrict it
+# with an egress gateway or Istio REGISTRY_ONLY mode for production.
+#
+# Runtime check (not verifiable offline): AWS documents that kubelet probes from the node are
+# allowed by the policy agent; confirm pods stay Ready after applying (RUNBOOK.md step F3).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress"]
+---
+# Meshed application pods: reachable from other pods in this namespace (Istio
+# AuthorizationPolicy decides which caller may reach which service), from the ingress
+# gateway, and from Prometheus for merged metrics on 15020.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-mesh-apps
+spec:
+  podSelector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values: [web, ai-gateway, user-service, catalogue-service, cart-service, payment-service,
+               shipping-service, shipping-worker, currency-service, moks, mcp-server]
+  policyTypes: ["Ingress"]
+  ingress:
+  - from:
+    - podSelector: {}
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: istio-ingress
+      podSelector:
+        matchLabels:
+          istio: ingressgateway
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring
+    ports:
+    - port: 15020
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mongodb-clients
+spec:
+  podSelector:
+    matchLabels:
+      app: mongodb
+  policyTypes: ["Ingress"]
+  ingress:
+  - from:
+    - podSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values: [ai-gateway, user-service, catalogue-service]
+    ports:
+    - port: 27017
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-clients
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes: ["Ingress"]
+  ingress:
+  - from:
+    - podSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values: [cart-service, shipping-service]
+    ports:
+    - port: 6379
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: shipping-db-clients
+spec:
+  podSelector:
+    matchLabels:
+      app: shipping-db
+  policyTypes: ["Ingress"]
+  ingress:
+  - from:
+    - podSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values: [shipping-service, shipping-worker]
+    - podSelector:
+        matchLabels:
+          job-name: shipping-location-import
+    ports:
+    - port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rabbitmq-clients
+spec:
+  podSelector:
+    matchLabels:
+      app: rabbitmq
+  policyTypes: ["Ingress"]
+  ingress:
+  - from:
+    - podSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values: [ai-gateway, shipping-service, shipping-worker, kafka]
+    ports:
+    - port: 5672
+  # KEDA's RabbitMQ scaler reads queue depth from the management API.
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: keda
+    ports:
+    - port: 15672
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kafka-internal
+spec:
+  podSelector:
+    matchLabels:
+      app: kafka
+  policyTypes: ["Ingress"]
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: kafka

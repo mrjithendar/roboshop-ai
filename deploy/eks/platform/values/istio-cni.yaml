@@ -1,0 +1,3 @@
+# DaemonSet in istio-system (privileged by necessity; outside Gatekeeper's roboshop-ai scope).
+cni:
+  excludeNamespaces: ["kube-system", "istio-system"]

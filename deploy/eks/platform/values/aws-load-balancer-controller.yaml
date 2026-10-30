@@ -1,0 +1,14 @@
+clusterName: ${CLUSTER_NAME}
+region: ${AWS_REGION}
+vpcId: ${VPC_ID}
+serviceAccount:
+  create: true
+  name: aws-load-balancer-controller   # bound to its IAM role by Pod Identity (terraform/iam.tf)
+replicaCount: 2
+nodeSelector:
+  roboshop.dev/pool: system
+tolerations:
+- key: CriticalAddonsOnly
+  operator: Exists
+# Only Services that opt in with loadBalancerClass service.k8s.aws/nlb are reconciled.
+enableServiceMutatorWebhook: false

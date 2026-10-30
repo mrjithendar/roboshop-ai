@@ -1,0 +1,8 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: RoboShopImages
+metadata:
+  name: test-images
+spec:
+  parameters:
+    allowedPrefixes: ["111122223333.dkr.ecr.xx-test-1.amazonaws.com/", "docker.io/istio/proxyv2:1.30.7"]
+    digestExemptContainers: ["istio-proxy"]

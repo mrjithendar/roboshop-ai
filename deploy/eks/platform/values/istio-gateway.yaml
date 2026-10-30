@@ -1,0 +1,41 @@
+# Ingress gateway Deployment + Service. The Service is reconciled by the AWS Load Balancer
+# Controller into an internet-facing NLB with IP targets (pods registered directly).
+labels:
+  istio: ingressgateway
+service:
+  type: LoadBalancer
+  loadBalancerClass: service.k8s.aws/nlb
+  # Restrict who may reach the NLB (frontend security group). 0.0.0.0/0 for a public shop.
+  loadBalancerSourceRanges: ["${INGRESS_SOURCE_CIDR}"]
+  ports:
+  - name: status-port
+    port: 15021
+    targetPort: 15021
+    protocol: TCP
+  - name: http2
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 443
+    protocol: TCP
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: external
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+    # TCP passthrough; TLS terminates on the gateway pods. Proxy protocol v2 carries the client IP.
+    service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: http
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "15021"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /healthz/ready
+    service.beta.kubernetes.io/aws-load-balancer-attributes: load_balancing.cross_zone.enabled=true
+podAnnotations:
+  # Envoy expects the PROXY header on gateway listeners (not on the 15021 health port).
+  proxy.istio.io/config: '{"gatewayTopology":{"proxyProtocol":{}}}'
+autoscaling:
+  minReplicas: 2
+  maxReplicas: 4
+resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {memory: 512Mi}

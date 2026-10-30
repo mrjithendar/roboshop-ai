@@ -1,0 +1,31 @@
+# Rendered with envsubst by ../../scripts/render.sh: ${CLUSTER_NAME} and ${KARPENTER_NODE_ROLE}
+# come from `terraform output`. The AMI alias is pinned so new nodes do not change silently;
+# bump it deliberately (Karpenter then drifts nodes within the NodePool disruption budgets).
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: default
+spec:
+  role: ${KARPENTER_NODE_ROLE}
+  amiSelectorTerms:
+  - alias: al2023@v20261026   # EKS-optimized AL2023 for 1.36 (release 1.36.5-20261026)
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: ${CLUSTER_NAME}   # private subnets only (terraform/network.tf)
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: ${CLUSTER_NAME}   # the EKS node security group
+  metadataOptions:
+    httpEndpoint: enabled
+    httpTokens: required
+    httpPutResponseHopLimit: 1   # pods cannot reach node credentials through IMDS
+  blockDeviceMappings:
+  - deviceName: /dev/xvda
+    ebs:
+      volumeSize: 40Gi
+      volumeType: gp3
+      encrypted: true
+      deleteOnTermination: true
+  tags:
+    Project: roboshop-ai
+    ManagedBy: karpenter

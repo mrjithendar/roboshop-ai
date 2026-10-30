@@ -1,11 +1,14 @@
-> EKS is now available as an opt-in stack in `eks.tf`; see
-> [EKS cluster and add-ons](eks-addons/README.md) for creation, versions and Let's Encrypt.
-> The manual Create infrastructure workflow now enables EKS and installs its add-ons.
+> **Scope:** this is the owner's lab-account stack (VPC, the mutable ECR repositories used by the
+> lab CI, SES for jithendar.com, and the Bedrock identity for the self-hosted Moks). EKS now
+> lives in its own reusable root module, [`deploy/eks`](../deploy/eks/README.md), with separate
+> state and no personal values. `eks.tfbk` and `tests/eks.tftest.hcl` are obsolete leftovers
+> (the test references a resource that no longer exists) and should be deleted. To reuse these
+> ECR repositories from the EKS stack in the same account, set `manage_ecr_repositories = false` there.
 
-# RoboShop infrastructure: VPC, ECR, SES and optional EKS
+# RoboShop infrastructure: VPC, ECR and SES (lab account)
 
-This stack creates VPC networking, private ECR repositories, optional SES and an
-opt-in EKS cluster. It does not deploy application workloads. Use Terraform >= 1.10 and < 2.0, AWS provider 6.x, and AWS credentials
+This stack creates VPC networking, private ECR repositories and optional SES. It does not
+create a cluster or deploy application workloads. Use Terraform >= 1.10 and < 2.0, AWS provider 6.x, and AWS credentials
 from an IAM role or your normal AWS profile. Commit the generated provider lockfile.
 
 ## Network layout
@@ -64,17 +67,16 @@ apply pipeline against untrusted pull-request code. Mock tests do not access AWS
 The [Create infrastructure workflow](../.github/workflows/create-infrastructure.yml)
 runs manually on the self-hosted runner. It checks formatting, initializes remote
 state, validates and tests the configuration, then creates and applies a saved
-plan using `vars/dev.tfvars`. It provisions VPC/ECR/SES/EKS and then add-ons, not application
+plan using `vars/terraform.tfvars`. It provisions VPC/ECR/SES, not clusters or application
 containers. Every run applies changes; there is no plan-only option.
 
 The runner must already have AWS credentials (for example, an EC2 instance role)
-with permission to manage VPC/ECR/SES/EKS/IAM resources and access the existing S3 states and
+with permission to manage VPC/ECR/SES/IAM resources and access the existing S3 states and
 lockfile. No OIDC role or AWS access keys are configured in this workflow. The S3
 backend bucket must exist before the run.
 
 Open **Actions → Create infrastructure → Run workflow** on the default branch.
-No form inputs are needed. The workflow detects the runner IAM role/user and public IPv4 /32 as explained in the
-[EKS pipeline guide](eks-addons/README.md#deploy-through-github-actions). Runs are serialized, Terraform uses S3 state locking, and the saved plan
+No form inputs are needed. Runs are serialized, Terraform uses S3 state locking, and the saved plan
 is removed even if a step fails. Do not run the Jenkins deployment concurrently
 against the same state.
 
@@ -148,21 +150,12 @@ non-overlapping VPC CIDR for a parallel migration, or retain the old layout unti
 an explicit migration is planned. No state or cloud resources were changed during
 this code review.
 
-## Creating EKS on this VPC
+## EKS
 
-Enable `eks_enabled` and supply explicit admin IAM principals using
-`vars/eks.tfvars.example`. Follow [the EKS guide](eks-addons/README.md) for the
-separate cluster and add-on apply steps. Worker nodes use private subnets; public
-subnets are reserved for load balancers. Private-only API access requires a runner
-with VPC connectivity; public API access accepts only your configured CIDRs.
-
-The new cluster includes managed nodes, core add-ons and access entries. The
-separate add-on stack installs EBS CSI, Traefik, AWS Load Balancer Controller,
-cert-manager and KEDA. Application data migration and workload IAM remain separate.
-
-References: [EKS subnet requirements](https://docs.aws.amazon.com/eks/latest/userguide/network-reqs.html),
-[subnet design](https://docs.aws.amazon.com/eks/latest/best-practices/subnets.html),
-[S3 backend locking](https://developer.hashicorp.com/terraform/language/backend/s3).
+EKS is not part of this stack. See [`deploy/eks`](../deploy/eks/README.md) for the VPC, cluster,
+add-ons, Karpenter, Istio, Gatekeeper, KEDA, observability and Argo CD, with its own state.
+That stack creates its own VPC; nothing here is reused except, optionally, these ECR
+repositories.
 
 ## Amazon SES transactional email
 

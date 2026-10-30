@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: roboshop-ai
+  labels:
+    app.kubernetes.io/part-of: roboshop-ai
+    roboshop.dev/environment: ${ENVIRONMENT}
+    roboshop.dev/owner: ${OWNER}
+    # Sidecar mode: every pod in this namespace gets an Envoy sidecar unless it opts out with
+    # the pod label sidecar.istio.io/inject: "false" (the data stores below do).
+    istio-injection: enabled
+    # Admission baseline from Kubernetes Pod Security; Gatekeeper adds RoboShop-specific rules.
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted

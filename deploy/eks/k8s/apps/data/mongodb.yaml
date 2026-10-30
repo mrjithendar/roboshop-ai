@@ -1,0 +1,121 @@
+# Demo-profile MongoDB (the lab runs it from the tools repo). Single replica on an encrypted gp3
+# volume: NOT highly available. Production: MongoDB Atlas or a replica set (README.md#production).
+# Init scripts run on an empty volume only: 10-app-user.js, then the catalogue (services/mongodb/catalog.js).
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+  labels:
+    app.kubernetes.io/part-of: roboshop-ai
+spec:
+  serviceName: mongodb
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+        app.kubernetes.io/part-of: roboshop-ai
+        sidecar.istio.io/inject: "false"
+        roboshop.dev/policy-exception: stateful-entrypoint
+    spec:
+      serviceAccountName: mongodb
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: mongodb
+        image: mongo:8.2
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: root
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: roboshop-secrets
+              key: MONGO_ROOT_PASSWORD
+        - name: MONGO_APP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: roboshop-secrets
+              key: MONGO_APP_PASSWORD
+        ports:
+        - name: mongo
+          containerPort: 27017
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: "1"
+            memory: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+            add: ["CHOWN", "SETUID", "SETGID"]   # official entrypoint drops from root to uid 999
+        startupProbe:
+          tcpSocket:
+            port: 27017
+          periodSeconds: 5
+          failureThreshold: 120
+        livenessProbe:
+          tcpSocket:
+            port: 27017
+          periodSeconds: 20
+          failureThreshold: 5
+        readinessProbe:
+          exec:
+            command: ["mongosh", "--quiet", "--eval", "quit(db.adminCommand({ping:1}).ok ? 0 : 1)"]
+          periodSeconds: 10
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: data
+          mountPath: /data/db
+        - name: init
+          mountPath: /docker-entrypoint-initdb.d
+          readOnly: true
+      volumes:
+      - name: init
+        projected:
+          defaultMode: 0555
+          sources:
+          - configMap:
+              name: roboshop-config
+              items:
+              - key: 10-app-user.js
+                path: 10-app-user.js
+          - configMap:
+              name: mongodb-catalog
+              items:
+              - key: 20-catalog.js
+                path: 20-catalog.js
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: gp3-encrypted
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  labels:
+    app.kubernetes.io/part-of: roboshop-ai
+spec:
+  selector:
+    app: mongodb
+  ports:
+  - name: tcp-mongo
+    port: 27017
+    targetPort: 27017

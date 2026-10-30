@@ -1,0 +1,235 @@
+# One Application per rendered layer; sync waves give the dependency order
+# (platform/karpenter/secrets/tls -> gatekeeper templates, istio, monitors -> apps -> constraints, keda).
+# Data-bearing layers (platform: StorageClass; karpenter) never prune automatically.
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-platform
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  project: roboshop
+  source:
+    repoURL: ${GIT_REPO_URL}
+    targetRevision: ${GIT_REVISION}
+    path: deploy/eks/clusters/${CLUSTER_NAME}/platform
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=false
+    - PruneLast=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-karpenter
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: roboshop
+  source:
+    repoURL: ${GIT_REPO_URL}
+    targetRevision: ${GIT_REVISION}
+    path: deploy/eks/clusters/${CLUSTER_NAME}/karpenter
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=false
+    - PruneLast=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-secrets
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: roboshop
+  source:
+    repoURL: ${GIT_REPO_URL}
+    targetRevision: ${GIT_REVISION}
+    path: deploy/eks/clusters/${CLUSTER_NAME}/secrets
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=false
+    - PruneLast=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-tls
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: roboshop
+  source:
+    repoURL: ${GIT_REPO_URL}
+    targetRevision: ${GIT_REVISION}
+    path: deploy/eks/clusters/${CLUSTER_NAME}/tls
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=false
+    - PruneLast=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-gatekeeper
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: roboshop
+  source:
+    repoURL: ${GIT_REPO_URL}
+    targetRevision: ${GIT_REVISION}
+    path: deploy/eks/clusters/${CLUSTER_NAME}/gatekeeper
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=false
+    - PruneLast=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-istio
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: roboshop
+  source:
+    repoURL: ${GIT_REPO_URL}
+    targetRevision: ${GIT_REVISION}
+    path: deploy/eks/clusters/${CLUSTER_NAME}/istio
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=false
+    - PruneLast=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-observability
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: roboshop
+  source:
+    repoURL: ${GIT_REPO_URL}
+    targetRevision: ${GIT_REVISION}
+    path: deploy/eks/clusters/${CLUSTER_NAME}/observability
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=false
+    - PruneLast=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-apps
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: roboshop
+  source:
+    repoURL: ${GIT_REPO_URL}
+    targetRevision: ${GIT_REVISION}
+    path: deploy/eks/clusters/${CLUSTER_NAME}/apps
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=false
+    - PruneLast=true
+    - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-gatekeeper-constraints
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: roboshop
+  source:
+    repoURL: ${GIT_REPO_URL}
+    targetRevision: ${GIT_REVISION}
+    path: deploy/eks/clusters/${CLUSTER_NAME}/gatekeeper-constraints
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=false
+    - PruneLast=true
+    - SkipDryRunOnMissingResource=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-keda
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: roboshop
+  source:
+    repoURL: ${GIT_REPO_URL}
+    targetRevision: ${GIT_REVISION}
+    path: deploy/eks/clusters/${CLUSTER_NAME}/keda
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=false
+    - PruneLast=true

@@ -1,0 +1,22 @@
+%% A normal shopping request. Evidence: nginx routes.conf, ai-gateway server.py.
+sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant N as NLB
+  participant I as Istio GW
+  participant W as web
+  participant G as ai-gateway
+  participant U as user
+  participant C as catalogue
+  participant R as cart
+  B->>N: HTTPS (TCP)
+  N->>I: PROXY v2 + TLS
+  I->>I: TLS ends, route
+  I->>W: mTLS
+  W->>W: static page
+  W->>G: /api/* mTLS
+  G->>U: session check
+  G->>C: products
+  G->>R: cart lines
+  G-->>W: JSON
+  W-->>B: response (via Istio GW, NLB)

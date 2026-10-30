@@ -1,0 +1,163 @@
+# Two-replica stateless services keep one pod through node drains and Karpenter consolidation.
+# Single-replica pods (ai-gateway: single-writer JSON ledger; data stores) get maxUnavailable: 1,
+# so drains are allowed but visible: those components are not highly available in this profile.
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: user-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: user-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: catalogue-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: catalogue-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cart-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: cart-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: payment-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: payment-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: shipping-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: shipping-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: currency-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: currency-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-gateway
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: ai-gateway
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: moks
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: moks
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mcp-server
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: mcp-server
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: shipping-worker
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: shipping-worker
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mongodb
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: mongodb
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: redis
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: rabbitmq
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: shipping-db
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: shipping-db
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kafka
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: kafka

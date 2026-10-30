@@ -1,0 +1,10 @@
+# Jaeger v2 all-in-one. The chart's default all-in-one configuration keeps traces in memory, so
+# traces are lost on restart (same trade-off as the lab). Production: Jaeger with
+# OpenSearch/Elasticsearch storage (this chart's `storage` + `config` values), or AWS X-Ray.
+jaeger:
+  replicas: 1
+  resources:
+    requests: {cpu: 50m, memory: 256Mi}
+    limits: {memory: 1Gi}
+  serviceAccount:
+    automountServiceAccountToken: false

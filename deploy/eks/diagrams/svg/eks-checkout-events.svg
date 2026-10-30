@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 830" width="720" height="830" role="img" aria-labelledby="eks-checkout-events-title eks-checkout-events-desc" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
+<title id="eks-checkout-events-title">RoboShop AI on EKS: checkout, outbox and event consumers</title>
+<desc id="eks-checkout-events-desc">Checkout is synchronous: the browser creates an order with an idempotency key; ai-gateway reserves stock in its ledger and creates a Razorpay test-mode order through payment-service; Razorpay confirms by browser verification or a signed webhook; the gateway marks the order paid and writes an outbox event in the same transaction. Afterwards the outbox worker publishes to RabbitMQ with publisher confirms. Live merchant orders go to roboshop.shipping.orders, consumed by shipping-worker replicas scaled by KEDA, which insert into PostgreSQL with ON CONFLICT DO NOTHING and acknowledge after commit; after five failures messages dead-letter to roboshop.shipping.failed. Test orders go to an audit queue. Both go to kafka-bridge, which publishes to Kafka. The mesh never retries checkout or payment calls.</desc>
+<defs><marker id="eks-checkout-events-arrow-sync" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker><marker id="eks-checkout-events-arrow-async" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#be123c"/></marker><marker id="eks-checkout-events-arrow-telemetry" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#15803d"/></marker><marker id="eks-checkout-events-arrow-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#a21caf"/></marker><marker id="eks-checkout-events-arrow-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker></defs>
+<rect width="100%" height="100%" rx="18" fill="#ffffff"/>
+<text x="24" y="40" font-size="20" font-weight="700" fill="#0f172a" text-anchor="start">Checkout, outbox and consumers</text>
+<text x="24" y="62" font-size="12.5" font-weight="400" fill="#475569" text-anchor="start">Money moves synchronously; fulfilment follows asynchronously.</text>
+<rect x="12" y="80" width="696" height="286" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="100" font-size="11" font-weight="700" fill="#475569" text-anchor="start">SYNCHRONOUS CHECKOUT (NO MESH RETRIES)</text>
+<rect x="40" y="116" width="150" height="58" rx="10" fill="#f8fafc" stroke="#334155" stroke-width="1.6"/>
+<text x="115.0" y="141.0" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">Browser</text>
+<text x="115.0" y="160.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">Idempotency-Key</text>
+<rect x="260" y="116" width="190" height="58" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="2.4"/>
+<text x="355.0" y="141.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">ai-gateway</text>
+<text x="355.0" y="160.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">reserve → pay → commit</text>
+<rect x="520" y="116" width="170" height="58" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="605.0" y="141.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">payment-service</text>
+<text x="605.0" y="160.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">HMAC, capture check</text>
+<rect x="520" y="214" width="170" height="58" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="1.6"/>
+<text x="605.0" y="239.0" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">Razorpay</text>
+<text x="605.0" y="258.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">test mode default</text>
+<path d="M260,214 a95.0,8 0 0 0 190,0 a95.0,8 0 0 0 -190,0 v76 a95.0,8 0 0 0 190,0 v-76" fill="#fffbeb" stroke="#b45309" stroke-width="1.6"/>
+<text x="355.0" y="241.5" font-size="13.5" font-weight="700" fill="#451a03" text-anchor="middle">Ledger + outbox</text>
+<text x="355.0" y="260.5" font-size="11.5" font-weight="400" fill="#334155" text-anchor="middle">JSON (1 replica)</text>
+<text x="355.0" y="279.5" font-size="11.5" font-weight="400" fill="#334155" text-anchor="middle">or PostgreSQL</text>
+<path d="M190,145 L260,145" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-checkout-events-arrow-sync)"/>
+<text x="225" y="137" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">1 create</text>
+<path d="M450,145 L520,145" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-checkout-events-arrow-sync)"/>
+<text x="485" y="137" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">2 order</text>
+<path d="M605,174 L605,214" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-checkout-events-arrow-sync)"/>
+<path d="M520,258 L470,258 L470,160 L450,160" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-checkout-events-arrow-sync)"/>
+<text x="476" y="194" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="start" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">3 signed</text>
+<text x="476" y="208" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="start" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">webhook</text>
+<path d="M355,174 L355,206" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-checkout-events-arrow-sync)"/>
+<text x="347" y="194" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="end" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">4 paid + event</text>
+<text x="210" y="346" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">Ambiguous payment outcomes keep their reservation;</text>
+<text x="210" y="362" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">nothing is replayed automatically.</text>
+<rect x="12" y="382" width="696" height="340" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="402" font-size="11" font-weight="700" fill="#475569" text-anchor="start">EVENTS (AT LEAST ONCE)</text>
+<rect x="40" y="420" width="170" height="60" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="125.0" y="446.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">outbox worker</text>
+<text x="125.0" y="465.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">leased, confirms</text>
+<rect x="260" y="420" width="190" height="60" rx="10" fill="#fff1f2" stroke="#be123c" stroke-width="1.6"/>
+<text x="355.0" y="446.0" font-size="14" font-weight="700" fill="#4c0519" text-anchor="middle">RabbitMQ</text>
+<text x="355.0" y="465.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">roboshop.orders</text>
+<path d="M355,298 L355,318 L185,318 L185,420" fill="none" stroke="#be123c" stroke-width="3.2" stroke-linejoin="round" marker-end="url(#eks-checkout-events-arrow-async)"/>
+<path d="M210,450 L260,450" fill="none" stroke="#be123c" stroke-width="3.2" stroke-linejoin="round" marker-end="url(#eks-checkout-events-arrow-async)"/>
+<rect x="40" y="530" width="200" height="54" rx="10" fill="#fff1f2" stroke="#be123c" stroke-width="1.6"/>
+<text x="140.0" y="553.0" font-size="14" font-weight="700" fill="#4c0519" text-anchor="middle">shipping.orders</text>
+<text x="140.0" y="572.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">order.paid (live)</text>
+<rect x="260" y="530" width="190" height="54" rx="10" fill="#fff1f2" stroke="#be123c" stroke-width="1.6"/>
+<text x="355.0" y="553.0" font-size="14" font-weight="700" fill="#4c0519" text-anchor="middle">test.orders</text>
+<text x="355.0" y="572.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">audit, no consumer</text>
+<rect x="470" y="530" width="220" height="54" rx="10" fill="#fff1f2" stroke="#be123c" stroke-width="1.6"/>
+<text x="580.0" y="553.0" font-size="14" font-weight="700" fill="#4c0519" text-anchor="middle">kafka.orders</text>
+<text x="580.0" y="572.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">live + test</text>
+<path d="M300,480 L300,502 L140,502 L140,530" fill="none" stroke="#be123c" stroke-width="3.2" stroke-linejoin="round" marker-end="url(#eks-checkout-events-arrow-async)"/>
+<path d="M355,480 L355,530" fill="none" stroke="#be123c" stroke-width="3.2" stroke-linejoin="round" marker-end="url(#eks-checkout-events-arrow-async)"/>
+<path d="M410,480 L410,502 L580,502 L580,530" fill="none" stroke="#be123c" stroke-width="3.2" stroke-linejoin="round" marker-end="url(#eks-checkout-events-arrow-async)"/>
+<rect x="40" y="620" width="200" height="64" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="2.4"/>
+<text x="140.0" y="648.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">shipping-worker × 1–4</text>
+<text x="140.0" y="667.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">KEDA on queue depth</text>
+<rect x="470" y="620" width="220" height="64" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="580.0" y="648.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">kafka-bridge</text>
+<text x="580.0" y="667.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">acks after Kafka confirms</text>
+<path d="M140,584 L140,620" fill="none" stroke="#be123c" stroke-width="3.2" stroke-linejoin="round" marker-end="url(#eks-checkout-events-arrow-async)"/>
+<path d="M580,584 L580,620" fill="none" stroke="#be123c" stroke-width="3.2" stroke-linejoin="round" marker-end="url(#eks-checkout-events-arrow-async)"/>
+<path d="M260,628 a95.0,8 0 0 0 190,0 a95.0,8 0 0 0 -190,0 v48 a95.0,8 0 0 0 190,0 v-48" fill="#fffbeb" stroke="#b45309" stroke-width="1.6"/>
+<text x="355.0" y="651.0" font-size="13.5" font-weight="700" fill="#451a03" text-anchor="middle">PostgreSQL</text>
+<text x="355.0" y="670.0" font-size="11.5" font-weight="400" fill="#334155" text-anchor="middle">event_id UNIQUE</text>
+<path d="M240,652 L260,652" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-checkout-events-arrow-sync)"/>
+<text x="260" y="706" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">DLQ roboshop.shipping.failed after 5 attempts</text>
+<rect x="12" y="738" width="696" height="80" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="758" font-size="11" font-weight="700" fill="#475569" text-anchor="start">LEGEND</text>
+<path d="M40,768 L68,768" stroke="#475569" stroke-width="1.8" marker-end="url(#eks-checkout-events-arrow-sync)"/>
+<text x="78" y="772.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Synchronous HTTP</text>
+<path d="M205.2,768 L233.2,768" stroke="#be123c" stroke-width="3.2" marker-end="url(#eks-checkout-events-arrow-async)"/>
+<text x="243.2" y="772.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Asynchronous event</text>
+<rect x="40" y="790" width="24" height="16" rx="8" fill="#fffbeb" stroke="#b45309" stroke-width="1.4"/>
+<text x="72" y="802.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Transactional store</text>
+<rect x="219.3" y="790" width="24" height="16" rx="8" fill="#fff1f2" stroke="#be123c" stroke-width="1.4"/>
+<text x="251.3" y="802.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Queue / exchange</text>
+</svg>

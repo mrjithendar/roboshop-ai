@@ -1,0 +1,62 @@
+# Scales shipping-worker on roboshop.shipping.orders depth. KEDA creates and owns the HPA
+# (keda-hpa-shipping-worker); no other HPA may target this Deployment.
+#
+# Chain: backlog grows -> KEDA raises replicas -> new pods are Pending (no room) ->
+# Karpenter launches a Spot or On-Demand arm64 node -> pods start and drain the queue.
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: rabbitmq-monitor
+  namespace: roboshop-ai
+spec:
+  secretTargetRef:
+  - parameter: host
+    name: keda-rabbitmq      # created by External Secrets (../secrets), monitoring-only user
+    key: host
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: shipping-worker
+  namespace: roboshop-ai
+spec:
+  scaleTargetRef:
+    name: shipping-worker
+  # Stays at 1: Java start-up plus migrations take tens of seconds, and paid orders should not
+  # wait for a cold start. Scale-to-zero (0) is possible but adds that latency to the first event.
+  minReplicaCount: 1
+  # Bounded by shipping-db: each worker holds up to 10 connections (Database.java), and the
+  # demo PostgreSQL also serves shipping-service. Raise only with database capacity.
+  maxReplicaCount: 4
+  pollingInterval: 15
+  cooldownPeriod: 300
+  fallback:
+    # If RabbitMQ's management API is unreachable, hold 2 replicas instead of guessing.
+    failureThreshold: 4
+    replicas: 2
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+          - type: Pods
+            value: 1
+            periodSeconds: 60
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+          - type: Pods
+            value: 1
+            periodSeconds: 120
+  triggers:
+  - type: rabbitmq
+    authenticationRef:
+      name: rabbitmq-monitor
+    metadata:
+      protocol: http          # HTTP API counts ready + unacknowledged messages
+      queueName: roboshop.shipping.orders
+      vhostName: /
+      mode: QueueLength
+      value: "20"             # target messages per replica
+      activationValue: "0"

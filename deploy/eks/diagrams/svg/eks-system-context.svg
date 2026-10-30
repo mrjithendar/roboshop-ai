@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1010" width="720" height="1010" role="img" aria-labelledby="eks-system-context-title eks-system-context-desc" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
+<title id="eks-system-context-title">RoboShop AI on EKS: services and data ownership</title>
+<desc id="eks-system-context-desc">Browsers reach the shop through an AWS Network Load Balancer and the Istio ingress gateway, which forwards to the web NGINX service. NGINX sends API calls to ai-gateway, assistant calls to Moks and currency calls to currency-service. ai-gateway calls user, catalogue, cart, payment, shipping and currency services and the optional Moks engine; it owns the order ledger and outbox. A private MCP server, reachable only by port-forward, calls the gateway with the caller&#x27;s session. Paid orders flow from the outbox through RabbitMQ to shipping-worker and kafka-bridge. Each service is labelled with the data store it owns.</desc>
+<defs><marker id="eks-system-context-arrow-sync" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker><marker id="eks-system-context-arrow-async" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#be123c"/></marker><marker id="eks-system-context-arrow-telemetry" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#15803d"/></marker><marker id="eks-system-context-arrow-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#a21caf"/></marker><marker id="eks-system-context-arrow-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker></defs>
+<rect width="100%" height="100%" rx="18" fill="#ffffff"/>
+<text x="24" y="40" font-size="20" font-weight="700" fill="#0f172a" text-anchor="start">Services and data ownership</text>
+<text x="24" y="62" font-size="12.5" font-weight="400" fill="#475569" text-anchor="start">Who calls whom, and which store each service owns.</text>
+<rect x="12" y="80" width="696" height="92" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="100" font-size="11" font-weight="700" fill="#475569" text-anchor="start">CLIENTS</text>
+<rect x="40" y="104" width="200" height="56" rx="10" fill="#f8fafc" stroke="#334155" stroke-width="1.6"/>
+<text x="140.0" y="128.0" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">Browser</text>
+<text x="140.0" y="147.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">storefront + assistant widget</text>
+<rect x="480" y="104" width="200" height="56" rx="10" fill="#f8fafc" stroke="#334155" stroke-width="1.6"/>
+<text x="580.0" y="128.0" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">MCP client</text>
+<text x="580.0" y="147.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">kubectl port-forward only</text>
+<rect x="12" y="184" width="696" height="92" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="204" font-size="11" font-weight="700" fill="#475569" text-anchor="start">EDGE (PUBLIC)</text>
+<rect x="40" y="208" width="150" height="56" rx="10" fill="#fff7ed" stroke="#c2410c" stroke-width="1.6"/>
+<text x="115.0" y="232.0" font-size="14" font-weight="700" fill="#431407" text-anchor="middle">AWS NLB</text>
+<text x="115.0" y="251.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">TCP 80/443</text>
+<rect x="230" y="208" width="200" height="56" rx="10" fill="#eef2ff" stroke="#4338ca" stroke-width="1.6"/>
+<text x="330.0" y="232.0" font-size="14" font-weight="700" fill="#1e1b4b" text-anchor="middle">Istio ingress gateway</text>
+<text x="330.0" y="251.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">TLS, routing</text>
+<rect x="470" y="208" width="120" height="56" rx="10" fill="#eef2ff" stroke="#4338ca" stroke-width="1.6"/>
+<text x="530.0" y="232.0" font-size="14" font-weight="700" fill="#1e1b4b" text-anchor="middle">web</text>
+<text x="530.0" y="251.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">NGINX</text>
+<path d="M140,160 L115,160 L115,208" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-system-context-arrow-sync)"/>
+<path d="M190,236 L230,236" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-system-context-arrow-sync)"/>
+<path d="M430,236 L470,236" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-system-context-arrow-sync)"/>
+<rect x="12" y="288" width="696" height="150" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="308" font-size="11" font-weight="700" fill="#475569" text-anchor="start">ORCHESTRATION</text>
+<rect x="40" y="320" width="150" height="92" rx="10" fill="#f5f3ff" stroke="#6d28d9" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="115.0" y="352.5" font-size="14" font-weight="700" fill="#2e1065" text-anchor="middle">moks</text>
+<text x="115.0" y="371.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">assistant engine</text>
+<text x="115.0" y="390.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">no data store</text>
+<rect x="126" y="311" width="56" height="18" rx="9" fill="#ffffff" stroke="#6d28d9" stroke-width="1.2"/>
+<text x="154" y="324" font-size="10.5" font-weight="600" fill="#6d28d9" text-anchor="middle" font-style="italic">optional</text>
+<rect x="250" y="320" width="220" height="92" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="2.4"/>
+<text x="360.0" y="352.5" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">ai-gateway</text>
+<text x="360.0" y="371.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">API, authz, ledger,</text>
+<text x="360.0" y="390.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">outbox (JSON or Postgres)</text>
+<rect x="530" y="320" width="150" height="92" rx="10" fill="#f5f3ff" stroke="#6d28d9" stroke-width="1.6"/>
+<text x="605.0" y="362.0" font-size="14" font-weight="700" fill="#2e1065" text-anchor="middle">mcp-server</text>
+<text x="605.0" y="381.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">private MCP tools</text>
+<path d="M560,264 L560,302 L440,302 L440,320" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-system-context-arrow-sync)"/>
+<text x="568" y="296" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="start" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">/api</text>
+<path d="M490,264 L490,284 L160,284 L160,320" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-system-context-arrow-sync)"/>
+<text x="300" y="279" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">/moks</text>
+<path d="M250,366 L190,366" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-system-context-arrow-sync)"/>
+<text x="220" y="358" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">chat</text>
+<path d="M580,160 L580,196 L690,196 L690,366 L680,366" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-system-context-arrow-sync)"/>
+<path d="M530,390 L470,390" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-system-context-arrow-sync)"/>
+<text x="500" y="382" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">session</text>
+<rect x="12" y="450" width="696" height="300" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="470" font-size="11" font-weight="700" fill="#475569" text-anchor="start">DOMAIN SERVICES (HTTP FROM AI-GATEWAY)</text>
+<rect x="40" y="482" width="310" height="72" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="195.0" y="514.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">user-service</text>
+<text x="195.0" y="533.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">MongoDB: users, sessions</text>
+<rect x="370" y="482" width="310" height="72" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="525.0" y="514.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">catalogue-service</text>
+<text x="525.0" y="533.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">MongoDB: products</text>
+<rect x="40" y="570" width="310" height="72" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="195.0" y="602.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">cart-service</text>
+<text x="195.0" y="621.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">Redis: carts</text>
+<rect x="370" y="570" width="310" height="72" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="525.0" y="602.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">payment-service</text>
+<text x="525.0" y="621.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">Razorpay (test mode)</text>
+<rect x="40" y="658" width="310" height="72" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="195.0" y="690.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">shipping-service</text>
+<text x="195.0" y="709.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">PostgreSQL: locations</text>
+<rect x="370" y="658" width="310" height="72" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="525.0" y="690.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">currency-service</text>
+<text x="525.0" y="709.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">exchange rates</text>
+<path d="M360,412 L360,478" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-system-context-arrow-sync)"/>
+<text x="40" y="746" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">Not every request visits every service: browsing uses web → gateway → catalogue.</text>
+<rect x="12" y="762" width="696" height="138" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="782" font-size="11" font-weight="700" fill="#475569" text-anchor="start">PAID-ORDER EVENTS (ASYNCHRONOUS, AT LEAST ONCE)</text>
+<rect x="40" y="796" width="140" height="60" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="110.0" y="822.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">ai-gateway</text>
+<text x="110.0" y="841.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">outbox</text>
+<rect x="220" y="796" width="140" height="60" rx="10" fill="#fff1f2" stroke="#be123c" stroke-width="1.6"/>
+<text x="290.0" y="822.0" font-size="14" font-weight="700" fill="#4c0519" text-anchor="middle">RabbitMQ</text>
+<text x="290.0" y="841.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">roboshop.orders</text>
+<rect x="400" y="790" width="140" height="46" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="470.0" y="818.5" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">shipping-worker</text>
+<rect x="400" y="844" width="140" height="46" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="470.0" y="872.5" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">kafka-bridge</text>
+<path d="M570,794 a60.0,8 0 0 0 120,0 a60.0,8 0 0 0 -120,0 v38 a60.0,8 0 0 0 120,0 v-38" fill="#fffbeb" stroke="#b45309" stroke-width="1.6"/>
+<text x="630.0" y="812.0" font-size="13.5" font-weight="700" fill="#451a03" text-anchor="middle">PostgreSQL</text>
+<text x="630.0" y="831.0" font-size="11.5" font-weight="400" fill="#334155" text-anchor="middle">shipments</text>
+<path d="M570,850 a60.0,8 0 0 0 120,0 a60.0,8 0 0 0 -120,0 v34 a60.0,8 0 0 0 120,0 v-34" fill="#fffbeb" stroke="#b45309" stroke-width="1.6"/>
+<text x="630.0" y="875.5" font-size="13.5" font-weight="700" fill="#451a03" text-anchor="middle">Kafka</text>
+<path d="M180,826 L220,826" fill="none" stroke="#be123c" stroke-width="3.2" stroke-linejoin="round" marker-end="url(#eks-system-context-arrow-async)"/>
+<path d="M360,816 L400,813" fill="none" stroke="#be123c" stroke-width="3.2" stroke-linejoin="round" marker-end="url(#eks-system-context-arrow-async)"/>
+<path d="M360,840 L400,867" fill="none" stroke="#be123c" stroke-width="3.2" stroke-linejoin="round" marker-end="url(#eks-system-context-arrow-async)"/>
+<path d="M540,813 L570,813" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-system-context-arrow-sync)"/>
+<path d="M540,867 L570,867" fill="none" stroke="#be123c" stroke-width="3.2" stroke-linejoin="round" marker-end="url(#eks-system-context-arrow-async)"/>
+<rect x="12" y="912" width="696" height="84" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="932" font-size="11" font-weight="700" fill="#475569" text-anchor="start">LEGEND</text>
+<path d="M40,940 L68,940" stroke="#475569" stroke-width="1.8" marker-end="url(#eks-system-context-arrow-sync)"/>
+<text x="78" y="944.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">HTTP</text>
+<path d="M124.8,940 L152.8,940" stroke="#be123c" stroke-width="3.2" marker-end="url(#eks-system-context-arrow-async)"/>
+<text x="162.8" y="944.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Event</text>
+<rect x="216.3" y="932" width="24" height="16" rx="4" fill="#ffffff" stroke="#64748b" stroke-width="1.4" stroke-dasharray="4 3"/>
+<text x="248.3" y="944.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Optional</text>
+<rect x="321.9" y="932" width="24" height="16" rx="8" fill="#fff7ed" stroke="#c2410c" stroke-width="1.4"/>
+<text x="353.9" y="944.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">AWS-managed</text>
+<rect x="40" y="962" width="24" height="16" rx="8" fill="#ecfdf5" stroke="#047857" stroke-width="1.4"/>
+<text x="72" y="974.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Service</text>
+<rect x="138.9" y="962" width="24" height="16" rx="8" fill="#f5f3ff" stroke="#6d28d9" stroke-width="1.4"/>
+<text x="170.9" y="974.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">AI / MCP</text>
+<rect x="244.5" y="962" width="24" height="16" rx="8" fill="#fffbeb" stroke="#b45309" stroke-width="1.4"/>
+<text x="276.5" y="974.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Data store</text>
+<rect x="363.5" y="962" width="24" height="16" rx="8" fill="#fff1f2" stroke="#be123c" stroke-width="1.4"/>
+<text x="395.5" y="974.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Broker</text>
+</svg>

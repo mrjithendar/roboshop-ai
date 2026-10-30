@@ -1,0 +1,45 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: roboshopexposure
+  annotations:
+    description: >-
+      Public exposure goes only through the Istio ingress gateway: no LoadBalancer or NodePort
+      Services and no Ingress objects outside the namespaces listed in allowedNamespaces.
+spec:
+  crd:
+    spec:
+      names:
+        kind: RoboShopExposure
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            allowedNamespaces:
+              type: array
+              items:
+                type: string
+  targets:
+  - target: admission.k8s.gatekeeper.sh
+    rego: |
+      package roboshopexposure
+
+      obj := input.review.object
+
+      allowed {
+        obj.metadata.namespace == input.parameters.allowedNamespaces[_]
+      }
+
+      violation[{"msg": msg}] {
+        obj.kind == "Service"
+        type := obj.spec.type
+        type == ["LoadBalancer", "NodePort"][_]
+        not allowed
+        msg := sprintf("Service %v: type %v is only allowed in %v", [obj.metadata.name, type, input.parameters.allowedNamespaces])
+      }
+
+      violation[{"msg": msg}] {
+        obj.kind == "Ingress"
+        not allowed
+        msg := sprintf("Ingress %v: expose through the Istio ingress gateway instead", [obj.metadata.name])
+      }

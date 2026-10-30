@@ -1,0 +1,39 @@
+# Explicit data step (RUNBOOK.md E3), run once after shipping-service has applied its schema
+# migrations. Reuses the authoritative Job from services/postgres with the seed ConfigMap.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: roboshop-ai
+resources:
+- ../../../../services/postgres/import-locations-job.yaml
+configMapGenerator:
+- name: shipping-location-seed
+  files:
+  - ../../../../services/postgres/shipping.sql.gz
+  options:
+    disableNameSuffixHash: true
+labels:
+- pairs:
+    roboshop.dev/environment: ${ENVIRONMENT}
+    roboshop.dev/owner: ${OWNER}
+  includeSelectors: false
+  includeTemplates: true
+patches:
+- target:
+    kind: Job
+  patch: |-
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: any
+      annotations:
+        argocd.argoproj.io/hook: null
+        argocd.argoproj.io/sync-wave: null
+        argocd.argoproj.io/hook-delete-policy: null
+    spec:
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            sidecar.istio.io/inject: "false"   # a sidecar would keep the Job from completing
+        spec:
+          serviceAccountName: shipping-db

@@ -1,0 +1,23 @@
+# Argo CD syncs the rendered RoboShop layers (../k8s/argocd). The API/UI stays private:
+# kubectl -n argocd port-forward svc/argocd-server 8080:443
+global:
+  nodeSelector:
+    roboshop.dev/pool: system
+  tolerations:
+  - key: CriticalAddonsOnly
+    operator: Exists
+configs:
+  params:
+    server.insecure: false
+  cm:
+    # KEDA owns shipping-worker's replica count; Argo must not reset it on every sync.
+    resource.customizations.ignoreDifferences.apps_Deployment: |
+      jqPathExpressions:
+      - select(.metadata.name == "shipping-worker") | .spec.replicas
+server:
+  service:
+    type: ClusterIP
+dex:
+  enabled: false
+notifications:
+  enabled: false

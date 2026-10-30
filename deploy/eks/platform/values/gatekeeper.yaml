@@ -1,0 +1,22 @@
+replicas: 2
+auditInterval: 60
+constraintViolationsLimit: 50
+validatingWebhookTimeoutSeconds: 5
+# Fail open for the demo: an unavailable webhook must not block Karpenter or controllers.
+# Production: Fail, with 3 replicas and a PDB.
+validatingWebhookFailurePolicy: Ignore
+controllerManager:
+  # Controllers' own namespaces are never evaluated (constraints also match only roboshop-ai).
+  exemptNamespaces: ["kube-system", "gatekeeper-system", "istio-system", "istio-ingress", "keda",
+                     "external-secrets", "cert-manager", "monitoring", "observability", "argocd"]
+  nodeSelector:
+    roboshop.dev/pool: system
+  tolerations:
+  - key: CriticalAddonsOnly
+    operator: Exists
+audit:
+  nodeSelector:
+    roboshop.dev/pool: system
+  tolerations:
+  - key: CriticalAddonsOnly
+    operator: Exists

@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 760" width="720" height="760" role="img" aria-labelledby="eks-telemetry-title eks-telemetry-desc" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
+<title id="eks-telemetry-title">RoboShop AI on EKS: telemetry pipeline</title>
+<desc id="eks-telemetry-desc">Application pods and Istio sidecars send OTLP traces to the node-local OpenTelemetry agent, which adds Kubernetes metadata, drops health-check spans, samples, redacts query strings, authorization headers, cookies and email addresses, and exports to Jaeger. The same agent tails container logs, redacts them and writes them to a CloudWatch Logs group with finite retention. Prometheus scrapes application and Envoy metrics merged by the sidecar on port 15020, plus KEDA, Karpenter and istiod, and evaluates alerts; Grafana queries Prometheus. EKS control-plane logs go to CloudWatch directly. Moks can send metadata-only observations to Langfuse when credentials exist. Telemetry failures never fail requests.</desc>
+<defs><marker id="eks-telemetry-arrow-sync" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker><marker id="eks-telemetry-arrow-async" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#be123c"/></marker><marker id="eks-telemetry-arrow-telemetry" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#15803d"/></marker><marker id="eks-telemetry-arrow-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#a21caf"/></marker><marker id="eks-telemetry-arrow-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker></defs>
+<rect width="100%" height="100%" rx="18" fill="#ffffff"/>
+<text x="24" y="40" font-size="20" font-weight="700" fill="#0f172a" text-anchor="start">Telemetry pipeline</text>
+<text x="24" y="62" font-size="12.5" font-weight="400" fill="#475569" text-anchor="start">One node agent for logs and traces; Prometheus for metrics.</text>
+<rect x="12" y="80" width="696" height="116" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="100" font-size="11" font-weight="700" fill="#475569" text-anchor="start">SOURCES</text>
+<rect x="40" y="112" width="200" height="64" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="140.0" y="130.5" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">App pods</text>
+<text x="140.0" y="149.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">OTLP traces, JSON stdout,</text>
+<text x="140.0" y="168.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">/metrics</text>
+<rect x="260" y="112" width="200" height="64" rx="10" fill="#eef2ff" stroke="#4338ca" stroke-width="1.6"/>
+<text x="360.0" y="140.0" font-size="14" font-weight="700" fill="#1e1b4b" text-anchor="middle">Istio sidecars + gateway</text>
+<text x="360.0" y="159.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">spans, merged :15020</text>
+<rect x="480" y="112" width="210" height="64" rx="10" fill="#fdf4ff" stroke="#a21caf" stroke-width="1.6"/>
+<text x="585.0" y="140.0" font-size="14" font-weight="700" fill="#4a044e" text-anchor="middle">KEDA · Karpenter · istiod</text>
+<text x="585.0" y="159.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">controller metrics</text>
+<rect x="12" y="212" width="696" height="150" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="232" font-size="11" font-weight="700" fill="#475569" text-anchor="start">COLLECTION</text>
+<rect x="40" y="248" width="420" height="92" rx="10" fill="#f0fdf4" stroke="#15803d" stroke-width="2.4"/>
+<text x="250.0" y="280.5" font-size="14" font-weight="700" fill="#14532d" text-anchor="middle">OpenTelemetry agent (DaemonSet)</text>
+<text x="250.0" y="299.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">k8s metadata · drop health spans · sample</text>
+<text x="250.0" y="318.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">redact query, auth, cookies, emails</text>
+<rect x="480" y="248" width="210" height="92" rx="10" fill="#f0fdf4" stroke="#15803d" stroke-width="1.6"/>
+<text x="585.0" y="280.5" font-size="14" font-weight="700" fill="#14532d" text-anchor="middle">Prometheus</text>
+<text x="585.0" y="299.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">PodMonitor + ServiceMonitors</text>
+<text x="585.0" y="318.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">alert rules, 7 d</text>
+<path d="M140,176 L140,248" fill="none" stroke="#15803d" stroke-width="1.8" stroke-dasharray="6 4" stroke-linejoin="round" marker-end="url(#eks-telemetry-arrow-telemetry)"/>
+<text x="150" y="206" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="start" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">traces</text>
+<text x="150" y="220" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="start" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">+ logs</text>
+<path d="M330,176 L330,248" fill="none" stroke="#15803d" stroke-width="1.8" stroke-dasharray="6 4" stroke-linejoin="round" marker-end="url(#eks-telemetry-arrow-telemetry)"/>
+<text x="338" y="214" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="start" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">spans</text>
+<path d="M420,176 L420,200 L540,200 L540,248" fill="none" stroke="#15803d" stroke-width="1.8" stroke-dasharray="6 4" stroke-linejoin="round" marker-end="url(#eks-telemetry-arrow-telemetry)"/>
+<text x="476" y="196" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">scrape :15020</text>
+<path d="M640,176 L640,248" fill="none" stroke="#15803d" stroke-width="1.8" stroke-dasharray="6 4" stroke-linejoin="round" marker-end="url(#eks-telemetry-arrow-telemetry)"/>
+<rect x="12" y="378" width="696" height="178" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="398" font-size="11" font-weight="700" fill="#475569" text-anchor="start">BACKENDS</text>
+<rect x="40" y="414" width="200" height="64" rx="10" fill="#f0fdf4" stroke="#15803d" stroke-width="1.6"/>
+<text x="140.0" y="442.0" font-size="14" font-weight="700" fill="#14532d" text-anchor="middle">Jaeger</text>
+<text x="140.0" y="461.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">in-memory (demo)</text>
+<rect x="260" y="414" width="200" height="64" rx="10" fill="#fff7ed" stroke="#c2410c" stroke-width="1.6"/>
+<text x="360.0" y="442.0" font-size="14" font-weight="700" fill="#431407" text-anchor="middle">CloudWatch Logs</text>
+<text x="360.0" y="461.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">containers · 30 d</text>
+<rect x="480" y="414" width="210" height="64" rx="10" fill="#f0fdf4" stroke="#15803d" stroke-width="1.6"/>
+<text x="585.0" y="442.0" font-size="14" font-weight="700" fill="#14532d" text-anchor="middle">Grafana</text>
+<text x="585.0" y="461.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">dashboards</text>
+<rect x="260" y="494" width="200" height="50" rx="10" fill="#fff7ed" stroke="#c2410c" stroke-width="1.6"/>
+<text x="360.0" y="515.0" font-size="14" font-weight="700" fill="#431407" text-anchor="middle">CloudWatch Logs</text>
+<text x="360.0" y="534.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">EKS control plane</text>
+<rect x="480" y="494" width="210" height="50" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="585.0" y="515.0" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">Langfuse</text>
+<text x="585.0" y="534.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">metadata only</text>
+<rect x="626" y="485" width="56" height="18" rx="9" fill="#ffffff" stroke="#64748b" stroke-width="1.2"/>
+<text x="654" y="498" font-size="10.5" font-weight="600" fill="#64748b" text-anchor="middle" font-style="italic">optional</text>
+<path d="M140,340 L140,414" fill="none" stroke="#15803d" stroke-width="1.8" stroke-dasharray="6 4" stroke-linejoin="round" marker-end="url(#eks-telemetry-arrow-telemetry)"/>
+<path d="M360,340 L360,414" fill="none" stroke="#15803d" stroke-width="1.8" stroke-dasharray="6 4" stroke-linejoin="round" marker-end="url(#eks-telemetry-arrow-telemetry)"/>
+<path d="M585,340 L585,414" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-telemetry-arrow-sync)"/>
+<text x="593" y="382" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="start" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">query</text>
+<text x="40" y="584" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">Correlation: trace IDs appear in JSON logs (traceId) and Envoy access logs;</text>
+<text x="40" y="600" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">search CloudWatch by traceId, then open the trace in Jaeger.</text>
+<text x="40" y="616" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">Failure isolation: exporters queue and retry in the background; a down backend</text>
+<text x="40" y="632" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">drops telemetry, never a customer request.</text>
+<rect x="12" y="670" width="696" height="76" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="690" font-size="11" font-weight="700" fill="#475569" text-anchor="start">LEGEND</text>
+<path d="M40,706 L68,706" stroke="#15803d" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#eks-telemetry-arrow-telemetry)"/>
+<text x="78" y="710.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Telemetry</text>
+<path d="M158.3,706 L186.3,706" stroke="#475569" stroke-width="1.8" marker-end="url(#eks-telemetry-arrow-sync)"/>
+<text x="196.3" y="710.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Query</text>
+<rect x="249.8" y="698" width="24" height="16" rx="8" fill="#fff7ed" stroke="#c2410c" stroke-width="1.4"/>
+<text x="281.8" y="710.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">AWS-managed</text>
+<rect x="375.5" y="698" width="24" height="16" rx="4" fill="#ffffff" stroke="#64748b" stroke-width="1.4" stroke-dasharray="4 3"/>
+<text x="407.5" y="710.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Optional</text>
+</svg>

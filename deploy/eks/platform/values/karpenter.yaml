@@ -1,0 +1,16 @@
+# Runs on the managed system node group, never on capacity it provisions itself.
+settings:
+  clusterName: ${CLUSTER_NAME}
+  interruptionQueue: ${KARPENTER_QUEUE}
+replicas: 2
+nodeSelector:
+  roboshop.dev/pool: system
+tolerations:
+- key: CriticalAddonsOnly
+  operator: Exists
+controller:
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {memory: 1Gi}
+serviceMonitor:
+  enabled: true

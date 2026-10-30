@@ -1,0 +1,108 @@
+# Retries are OFF mesh-wide (istiod meshConfig.defaultHttpRetryPolicy.attempts: 0), so nothing
+# here can replay a checkout, payment or cart mutation. Retries are opted in only for
+# idempotent GETs that failed before reaching the application (connect-failure, refused-stream).
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: storefront
+  namespace: roboshop-ai
+spec:
+  hosts: ["${PUBLIC_HOST}"]
+  gateways: ["istio-ingress/public"]
+  http:
+  - name: web
+    route:
+    - destination:
+        host: web.roboshop-ai.svc.cluster.local
+        port:
+          number: 8080
+    # Above the gateway's own 23 s downstream budget and the 16 s assistant budget.
+    timeout: 35s
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: ai-gateway
+  namespace: roboshop-ai
+spec:
+  hosts: ["ai-gateway.roboshop-ai.svc.cluster.local"]
+  http:
+  - name: all
+    route:
+    - destination:
+        host: ai-gateway.roboshop-ai.svc.cluster.local
+    timeout: 30s
+    retries:
+      attempts: 0   # never replay orders, payments or cart writes
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: payment-service
+  namespace: roboshop-ai
+spec:
+  hosts: ["payment-service.roboshop-ai.svc.cluster.local"]
+  http:
+  - name: all
+    route:
+    - destination:
+        host: payment-service.roboshop-ai.svc.cluster.local
+    timeout: 20s
+    retries:
+      attempts: 0
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: catalogue-service
+  namespace: roboshop-ai
+spec:
+  hosts: ["catalogue-service.roboshop-ai.svc.cluster.local"]
+  http:
+  - name: reads
+    match:
+    - method:
+        exact: GET
+    route:
+    - destination:
+        host: catalogue-service.roboshop-ai.svc.cluster.local
+    timeout: 5s
+    retries:
+      attempts: 2
+      perTryTimeout: 2s
+      retryOn: connect-failure,refused-stream
+  - name: writes
+    route:
+    - destination:
+        host: catalogue-service.roboshop-ai.svc.cluster.local
+    timeout: 10s
+    retries:
+      attempts: 0
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: currency-service
+  namespace: roboshop-ai
+spec:
+  hosts: ["currency-service.roboshop-ai.svc.cluster.local"]
+  http:
+  - name: reads
+    match:
+    - method:
+        exact: GET
+    route:
+    - destination:
+        host: currency-service.roboshop-ai.svc.cluster.local
+    timeout: 5s
+    retries:
+      attempts: 2
+      perTryTimeout: 2s
+      retryOn: connect-failure,refused-stream
+  - name: writes
+    route:
+    - destination:
+        host: currency-service.roboshop-ai.svc.cluster.local
+    timeout: 10s
+    retries:
+      attempts: 0

@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 860" width="720" height="860" role="img" aria-labelledby="eks-ai-paths-title eks-ai-paths-desc" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
+<title id="eks-ai-paths-title">RoboShop AI on EKS: Moks, model and MCP paths</title>
+<desc id="eks-ai-paths-desc">Path A, the assistant: the browser widget calls web, which forwards to Moks widget routes; Moks calls ai-gateway /api/chat with the user&#x27;s session; the gateway adds saved history references and the active provider configuration and calls the Moks engine; Moks retrieves up to four products from catalogue-service, re-checks the configuration revision with the gateway and, only if a provider is configured, calls Amazon Bedrock through Pod Identity or an allow-listed Ollama endpoint, with one optional failover and a circuit breaker. Without a provider it returns &#x27;Please connect an LLM&#x27;. Path B, MCP: an MCP client reaches the private mcp-server by port-forward; mcp-server calls ai-gateway with the caller&#x27;s own session, and the gateway re-authorizes. Moks never calls MCP.</desc>
+<defs><marker id="eks-ai-paths-arrow-sync" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker><marker id="eks-ai-paths-arrow-async" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#be123c"/></marker><marker id="eks-ai-paths-arrow-telemetry" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#15803d"/></marker><marker id="eks-ai-paths-arrow-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#a21caf"/></marker><marker id="eks-ai-paths-arrow-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker></defs>
+<rect width="100%" height="100%" rx="18" fill="#ffffff"/>
+<text x="24" y="40" font-size="20" font-weight="700" fill="#0f172a" text-anchor="start">Assistant and MCP paths</text>
+<text x="24" y="62" font-size="12.5" font-weight="400" fill="#475569" text-anchor="start">Two independent entry points. Moks never calls the MCP server.</text>
+<rect x="12" y="80" width="696" height="470" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="100" font-size="11" font-weight="700" fill="#475569" text-anchor="start">A. ASSISTANT (MOKS)</text>
+<text x="26" y="116" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">Default: no model provider configured → explicit &#x27;connect an LLM&#x27; reply.</text>
+<rect x="40" y="132" width="130" height="54" rx="10" fill="#f8fafc" stroke="#334155" stroke-width="1.6"/>
+<text x="105.0" y="155.0" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">Browser</text>
+<text x="105.0" y="174.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">widget</text>
+<rect x="210" y="132" width="130" height="54" rx="10" fill="#eef2ff" stroke="#4338ca" stroke-width="1.6"/>
+<text x="275.0" y="155.0" font-size="14" font-weight="700" fill="#1e1b4b" text-anchor="middle">web</text>
+<text x="275.0" y="174.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">/moks/*</text>
+<rect x="380" y="132" width="130" height="54" rx="10" fill="#f5f3ff" stroke="#6d28d9" stroke-width="1.6"/>
+<text x="445.0" y="155.0" font-size="14" font-weight="700" fill="#2e1065" text-anchor="middle">moks</text>
+<text x="445.0" y="174.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">widget routes</text>
+<rect x="550" y="132" width="140" height="54" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="620.0" y="155.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">ai-gateway</text>
+<text x="620.0" y="174.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">/api/chat</text>
+<path d="M170,159 L210,159" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-ai-paths-arrow-sync)"/>
+<circle cx="190" cy="132" r="10" fill="#0f172a"/>
+<text x="190" y="136.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+<path d="M340,159 L380,159" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-ai-paths-arrow-sync)"/>
+<circle cx="360" cy="132" r="10" fill="#0f172a"/>
+<text x="360" y="136.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+<path d="M510,159 L550,159" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-ai-paths-arrow-sync)"/>
+<circle cx="530" cy="132" r="10" fill="#0f172a"/>
+<text x="530" y="136.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+<rect x="380" y="236" width="310" height="74" rx="10" fill="#f5f3ff" stroke="#6d28d9" stroke-width="1.6"/>
+<text x="535.0" y="259.5" font-size="14" font-weight="700" fill="#2e1065" text-anchor="middle">moks engine</text>
+<text x="535.0" y="278.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">deterministic retrieval (≤ 4 products),</text>
+<text x="535.0" y="297.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">16 s budget, 2 provider calls max</text>
+<path d="M620,186 L620,236" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-ai-paths-arrow-sync)"/>
+<text x="628" y="200" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="start" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">4 config +</text>
+<text x="628" y="214" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="start" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">history</text>
+<rect x="40" y="236" width="300" height="74" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="190.0" y="269.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">catalogue-service</text>
+<text x="190.0" y="288.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">product evidence</text>
+<path d="M380,262 L340,262" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-ai-paths-arrow-sync)"/>
+<circle cx="360" cy="250" r="10" fill="#0f172a"/>
+<text x="360" y="254.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">5</text>
+<path d="M460,236 L460,210 L600,210 L600,186" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-ai-paths-arrow-sync)"/>
+<text x="500" y="204" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">revision check</text>
+<rect x="40" y="352" width="300" height="74" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="190.0" y="375.5" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">Amazon Bedrock</text>
+<text x="190.0" y="394.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">Converse · Pod Identity role</text>
+<text x="190.0" y="413.5" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">listed model ARNs only</text>
+<rect x="276" y="343" width="56" height="18" rx="9" fill="#ffffff" stroke="#64748b" stroke-width="1.2"/>
+<text x="304" y="356" font-size="10.5" font-weight="600" fill="#64748b" text-anchor="middle" font-style="italic">optional</text>
+<rect x="380" y="352" width="310" height="74" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="535.0" y="385.0" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">Ollama endpoint</text>
+<text x="535.0" y="404.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">pinned-IP allowlist</text>
+<rect x="626" y="343" width="56" height="18" rx="9" fill="#ffffff" stroke="#64748b" stroke-width="1.2"/>
+<text x="654" y="356" font-size="10.5" font-weight="600" fill="#64748b" text-anchor="middle" font-style="italic">optional</text>
+<path d="M460,310 L460,332 L190,332 L190,352" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-ai-paths-arrow-sync)"/>
+<text x="320" y="328" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">model call</text>
+<circle cx="474" cy="322" r="10" fill="#0f172a"/>
+<text x="474" y="326.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">6</text>
+<path d="M540,310 L540,352" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-ai-paths-arrow-sync)"/>
+<path d="M380,400 L340,400" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-ai-paths-arrow-sync)"/>
+<text x="360" y="446" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">failover (opt-in)</text>
+<text x="40" y="470" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">Per-replica circuit breaker: 3 failures → open 30 s. Langfuse (optional) records</text>
+<text x="40" y="486" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">metadata only, never prompts or outputs. Shopping never depends on Moks:</text>
+<text x="40" y="502" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">scaling Moks to zero hides the widget and checkout keeps working.</text>
+<rect x="12" y="566" width="696" height="200" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="586" font-size="11" font-weight="700" fill="#475569" text-anchor="start">B. MCP (PRIVATE)</text>
+<text x="26" y="602" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">No ingress. Every tool call is re-authorized by the gateway.</text>
+<rect x="40" y="616" width="170" height="64" rx="10" fill="#f8fafc" stroke="#334155" stroke-width="1.6"/>
+<text x="125.0" y="644.0" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">MCP client</text>
+<text x="125.0" y="663.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">IDE / desktop / script</text>
+<rect x="270" y="616" width="170" height="64" rx="10" fill="#f5f3ff" stroke="#6d28d9" stroke-width="1.6"/>
+<text x="355.0" y="644.0" font-size="14" font-weight="700" fill="#2e1065" text-anchor="middle">mcp-server</text>
+<text x="355.0" y="663.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">Streamable HTTP /mcp</text>
+<rect x="500" y="616" width="190" height="64" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="595.0" y="644.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">ai-gateway</text>
+<text x="595.0" y="663.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">caller&#x27;s own session</text>
+<path d="M210,648 L270,648" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-ai-paths-arrow-sync)"/>
+<text x="240" y="640" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">port-forward</text>
+<path d="M440,648 L500,648" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-ai-paths-arrow-sync)"/>
+<text x="470" y="640" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">rs_auth</text>
+<text x="40" y="708" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">Tools: search/compare products, shipping lookups, own cart; admin tools by role.</text>
+<text x="40" y="724" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">No order placement, payment, refund, delete or infrastructure tools.</text>
+<rect x="12" y="782" width="696" height="66" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
+<text x="26" y="802" font-size="11" font-weight="700" fill="#475569" text-anchor="start">LEGEND</text>
+<path d="M40,816 L68,816" stroke="#475569" stroke-width="1.8" marker-end="url(#eks-ai-paths-arrow-sync)"/>
+<text x="78" y="820.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">HTTP</text>
+<rect x="124.8" y="808" width="24" height="16" rx="8" fill="#f5f3ff" stroke="#6d28d9" stroke-width="1.4"/>
+<text x="156.8" y="820.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">AI component</text>
+<rect x="257.20000000000005" y="808" width="24" height="16" rx="4" fill="#ffffff" stroke="#64748b" stroke-width="1.4" stroke-dasharray="4 3"/>
+<text x="289.20000000000005" y="820.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Configured by super admin</text>
+</svg>

@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 760" width="720" height="760" role="img" aria-labelledby="eks-scaling-chain-title eks-scaling-chain-desc" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
+<title id="eks-scaling-chain-title">RoboShop AI on EKS: KEDA and Karpenter scaling chain</title>
+<desc id="eks-scaling-chain-desc">Paid orders accumulate in roboshop.shipping.orders. KEDA polls the RabbitMQ management API every 15 seconds with a monitoring-only user and raises the HPA target for shipping-worker at 20 messages per replica, between 1 and 4 replicas, falling back to 2 replicas if the API is unreachable. New pods that do not fit stay Pending; Karpenter, running on the stable system node group, launches an arm64 node from the Spot or On-Demand NodePool within its CPU and memory limits, using the SQS interruption queue for Spot notices. When the queue drains, KEDA scales down after a five-minute cooldown and Karpenter consolidates empty or underutilized nodes within its disruption budget.</desc>
+<defs><marker id="eks-scaling-chain-arrow-sync" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker><marker id="eks-scaling-chain-arrow-async" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#be123c"/></marker><marker id="eks-scaling-chain-arrow-telemetry" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#15803d"/></marker><marker id="eks-scaling-chain-arrow-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#a21caf"/></marker><marker id="eks-scaling-chain-arrow-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker></defs>
+<rect width="100%" height="100%" rx="18" fill="#ffffff"/>
+<text x="24" y="40" font-size="20" font-weight="700" fill="#0f172a" text-anchor="start">Queue backlog → pods → nodes</text>
+<text x="24" y="62" font-size="12.5" font-weight="400" fill="#475569" text-anchor="start">KEDA scales pods from queue depth; Karpenter adds nodes only for Pending pods.</text>
+<rect x="140" y="90" width="440" height="62" rx="10" fill="#fff1f2" stroke="#be123c" stroke-width="1.6"/>
+<text x="360.0" y="117.0" font-size="14" font-weight="700" fill="#4c0519" text-anchor="middle">RabbitMQ</text>
+<text x="360.0" y="136.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">roboshop.shipping.orders: ready + unacked</text>
+<circle cx="116" cy="121" r="10" fill="#0f172a"/>
+<text x="116" y="125.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+<rect x="140" y="182" width="440" height="62" rx="10" fill="#fdf4ff" stroke="#a21caf" stroke-width="1.6"/>
+<text x="360.0" y="209.0" font-size="14" font-weight="700" fill="#4a044e" text-anchor="middle">KEDA (system nodes)</text>
+<text x="360.0" y="228.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">every 15 s · 20 msgs/replica · min 1, max 4</text>
+<circle cx="116" cy="213" r="10" fill="#0f172a"/>
+<text x="116" y="217.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+<path d="M360,152 L360,182" fill="none" stroke="#a21caf" stroke-width="1.8" stroke-dasharray="2 4" stroke-linejoin="round" marker-end="url(#eks-scaling-chain-arrow-control)"/>
+<rect x="140" y="274" width="440" height="62" rx="10" fill="#fdf4ff" stroke="#a21caf" stroke-width="1.6"/>
+<text x="360.0" y="301.0" font-size="14" font-weight="700" fill="#4a044e" text-anchor="middle">HPA keda-hpa-shipping-worker</text>
+<text x="360.0" y="320.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">+1 pod/min up · −1 pod/2 min after 5 min</text>
+<circle cx="116" cy="305" r="10" fill="#0f172a"/>
+<text x="116" y="309.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+<path d="M360,244 L360,274" fill="none" stroke="#a21caf" stroke-width="1.8" stroke-dasharray="2 4" stroke-linejoin="round" marker-end="url(#eks-scaling-chain-arrow-control)"/>
+<rect x="140" y="366" width="440" height="62" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="360.0" y="393.0" font-size="14" font-weight="700" fill="#064e3b" text-anchor="middle">shipping-worker pods</text>
+<text x="360.0" y="412.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">new pods Pending if no room</text>
+<circle cx="116" cy="397" r="10" fill="#0f172a"/>
+<text x="116" y="401.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+<path d="M360,336 L360,366" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#eks-scaling-chain-arrow-sync)"/>
+<rect x="140" y="458" width="440" height="62" rx="10" fill="#fdf4ff" stroke="#a21caf" stroke-width="1.6"/>
+<text x="360.0" y="485.0" font-size="14" font-weight="700" fill="#4a044e" text-anchor="middle">Karpenter (system nodes)</text>
+<text x="360.0" y="504.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">NodePool spot (tainted) or general</text>
+<circle cx="116" cy="489" r="10" fill="#0f172a"/>
+<text x="116" y="493.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">5</text>
+<path d="M360,428 L360,458" fill="none" stroke="#a21caf" stroke-width="1.8" stroke-dasharray="2 4" stroke-linejoin="round" marker-end="url(#eks-scaling-chain-arrow-control)"/>
+<rect x="140" y="550" width="440" height="62" rx="10" fill="#fff7ed" stroke="#c2410c" stroke-width="1.6"/>
+<text x="360.0" y="577.0" font-size="14" font-weight="700" fill="#431407" text-anchor="middle">EC2 arm64 node</text>
+<text x="360.0" y="596.0" font-size="12" font-weight="400" fill="#334155" text-anchor="middle">≤ 16 vCPU Spot / 32 vCPU On-Demand</text>
+<circle cx="116" cy="581" r="10" fill="#0f172a"/>
+<text x="116" y="585.2" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">6</text>
+<path d="M360,520 L360,550" fill="none" stroke="#a21caf" stroke-width="1.8" stroke-dasharray="2 4" stroke-linejoin="round" marker-end="url(#eks-scaling-chain-arrow-control)"/>
+<path d="M580,581 L640,581 L640,397 L580,397" fill="none" stroke="#a21caf" stroke-width="1.8" stroke-dasharray="2 4" stroke-linejoin="round" marker-end="url(#eks-scaling-chain-arrow-control)"/>
+<text x="646" y="489" font-size="11.5" font-weight="600" fill="#1e293b" text-anchor="start" paint-order="stroke" stroke="#ffffff" stroke-width="5" stroke-linejoin="round">schedules</text>
+<text x="40" y="650" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">Fallback: management API unreachable 4 polls → hold 2 replicas.</text>
+<text x="40" y="666" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">Scale down: queue empty → KEDA cooldown 300 s → Karpenter consolidates within each NodePool budget.</text>
+<text x="40" y="682" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">Bounded by shipping-db connections (≤ 10 per worker); raise max only with DB capacity.</text>
+<path d="M40,730 L68,730" stroke="#475569" stroke-width="1.8" marker-end="url(#eks-scaling-chain-arrow-sync)"/>
+<text x="78" y="734.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Pods</text>
+<path d="M124.8,730 L152.8,730" stroke="#a21caf" stroke-width="1.8" stroke-dasharray="2 4" marker-end="url(#eks-scaling-chain-arrow-control)"/>
+<text x="162.8" y="734.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">Control-plane action</text>
+<rect x="316.8" y="722" width="24" height="16" rx="8" fill="#fff7ed" stroke="#c2410c" stroke-width="1.4"/>
+<text x="348.8" y="734.5" font-size="12" font-weight="500" fill="#334155" text-anchor="start">EC2</text>
+</svg>

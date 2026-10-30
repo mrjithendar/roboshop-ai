@@ -1,0 +1,7 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: RoboShopRequiredLabels
+metadata:
+  name: test-labels
+spec:
+  parameters:
+    labels: ["app.kubernetes.io/part-of", "roboshop.dev/environment", "roboshop.dev/owner"]

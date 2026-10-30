@@ -1,0 +1,41 @@
+# Metrics baseline: Prometheus + Grafana + Alertmanager in-cluster. Logs go to CloudWatch Logs
+# and traces to Jaeger (values/otel-agent.yaml); no second metrics agent is installed.
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    retentionSize: 18GB
+    # Pick up ServiceMonitors/PodMonitors/rules from every namespace, not only this release.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3-encrypted
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+    resources:
+      requests: {cpu: 200m, memory: 1Gi}
+      limits: {memory: 2Gi}
+grafana:
+  # Admin password comes from the generated Secret; read it with kubectl, never print it in docs.
+  adminUser: admin
+  persistence:
+    enabled: false
+  service:
+    type: ClusterIP
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests: {cpu: 20m, memory: 64Mi}
+# EKS manages these; their endpoints are not scrapeable from the data plane.
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false

@@ -1,0 +1,12 @@
+# Rollout: render with MTLS_MODE=PERMISSIVE first, confirm every workload has a sidecar and
+# traffic flows, then re-render with MTLS_MODE=STRICT (RUNBOOK.md step F). Data stores run
+# without sidecars and are protected by NetworkPolicy instead; their clients connect in plaintext
+# inside the VPC (production: managed services with TLS).
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: roboshop-ai
+spec:
+  mtls:
+    mode: ${MTLS_MODE}

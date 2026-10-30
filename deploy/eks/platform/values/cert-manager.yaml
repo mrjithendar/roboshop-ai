@@ -1,0 +1,23 @@
+crds:
+  enabled: true
+serviceAccount:
+  name: cert-manager   # Route 53 DNS-01 role via Pod Identity
+nodeSelector:
+  roboshop.dev/pool: system
+tolerations:
+- key: CriticalAddonsOnly
+  operator: Exists
+webhook:
+  nodeSelector:
+    roboshop.dev/pool: system
+  tolerations:
+  - key: CriticalAddonsOnly
+    operator: Exists
+cainjector:
+  nodeSelector:
+    roboshop.dev/pool: system
+  tolerations:
+  - key: CriticalAddonsOnly
+    operator: Exists
+startupapicheck:
+  enabled: false

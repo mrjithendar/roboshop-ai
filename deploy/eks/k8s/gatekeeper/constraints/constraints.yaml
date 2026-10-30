@@ -1,0 +1,86 @@
+# ${POLICY_ACTION}: render with dryrun first (violations are only reported by audit), review
+# `kubectl get constraints` and fix or except, then re-render with deny (RUNBOOK.md step F).
+#
+# Scope is deliberately narrow: pod rules match only the roboshop-ai namespace, so Istio,
+# CSI, VPC CNI, KEDA, Karpenter, cert-manager and the observability agents are never blocked.
+# Exception: pods labelled roboshop.dev/policy-exception=stateful-entrypoint (the demo data
+# stores, whose official image entrypoints start as root and drop privileges) skip the
+# restricted-pod rule only. Production replaces them with managed services.
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: RoboShopImages
+metadata:
+  name: approved-pinned-images
+spec:
+  enforcementAction: ${POLICY_ACTION}
+  match:
+    namespaces: ["roboshop-ai"]
+    kinds:
+    - apiGroups: [""]
+      kinds: ["Pod"]
+  parameters:
+    # render.sh rewrites every application and data-store image to one of these, by digest.
+    allowedPrefixes:
+    - "${ECR_REGISTRY}/"
+    - "docker.io/library/"
+    - "docker.io/apache/kafka@"
+    - "docker.io/istio/proxyv2:${ISTIO_VERSION}"
+    # The sidecar version is pinned by istiod (platform/versions.env), not by digest.
+    digestExemptContainers: ["istio-proxy", "istio-validation"]
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: RoboShopResources
+metadata:
+  name: container-resources
+spec:
+  enforcementAction: ${POLICY_ACTION}
+  match:
+    namespaces: ["roboshop-ai"]
+    kinds:
+    - apiGroups: [""]
+      kinds: ["Pod"]
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: RoboShopRestricted
+metadata:
+  name: restricted-pods
+spec:
+  enforcementAction: ${POLICY_ACTION}
+  match:
+    namespaces: ["roboshop-ai"]
+    kinds:
+    - apiGroups: [""]
+      kinds: ["Pod"]
+    labelSelector:
+      matchExpressions:
+      - key: roboshop.dev/policy-exception
+        operator: DoesNotExist
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: RoboShopRequiredLabels
+metadata:
+  name: workload-ownership
+spec:
+  enforcementAction: ${POLICY_ACTION}
+  match:
+    namespaces: ["roboshop-ai"]
+    kinds:
+    - apiGroups: ["apps"]
+      kinds: ["Deployment", "StatefulSet"]
+  parameters:
+    labels: ["app.kubernetes.io/part-of", "roboshop.dev/environment", "roboshop.dev/owner"]
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: RoboShopExposure
+metadata:
+  name: ingress-only-through-istio
+spec:
+  enforcementAction: ${POLICY_ACTION}
+  match:
+    kinds:
+    - apiGroups: [""]
+      kinds: ["Service"]
+    - apiGroups: ["networking.k8s.io"]
+      kinds: ["Ingress"]
+    excludedNamespaces: ["kube-system"]
+  parameters:
+    allowedNamespaces: ["istio-ingress"]

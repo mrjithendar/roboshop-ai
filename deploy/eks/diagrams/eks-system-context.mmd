@@ -1,0 +1,29 @@
+%%{init: {"theme": "base", "flowchart": {"curve": "basis"}, "themeVariables": {"fontFamily": "arial, sans-serif", "fontSize": "15px", "primaryTextColor": "#0f172a", "lineColor": "#475569"}}}%%
+%% Services and data ownership. Evidence: services/*/README.md, nginx routes.conf, lifecycle.py, events.py.
+flowchart TB
+  browser[Browser]:::client --> nlb[AWS NLB]:::aws --> igw[Istio ingress gateway]:::edge --> web[web NGINX]:::edge
+  mcpc[MCP client<br/>port-forward only]:::client --> mcp[mcp-server]:::ai
+  web -->|/api| gw[ai-gateway<br/>ledger + outbox]:::svc
+  web -->|/moks| moks[moks<br/>optional]:::ai
+  web -->|currency| cur
+  gw -->|chat| moks
+  mcp -->|caller's session| gw
+  gw --> user[user-service<br/>MongoDB]:::svc
+  gw --> cat[catalogue-service<br/>MongoDB]:::svc
+  gw --> cart[cart-service<br/>Redis]:::svc
+  gw --> pay[payment-service<br/>Razorpay test mode]:::svc
+  gw --> ship[shipping-service<br/>PostgreSQL]:::svc
+  gw --> cur[currency-service]:::svc
+  gw ==>|outbox| rmq{{RabbitMQ roboshop.orders}}:::bus
+  rmq ==> worker[shipping-worker]:::svc --> pg[(PostgreSQL)]:::store
+  rmq ==> bridge[kafka-bridge]:::svc ==> kafka[(Kafka)]:::store
+  classDef client fill:#f8fafc,stroke:#334155,color:#0f172a
+  classDef edge fill:#eef2ff,stroke:#4338ca,color:#1e1b4b
+  classDef svc fill:#ecfdf5,stroke:#047857,color:#064e3b
+  classDef ai fill:#f5f3ff,stroke:#6d28d9,color:#2e1065
+  classDef store fill:#fffbeb,stroke:#b45309,color:#451a03
+  classDef bus fill:#fff1f2,stroke:#be123c,color:#4c0519
+  classDef aws fill:#fff7ed,stroke:#c2410c,color:#431407
+  classDef ext fill:#f1f5f9,stroke:#64748b,color:#0f172a,stroke-dasharray:5 4
+  classDef obs fill:#f0fdf4,stroke:#15803d,color:#14532d
+  classDef control fill:#fdf4ff,stroke:#a21caf,color:#4a044e

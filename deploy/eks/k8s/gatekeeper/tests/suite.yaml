@@ -1,0 +1,89 @@
+# Policy tests. Run from deploy/eks/k8s/gatekeeper:
+#   gator verify ./tests      (gator v3.23.1: github.com/open-policy-agent/gatekeeper/releases)
+# Cases are rendered constraints with the ECR placeholder resolved to 111122223333.
+kind: Suite
+apiVersion: test.gatekeeper.sh/v1alpha1
+metadata:
+  name: roboshop-policies
+tests:
+- name: images
+  template: ../templates/images.yaml
+  constraint: constraint-images.yaml
+  cases:
+  - name: pinned-ecr-image-allowed
+    object: cases/pod-good.yaml
+    assertions:
+    - violations: no
+  - name: istio-sidecar-tag-allowed
+    object: cases/pod-with-sidecar.yaml
+    assertions:
+    - violations: no
+  - name: tag-only-image-rejected
+    object: cases/pod-tag-only.yaml
+    assertions:
+    - violations: 1
+      message: must be pinned by digest
+  - name: unapproved-registry-rejected
+    object: cases/pod-foreign-registry.yaml
+    assertions:
+    - violations: 1
+      message: not from an approved registry
+- name: resources
+  template: ../templates/resources.yaml
+  constraint: constraint-resources.yaml
+  cases:
+  - name: complete-resources-allowed
+    object: cases/pod-good.yaml
+    assertions:
+    - violations: no
+  - name: missing-limits-rejected
+    object: cases/pod-no-resources.yaml
+    assertions:
+    - violations: 3
+- name: restricted
+  template: ../templates/restricted.yaml
+  constraint: constraint-restricted.yaml
+  cases:
+  - name: restricted-pod-allowed
+    object: cases/pod-good.yaml
+    assertions:
+    - violations: no
+  - name: root-privileged-hostpath-rejected
+    object: cases/pod-root.yaml
+    assertions:
+    - violations: yes
+      message: runAsNonRoot
+    - violations: yes
+      message: privileged
+    - violations: yes
+      message: hostPath
+    - violations: yes
+      message: automountServiceAccountToken
+- name: labels
+  template: ../templates/labels.yaml
+  constraint: constraint-labels.yaml
+  cases:
+  - name: labelled-deployment-allowed
+    object: cases/deployment-labelled.yaml
+    assertions:
+    - violations: no
+  - name: unlabelled-deployment-rejected
+    object: cases/deployment-unlabelled.yaml
+    assertions:
+    - violations: 2
+- name: exposure
+  template: ../templates/exposure.yaml
+  constraint: constraint-exposure.yaml
+  cases:
+  - name: gateway-loadbalancer-allowed
+    object: cases/svc-lb-istio-ingress.yaml
+    assertions:
+    - violations: no
+  - name: app-loadbalancer-rejected
+    object: cases/svc-lb-app.yaml
+    assertions:
+    - violations: 1
+  - name: clusterip-allowed
+    object: cases/svc-clusterip.yaml
+    assertions:
+    - violations: no

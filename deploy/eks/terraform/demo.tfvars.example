@@ -1,0 +1,19 @@
+# Copy to demo.tfvars (git-ignored) and replace every <placeholder>.
+region             = "<region>"                 # e.g. us-east-1
+name               = "roboshop-demo"
+environment        = "demo"
+owner              = "<your-name-or-team>"
+availability_zones = ["<region>a", "<region>b"] # check: aws ec2 describe-availability-zones
+
+# Your operator IP as /32 (curl -s https://checkip.amazonaws.com). [] = private API only.
+api_public_access_cidrs = ["<your-ip>/32"]
+admin_principal_arns    = ["arn:aws:iam::<account-id>:role/<your-admin-role>"]
+
+# Demo cost profile: one NAT gateway, no interface endpoints.
+single_nat_gateway         = true
+enable_interface_endpoints = false
+
+# Optional integrations (leave empty to skip):
+route53_zone_id    = ""   # hosted zone for cert-manager DNS-01
+github_repository  = ""   # owner/repo allowed to push images via OIDC
+bedrock_model_arns = []   # AI stays unconfigured by default

@@ -1,0 +1,33 @@
+%%{init: {"theme": "base", "flowchart": {"curve": "basis"}, "themeVariables": {"fontFamily": "arial, sans-serif", "fontSize": "15px", "primaryTextColor": "#0f172a", "lineColor": "#475569"}}}%%
+%% Trust boundaries. Evidence: deploy/eks/k8s/istio/authorization.yaml, k8s/gatekeeper, k8s/apps/network-policies.yaml.
+flowchart TB
+  subgraph adm[1. Admission: Gatekeeper, roboshop-ai only]
+    rules[registry + digest, resources, non-root, no token,<br/>labels, LoadBalancer only in istio-ingress]:::control
+  end
+  subgraph mesh[2. Mesh: mTLS STRICT, allow-nothing + per-edge ALLOW]
+    ig[ingress gateway]:::edge --> web[web]:::edge
+    web --> gw[ai-gateway]:::svc
+    web --> moks[moks]:::ai
+    web --> cur[currency]:::svc
+    gw <--> moks
+    mcp[mcp-server]:::ai --> gw
+    gw --> user[user]:::svc & cat[catalogue]:::svc & cart[cart]:::svc & pay[payment]:::svc & ship[shipping]:::svc & cur
+    moks --> cat & user
+    user --> ship
+  end
+  subgraph np[3. Outside the mesh: NetworkPolicy via VPC CNI]
+    mongo[(MongoDB)]:::store
+    redis[(Redis)]:::store
+    pg[(PostgreSQL)]:::store
+    rmq[(RabbitMQ)]:::store
+  end
+  classDef client fill:#f8fafc,stroke:#334155,color:#0f172a
+  classDef edge fill:#eef2ff,stroke:#4338ca,color:#1e1b4b
+  classDef svc fill:#ecfdf5,stroke:#047857,color:#064e3b
+  classDef ai fill:#f5f3ff,stroke:#6d28d9,color:#2e1065
+  classDef store fill:#fffbeb,stroke:#b45309,color:#451a03
+  classDef bus fill:#fff1f2,stroke:#be123c,color:#4c0519
+  classDef aws fill:#fff7ed,stroke:#c2410c,color:#431407
+  classDef ext fill:#f1f5f9,stroke:#64748b,color:#0f172a,stroke-dasharray:5 4
+  classDef obs fill:#f0fdf4,stroke:#15803d,color:#14532d
+  classDef control fill:#fdf4ff,stroke:#a21caf,color:#4a044e

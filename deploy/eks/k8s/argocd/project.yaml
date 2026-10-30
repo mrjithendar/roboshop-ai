@@ -1,0 +1,33 @@
+# Argo CD syncs the *rendered* manifests that ../../scripts/render.sh writes to
+# deploy/eks/clusters/<cluster>/<layer>/ in your fork (rendered-manifests pattern: digests and
+# reader-specific values are resolved before review, so Git shows exactly what will run).
+# Controllers stay Helm-installed by ../../platform/install.sh, so Argo never manages the
+# components it depends on (Karpenter, Istio, Gatekeeper, the CNI path).
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: roboshop
+  namespace: argocd
+spec:
+  description: RoboShop AI on EKS (rendered layers)
+  sourceRepos: ["${GIT_REPO_URL}"]
+  destinations:
+  - server: https://kubernetes.default.svc
+    namespace: "*"
+  clusterResourceWhitelist:
+  - group: ""
+    kind: Namespace
+  - group: storage.k8s.io
+    kind: StorageClass
+  - group: karpenter.sh
+    kind: NodePool
+  - group: karpenter.k8s.aws
+    kind: EC2NodeClass
+  - group: cert-manager.io
+    kind: ClusterIssuer
+  - group: external-secrets.io
+    kind: ClusterSecretStore
+  - group: templates.gatekeeper.sh
+    kind: ConstraintTemplate
+  - group: constraints.gatekeeper.sh
+    kind: "*"

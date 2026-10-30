@@ -1,0 +1,85 @@
+# One node agent for logs and traces (contrib distribution).
+#   logs:   /var/log/pods -> k8sattributes -> redaction -> CloudWatch Logs (${LOG_GROUP})
+#   traces: apps + Istio (OTLP) -> k8sattributes -> sampling -> redaction -> Jaeger
+# Exporters queue and retry in the background; an unavailable backend drops telemetry,
+# never application requests.
+mode: daemonset
+image:
+  repository: otel/opentelemetry-collector-contrib
+fullnameOverride: otel-agent
+serviceAccount:
+  name: otel-agent   # CloudWatch Logs write role via Pod Identity
+service:
+  enabled: true
+  internalTrafficPolicy: Local
+presets:
+  logsCollection:
+    enabled: true
+    includeCollectorLogs: false
+  kubernetesAttributes:
+    enabled: true
+resources:
+  requests: {cpu: 50m, memory: 128Mi}
+  limits: {memory: 384Mi}
+tolerations:
+- operator: Exists   # every node, including system and Spot nodes
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc: {endpoint: "${env:MY_POD_IP}:4317"}
+        http: {endpoint: "${env:MY_POD_IP}:4318"}
+  processors:
+    memory_limiter:
+      check_interval: 1s
+      limit_percentage: 80
+      spike_limit_percentage: 20
+    batch: {}
+    # Head sampling stays in the apps (parent-based); this caps volume for noisy health checks.
+    filter/health:
+      traces:
+        span:
+        - 'attributes["url.path"] == "/health"'
+        - 'attributes["url.path"] == "/ready"'
+        - 'attributes["url.path"] == "/metrics"'
+    probabilistic_sampler:
+      sampling_percentage: ${TRACE_SAMPLING_PERCENT}
+    # Personal data and secrets never leave the node: drop query strings, auth headers, emails.
+    transform/redact:
+      error_mode: ignore
+      trace_statements:
+      - context: span
+        statements:
+        - delete_key(attributes, "url.query")
+        - delete_key(attributes, "http.request.header.authorization")
+        - delete_key(attributes, "http.request.header.cookie")
+        - delete_key(attributes, "enduser.id")
+        - replace_pattern(attributes["url.full"], "\\?.*$", "")
+      log_statements:
+      - context: log
+        statements:
+        - replace_pattern(body, "(?i)(authorization|cookie|password|token|secret)\"?\\s*[:=]\\s*\"?[^\",\\s]+", "$$1=[REDACTED]")
+        - replace_pattern(body, "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]")
+  exporters:
+    otlp/jaeger:
+      endpoint: jaeger.observability.svc.cluster.local:4317
+      tls: {insecure: true}
+      sending_queue: {enabled: true, queue_size: 2000}
+      retry_on_failure: {enabled: true, max_elapsed_time: 60s}
+    awscloudwatchlogs:
+      region: ${AWS_REGION}
+      log_group_name: ${LOG_GROUP}
+      log_stream_name: "{k8s.namespace.name}/{k8s.pod.name}"
+      sending_queue: {queue_size: 2000}
+      retry_on_failure: {enabled: true, max_elapsed_time: 120s}
+  service:
+    pipelines:
+      traces:
+        receivers: [otlp]
+        processors: [memory_limiter, filter/health, probabilistic_sampler, transform/redact, batch]
+        exporters: [otlp/jaeger]
+      logs:
+        receivers: [filelog]
+        processors: [memory_limiter, transform/redact, batch]
+        exporters: [awscloudwatchlogs]
+      metrics: null
