@@ -14,6 +14,8 @@ coverage/
 *.tfplan
 crash.log
 
+roboshop-secrets.yaml
+
 .data/
 artifacts/
 *.log
