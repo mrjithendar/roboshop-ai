@@ -30,7 +30,7 @@ Internet ─▶ NLB (TCP 80/443, proxy protocol v2, IP targets)
 | --- | --- | --- |
 | VPC, EKS, node group, add-ons, IAM, ECR, Secrets Manager container, log group | `terraform/` | `terraform apply` |
 | Controllers (Karpenter, AWS LBC, cert-manager, External Secrets, Prometheus/Grafana, Istio, Gatekeeper, KEDA, OTel agent, Jaeger, Argo CD) | `platform/` | `platform/install.sh` (Helm) |
-| Namespace, StorageClass, NodePools, secrets, TLS, mesh config, policies, apps, autoscaling, monitors | `k8s/` | `scripts/render.sh` → Git → Argo CD |
+| Namespace, StorageClass, NodePools, secrets, TLS, mesh config, policies, apps, autoscaling, monitors | `k8s/`, `../../argocd-eks/apps` | `scripts/render.sh` → Git → Argo CD |
 | One-off data jobs | `k8s/jobs/` | `kubectl apply` (explicit step) |
 
 ## Architecture from the code (verified)
@@ -42,7 +42,7 @@ Internet ─▶ NLB (TCP 80/443, proxy protocol v2, IP targets)
 | Accounts | user-service: MongoDB users, hashed sessions, MFA; calls shipping for purchase history | `services/user-service/server.py` |
 | Catalogue | MongoDB reads/imports, recommendations | `services/catalogue-service` |
 | Cart | Redis-backed carts (Redis is authoritative for editable carts) | `services/cart-service`, `postgres_store.py` header |
-| Payments | Razorpay orders and verification; **test mode by default** (`PAYMENT_MODE=test`) | `services/payment-service`, `k8s/apps/config/roboshop.env` |
+| Payments | Razorpay orders and verification; **test mode by default** (`PAYMENT_MODE=test`) | `services/payment-service`, `argocd-eks/apps/config/roboshop.env` |
 | Currency | Go service, rates for display/checkout | `services/currency-service` |
 | Shipping | Java; PostgreSQL locations/quotes; RabbitMQ consumer when `MESSAGING_ENABLED=true` | `OrderEvents.java`, `application.yml` |
 | Order ledger | `COMMERCE_BACKEND=json` (default, **single writer**, one replica, PVC) or `postgres` (transactional, leased outbox, multi-replica) | `lifecycle.py`, `postgres_store.py` |
@@ -230,7 +230,7 @@ kubeconform -strict -ignore-missing-schemas /tmp/roboshop-render/*/manifests.yam
 deploy/eks/
   terraform/        VPC, EKS, IAM (Pod Identity), Karpenter IAM/SQS, ECR, secret container, tests
   platform/         versions.env, Helm values, install.sh
-  k8s/              platform, karpenter, secrets, tls, istio, gatekeeper, observability, apps, keda, jobs, argocd
+  k8s/              platform, karpenter, secrets, tls, istio, gatekeeper, observability, keda, jobs, argocd
   scripts/          preflight, put-secrets, render, verify, backlog-test, policy-precheck
   env/example.env   reader-specific, non-secret settings
   clusters/         rendered output per cluster (commit in your fork for Argo CD)

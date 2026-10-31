@@ -1,4 +1,4 @@
-# EKS overlay over the lab manifests in services/*. Build with ../../scripts/render.sh, which
+# EKS overlay over the lab manifests in services/*. Build with ../../deploy/eks/scripts/render.sh, which
 # pins image digests and substitutes ${PUBLIC_HOST}, ${ENVIRONMENT}, ${OWNER} and ${IMAGE_TAG}.
 # The base files live outside this directory, so the build needs --load-restrictor LoadRestrictionsNone.
 apiVersion: kustomize.config.k8s.io/v1beta1
@@ -8,40 +8,40 @@ namespace: roboshop-ai
 resources:
 - serviceaccounts.yaml
 # Applications (authoritative manifests, shared with the Minikube lab)
-- ../../../../services/web/web-deployment-minikube.yaml
-- ../../../../services/web/web-service-minikube.yaml
-- ../../../../services/ai-gateway/ai-gateway-deployment-minikube.yaml
-- ../../../../services/ai-gateway/ai-gateway-service-minikube.yaml
-- ../../../../services/ai-gateway/gateway-data-pvc-minikube.yaml
-- ../../../../services/user-service/user-service-deployment-minikube.yaml
-- ../../../../services/user-service/user-service-service-minikube.yaml
-- ../../../../services/catalogue-service/catalogue-service-deployment-minikube.yaml
-- ../../../../services/catalogue-service/catalogue-service-service-minikube.yaml
-- ../../../../services/cart-service/cart-service-deployment-minikube.yaml
-- ../../../../services/cart-service/cart-service-service-minikube.yaml
-- ../../../../services/payment-service/payment-service-deployment-minikube.yaml
-- ../../../../services/payment-service/payment-service-service-minikube.yaml
-- ../../../../services/shipping-service/shipping-service-deployment-minikube.yaml
-- ../../../../services/shipping-service/shipping-service-service-minikube.yaml
-- ../../../../services/currency-service/currency-service-deployment-minikube.yaml
-- ../../../../services/currency-service/currency-service-service-minikube.yaml
-- ../../../../services/moks/moks-deployment-minikube.yaml
-- ../../../../services/moks/moks-service-minikube.yaml
-- ../../../../services/mcp-server/mcp-server-deployment-minikube.yaml
-- ../../../../services/mcp-server/mcp-server-service-minikube.yaml
+- ../../services/web/web-deployment-minikube.yaml
+- ../../services/web/web-service-minikube.yaml
+- ../../services/ai-gateway/ai-gateway-deployment-minikube.yaml
+- ../../services/ai-gateway/ai-gateway-service-minikube.yaml
+- ../../services/ai-gateway/gateway-data-pvc-minikube.yaml
+- ../../services/user-service/user-service-deployment-minikube.yaml
+- ../../services/user-service/user-service-service-minikube.yaml
+- ../../services/catalogue-service/catalogue-service-deployment-minikube.yaml
+- ../../services/catalogue-service/catalogue-service-service-minikube.yaml
+- ../../services/cart-service/cart-service-deployment-minikube.yaml
+- ../../services/cart-service/cart-service-service-minikube.yaml
+- ../../services/payment-service/payment-service-deployment-minikube.yaml
+- ../../services/payment-service/payment-service-service-minikube.yaml
+- ../../services/shipping-service/shipping-service-deployment-minikube.yaml
+- ../../services/shipping-service/shipping-service-service-minikube.yaml
+- ../../services/currency-service/currency-service-deployment-minikube.yaml
+- ../../services/currency-service/currency-service-service-minikube.yaml
+- ../../services/moks/moks-deployment-minikube.yaml
+- ../../services/moks/moks-service-minikube.yaml
+- ../../services/mcp-server/mcp-server-deployment-minikube.yaml
+- ../../services/mcp-server/mcp-server-service-minikube.yaml
 - shipping-worker.yaml
-# Demo-profile data stores (single replica, EBS gp3). Production: see ../../README.md#production.
+# Demo-profile data stores (single replica, EBS gp3). Production: see ../../deploy/eks/README.md#production.
 - data/mongodb.yaml
-- ../../../../services/redis/redis-deployment-minikube.yaml
-- ../../../../services/redis/redis-service-minikube.yaml
-- ../../../../services/rabbitmq/rabbitmq-statefulset-minikube.yaml
-- ../../../../services/rabbitmq/rabbitmq-service-minikube.yaml
-- ../../../../services/rabbitmq/rabbitmq-data-pvc-minikube.yaml
-- ../../../../services/postgres/shipping-db-deployment-minikube.yaml
-- ../../../../services/postgres/shipping-db-service-minikube.yaml
-- ../../../../services/postgres/shipping-postgres-pvc-minikube.yaml
-- ../../../../services/kafka-bridge/kafka-statefulset-minikube.yaml
-- ../../../../services/kafka-bridge/kafka-service-minikube.yaml
+- ../../services/redis/redis-deployment-minikube.yaml
+- ../../services/redis/redis-service-minikube.yaml
+- ../../services/rabbitmq/rabbitmq-statefulset-minikube.yaml
+- ../../services/rabbitmq/rabbitmq-service-minikube.yaml
+- ../../services/rabbitmq/rabbitmq-data-pvc-minikube.yaml
+- ../../services/postgres/shipping-db-deployment-minikube.yaml
+- ../../services/postgres/shipping-db-service-minikube.yaml
+- ../../services/postgres/shipping-postgres-pvc-minikube.yaml
+- ../../services/kafka-bridge/kafka-statefulset-minikube.yaml
+- ../../services/kafka-bridge/kafka-service-minikube.yaml
 - pdbs.yaml
 - network-policies.yaml
 
@@ -51,12 +51,12 @@ configMapGenerator:
   - config/roboshop.env
   files:
   - 10-app-user.js=config/10-app-user.js
-  - 10-shipping-role.sh=../../../../services/postgres/10-shipping-role.sh
-  - redis.conf=../../../../services/redis/redis.conf
-  - rabbitmq.conf=../../../../services/rabbitmq/rabbitmq.conf
+  - 10-shipping-role.sh=../../services/postgres/10-shipping-role.sh
+  - redis.conf=../../services/redis/redis.conf
+  - rabbitmq.conf=../../services/rabbitmq/rabbitmq.conf
 - name: mongodb-catalog
   files:
-  - 20-catalog.js=../../../../services/mongodb/catalog.js
+  - 20-catalog.js=../../services/mongodb/catalog.js
   options:
     disableNameSuffixHash: true
 

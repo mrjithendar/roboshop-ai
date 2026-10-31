@@ -1,5 +1,5 @@
 # EKS-only split of shipping-service: the same image with the RabbitMQ consumer enabled and no
-# Service. KEDA scales this Deployment on roboshop.shipping.orders depth (../../keda). The
+# Service. KEDA scales this Deployment on roboshop.shipping.orders depth (../../deploy/eks/k8s/keda). The
 # HTTP Deployment (shipping-service) runs with MESSAGING_ENABLED=false, so request traffic
 # and queue consumption scale independently and never compete for one HPA.
 #

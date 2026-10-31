@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-demo-roboshop-config
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: roboshop-gitops
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  project: eks
+  destination:
+    name: roboshop-demo
+    namespace: roboshop-ai
+  syncPolicy:
+    syncOptions:
+    - FailOnSharedResource=true
+    - PruneLast=true
+    - CreateNamespace=true
+  # Namespace and ConfigMap only: the Traefik ingress and middleware files stay on mk4.
+  source:
+    repoURL: https://github.com/mrjithendar/tools.git
+    targetRevision: master
+    path: minikube/roboshop
+    directory:
+      include: '{roboshop-ai-namespace.yaml,roboshop-config-configmap.yaml}'

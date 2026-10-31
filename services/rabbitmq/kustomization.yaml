@@ -1,0 +1,7 @@
+# Used by argocd-eks only; the mk4 Application selects these files with directory.include.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- rabbitmq-data-pvc-minikube.yaml
+- rabbitmq-service-minikube.yaml
+- rabbitmq-statefulset-minikube.yaml

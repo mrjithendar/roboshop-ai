@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-demo-mongodb
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: roboshop-gitops
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  project: eks
+  destination:
+    name: roboshop-demo
+    namespace: roboshop-ai
+  syncPolicy:
+    syncOptions:
+    - FailOnSharedResource=true
+    - PruneLast=true
+    - CreateNamespace=true
+  # The tools Deployment is tied to a minikube hostPath volume, so EKS uses the demo-profile StatefulSet.
+  sources:
+  - repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    targetRevision: master
+    path: argocd-eks/apps/data
+    directory:
+      include: '{mongodb.yaml,mongodb-serviceaccount.yaml}'
+  - repoURL: https://github.com/mrjithendar/tools.git
+    targetRevision: master
+    path: minikube/mongodb
+    directory:
+      include: mongodb-catalog-configmap.yaml

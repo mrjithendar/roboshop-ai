@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- project.yaml
+- ai-gateway.yaml
+- cart-service.yaml
+- catalogue-service.yaml
+- currency-service.yaml
+- kafka-bridge.yaml
+- mcp-server.yaml
+- moks.yaml
+- mongodb.yaml
+- payment-service.yaml
+- postgres.yaml
+- rabbitmq.yaml
+- redis.yaml
+- roboshop-config.yaml
+- shipping-service.yaml
+- storage.yaml
+- user-service.yaml
+- web.yaml

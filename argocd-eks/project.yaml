@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: eks
+  namespace: argocd
+spec:
+  description: RoboShop on the roboshop-demo EKS cluster, managed from Argo CD on mk4
+  sourceRepos:
+  - https://github.com/mrjithendar/roboshop-ai.git
+  - https://github.com/mrjithendar/tools.git
+  destinations:
+  - namespace: roboshop-ai
+    name: roboshop-demo
+  clusterResourceWhitelist:
+  - group: ''
+    kind: Namespace
+  - group: storage.k8s.io
+    kind: StorageClass
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  namespaceResourceBlacklist:
+  - group: ''
+    kind: Secret

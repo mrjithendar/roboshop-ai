@@ -1,5 +1,5 @@
 # Demo-profile MongoDB (the lab runs it from the tools repo). Single replica on an encrypted gp3
-# volume: NOT highly available. Production: MongoDB Atlas or a replica set (README.md#production).
+# volume: NOT highly available. Production: MongoDB Atlas or a replica set (deploy/eks/README.md#production).
 # Init scripts run on an empty volume only: 10-app-user.js, then the catalogue (services/mongodb/catalog.js).
 apiVersion: apps/v1
 kind: StatefulSet

@@ -1,5 +1,5 @@
 %%{init: {"theme": "base", "flowchart": {"curve": "basis"}, "themeVariables": {"fontFamily": "arial, sans-serif", "fontSize": "15px", "primaryTextColor": "#0f172a", "lineColor": "#475569"}}}%%
-%% Trust boundaries. Evidence: deploy/eks/k8s/istio/authorization.yaml, k8s/gatekeeper, k8s/apps/network-policies.yaml.
+%% Trust boundaries. Evidence: deploy/eks/k8s/istio/authorization.yaml, k8s/gatekeeper, argocd-eks/apps/network-policies.yaml.
 flowchart TB
   subgraph adm[1. Admission: Gatekeeper, roboshop-ai only]
     rules[registry + digest, resources, non-root, no token,<br/>labels, LoadBalancer only in istio-ingress]:::control

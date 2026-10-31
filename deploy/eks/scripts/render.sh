@@ -80,7 +80,7 @@ render_layer gatekeeper             k8s/gatekeeper
 render_layer gatekeeper-constraints k8s/gatekeeper/constraints
 render_layer istio                  k8s/istio
 render_layer observability          k8s/observability
-render_layer apps                   k8s/apps
+render_layer apps                   ../../argocd-eks/apps
 render_layer keda                   k8s/keda
 render_layer jobs                   k8s/jobs
 render_layer argocd                 k8s/argocd

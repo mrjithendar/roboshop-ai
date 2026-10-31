@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-demo-user-service
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: roboshop-gitops
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  project: eks
+  destination:
+    name: roboshop-demo
+    namespace: roboshop-ai
+  syncPolicy:
+    syncOptions:
+    - FailOnSharedResource=true
+    - PruneLast=true
+    - CreateNamespace=true
+  source:
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    targetRevision: master
+    path: services/user-service
+    directory:
+      include: '{user-service-service-minikube.yaml,user-service-deployment-minikube.yaml}'

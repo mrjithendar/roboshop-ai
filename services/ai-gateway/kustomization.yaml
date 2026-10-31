@@ -1,0 +1,7 @@
+# Used by argocd-eks only; the mk4 Application selects these files with directory.include.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- gateway-data-pvc-minikube.yaml
+- ai-gateway-service-minikube.yaml
+- ai-gateway-deployment-minikube.yaml
