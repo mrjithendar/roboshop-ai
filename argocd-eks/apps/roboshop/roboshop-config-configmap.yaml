@@ -51,7 +51,7 @@ data:
   OTEL_SERVICE_NAMESPACE: "roboshop-ai"
   OTEL_SERVICE_VERSION: "0.2.0"
   DEPLOYMENT_ENVIRONMENT: "eks"
-  OTEL_SDK_DISABLED: "false"
+  OTEL_SDK_DISABLED: "true"
   LANGFUSE_CAPTURE_CONTENT: "false"
 
   # MongoDB initialization file
