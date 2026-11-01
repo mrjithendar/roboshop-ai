@@ -1,9 +1,9 @@
 waitress==3.0.2
-boto3==1.43.117
-langchain-core==1.6.13
-langgraph==1.2.16
+boto3==1.43.121
+langchain-core==1.7.1
+langgraph==1.2.18
 # Used only to disable ambient prompt/payload tracing.
-langsmith==0.14.12
+langsmith==0.14.15
 
 # Generation SDK uses the existing bounded OTLP exporter, not a second pipeline.
 opentelemetry-sdk==1.45.1
