@@ -1,4 +1,4 @@
-# EKS overlay over the lab manifests in services/*. Build with ../../deploy/eks/scripts/render.sh, which
+# Hardening overlay over the manifests in services/*. Build with ../../deploy/eks/scripts/render.sh, which
 # pins image digests and substitutes ${PUBLIC_HOST}, ${ENVIRONMENT}, ${OWNER} and ${IMAGE_TAG}.
 # The base files live outside this directory, so the build needs --load-restrictor LoadRestrictionsNone.
 apiVersion: kustomize.config.k8s.io/v1beta1
@@ -7,41 +7,41 @@ namespace: roboshop-ai
 
 resources:
 - serviceaccounts.yaml
-# Applications (authoritative manifests, shared with the Minikube lab)
-- ../../services/web/web-deployment-minikube.yaml
-- ../../services/web/web-service-minikube.yaml
-- ../../services/ai-gateway/ai-gateway-deployment-minikube.yaml
-- ../../services/ai-gateway/ai-gateway-service-minikube.yaml
-- ../../services/ai-gateway/gateway-data-pvc-minikube.yaml
-- ../../services/user-service/user-service-deployment-minikube.yaml
-- ../../services/user-service/user-service-service-minikube.yaml
-- ../../services/catalogue-service/catalogue-service-deployment-minikube.yaml
-- ../../services/catalogue-service/catalogue-service-service-minikube.yaml
-- ../../services/cart-service/cart-service-deployment-minikube.yaml
-- ../../services/cart-service/cart-service-service-minikube.yaml
-- ../../services/payment-service/payment-service-deployment-minikube.yaml
-- ../../services/payment-service/payment-service-service-minikube.yaml
-- ../../services/shipping-service/shipping-service-deployment-minikube.yaml
-- ../../services/shipping-service/shipping-service-service-minikube.yaml
-- ../../services/currency-service/currency-service-deployment-minikube.yaml
-- ../../services/currency-service/currency-service-service-minikube.yaml
-- ../../services/moks/moks-deployment-minikube.yaml
-- ../../services/moks/moks-service-minikube.yaml
-- ../../services/mcp-server/mcp-server-deployment-minikube.yaml
-- ../../services/mcp-server/mcp-server-service-minikube.yaml
+# Applications
+- ../../services/web/web-deployment.yaml
+- ../../services/web/web-service.yaml
+- ../../services/ai-gateway/ai-gateway-deployment.yaml
+- ../../services/ai-gateway/ai-gateway-service.yaml
+- ../../services/ai-gateway/gateway-data-pvc.yaml
+- ../../services/user-service/user-service-deployment.yaml
+- ../../services/user-service/user-service-service.yaml
+- ../../services/catalogue-service/catalogue-service-deployment.yaml
+- ../../services/catalogue-service/catalogue-service-service.yaml
+- ../../services/cart-service/cart-service-deployment.yaml
+- ../../services/cart-service/cart-service-service.yaml
+- ../../services/payment-service/payment-service-deployment.yaml
+- ../../services/payment-service/payment-service-service.yaml
+- ../../services/shipping-service/shipping-service-deployment.yaml
+- ../../services/shipping-service/shipping-service-service.yaml
+- ../../services/currency-service/currency-service-deployment.yaml
+- ../../services/currency-service/currency-service-service.yaml
+- ../../services/moks/moks-deployment.yaml
+- ../../services/moks/moks-service.yaml
+- ../../services/mcp-server/mcp-server-deployment.yaml
+- ../../services/mcp-server/mcp-server-service.yaml
 - shipping-worker.yaml
 # Demo-profile data stores (single replica, EBS gp3). Production: see ../../deploy/eks/README.md#production.
 - data/mongodb.yaml
-- ../../services/redis/redis-deployment-minikube.yaml
-- ../../services/redis/redis-service-minikube.yaml
-- ../../services/rabbitmq/rabbitmq-statefulset-minikube.yaml
-- ../../services/rabbitmq/rabbitmq-service-minikube.yaml
-- ../../services/rabbitmq/rabbitmq-data-pvc-minikube.yaml
-- ../../services/postgres/shipping-db-deployment-minikube.yaml
-- ../../services/postgres/shipping-db-service-minikube.yaml
-- ../../services/postgres/shipping-postgres-pvc-minikube.yaml
-- ../../services/kafka-bridge/kafka-statefulset-minikube.yaml
-- ../../services/kafka-bridge/kafka-service-minikube.yaml
+- ../../services/redis/redis-deployment.yaml
+- ../../services/redis/redis-service.yaml
+- ../../services/rabbitmq/rabbitmq-statefulset.yaml
+- ../../services/rabbitmq/rabbitmq-service.yaml
+- ../../services/rabbitmq/rabbitmq-data-pvc.yaml
+- ../../services/postgres/shipping-db-deployment.yaml
+- ../../services/postgres/shipping-db-service.yaml
+- ../../services/postgres/shipping-postgres-pvc.yaml
+- ../../services/kafka-bridge/kafka-statefulset.yaml
+- ../../services/kafka-bridge/kafka-service.yaml
 - pdbs.yaml
 - network-policies.yaml
 
@@ -69,27 +69,6 @@ labels:
   includeTemplates: true
 
 patches:
-# Lab-only settings that do not exist on EKS: Minikube node pinning and the ecr-pull Secret
-# (EKS nodes pull from ECR with their node role). Images are pinned by digest in render.sh.
-- target:
-    kind: (Deployment|StatefulSet)
-  patch: |-
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: any
-    spec:
-      template:
-        spec:
-          nodeSelector: null
-          imagePullSecrets: null
-# PVCs: encrypted gp3, bound in the zone where the pod is first scheduled.
-- target:
-    kind: PersistentVolumeClaim
-  patch: |-
-    - op: add
-      path: /spec/storageClassName
-      value: gp3-encrypted
 - target:
     kind: Deployment
     name: web
@@ -412,7 +391,7 @@ patches:
           serviceAccountName: kafka
 # The Recreate strategy and single replica keep the JSON ledger single-writer (see
 # services/ai-gateway/README.md). On EBS, fsGroup already makes the volume writable, so the
-# root chown init container used on Minikube hostPath is removed.
+# root chown init container is not needed.
 - target:
     kind: Deployment
     name: ai-gateway
@@ -435,15 +414,7 @@ patches:
     - op: replace
       path: /spec/template/spec/containers/0/env/12/value
       value: "false"
-# Served at the domain root instead of the lab's /roboshop prefix.
-- target:
-    kind: Deployment
-    name: web
-  patch: |-
-    - op: replace
-      path: /spec/template/spec/containers/0/env/0/value
-      value: ""
-# The lab's Kafka init container declares no resources; admission policy requires them.
+# The Kafka init container declares no resources; admission policy requires them.
 - target:
     kind: StatefulSet
     name: kafka

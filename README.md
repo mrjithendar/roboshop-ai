@@ -74,7 +74,7 @@ There is no all-in-one local launcher any more: run the services you need (see e
 | `services/mongodb` | Product catalogue data (`catalog.js`) imported into MongoDB; MongoDB itself is deployed from the tools repo |
 | `services/postgres`, `services/redis`, `services/rabbitmq` | Data and messaging |
 
-Each workload owns a `*-minikube.yaml`. Each application has its own Dockerfile. Metrics, logging and tracing configuration lives in the tools repo; see [observability](https://github.com/mrjithendar/tools/blob/master/roboshop/observability/README.md). `legacy/original-roboshop/` retains reference application source.
+Each workload owns a `*-deployment.yaml`. Each application has its own Dockerfile. Metrics, logging and tracing configuration lives in the tools repo; see [observability](https://github.com/mrjithendar/tools/blob/master/roboshop/observability/README.md). `legacy/original-roboshop/` retains reference application source.
 
 ## Accounts, products and payments
 

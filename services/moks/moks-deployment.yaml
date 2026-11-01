@@ -18,8 +18,6 @@ spec:
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
-      imagePullSecrets:
-      - name: ecr-pull
       containers:
       - name: moks
         image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-moks:latest
@@ -29,7 +27,7 @@ spec:
           value: https://jithendar.com
         - name: UPSTREAM_ORIGIN
           value: https://jithendar.com
-        # Optional credentials for Minikube; Bedrock uses the AWS SDK credential chain.
+        # Optional static credentials; Bedrock uses the AWS SDK credential chain.
         - name: AWS_ACCESS_KEY_ID
           valueFrom:
             secretKeyRef:

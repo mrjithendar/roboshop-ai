@@ -2,17 +2,16 @@
 
 Argo CD runs on mk4 and manages the `roboshop-demo` EKS cluster as a remote cluster, so these
 Applications live in mk4's `argocd` namespace with `destination.name: roboshop-demo`. They are named
-`roboshop-demo-<app>` because the mk4 catalog (`../argocd-minikube`) shares that namespace: an
-Application with the same name would retarget the mk4 workload.
+`roboshop-demo-<app>` because that namespace also holds mk4's own platform Applications.
 
-Like mk4, they use manual sync, no finalizers, and must never be synced with prune.
+They use manual sync, no finalizers, and must never be synced with prune.
 
 ## Scope
 
 | Applications | Source |
 | --- | --- |
 | cart-service, catalogue-service, currency-service, mcp-server, moks, payment-service, redis, shipping-service, user-service, web | The `services/<service>` manifests, unchanged. |
-| ai-gateway, kafka-bridge, postgres, rabbitmq | The same manifests with the mk4 `nodeSelector` removed by an inline Kustomize patch. |
+| ai-gateway, kafka-bridge, postgres, rabbitmq | The same, read as a Kustomize directory. |
 | mongodb | The StatefulSet in `apps/data`, plus the catalog ConfigMap from tools. |
 | roboshop-config | Namespace and ConfigMap from tools. |
 | storage | The default `gp3-encrypted` StorageClass. |
@@ -30,7 +29,7 @@ which this cluster runs.
   values such as Razorpay, SES and Turnstile are set separately.
 - **Git.** Every source is read from `master`, so these changes must be merged before syncing.
 
-Nodes pull from ECR with their node role, so the `ecr-pull` references only produce a warning event.
+Nodes pull from ECR with their node role, so the manifests set no image pull secret.
 
 ## Deploy
 

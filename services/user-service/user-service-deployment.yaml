@@ -21,8 +21,6 @@ spec:
         runAsGroup: 1000
         runAsNonRoot: true
         fsGroup: 1000
-      imagePullSecrets:
-      - name: ecr-pull
       containers:
       - name: user-service
         image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-user-service:latest

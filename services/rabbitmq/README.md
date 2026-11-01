@@ -1,6 +1,6 @@
 # RabbitMQ order messaging
 
-`rabbitmq-minikube.yaml` deploys the broker as a StatefulSet with the `rabbitmq-data` PVC and a stable node identity. Credentials come from `roboshop-secrets`.
+`rabbitmq-statefulset.yaml` deploys the broker as a StatefulSet with the `rabbitmq-data` PVC and a stable node identity. Credentials come from `roboshop-secrets`.
 
 Deploy the whole application from the repository root:
 

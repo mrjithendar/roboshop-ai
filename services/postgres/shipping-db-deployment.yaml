@@ -1,7 +1,7 @@
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
-  name: rabbitmq
+  name: shipping-db
   namespace: roboshop-ai
   labels:
     app.kubernetes.io/part-of: roboshop-ai
@@ -9,52 +9,52 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: rabbitmq
+      app: shipping-db
   template:
     metadata:
       labels:
-        app: rabbitmq
+        app: shipping-db
         app.kubernetes.io/part-of: roboshop-ai
     spec:
-      # Minikube hostPath data lives on this node; move only together with the data.
-      nodeSelector:
-        kubernetes.io/hostname: mk4-m03
       enableServiceLinks: false
       automountServiceAccountToken: false
       containers:
-      - name: rabbitmq
-        image: rabbitmq:4.1-management-alpine
+      - name: shipping-db
+        image: postgres:18-alpine
         imagePullPolicy: IfNotPresent
         env:
-        - name: RABBITMQ_DEFAULT_USER
-          value: roboshop
-        - name: RABBITMQ_DEFAULT_PASS
+        - name: POSTGRES_DB
+          value: shipping
+        - name: POSTGRES_USER
+          value: shipping
+        - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
               name: roboshop-secrets
-              key: RABBITMQ_PASSWORD
-        - name: RABBITMQ_NODENAME
-          value: rabbit@rabbitmq-0
+              key: SHIPPING_DB_PASSWORD
+        - name: SHIPPING_APP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: roboshop-secrets
+              key: SHIPPING_APP_PASSWORD
         resources:
           requests:
             cpu: 50m
             memory: 128Mi
           limits:
             cpu: 500m
-            memory: 512Mi
+            memory: 384Mi
         ports:
-        - containerPort: 5672
-        - containerPort: 15672
+        - containerPort: 5432
         volumeMounts:
         - name: data
-          mountPath: /var/lib/rabbitmq
-        - name: config
-          mountPath: /etc/rabbitmq/rabbitmq.conf
-          subPath: rabbitmq.conf
+          mountPath: /var/lib/postgresql
+        - name: init
+          mountPath: /docker-entrypoint-initdb.d
           readOnly: true
         startupProbe:
           tcpSocket: &id001
-            port: 5672
+            port: 5432
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 120
@@ -66,19 +66,22 @@ spec:
         readinessProbe:
           exec:
             command:
-            - rabbitmq-diagnostics
-            - -q
-            - ping
-          timeoutSeconds: 5
+            - pg_isready
+            - -U
+            - shipping
+            - -d
+            - shipping
+          timeoutSeconds: 3
       volumes:
       - name: data
         persistentVolumeClaim:
-          claimName: rabbitmq-data
-      - name: config
+          claimName: shipping-postgres
+      - name: init
         configMap:
           name: roboshop-config
           items:
-          - key: rabbitmq.conf
-            path: rabbitmq.conf
+          - key: 10-shipping-role.sh
+            path: 10-shipping-role.sh
           defaultMode: 365
-  serviceName: rabbitmq
+  strategy:
+    type: Recreate

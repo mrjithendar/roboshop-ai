@@ -1,4 +1,4 @@
-# Minikube sandbox service; the /roboshop ingress routes here.
+# The /roboshop ingress routes here.
 apiVersion: v1
 kind: Service
 metadata:

@@ -17,7 +17,7 @@ spec:
     - FailOnSharedResource=true
     - PruneLast=true
     - CreateNamespace=true
-  # The tools Deployment is tied to a minikube hostPath volume, so EKS uses the demo-profile StatefulSet.
+  # The catalog ConfigMap is generated from services/mongodb/catalog.js and stored in tools.
   sources:
   - repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
@@ -26,6 +26,6 @@ spec:
       include: '{mongodb.yaml,mongodb-serviceaccount.yaml}'
   - repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
-    path: minikube/mongodb
+    path: eks/mongodb
     directory:
       include: mongodb-catalog-configmap.yaml

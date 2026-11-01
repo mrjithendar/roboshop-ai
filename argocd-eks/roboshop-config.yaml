@@ -17,10 +17,9 @@ spec:
     - FailOnSharedResource=true
     - PruneLast=true
     - CreateNamespace=true
-  # Namespace and ConfigMap only: the Traefik ingress and middleware files stay on mk4.
   source:
     repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
-    path: minikube/roboshop
+    path: eks/roboshop
     directory:
       include: '{roboshop-ai-namespace.yaml,roboshop-config-configmap.yaml}'

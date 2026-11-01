@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: currency-service
+  name: catalogue-service
   namespace: roboshop-ai
   labels:
     app.kubernetes.io/part-of: roboshop-ai
@@ -9,24 +9,27 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: currency-service
+      app: catalogue-service
   template:
     metadata:
       labels:
-        app: currency-service
+        app: catalogue-service
         app.kubernetes.io/part-of: roboshop-ai
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
-      imagePullSecrets:
-      - name: ecr-pull
       containers:
-      - name: currency-service
-        envFrom:
-        - configMapRef:
-            name: roboshop-config
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-currency-service:latest
+      - name: catalogue-service
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-catalogue-service:latest
         imagePullPolicy: Always
+        env:
+        - name: MONGO_APP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: roboshop-secrets
+              key: MONGO_APP_PASSWORD
+        - name: MONGODB_URL
+          value: mongodb://roboshop:$(MONGO_APP_PASSWORD)@mongodb:27017/roboshop?authSource=roboshop
         resources:
           requests:
             cpu: 50m
@@ -35,7 +38,10 @@ spec:
             cpu: 500m
             memory: 256Mi
         ports:
-        - containerPort: 4111
+        - containerPort: 4108
+        envFrom:
+        - configMapRef:
+            name: roboshop-config
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -48,7 +54,7 @@ spec:
         startupProbe:
           httpGet: &id001
             path: /health
-            port: 4111
+            port: 4108
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 120
@@ -59,18 +65,9 @@ spec:
           failureThreshold: 5
         readinessProbe:
           httpGet:
-            path: /ready
-            port: 4111
-          timeoutSeconds: 5
-          periodSeconds: 10
-          failureThreshold: 3
-        env:
-        - name: LOG_FORMAT
-          valueFrom:
-            configMapKeyRef:
-              name: roboshop-config
-              key: LOG_FORMAT
-              optional: true
+            path: /api/catalogue/ready
+            port: 4108
+          timeoutSeconds: 3
       volumes:
       - name: tmp
         emptyDir: {}

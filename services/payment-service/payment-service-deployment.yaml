@@ -18,8 +18,6 @@ spec:
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
-      imagePullSecrets:
-      - name: ecr-pull
       containers:
       - name: payment-service
         image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-payment-service:latest

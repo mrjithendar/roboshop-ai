@@ -24,7 +24,7 @@ Browser → Traefik (TLS, strips /roboshop) → web :8080
 | `frontend/` | Storefront source: `src/*.ts`, HTML pages, `templates/`, `styles.css`, assets, `scripts/build.mjs`, tests. See [frontend/README.md](frontend/README.md). |
 | `nginx/` | NGINX templates rendered at start by `start.sh`. See [nginx/README.md](nginx/README.md). |
 | `Dockerfile` | Stage 1 (`node:26-alpine`): `npm ci` from `frontend/package-lock.json`, then `npm run build`. Stage 2 (`nginx:1.31-alpine`): the configuration templates and `dist/` only. |
-| `web-deployment-minikube.yaml`, `web-service-minikube.yaml` | Kubernetes resources, synced by the `web` Argo CD Application. |
+| `web-deployment.yaml`, `web-service.yaml` | Kubernetes resources, synced by the `web` Argo CD Application. |
 
 Build context is this directory, as with every other service, so the shared
 `publish-ecr.yml` workflow needs no special case.

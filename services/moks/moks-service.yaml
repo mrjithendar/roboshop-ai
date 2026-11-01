@@ -1,4 +1,3 @@
-# Minikube sandbox deployment; apply with ./scripts/deploy/deploy-minikube.sh.
 apiVersion: v1
 kind: Service
 metadata:

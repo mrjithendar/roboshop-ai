@@ -17,16 +17,7 @@ spec:
     - FailOnSharedResource=true
     - PruneLast=true
     - CreateNamespace=true
-  # Removes the mk4 node pin: EBS volumes follow the pod, so EKS needs no hostname selector.
   source:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: services/kafka-bridge
-    kustomize:
-      patches:
-      - target:
-          kind: StatefulSet
-          name: kafka
-        patch: |-
-          - op: remove
-            path: /spec/template/spec/nodeSelector

@@ -18,16 +18,7 @@ spec:
     - PruneLast=true
     - CreateNamespace=true
     - ServerSideApply=true
-  # Removes the mk4 node pin: EBS volumes follow the pod, so EKS needs no hostname selector.
   source:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: services/postgres
-    kustomize:
-      patches:
-      - target:
-          kind: Deployment
-          name: shipping-db
-        patch: |-
-          - op: remove
-            path: /spec/template/spec/nodeSelector

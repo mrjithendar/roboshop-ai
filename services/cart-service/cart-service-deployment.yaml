@@ -1,8 +1,7 @@
-# Minikube sandbox deployment: storefront files and the reverse proxy in one container.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: web
+  name: cart-service
   namespace: roboshop-ai
   labels:
     app.kubernetes.io/part-of: roboshop-ai
@@ -10,36 +9,34 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: web
+      app: cart-service
   template:
     metadata:
       labels:
-        app: web
+        app: cart-service
         app.kubernetes.io/part-of: roboshop-ai
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 101
-        runAsGroup: 101
-        seccompProfile:
-          type: RuntimeDefault
-      imagePullSecrets:
-      - name: ecr-pull
       containers:
-      - name: web
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-web:latest
+      - name: cart-service
+        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-cart-service:latest
         imagePullPolicy: Always
         env:
-        # Traefik strips /roboshop; HTML attributes are rewritten back to it.
-        - name: FRONTEND_BASE_PATH
-          value: /roboshop
-        # NGINX runtime DNS resolution needs full Kubernetes service names.
-        - name: GATEWAY_HOST
-          value: ai-gateway.roboshop-ai.svc.cluster.local
-        - name: GATEWAY_PORT
-          value: '3000'
+        - name: REDIS_HOST
+          value: redis
+        - name: REDIS_PORT
+          value: '6379'
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: roboshop-secrets
+              key: REDIS_PASSWORD
+        - name: CART_SERVICE_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: roboshop-secrets
+              key: PAYMENT_SERVICE_TOKEN
         resources:
           requests:
             cpu: 50m
@@ -48,8 +45,7 @@ spec:
             cpu: 500m
             memory: 256Mi
         ports:
-        - name: http
-          containerPort: 8080
+        - containerPort: 4107
         envFrom:
         - configMapRef:
             name: roboshop-config
@@ -60,29 +56,25 @@ spec:
             drop:
             - ALL
         volumeMounts:
-        # Rendered configuration, pid file and NGINX temporary paths.
         - name: tmp
           mountPath: /tmp
         startupProbe:
-          httpGet: &liveness
+          httpGet: &id001
             path: /health
-            port: http
+            port: 4107
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 120
         livenessProbe:
-          httpGet: *liveness
+          httpGet: *id001
           periodSeconds: 20
           timeoutSeconds: 3
           failureThreshold: 5
-        # Gateway core dependencies only; never LLM or other optional features.
         readinessProbe:
           httpGet:
             path: /ready
-            port: http
-          timeoutSeconds: 4
-          periodSeconds: 10
-          failureThreshold: 3
+            port: 4107
+          timeoutSeconds: 5
       volumes:
       - name: tmp
         emptyDir: {}

@@ -42,7 +42,7 @@ test('Python tools can read the JSON data block', () => {
   assert.deepEqual(JSON.parse(block), plan(source).products);
 });
 
-// The ConfigMap and MongoDB manifests live in the tools repository (tools/roboshop/minikube/mongodb);
+// The ConfigMap and MongoDB manifests live in the tools repository (tools/eks/mongodb);
 // its own tests check the mounts. Here: the generated copy must match, when that checkout is present.
 test('tools ConfigMap copy matches catalog.js', { skip: existsSync(CONFIGMAP_FILE) ? false : 'tools checkout not found beside roboshop-ai (set TOOLS_DIR)' }, () => {
   assert.equal(readFileSync(CONFIGMAP_FILE, 'utf8'), configMap(source), 'run npm run catalog:configmap');

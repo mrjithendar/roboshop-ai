@@ -15,9 +15,6 @@ spec:
         app: kafka
         app.kubernetes.io/part-of: roboshop-ai
     spec:
-      # Minikube hostPath data lives on this node; move only together with the data.
-      nodeSelector:
-        kubernetes.io/hostname: mk4-m04
       automountServiceAccountToken: false
       enableServiceLinks: false
       securityContext:
@@ -161,12 +158,11 @@ spec:
             port: 4113
           periodSeconds: 10
           timeoutSeconds: 3
-      imagePullSecrets:
-      - name: ecr-pull
   volumeClaimTemplates:
   - metadata:
       name: data
     spec:
+      storageClassName: gp3-encrypted
       accessModes:
       - ReadWriteOnce
       resources:
