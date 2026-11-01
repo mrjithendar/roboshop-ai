@@ -1,6 +1,6 @@
 # Redis cache and carts
 
-`redis-minikube.yaml` deploys Redis using a ConfigMap and `REDIS_PASSWORD` from `roboshop-secrets`.
+`redis-deployment.yaml` deploys Redis using a ConfigMap and `REDIS_PASSWORD` from `roboshop-secrets`.
 
 Deploy the whole application from the repository root:
 

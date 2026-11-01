@@ -1,0 +1,19 @@
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: catalogue-service
+spec:
+  selector:
+    matchLabels:
+      app: catalogue-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/roboshop-ai/sa/ai-gateway
+        - cluster.local/ns/roboshop-ai/sa/moks
+    to:
+    - operation:
+        ports:
+        - "4108"

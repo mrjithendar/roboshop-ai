@@ -7,9 +7,9 @@ also include the namespace, e.g. `traefik-alloy-logs-role-binding.yaml`.
 
 Examples:
 
-- `services/web/web-deployment-minikube.yaml`
-- `services/web/web-service-minikube.yaml`
-- `minikube/roboshop/roboshop-config-configmap.yaml`
+- `services/web/web-deployment.yaml`
+- `services/web/web-service.yaml`
+- `eks/roboshop/roboshop-config-configmap.yaml`
 - `observability/prometheus/templates/prometheus-data-pvc.yaml`
 
 Argo Applications explicitly include their resource filenames, or use an existing

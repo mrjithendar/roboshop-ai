@@ -1,0 +1,22 @@
+# Principals only, no paths: ai-gateway is declared as TCP, and these are identities. Users are authorized by the
+# applications; a mesh identity says which workload is calling, never which person. The matrix is in README.md.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: ai-gateway
+spec:
+  selector:
+    matchLabels:
+      app: ai-gateway
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/roboshop-ai/sa/web
+        - cluster.local/ns/roboshop-ai/sa/moks
+        - cluster.local/ns/roboshop-ai/sa/mcp-server
+    to:
+    - operation:
+        ports:
+        - "3000"

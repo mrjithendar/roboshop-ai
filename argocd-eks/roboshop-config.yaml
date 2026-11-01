@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-demo-roboshop-config
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: roboshop-gitops
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  project: eks
+  destination:
+    name: roboshop-demo
+    namespace: roboshop-ai
+  syncPolicy:
+    syncOptions:
+    - FailOnSharedResource=true
+    - PruneLast=true
+    - CreateNamespace=true
+  # EKS mesh: every workload in the namespace gets a sidecar.
+  source:
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    targetRevision: master
+    path: argocd-eks/apps/roboshop
+    kustomize:
+      patches:
+      - target:
+          kind: Namespace
+          name: roboshop-ai
+        patch: |-
+          - op: add
+            path: /metadata/labels
+            value:
+              istio-injection: enabled

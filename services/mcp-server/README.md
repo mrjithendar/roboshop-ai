@@ -288,10 +288,10 @@ python -m unittest discover -s services/mcp-server/tests -v
 ## Deployment
 
 - **Argo CD** (`argocd/mcp-server.yaml`) syncs three manifests:
-  - `mcp-server-deployment-minikube.yaml`: non-root UID 1000, read-only root filesystem, all
+  - `mcp-server-deployment.yaml`: non-root UID 1000, read-only root filesystem, all
     capabilities dropped, RuntimeDefault seccomp, no service-account token.
-  - `mcp-server-service-minikube.yaml`: ClusterIP only.
-  - `mcp-server-network-policy-minikube.yaml`: only pods labelled `roboshop.ai/mcp-client: "true"`
+  - `mcp-server-service.yaml`: ClusterIP only.
+  - `mcp-server-network-policy.yaml`: only pods labelled `roboshop.ai/mcp-client: "true"`
     may connect.
 - **No in-cluster clients today:** no current workload carries the `roboshop.ai/mcp-client`
   label, so in-cluster access is closed until you add it. Port-forwarding is unaffected.

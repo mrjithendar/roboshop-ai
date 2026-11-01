@@ -27,7 +27,7 @@ Configuration: `MONGODB_URL`, `MONGODB_DATABASE` (default `roboshop`), port 4108
 bash scripts/deploy/deploy-minikube.sh catalogue-service
 ```
 
-The selected image is `roboshop-catalogue-service:local`; only this service needs rebuilding for the merge. Kubernetes uses `catalogue-service-minikube.yaml`. No data reset is required. Shared runtime provides request logs, trace propagation, OpenTelemetry export and metrics; SRE readiness checks use the Mongo-aware endpoint.
+The selected image is `roboshop-catalogue-service:local`; only this service needs rebuilding for the merge. Kubernetes uses `catalogue-service.yaml`. No data reset is required. Shared runtime provides request logs, trace propagation, OpenTelemetry export and metrics; SRE readiness checks use the Mongo-aware endpoint.
 
 Examples after deployment:
 

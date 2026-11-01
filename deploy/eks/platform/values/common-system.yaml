@@ -1,6 +1,0 @@
-# Shared placement for controllers: the tainted On-Demand system node group (terraform/eks.tf).
-nodeSelector:
-  roboshop.dev/pool: system
-tolerations:
-- key: CriticalAddonsOnly
-  operator: Exists

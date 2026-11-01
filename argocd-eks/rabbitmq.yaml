@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-demo-rabbitmq
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: roboshop-gitops
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  project: eks
+  destination:
+    name: roboshop-demo
+    namespace: roboshop-ai
+  syncPolicy:
+    syncOptions:
+    - FailOnSharedResource=true
+    - PruneLast=true
+    - CreateNamespace=true
+  source:
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    targetRevision: master
+    path: services/rabbitmq
+    kustomize:
+      patches:
+      - target:
+          kind: StatefulSet
+          name: rabbitmq
+        patch: |-
+          - op: add
+            path: /spec/template/spec/serviceAccountName
+            value: rabbitmq
+      # Plain TCP, so the sidecar never tries to read this protocol as HTTP.
+      - target:
+          kind: Service
+          name: rabbitmq
+        patch: |-
+          - op: add
+            path: /spec/ports/0/appProtocol
+            value: tcp
+          - op: add
+            path: /spec/ports/1/appProtocol
+            value: tcp

@@ -1,0 +1,19 @@
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: moks
+spec:
+  selector:
+    matchLabels:
+      app: moks
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/roboshop-ai/sa/web
+        - cluster.local/ns/roboshop-ai/sa/ai-gateway
+    to:
+    - operation:
+        ports:
+        - "4103"

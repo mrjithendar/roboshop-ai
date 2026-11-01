@@ -1,0 +1,19 @@
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: redis
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/roboshop-ai/sa/cart-service
+        - cluster.local/ns/roboshop-ai/sa/shipping-service
+    to:
+    - operation:
+        ports:
+        - "6379"
