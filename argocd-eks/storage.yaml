@@ -21,6 +21,6 @@ spec:
   source:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
-    path: deploy/eks/k8s/platform
+    path: argocd-eks/apps/storage
     directory:
       include: 'storageclass.yaml'
