@@ -24,9 +24,9 @@ spec:
         imagePullPolicy: Always
         env:
         - name: ALLOWED_ORIGINS
-          value: https://jithendar.com
+          value: https://eks.jithendar.com
         - name: UPSTREAM_ORIGIN
-          value: https://jithendar.com
+          value: https://eks.jithendar.com
         # Optional static credentials; Bedrock uses the AWS SDK credential chain.
         - name: AWS_ACCESS_KEY_ID
           valueFrom:
