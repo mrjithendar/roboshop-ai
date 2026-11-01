@@ -17,7 +17,7 @@ spec:
     - FailOnSharedResource=true
     - PruneLast=true
     - CreateNamespace=true
-  # Mesh identity: the ServiceAccount comes from tools/eks/roboshop-demo/mesh.
+  # Mesh identity: the ServiceAccount comes from argocd-eks/apps/mesh.
   source:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master

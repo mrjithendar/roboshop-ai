@@ -19,7 +19,7 @@ They use manual sync, no finalizers, and must never be synced with prune.
 | mesh | ServiceAccounts, PeerAuthentication and AuthorizationPolicies in `apps/mesh`. |
 | storage | The default `gp3-encrypted` StorageClass. |
 
-Ingress and TLS live in `tools/eks` ([README](https://github.com/mrjithendar/tools/blob/master/eks/README.md));
+Ingress and TLS live in `tools/eks-argocd` ([README](https://github.com/mrjithendar/tools/blob/master/eks-argocd/README.md));
 Applications here only reference the ServiceAccounts. The `deploy/eks/k8s/argocd` layers are a
 different design that needs Gatekeeper, Karpenter and External Secrets, which this cluster does not run.
 
