@@ -18,7 +18,6 @@ spec:
       labels:
         app: mongodb
         app.kubernetes.io/part-of: roboshop-ai
-        sidecar.istio.io/inject: "false"
         roboshop.dev/policy-exception: stateful-entrypoint
     spec:
       serviceAccountName: mongodb

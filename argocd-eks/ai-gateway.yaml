@@ -21,3 +21,21 @@ spec:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: services/ai-gateway
+    kustomize:
+      patches:
+      - target:
+          kind: Deployment
+          name: ai-gateway
+        patch: |-
+          - op: add
+            path: /spec/template/spec/serviceAccountName
+            value: ai-gateway
+      # web preserves the browser's Host header, which a sidecar treating this port as HTTP cannot match to a Service:
+      # it would fall through to plaintext passthrough and fail under STRICT mTLS. As TCP the connection is simply mTLS.
+      - target:
+          kind: Service
+          name: ai-gateway
+        patch: |-
+          - op: add
+            path: /spec/ports/0/appProtocol
+            value: tcp

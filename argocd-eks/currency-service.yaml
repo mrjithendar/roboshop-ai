@@ -17,9 +17,17 @@ spec:
     - FailOnSharedResource=true
     - PruneLast=true
     - CreateNamespace=true
+  # Mesh identity: the ServiceAccount comes from tools/eks/roboshop-demo/mesh.
   source:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: services/currency-service
-    directory:
-      include: '{currency-service-service.yaml,currency-service-deployment.yaml}'
+    kustomize:
+      patches:
+      - target:
+          kind: Deployment
+          name: currency-service
+        patch: |-
+          - op: add
+            path: /spec/template/spec/serviceAccountName
+            value: currency-service

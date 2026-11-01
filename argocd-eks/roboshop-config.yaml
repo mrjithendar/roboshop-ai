@@ -17,9 +17,18 @@ spec:
     - FailOnSharedResource=true
     - PruneLast=true
     - CreateNamespace=true
+  # EKS mesh: every workload in the namespace gets a sidecar.
   source:
     repoURL: https://github.com/mrjithendar/tools.git
     targetRevision: master
     path: eks/roboshop
-    directory:
-      include: '{roboshop-ai-namespace.yaml,roboshop-config-configmap.yaml}'
+    kustomize:
+      patches:
+      - target:
+          kind: Namespace
+          name: roboshop-ai
+        patch: |-
+          - op: add
+            path: /metadata/labels
+            value:
+              istio-injection: enabled

@@ -17,9 +17,25 @@ spec:
     - FailOnSharedResource=true
     - PruneLast=true
     - CreateNamespace=true
+  # Mesh identity: the ServiceAccount comes from tools/eks/roboshop-demo/mesh.
   source:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: services/redis
-    directory:
-      include: '{redis-service.yaml,redis-deployment.yaml}'
+    kustomize:
+      patches:
+      - target:
+          kind: Deployment
+          name: redis
+        patch: |-
+          - op: add
+            path: /spec/template/spec/serviceAccountName
+            value: redis
+      # Plain TCP, so the sidecar never tries to read this protocol as HTTP.
+      - target:
+          kind: Service
+          name: redis
+        patch: |-
+          - op: add
+            path: /spec/ports/0/appProtocol
+            value: tcp

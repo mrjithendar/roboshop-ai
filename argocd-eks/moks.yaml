@@ -17,9 +17,17 @@ spec:
     - FailOnSharedResource=true
     - PruneLast=true
     - CreateNamespace=true
+  # Mesh identity: the ServiceAccount comes from tools/eks/roboshop-demo/mesh.
   source:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: services/moks
-    directory:
-      include: '{moks-service.yaml,moks-deployment.yaml}'
+    kustomize:
+      patches:
+      - target:
+          kind: Deployment
+          name: moks
+        patch: |-
+          - op: add
+            path: /spec/template/spec/serviceAccountName
+            value: moks

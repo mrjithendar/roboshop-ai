@@ -10,15 +10,17 @@ They use manual sync, no finalizers, and must never be synced with prune.
 
 | Applications | Source |
 | --- | --- |
-| cart-service, catalogue-service, currency-service, mcp-server, moks, payment-service, redis, shipping-service, user-service, web | The `services/<service>` manifests, unchanged. |
-| ai-gateway, kafka-bridge, postgres, rabbitmq | The same, read as a Kustomize directory. |
+| cart-service, catalogue-service, currency-service, mcp-server, moks, payment-service, shipping-service, user-service, web | The `services/<service>` manifests with a mesh ServiceAccount set by an inline Kustomize patch. |
+| ai-gateway | The same, with its Service port declared as TCP. |
+| kafka-bridge, postgres, rabbitmq | The same manifests with the sidecar turned off. |
+| redis | The `services/redis` manifests with the sidecar turned off. |
 | mongodb | The StatefulSet in `apps/data`, plus the catalog ConfigMap from tools. |
 | roboshop-config | Namespace and ConfigMap from tools. |
 | storage | The default `gp3-encrypted` StorageClass. |
 
-There is no ingress: nothing here is reachable from outside the cluster. The `deploy/eks/k8s/argocd`
-layers are a different design that needs Istio, Gatekeeper, Karpenter and External Secrets, none of
-which this cluster runs.
+Ingress, TLS, mesh identities and policies live in `tools/eks` ([README](https://github.com/mrjithendar/tools/blob/master/eks/README.md));
+Applications here only reference the ServiceAccounts. The `deploy/eks/k8s/argocd` layers are a
+different design that needs Gatekeeper, Karpenter and External Secrets, which this cluster does not run.
 
 ## Prerequisites
 

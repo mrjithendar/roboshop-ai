@@ -21,3 +21,23 @@ spec:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: services/kafka-bridge
+    kustomize:
+      patches:
+      - target:
+          kind: StatefulSet
+          name: kafka
+        patch: |-
+          - op: add
+            path: /spec/template/spec/serviceAccountName
+            value: kafka
+      # Plain TCP, so the sidecar never tries to read this protocol as HTTP.
+      - target:
+          kind: Service
+          name: kafka
+        patch: |-
+          - op: add
+            path: /spec/ports/0/appProtocol
+            value: tcp
+          - op: add
+            path: /spec/ports/1/appProtocol
+            value: tcp
