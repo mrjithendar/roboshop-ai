@@ -1,0 +1,47 @@
+# Workload identities and mesh policy for roboshop-ai. Two switches, changed in Git in this order (RUNBOOK.md step 8):
+#   1. default-peerauthentication.yaml: PERMISSIVE -> STRICT, once every application pod has a sidecar.
+#   2. Delete the patch below, which turns every AuthorizationPolicy from a dry run into enforcement. In a dry run Istio
+#      only records what would have been denied, so a missing call shows up before anything is blocked.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: roboshop-ai
+resources:
+- web-serviceaccount.yaml
+- ai-gateway-serviceaccount.yaml
+- user-service-serviceaccount.yaml
+- catalogue-service-serviceaccount.yaml
+- cart-service-serviceaccount.yaml
+- payment-service-serviceaccount.yaml
+- shipping-service-serviceaccount.yaml
+- currency-service-serviceaccount.yaml
+- moks-serviceaccount.yaml
+- mcp-server-serviceaccount.yaml
+- redis-serviceaccount.yaml
+- rabbitmq-serviceaccount.yaml
+- shipping-db-serviceaccount.yaml
+- shipping-location-import-serviceaccount.yaml
+- kafka-serviceaccount.yaml
+- default-peerauthentication.yaml
+- allow-nothing-authorizationpolicy.yaml
+- web-authorizationpolicy.yaml
+- ai-gateway-authorizationpolicy.yaml
+- user-service-authorizationpolicy.yaml
+- catalogue-service-authorizationpolicy.yaml
+- cart-service-authorizationpolicy.yaml
+- payment-service-authorizationpolicy.yaml
+- shipping-service-authorizationpolicy.yaml
+- currency-service-authorizationpolicy.yaml
+- moks-authorizationpolicy.yaml
+- mongodb-authorizationpolicy.yaml
+- redis-authorizationpolicy.yaml
+- rabbitmq-authorizationpolicy.yaml
+- shipping-db-authorizationpolicy.yaml
+- kafka-authorizationpolicy.yaml
+patches:
+- target:
+    kind: AuthorizationPolicy
+  patch: |-
+    - op: add
+      path: /metadata/annotations
+      value:
+        istio.io/dry-run: "true"

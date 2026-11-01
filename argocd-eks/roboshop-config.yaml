@@ -19,9 +19,9 @@ spec:
     - CreateNamespace=true
   # EKS mesh: every workload in the namespace gets a sidecar.
   source:
-    repoURL: https://github.com/mrjithendar/tools.git
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
-    path: eks/roboshop
+    path: argocd-eks/apps/roboshop
     kustomize:
       patches:
       - target:

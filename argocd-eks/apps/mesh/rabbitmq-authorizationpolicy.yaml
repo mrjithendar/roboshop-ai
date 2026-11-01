@@ -1,0 +1,20 @@
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: rabbitmq
+spec:
+  selector:
+    matchLabels:
+      app: rabbitmq
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/roboshop-ai/sa/ai-gateway
+        - cluster.local/ns/roboshop-ai/sa/kafka
+        - cluster.local/ns/roboshop-ai/sa/shipping-service
+    to:
+    - operation:
+        ports:
+        - "5672"

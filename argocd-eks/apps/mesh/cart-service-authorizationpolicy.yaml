@@ -1,0 +1,18 @@
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: cart-service
+spec:
+  selector:
+    matchLabels:
+      app: cart-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/roboshop-ai/sa/ai-gateway
+    to:
+    - operation:
+        ports:
+        - "4107"

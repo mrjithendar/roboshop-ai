@@ -17,15 +17,10 @@ spec:
     - FailOnSharedResource=true
     - PruneLast=true
     - CreateNamespace=true
-  # The catalog ConfigMap is generated from services/mongodb/catalog.js and stored in tools.
-  sources:
-  - repoURL: https://github.com/mrjithendar/roboshop-ai.git
+  # The catalog ConfigMap is generated from services/mongodb/catalog.js.
+  source:
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: argocd-eks/apps/data
     directory:
-      include: '{mongodb.yaml,mongodb-serviceaccount.yaml}'
-  - repoURL: https://github.com/mrjithendar/tools.git
-    targetRevision: master
-    path: eks/mongodb
-    directory:
-      include: mongodb-catalog-configmap.yaml
+      include: '{mongodb.yaml,mongodb-serviceaccount.yaml,mongodb-catalog-configmap.yaml}'

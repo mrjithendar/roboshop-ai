@@ -1,0 +1,7 @@
+# Denies every request to meshed pods that no ALLOW policy below permits. That leaves mcp-server with no in-mesh callers;
+# reach it with kubectl port-forward. Kubelet probes are unaffected: the sidecar answers them on its own port, and the data stores use exec probes.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-nothing
+spec: {}

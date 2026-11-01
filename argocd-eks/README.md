@@ -14,11 +14,12 @@ They use manual sync, no finalizers, and must never be synced with prune.
 | ai-gateway | The same, with its Service port declared as TCP. |
 | kafka-bridge, postgres, rabbitmq | The same manifests with the sidecar turned off. |
 | redis | The `services/redis` manifests with the sidecar turned off. |
-| mongodb | The StatefulSet in `apps/data`, plus the catalog ConfigMap from tools. |
-| roboshop-config | Namespace and ConfigMap from tools. |
+| mongodb | The StatefulSet in `apps/data`, plus the catalog ConfigMap. |
+| roboshop-config | Namespace and ConfigMap in `apps/roboshop`. |
+| mesh | ServiceAccounts, PeerAuthentication and AuthorizationPolicies in `apps/mesh`. |
 | storage | The default `gp3-encrypted` StorageClass. |
 
-Ingress, TLS, mesh identities and policies live in `tools/eks` ([README](https://github.com/mrjithendar/tools/blob/master/eks/README.md));
+Ingress and TLS live in `tools/eks` ([README](https://github.com/mrjithendar/tools/blob/master/eks/README.md));
 Applications here only reference the ServiceAccounts. The `deploy/eks/k8s/argocd` layers are a
 different design that needs Gatekeeper, Karpenter and External Secrets, which this cluster does not run.
 
