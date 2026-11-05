@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
 - web-service.yaml
 - web-deployment.yaml
+- web-kong-networkpolicy.yaml

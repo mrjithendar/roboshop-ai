@@ -1,0 +1,27 @@
+# Lets Kong Gateway's proxy pods (namespace kong, tools repo deploy/minikube/kong) reach the storefront.
+# Kong serves https://jithendar.com/roboshop/ from its database (tools repo kong-config/seed/roboshop.yaml): it
+# strips /roboshop and proxies to web:8080, as the EKS Istio VirtualService did. With no other policy selecting
+# web this one isolates it, which is intended: only the gateway calls the storefront. Node-originated kubelet
+# probes are normally exempt; confirm the pods stay Ready after applying. On EKS it adds to allow-mesh-apps.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: web-from-kong
+  labels:
+    app: web
+spec:
+  podSelector:
+    matchLabels:
+      app: web
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kong
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: kong
+    ports:
+    - port: 8080
+      protocol: TCP
