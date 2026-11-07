@@ -18,9 +18,11 @@ spec:
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
+      imagePullSecrets:
+      - name: harbor-pull   # robot$k8s-pull: tools deploy/minikube/harbor/registry.py pull-secrets
       containers:
       - name: cart-service
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-cart-service:latest
+        image: registry.jithendar.com/jithendar/roboshop-cart-service:latest
         imagePullPolicy: Always
         env:
         - name: REDIS_HOST

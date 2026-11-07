@@ -69,7 +69,7 @@ Existing database credentials and MFA encryption keys must remain unchanged.
 
 ## CI and ECR
 
-`ci-user-service.yml` runs the user tests, then invokes `publish-ecr.yml` to build
+`ci-user-service.yml` runs the user tests, then invokes `publish-image.yml` to build
 and publish `roboshop-user-service` with the `latest` tag. Terraform includes the
 repository in `ecr_repository_names`. Apply the infrastructure plan before the
 first ECR publish. Minikube uses the ECR `roboshop-user-service:latest` image.

@@ -1,3 +1,6 @@
+> **Superseded:** images now go to Harbor, not ECR (`publish-image.yml`, README "Images in Harbor"). This page
+> is kept as history.
+
 > Deployment-script cleanup: imperative application deployment commands in this
 > document are retired. Use the Argo CD catalog and the five supported commands
 > documented in `docs/operations/scripts.md`. Historical examples below are not

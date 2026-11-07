@@ -98,7 +98,7 @@ npm run frontend:build
 npm test
 ```
 
-Full tests require the documented language dependencies and local integration services; see [test instructions](tests/README.md). Per-service CI builds/pushes images to ECR; see [ECR setup](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/deployment/ecr-ci.md).
+Full tests require the documented language dependencies and local integration services; see [test instructions](tests/README.md). Per-service CI builds and pushes images to Harbor; see [Images in Harbor](#images-in-harbor).
 
 The gateway’s durable JSON order ledger remains single-writer: keep one gateway replica and back up its volume alongside MongoDB and PostgreSQL. This Minikube configuration is a development sandbox, not a highly available production deployment.
 
@@ -113,42 +113,18 @@ assistant on every storefront page and supports embedding on other websites.
 It builds as `roboshop-moks:local`. Scale `deployment/moks` to zero to hide
 it without disabling the storefront. See its README for embedding and configuration.
 
-### Deploy ECR images from GitHub Actions
+### Images in Harbor
 
-Run the per-service CI workflows first, then **Actions → Deploy-Minikube → Run
-workflow** on the default branch. Deployment uses `:latest` from each ECR repository, always pulls it, and restarts
-each application to pick up updates. It updates
-applications in dependency order, and finishes with catalogue publication
-and ingress/TLS. It does not build or load local images.
+Every service image is `registry.jithendar.com/jithendar/roboshop-<service>:latest` (`roboshop-shipping` for
+shipping-service), its only tag. Each service's CI workflow (`.github/workflows/ci-<service>.yml`, which calls
+`publish-image.yml`) builds it on pushes to `master` and pushes it to Harbor as robot `robot$jithendar+roboshop-ai`,
+with repository secrets `HARBOR_USERNAME` and `HARBOR_PASSWORD` set by the tools repository
+(`deploy/minikube/harbor/registry.py ci-robots`). Build one service with **Actions → service image → Run workflow**.
 
-Runner requirements:
-
-- A Linux self-hosted runner with `self-hosted` and `linux` labels, access to the
-  intended cluster, AWS CLI, kubectl, Python/PyYAML and OpenSSL.
-- `AWS_REGION` set to the ECR region (`us-east-1` for the current Terraform stack).
-  Deployment uses runner AWS credentials and the registry configured in the YAML.
-  The identity needs ECR authorization-token and image-pull permissions.
-- Traefik, cert-manager and the Let's Encrypt issuer already installed.
-- The runner uses `$HOME/.kube/config`. Set `MINIKUBE_KUBECONFIG` to override it
-  with an existing absolute path. Credentials remain on the runner.
-
-Choose the actual kubeconfig context, such as `mk4`. The namespace, databases,
-application secrets (including SES SMTP credentials) must already exist. Runs are manual and
-serialized. A failed rollout stops later steps; earlier service updates remain.
-Existing data and account credentials are preserved. Finder remains optional.
-
-Every deployment refreshes the ECR pull secret. Tokens expire after 12 hours;
-new pod starts may require a refresh. Rerun the workflow to refresh credentials. See [ECR deployment](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/deployment/ecr-ci.md#deploy-the-newest-ecr-images-to-minikube).
-
-If a run stays **Queued**, check the runner labels and online status. For preflight
-failures, check `aws sts get-caller-identity`, `kubectl --context=mk4 get nodes`
-and `python3 -c 'import yaml'` as the runner user.
-
-Build and push one service using its **Actions → service image → Run workflow** entry.
-Omit `--service` to build every application image. Image publishing is separate from Argo CD deployment.
-
-Images are built and pushed to ECR by each service's CI workflow (`.github/workflows/ci-<service>.yml`, which calls `publish-ecr.yml`) on pushes to `master`; then update
-the application's image reference in Git and sync it through Argo CD.
+Pods pull with the Secret `harbor-pull` (read-only robot `robot$k8s-pull`, never expires), named in every
+workload's `imagePullSecrets`. Create it in the cluster's `roboshop-ai` namespace before syncing:
+`python3 deploy/minikube/harbor/registry.py pull-secrets --context <context> --namespace roboshop-ai` (tools
+repository). Every workload runs `:latest` with `imagePullPolicy: Always`; restart it to pick up a new build.
 
 ### Kafka analytics stream
 

@@ -25,9 +25,11 @@ spec:
         runAsGroup: 101
         seccompProfile:
           type: RuntimeDefault
+      imagePullSecrets:
+      - name: harbor-pull   # robot$k8s-pull: tools deploy/minikube/harbor/registry.py pull-secrets
       containers:
       - name: web
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-web:latest
+        image: registry.jithendar.com/jithendar/roboshop-web:latest
         imagePullPolicy: Always
         env:
         # Traefik strips /roboshop; HTML attributes are rewritten back to it.

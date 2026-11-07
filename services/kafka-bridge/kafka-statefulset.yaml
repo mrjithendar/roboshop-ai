@@ -39,6 +39,8 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /data
+      imagePullSecrets:
+      - name: harbor-pull   # robot$k8s-pull: tools deploy/minikube/harbor/registry.py pull-secrets
       containers:
       - name: kafka
         image: apache/kafka:4.1.2
@@ -111,7 +113,7 @@ spec:
         envFrom:
         - configMapRef:
             name: roboshop-config
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-kafka-bridge:latest
+        image: registry.jithendar.com/jithendar/roboshop-kafka-bridge:latest
         imagePullPolicy: Always
         env:
         - name: RABBITMQ_PASSWORD

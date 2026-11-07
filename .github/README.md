@@ -1,7 +1,8 @@
 # Service image workflows
 
 Each `ci-<service>.yml` runs on changes to its service directory or its own
-workflow file. It calls `publish-ecr.yml` to build and push that service's image.
+workflow file. It calls `publish-image.yml` (with `secrets: inherit`) to build and push that service's
+image to Harbor.
 The reusable publisher is deliberately excluded from push path filters: adding a
 service to its allowlist must not trigger builds of every unrelated service.
 
@@ -17,8 +18,9 @@ service workflow files and may therefore trigger one final round of builds.
 
 ## Deployment configuration
 
-The ECR publisher uses region `us-east-1` and repository prefix `roboshop`,
-matching the deployment manifests. No repository variables are required.
+The publisher pushes `registry.jithendar.com/jithendar/roboshop-<service>:latest`, matching the deployment
+manifests. It needs the repository secrets `HARBOR_USERNAME` and `HARBOR_PASSWORD` (robot
+`robot$jithendar+roboshop-ai`, from the tools repository's `deploy/minikube/harbor/registry.py ci-robots`).
 
 When manually running Deploy-Minikube, select the kubeconfig context with
 `profile`. The optional `kubeconfig` input is a file path on the self-hosted

@@ -24,9 +24,11 @@ spec:
         runAsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
+      imagePullSecrets:
+      - name: harbor-pull   # robot$k8s-pull: tools deploy/minikube/harbor/registry.py pull-secrets
       containers:
       - name: mcp-server
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-mcp-server:latest
+        image: registry.jithendar.com/jithendar/roboshop-mcp-server:latest
         imagePullPolicy: Always
         env:
         - name: GATEWAY_URL

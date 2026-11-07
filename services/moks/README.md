@@ -227,7 +227,7 @@ to activate this change; the compatibility widget URL and gateway APIs remain un
 
 ```bash
 # First create roboshop-moks via the infrastructure Terraform (review its plan).
-# Images are built and pushed to ECR by each service's CI workflow (`.github/workflows/ci-<service>.yml`, which calls `publish-ecr.yml`) on pushes to `master`.
+# Images are built and pushed to Harbor (`registry.jithendar.com/jithendar`) by each service's CI workflow (`.github/workflows/ci-<service>.yml`, which calls `publish-image.yml`) on pushes to `master`.
 bash scripts/deploy/deploy-minikube.sh moks web
 ```
 

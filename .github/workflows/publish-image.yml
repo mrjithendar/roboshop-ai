@@ -1,4 +1,4 @@
-name: Publish service image to ECR
+name: Publish service image to Harbor
 
 on:
   workflow_call:
@@ -7,6 +7,13 @@ on:
         description: Service directory containing the Dockerfile
         required: true
         type: string
+    secrets:
+      # Harbor robot robot$jithendar+roboshop-ai (push and pull in project jithendar only), set by the tools
+      # repository's deploy/minikube/harbor/registry.py ci-robots. Callers pass them with "secrets: inherit".
+      HARBOR_USERNAME:
+        required: true
+      HARBOR_PASSWORD:
+        required: true
 
 permissions:
   contents: read
@@ -18,7 +25,7 @@ jobs:
     timeout-minutes: 30
     env:
       SERVICE: ${{ inputs.service }}
-      AWS_REGION: us-east-1
+      REGISTRY: registry.jithendar.com/jithendar
       REPOSITORY_PREFIX: roboshop
     steps:
       - uses: actions/checkout@v7.0.1
@@ -37,7 +44,7 @@ jobs:
             user-service|cart-service|ai-gateway|catalogue-service|moks|payment-service|mcp-server|shipping-service|web|currency-service|kafka-bridge) ;;
             *) echo 'Unsupported service' >&2; exit 1 ;;
           esac
-          [[ "$REPOSITORY_PREFIX" =~ ^[a-z0-9]+([._/-][a-z0-9]+)*$ ]] || { echo 'Invalid ECR_REPOSITORY_PREFIX' >&2; exit 1; }
+          [[ "$REPOSITORY_PREFIX" =~ ^[a-z0-9]+([._/-][a-z0-9]+)*$ ]] || { echo 'Invalid REPOSITORY_PREFIX' >&2; exit 1; }
           suffix="$SERVICE"
           [[ "$SERVICE" != shipping-service ]] || suffix=shipping
           echo "repository=$REPOSITORY_PREFIX-$suffix" >> "$GITHUB_OUTPUT"
@@ -61,9 +68,11 @@ jobs:
           config_dir=$(mktemp -d "$RUNNER_TEMP/docker-config.XXXXXX")
           echo "DOCKER_CONFIG=$config_dir" >> "$GITHUB_ENV"
 
-      - name: Log in to Amazon ECR
-        id: ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Log in to Harbor
+        env:
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+        run: printf '%s' "$HARBOR_PASSWORD" | docker login registry.jithendar.com --username "$HARBOR_USERNAME" --password-stdin
 
       - uses: docker/setup-buildx-action@v4
         id: buildx
@@ -76,12 +85,12 @@ jobs:
           file: services/${{ inputs.service }}/Dockerfile
           platforms: linux/arm64
           push: true
-          tags: ${{ steps.ecr.outputs.registry }}/${{ steps.image.outputs.repository }}:${{ steps.image.outputs.tag }}
+          tags: ${{ env.REGISTRY }}/${{ steps.image.outputs.repository }}:${{ steps.image.outputs.tag }}
           cache-from: type=gha,scope=${{ inputs.service }}
           cache-to: type=gha,mode=max,scope=${{ inputs.service }}
       - name: Record published image
         env:
-          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ steps.image.outputs.repository }}
+          IMAGE: ${{ env.REGISTRY }}/${{ steps.image.outputs.repository }}
           TAG: ${{ steps.image.outputs.tag }}
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |

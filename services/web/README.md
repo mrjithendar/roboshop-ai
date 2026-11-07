@@ -27,7 +27,7 @@ Browser → Traefik (TLS, strips /roboshop) → web :8080
 | `web-deployment.yaml`, `web-service.yaml` | Kubernetes resources, synced by the `web` Argo CD Application. |
 
 Build context is this directory, as with every other service, so the shared
-`publish-ecr.yml` workflow needs no special case.
+`publish-image.yml` workflow needs no special case.
 
 ## Build and run locally
 

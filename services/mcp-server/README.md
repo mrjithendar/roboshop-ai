@@ -298,7 +298,7 @@ python -m unittest discover -s services/mcp-server/tests -v
 - **Build and deploy:**
 
   ```bash
-  # Images are built and pushed to ECR by each service's CI workflow (`.github/workflows/ci-<service>.yml`, which calls `publish-ecr.yml`) on pushes to `master`.
+  # Images are built and pushed to Harbor (`registry.jithendar.com/jithendar`) by each service's CI workflow (`.github/workflows/ci-<service>.yml`, which calls `publish-image.yml`) on pushes to `master`.
   bash scripts/deploy/deploy-minikube.sh mcp-server
   ```
 

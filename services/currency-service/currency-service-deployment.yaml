@@ -18,12 +18,14 @@ spec:
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
+      imagePullSecrets:
+      - name: harbor-pull   # robot$k8s-pull: tools deploy/minikube/harbor/registry.py pull-secrets
       containers:
       - name: currency-service
         envFrom:
         - configMapRef:
             name: roboshop-config
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-currency-service:latest
+        image: registry.jithendar.com/jithendar/roboshop-currency-service:latest
         imagePullPolicy: Always
         resources:
           requests:

@@ -18,9 +18,11 @@ spec:
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
+      imagePullSecrets:
+      - name: harbor-pull   # robot$k8s-pull: tools deploy/minikube/harbor/registry.py pull-secrets
       containers:
       - name: shipping-service
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-shipping:latest
+        image: registry.jithendar.com/jithendar/roboshop-shipping:latest
         imagePullPolicy: Always
         env:
         - name: SHIPPING_APP_PASSWORD

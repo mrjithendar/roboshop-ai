@@ -21,9 +21,11 @@ spec:
         runAsGroup: 1000
         runAsNonRoot: true
         fsGroup: 1000
+      imagePullSecrets:
+      - name: harbor-pull   # robot$k8s-pull: tools deploy/minikube/harbor/registry.py pull-secrets
       containers:
       - name: user-service
-        image: 881026659929.dkr.ecr.us-east-1.amazonaws.com/roboshop-user-service:latest
+        image: registry.jithendar.com/jithendar/roboshop-user-service:latest
         imagePullPolicy: Always
         env:
         - name: SUPERADMIN_EMAIL
