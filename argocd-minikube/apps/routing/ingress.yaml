@@ -1,0 +1,46 @@
+# Same pattern as the moks and jithendar.com routes: Traefik's default certificate covers jithendar.com.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: roboshop
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: roboshop-ai-roboshop-strip-prefix@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: jithendar.com
+    http:
+      paths:
+      - path: /roboshop
+        pathType: Prefix
+        backend:
+          service:
+            name: web
+            port:
+              number: 8080
+  tls:
+  - hosts:
+    - jithendar.com
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: roboshop-http
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+    traefik.ingress.kubernetes.io/router.middlewares: roboshop-ai-https-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: jithendar.com
+    http:
+      paths:
+      - path: /roboshop
+        pathType: Prefix
+        backend:
+          service:
+            name: web
+            port:
+              number: 8080

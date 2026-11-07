@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-rabbitmq
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: roboshop-minikube
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  project: roboshop
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: roboshop-ai
+  syncPolicy:
+    syncOptions:
+    - FailOnSharedResource=true
+    - PruneLast=true
+    - CreateNamespace=true
+  # mk4 has only the minikube-hostpath "standard" StorageClass; the manifests ask for EKS gp3-encrypted.
+  source:
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    targetRevision: master
+    path: services/rabbitmq
+    kustomize:
+      patches:
+      - target:
+          kind: PersistentVolumeClaim
+          name: rabbitmq-data
+        patch: |-
+          - op: replace
+            path: /spec/storageClassName
+            value: standard

@@ -1,0 +1,7 @@
+# Lets argocd-minikube/mongodb.yaml patch the StorageClass; roboshop-demo-mongodb reads these files as a directory.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- mongodb.yaml
+- mongodb-serviceaccount.yaml
+- mongodb-catalog-configmap.yaml

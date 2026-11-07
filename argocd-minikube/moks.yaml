@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-moks
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: roboshop-minikube
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  project: roboshop
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: roboshop-ai
+  syncPolicy:
+    syncOptions:
+    - FailOnSharedResource=true
+    - PruneLast=true
+    - CreateNamespace=true
+  # The widget checks the browser origin; mk4 serves RoboShop at https://jithendar.com/roboshop.
+  source:
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    targetRevision: master
+    path: services/moks
+    kustomize:
+      patches:
+      - target:
+          kind: Deployment
+          name: moks
+        patch: |-
+          - op: test
+            path: /spec/template/spec/containers/0/env/0/name
+            value: ALLOWED_ORIGINS
+          - op: replace
+            path: /spec/template/spec/containers/0/env/0/value
+            value: https://jithendar.com
+          - op: test
+            path: /spec/template/spec/containers/0/env/1/name
+            value: UPSTREAM_ORIGIN
+          - op: replace
+            path: /spec/template/spec/containers/0/env/1/value
+            value: https://jithendar.com

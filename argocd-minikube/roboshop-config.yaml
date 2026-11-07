@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-config
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: roboshop-minikube
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  project: roboshop
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: roboshop-ai
+  syncPolicy:
+    syncOptions:
+    - FailOnSharedResource=true
+    - PruneLast=true
+    - CreateNamespace=true
+  # Namespace and shared ConfigMap from argocd-eks, pointed at jithendar.com instead of eks.jithendar.com.
+  source:
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    targetRevision: master
+    path: argocd-eks/apps/roboshop
+    kustomize:
+      patches:
+      - target:
+          kind: ConfigMap
+          name: roboshop-config
+        patch: |-
+          - op: replace
+            path: /data/PUBLIC_ORIGIN
+            value: https://jithendar.com
+          - op: replace
+            path: /data/TURNSTILE_HOSTNAME
+            value: jithendar.com
+          - op: replace
+            path: /data/DEPLOYMENT_ENVIRONMENT
+            value: minikube
