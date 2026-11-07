@@ -21,6 +21,7 @@ service workflow files and may therefore trigger one final round of builds.
 The publisher pushes `registry.jithendar.com/jithendar/roboshop-<service>:latest`, matching the deployment
 manifests. It needs the repository secrets `HARBOR_USERNAME` and `HARBOR_PASSWORD` (robot
 `robot$jithendar+roboshop-ai`, from the tools repository's `deploy/minikube/harbor/registry.py ci-robots`).
+It runs on `ubuntu-latest` and builds `linux/arm64` (the mk4 nodes) under QEMU, so builds are slower than native.
 
 When manually running Deploy-Minikube, select the kubeconfig context with
 `profile`. The optional `kubeconfig` input is a file path on the self-hosted
