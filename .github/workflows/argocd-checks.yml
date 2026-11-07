@@ -28,7 +28,7 @@ jobs:
         with: {repository: mrjithendar/tools, path: tools, persist-credentials: false}
       - uses: actions/setup-python@v7
         with: {python-version: '3.14'}
-      - uses: azure/setup-kubectl@v4
+      - uses: azure/setup-kubectl@v5
         with: {version: v1.35.0}
       - uses: azure/setup-helm@v4.3.1
       - run: python -m pip install PyYAML pytest
