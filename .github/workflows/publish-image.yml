@@ -10,23 +10,25 @@ on:
     secrets:
       # Harbor robot robot$jithendar+roboshop-ai (push and pull in project jithendar only), set by the tools
       # repository's deploy/minikube/harbor/registry.py ci-robots. Callers pass them with "secrets: inherit".
+      # Only the default branch uses them; Dependabot branches get no repository secrets.
       HARBOR_USERNAME:
-        required: true
+        required: false
       HARBOR_PASSWORD:
-        required: true
+        required: false
 
 permissions:
   contents: read
 
 jobs:
   publish:
-    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    # Every push builds the image; only the default branch pushes :latest to Harbor.
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       SERVICE: ${{ inputs.service }}
       REGISTRY: registry.jithendar.com/jithendar
       REPOSITORY_PREFIX: roboshop
+      PUBLISH: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -57,6 +59,7 @@ jobs:
           fi
 
       - name: Log in to Harbor
+        if: env.PUBLISH == 'true'
         env:
           HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
           HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
@@ -76,14 +79,18 @@ jobs:
           context: services/${{ inputs.service }}
           file: services/${{ inputs.service }}/Dockerfile
           platforms: linux/arm64
-          push: true
+          push: ${{ env.PUBLISH == 'true' }}
           tags: ${{ env.REGISTRY }}/${{ steps.image.outputs.repository }}:${{ steps.image.outputs.tag }}
           cache-from: type=gha,scope=${{ inputs.service }}
           cache-to: type=gha,mode=max,scope=${{ inputs.service }}
       - name: Record published image
+        if: env.PUBLISH == 'true'
         env:
           IMAGE: ${{ env.REGISTRY }}/${{ steps.image.outputs.repository }}
           TAG: ${{ steps.image.outputs.tag }}
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           printf '### %s\n\nImage: `%s:%s`\n\nDigest: `%s@%s`\n' "$SERVICE" "$IMAGE" "$TAG" "$IMAGE" "$DIGEST" >> "$GITHUB_STEP_SUMMARY"
+      - name: Record branch build
+        if: env.PUBLISH != 'true'
+        run: printf '### %s\n\nBuilt on `%s`; not pushed (only the default branch publishes).\n' "$SERVICE" "$GITHUB_REF_NAME" >> "$GITHUB_STEP_SUMMARY"
