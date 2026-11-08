@@ -60,7 +60,7 @@ jobs:
       - uses: actions/setup-python@v7
         if: env.HAS_TOKEN == 'true'
         with: {python-version: '3.14'}
-      - uses: azure/setup-kubectl@v4
+      - uses: azure/setup-kubectl@v5
         if: env.HAS_TOKEN == 'true'
         with: {version: v1.35.0}
       - uses: azure/setup-helm@v4.3.1
