@@ -11,7 +11,7 @@ npm ci
 npm run frontend:typecheck
 npm run frontend:build
 sh
-bash ../tools/deploy-minikube.sh   # images are built by CI (ci-<service>.yml)
+bash ../miniKube/deploy-minikube.sh   # images are built by CI (ci-<service>.yml)
 # Storefront: http://localhost:3000
 ```
 

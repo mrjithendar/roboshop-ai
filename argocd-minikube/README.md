@@ -20,7 +20,7 @@ They use manual sync, no finalizers, and must never be synced with prune.
 
 Differences from `argocd-eks`:
 
-- **Smaller mesh.** mk4 runs Istio (tools `minikube-infrastructure`, with the CNI plugin) and Traefik has a
+- **Smaller mesh.** mk4 runs Istio (miniKube `minikube-infrastructure`, with the CNI plugin) and Traefik has a
   sidecar. `config` labels the namespace `istio-injection=enabled`, and `mesh` (`apps/mesh`) sets STRICT mTLS plus
   the NetworkPolicy Prometheus needs for the sidecar ports. No ServiceAccount patches or AuthorizationPolicies:
   pods use the namespace's default ServiceAccount.
@@ -30,10 +30,10 @@ Differences from `argocd-eks`:
 
 ## Prerequisites
 
-- **`harbor-pull`.** Every service pulls `registry.jithendar.com/jithendar/roboshop-*:latest`. From the tools
+- **`harbor-pull`.** Every service pulls `registry.jithendar.com/jithendar/roboshop-*:latest`. From the miniKube
   checkout: `python3 deploy/minikube/harbor/registry.py pull-secrets --namespace roboshop-ai` (asks for the
   `robot$k8s-pull` secret).
-- **`roboshop-secrets`.** Argo CD does not manage Secrets. From the tools checkout:
+- **`roboshop-secrets`.** Argo CD does not manage Secrets. From the miniKube checkout:
   `python3 scripts/argocd/bootstrap.py --app-secrets-only --context mk4`. Razorpay, SES and Turnstile values are
   set separately; without Turnstile keys, registration is refused.
 - **Git.** Every source is read from `master`, so these files must be merged before syncing.
@@ -51,7 +51,7 @@ argocd app sync --project roboshop
 
 ### Turning on the mesh
 
-Needs Istio with its CNI plugin and Traefik's sidecar from tools first. Then:
+Needs Istio with its CNI plugin and Traefik's sidecar from miniKube first. Then:
 
 ```bash
 argocd app sync argocd/roboshop-config          # labels the namespace
@@ -62,4 +62,4 @@ argocd app sync argocd/roboshop-mesh            # STRICT: only after every pod h
 
 Then open `https://jithendar.com/roboshop/`.
 
-`tools/scripts/argocd/deploy.py` does not read this catalog.
+miniKube's `scripts/argocd/deploy.py` does not read this catalog.

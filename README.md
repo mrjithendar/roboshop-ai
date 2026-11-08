@@ -27,7 +27,6 @@ The supported infrastructure commands are (from `../tools/roboshop`):
 cd ../tools/roboshop
 ./init.sh --profile minikube
 ./deploy-minikube.sh start
-./deploy-traefik.sh
 ./patch-ssl.sh
 ./kubectl.sh get pods -A
 ```
@@ -123,7 +122,7 @@ with repository secrets `HARBOR_USERNAME` and `HARBOR_PASSWORD` set by the tools
 
 Pods pull with the Secret `harbor-pull` (read-only robot `robot$k8s-pull`, never expires), named in every
 workload's `imagePullSecrets`. Create it in the cluster's `roboshop-ai` namespace before syncing:
-`python3 deploy/minikube/harbor/registry.py pull-secrets --context <context> --namespace roboshop-ai` (tools
+`python3 deploy/minikube/harbor/registry.py pull-secrets --context <context> --namespace roboshop-ai` (miniKube
 repository). Every workload runs `:latest` with `imagePullPolicy: Always`; restart it to pick up a new build.
 
 ### Kafka analytics stream
@@ -135,7 +134,7 @@ and `ai-gateway` to enable the integration; no checkout dependency on Kafka is a
 
 ### Create missing Minikube secrets
 
-From `../tools/roboshop`, use `./create-secrets.sh --context mk4` to preview, then add `--apply` to create missing RoboShop, monitoring and WordPress credentials. Optional `--all` includes JFrog; `--ecr` refreshes image-pull tokens using existing AWS authentication. Existing credentials are preserved. See [secret setup and recovery safeguards](https://github.com/mrjithendar/tools/blob/master/roboshop/scripts/setup/SECRETS.md).
+From `../miniKube`, use `./create-secrets.sh --context mk4` to preview, then add `--apply` to create missing RoboShop, monitoring and WordPress credentials. Optional `--all` includes JFrog; `--ecr` refreshes image-pull tokens using existing AWS authentication. Existing credentials are preserved. See [secret setup and recovery safeguards](https://github.com/mrjithendar/tools/blob/master/roboshop/scripts/setup/SECRETS.md).
 
 ## License
 

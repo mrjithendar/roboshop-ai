@@ -98,7 +98,7 @@ take effect only when synced. Removing `frontend.yaml` and `nginx.yaml` from the
 2. **Start web without moving traffic:**
 
    ```bash
-   ../tools/deploy-argocd.sh web
+   ../miniKube/deploy-argocd.sh web
    kubectl -n roboshop-ai rollout status deployment/web
    kubectl -n roboshop-ai port-forward svc/web 18080:8080 &
    curl -fsS localhost:18080/ready && curl -fsS localhost:18080/ | grep -q 'Find your kind of robot'
@@ -109,11 +109,11 @@ take effect only when synced. Removing `frontend.yaml` and `nginx.yaml` from the
 3. **Switch the ingress**, only after step 2 succeeds:
 
    ```bash
-   ../tools/deploy-argocd.sh roboshop-config
+   ../miniKube/deploy-argocd.sh roboshop-config
    curl -fsSI https://jithendar.com/roboshop/ && curl -fsS https://jithendar.com/roboshop/api/ready
    ```
 
-   Do **not** use `../tools/deploy-argocd.sh roboshop` for this step. That shortcut syncs
+   Do **not** use `../miniKube/deploy-argocd.sh roboshop` for this step. That shortcut syncs
    `roboshop-config` first.
 4. **Retire the old workloads** after a soak period. Remove only the Applications'
    tracking, then delete the resources explicitly:

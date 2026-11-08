@@ -1,21 +1,23 @@
 name: Argo CD catalog checks
-# Argo CD manifests live here; the validator and catalog tests are read from mrjithendar/tools.
+# Argo CD manifests live here. The MongoDB catalog test is read from mrjithendar/tools (public); the mk4 catalog
+# validator and its tests from mrjithendar/miniKube (private: needs secret MINIKUBE_READ_TOKEN, a fine-grained token with
+# contents:read on miniKube; without it that job is skipped).
 on:
   pull_request:
     paths: ['argocd-eks/**', '.github/workflows/argocd-checks.yml']
   push:
     branches: [master]
     paths: ['argocd-eks/**', '.github/workflows/argocd-checks.yml']
-  # tools changes do not trigger this repository: validate daily as well.
+  # tools and miniKube changes do not trigger this repository: validate daily as well.
   schedule:
     - cron: '30 2 * * *'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  validate:
+  mongodb-catalog:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     env:
       ROBOSHOP_AI_DIR: ${{ github.workspace }}/roboshop-ai
     defaults:
@@ -28,9 +30,44 @@ jobs:
         with: {repository: mrjithendar/tools, path: tools, persist-credentials: false}
       - uses: actions/setup-python@v7
         with: {python-version: '3.14'}
+      - run: python -m pip install PyYAML pytest
+      - run: python -m pytest -q tests/test_mongodb_catalog.py
+
+  mk4-catalog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ROBOSHOP_AI_DIR: ${{ github.workspace }}/roboshop-ai
+      JITHENDAR_COM_DIR: ${{ github.workspace }}/jithendar.com
+      HAS_TOKEN: ${{ secrets.MINIKUBE_READ_TOKEN != '' }}
+    defaults:
+      run:
+        working-directory: miniKube
+    steps:
+      - name: Skip without MINIKUBE_READ_TOKEN
+        if: env.HAS_TOKEN != 'true'
+        working-directory: .
+        run: echo "::warning::Secret MINIKUBE_READ_TOKEN is not set; the mk4 catalog checks were skipped"
+      - uses: actions/checkout@v7.0.1
+        if: env.HAS_TOKEN == 'true'
+        with: {path: roboshop-ai, persist-credentials: false}
+      - uses: actions/checkout@v7.0.1
+        if: env.HAS_TOKEN == 'true'
+        with: {repository: mrjithendar/miniKube, path: miniKube, token: '${{ secrets.MINIKUBE_READ_TOKEN }}', persist-credentials: false}
+      - uses: actions/checkout@v7.0.1
+        if: env.HAS_TOKEN == 'true'
+        with: {repository: mrjithendar/jithendar.com, path: jithendar.com, persist-credentials: false}
+      - uses: actions/setup-python@v7
+        if: env.HAS_TOKEN == 'true'
+        with: {python-version: '3.14'}
       - uses: azure/setup-kubectl@v4
+        if: env.HAS_TOKEN == 'true'
         with: {version: v1.35.0}
       - uses: azure/setup-helm@v4.3.1
-      - run: python -m pip install PyYAML pytest
-      - run: python scripts/argocd/validate.py --external-charts
-      - run: python -m pytest -q tests/test_argocd_catalog.py tests/test_mongodb_catalog.py minikube/test-jfrog.py
+        if: env.HAS_TOKEN == 'true'
+      - if: env.HAS_TOKEN == 'true'
+        run: python -m pip install PyYAML pytest
+      - if: env.HAS_TOKEN == 'true'
+        run: python scripts/argocd/validate.py --external-charts
+      - if: env.HAS_TOKEN == 'true'
+        run: python -m pytest -q tests/test_argocd_catalog.py deploy/minikube/test-jfrog.py
