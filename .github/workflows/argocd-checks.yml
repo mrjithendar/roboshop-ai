@@ -63,7 +63,7 @@ jobs:
       - uses: azure/setup-kubectl@v4
         if: env.HAS_TOKEN == 'true'
         with: {version: v1.35.0}
-      - uses: azure/setup-helm@v4.3.1
+      - uses: azure/setup-helm@v5.0.1
         if: env.HAS_TOKEN == 'true'
       - if: env.HAS_TOKEN == 'true'
         run: python -m pip install PyYAML pytest
