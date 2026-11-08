@@ -1,0 +1,9 @@
+# STRICT: only pods with a sidecar can connect. Nothing outside the mesh calls roboshop-ai on mk4 (Prometheus has
+# no roboshop job), so no port is left PERMISSIVE.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+spec:
+  mtls:
+    mode: STRICT

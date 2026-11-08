@@ -17,13 +17,23 @@ spec:
     - FailOnSharedResource=true
     - PruneLast=true
     - CreateNamespace=true
-  # Namespace and shared ConfigMap from argocd-eks, pointed at jithendar.com instead of eks.jithendar.com.
+  # Namespace (labelled for Istio injection) and shared ConfigMap from argocd-eks, pointed at jithendar.com instead
+  # of eks.jithendar.com.
   source:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: argocd-eks/apps/roboshop
     kustomize:
       patches:
+      # Istio sidecars in every pod (apps/mesh); pods get one when they restart.
+      - target:
+          kind: Namespace
+          name: roboshop-ai
+        patch: |-
+          - op: add
+            path: /metadata/labels
+            value:
+              istio-injection: enabled
       - target:
           kind: ConfigMap
           name: roboshop-config

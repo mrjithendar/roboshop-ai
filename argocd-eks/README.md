@@ -45,4 +45,4 @@ argocd app sync argocd/roboshop-demo-mongodb argocd/roboshop-demo-postgres argoc
 argocd app sync --project eks
 ```
 
-`tools/scripts/argocd/deploy.py` only deploys to the local cluster, so it does not read this catalog.
+miniKube's `scripts/argocd/deploy.py` only deploys to the local cluster, so it does not read this catalog.
