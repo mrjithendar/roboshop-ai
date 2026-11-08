@@ -17,7 +17,7 @@ spec:
     - FailOnSharedResource=true
     - PruneLast=true
     - CreateNamespace=true
-  # Traefik route for https://jithendar.com/roboshop.
+  # Delegate VirtualService for https://jithendar.com/roboshop (the Istio gateway routing table is in miniKube).
   source:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master

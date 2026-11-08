@@ -15,13 +15,13 @@ They use manual sync, no finalizers, and must never be synced with prune.
 | moks | The same, with the widget origins set to `https://jithendar.com`. |
 | mongodb | `argocd-eks/apps/data` (StatefulSet, ServiceAccount, catalog ConfigMap) on `standard`. |
 | config | Namespace and ConfigMap from `argocd-eks/apps/roboshop`, with `PUBLIC_ORIGIN`, `TURNSTILE_HOSTNAME` and `DEPLOYMENT_ENVIRONMENT` set for mk4. |
-| routing | Traefik Ingresses and Middlewares in `apps/routing`: `https://jithendar.com/roboshop` to `web`, prefix stripped. |
+| routing | Delegate VirtualService `roboshop` in `apps/routing`: the Istio gateway's routing table (miniKube `deploy/minikube/istio/edge`) sends `https://jithendar.com/roboshop` here, to `web` with the prefix stripped. |
 | mesh | `apps/mesh`: PeerAuthentication `default` (STRICT) and NetworkPolicy `istio-sidecars`. |
 
 Differences from `argocd-eks`:
 
-- **Smaller mesh.** mk4 runs Istio (miniKube `minikube-infrastructure`, with the CNI plugin) and Traefik has a
-  sidecar. `config` labels the namespace `istio-injection=enabled`, and `mesh` (`apps/mesh`) sets STRICT mTLS plus
+- **Smaller mesh.** mk4 runs Istio (miniKube `minikube-infrastructure`, with the CNI plugin), and its ingress
+  gateway is the edge, sending mTLS. `config` labels the namespace `istio-injection=enabled`, and `mesh` (`apps/mesh`) sets STRICT mTLS plus
   the NetworkPolicy Prometheus needs for the sidecar ports. No ServiceAccount patches or AuthorizationPolicies:
   pods use the namespace's default ServiceAccount.
 - **Storage.** mk4 has only minikube-hostpath `standard`; the manifests ask for EKS `gp3-encrypted`, so the
