@@ -8,6 +8,7 @@ resources:
 - currency-service.yaml
 - kafka-bridge.yaml
 - mcp-server.yaml
+- mesh.yaml
 - moks.yaml
 - mongodb.yaml
 - payment-service.yaml

@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-mesh
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: roboshop-minikube
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  project: roboshop
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: roboshop-ai
+  syncPolicy:
+    syncOptions:
+    - FailOnSharedResource=true
+    - PruneLast=true
+  # STRICT mTLS and the NetworkPolicy the sidecars need (apps/mesh). Sync after every pod has restarted with a sidecar.
+  source:
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    targetRevision: master
+    path: argocd-minikube/apps/mesh
