@@ -24,7 +24,14 @@ spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
       terminationGracePeriodSeconds: 60
+      # Runs as mongodb (999) from the start. As root with only CHOWN/SETUID/SETGID, the entrypoint's
+      # `find /data/db ! -user mongodb` cannot read the 0700 directories mongod made on the first run (no
+      # DAC_OVERRIDE), so every restart after the first failed with "Permission denied". Non-root, the
+      # entrypoint skips the chown and the drop from root, and needs no capabilities.
       securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
         fsGroup: 999
         seccompProfile:
           type: RuntimeDefault
@@ -58,7 +65,6 @@ spec:
           allowPrivilegeEscalation: false
           capabilities:
             drop: ["ALL"]
-            add: ["CHOWN", "SETUID", "SETGID"]   # official entrypoint drops from root to uid 999
         startupProbe:
           tcpSocket:
             port: 27017
