@@ -21,8 +21,8 @@
     "test:python": "${PYTHON:-python3} -m unittest discover -s tests/python -v && ${PYTHON:-python3} -m unittest discover -s services/ai-gateway/tests -v && ${PYTHON:-python3} -m unittest discover -s services/user-service/tests -v && ${PYTHON:-python3} -m unittest discover -s services/moks/tests -v"
   },
   "dependencies": {
-    "amqplib": "^2.2.0",
-    "mongodb": "7.7.0"
+    "amqplib": "^2.2.1",
+    "mongodb": "7.8.0"
   },
   "devDependencies": {
     "jsdom": "30.1.3",
