@@ -1,11 +1,12 @@
 # Istio for roboshop-ai on mk4. The namespace label istio-injection=enabled comes from the roboshop-config
-# Application (../../roboshop-config.yaml); Istio, its CNI plugin and Traefik's sidecar are in the tools repo
-# (minikube-infrastructure). Traefik is in the mesh, so /roboshop requests reach web over mTLS.
-# Unlike argocd-eks/apps/mesh there are no per-service ServiceAccounts or AuthorizationPolicies: pods keep the
-# default ServiceAccount, and this only turns on STRICT mTLS.
+# Application (../../roboshop-config.yaml); Istio, its CNI plugin, the ingress gateway and the mesh-wide STRICT default
+# are in the miniKube repo (minikube-infrastructure). /roboshop requests reach web from the gateway over mTLS.
+# Unlike argocd-eks/apps/mesh there are no per-service ServiceAccounts: pods keep the default ServiceAccount, and one
+# namespace-wide AuthorizationPolicy says which namespaces may call in.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: roboshop-ai
 resources:
 - peerauthentication.yaml
 - networkpolicy.yaml
+- authorizationpolicy.yaml

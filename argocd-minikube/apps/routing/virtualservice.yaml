@@ -1,6 +1,6 @@
 # https://jithendar.com/roboshop on the Istio ingress gateway: a delegate of the routing table in miniKube
-# (deploy/minikube/istio/edge sends /roboshop here). web serves from /, so /roboshop is stripped, as Traefik's
-# stripPrefix did (see services/web/nginx/README.md). TLS and HTTP to HTTPS are the gateway's. The gateway sends mTLS,
+# (deploy/minikube/istio/edge sends /roboshop here). web serves from /, so /roboshop is stripped (see
+# services/web/nginx/README.md). TLS and HTTP to HTTPS are the gateway's. The gateway sends mTLS,
 # so the namespace's STRICT PeerAuthentication (apps/mesh) holds for this route too.
 apiVersion: networking.istio.io/v1
 kind: VirtualService

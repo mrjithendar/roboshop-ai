@@ -101,7 +101,7 @@ test('subpath HTML links and module assets survive ingress prefix stripping', {s
   try {
     process.env.FRONTEND_BASE_PATH='/roboshop';
     edge=await startNginx({port,gatewayPort,directory:dir});
-    // Traefik strips /roboshop before forwarding these requests to NGINX.
+    // The Istio gateway strips /roboshop before forwarding these requests to NGINX.
     const base=`http://127.0.0.1:${port}`;
     for(const path of ['/','/admin','/products/arduino-alvik','/cart','/checkout','/account','/login','/register']) {
       const html=await (await fetch(base+path)).text();

@@ -32,7 +32,7 @@ spec:
         image: registry.jithendar.com/jithendar/roboshop-web:latest
         imagePullPolicy: Always
         env:
-        # Traefik strips /roboshop; HTML attributes are rewritten back to it.
+        # The Istio gateway strips /roboshop; HTML attributes are rewritten back to it.
         - name: FRONTEND_BASE_PATH
           value: /roboshop
         # NGINX runtime DNS resolution needs full Kubernetes service names.

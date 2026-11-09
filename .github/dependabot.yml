@@ -36,6 +36,12 @@ updates:
   - /services/shipping-service
   - /services/user-service
   - /tests/load
+  # Data stores synced by argocd-minikube (stateful: merging restarts the pod; mk4 hostpath PVs have no
+  # nodeAffinity, so check the node before merging)
+  - /services/postgres
+  - /services/rabbitmq
+  - /services/redis
+  - /argocd-eks/apps/data
   schedule:
     interval: weekly
     day: monday
@@ -49,6 +55,28 @@ updates:
       update-types:
       - minor
       - patch
+  ignore:
+  # Python minors change the wheel ABI and must move with setup-python in the CI workflows (3.14); bump by hand.
+  - dependency-name: python
+    update-types:
+    - version-update:semver-major
+    - version-update:semver-minor
+  # Major PostgreSQL upgrades need pg_upgrade or a dump/restore of the data volume.
+  - dependency-name: postgres
+    update-types:
+    - version-update:semver-major
+  # MongoDB feature versions upgrade one step at a time and change the on-disk format.
+  - dependency-name: mongo
+    update-types:
+    - version-update:semver-major
+    - version-update:semver-minor
+  - dependency-name: redis
+    update-types:
+    - version-update:semver-major
+  # RabbitMQ needs every feature flag enabled before a major upgrade.
+  - dependency-name: rabbitmq
+    update-types:
+    - version-update:semver-major
   commit-message:
     prefix: chore(deps)
 - package-ecosystem: github-actions

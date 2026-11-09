@@ -42,7 +42,9 @@ def handler(state):
      evidence=json.loads(body['messages'][1]['content'])
      assert len(evidence['request'])<=1000
     except (KeyError,ValueError,AssertionError):return self.send(400,{'error':'Invalid prompt'})
-    return self.send(200,{'done':True,'model':'load-mock','message':{'content':'Synthetic response grounded in the supplied catalogue.'},'prompt_eval_count':100,'eval_count':10})
+    # Follow the prompt's contract: end with "Products: <SKUs>" so Moks keeps the cards a follow-up turn refers to.
+    skus=', '.join(p['sku'] for p in evidence.get('catalogueEvidence',[]) if isinstance(p,dict) and 'sku' in p) or 'none'
+    return self.send(200,{'done':True,'model':'load-mock','message':{'content':'Synthetic response grounded in the supplied catalogue.\nProducts: '+skus},'prompt_eval_count':100,'eval_count':10})
    if path=='/v1/orders' and self.command=='POST':
     with state.lock:
      existing=next((o for o in state.orders.values() if o['receipt']==body['receipt']),None)
