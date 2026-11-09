@@ -10,7 +10,8 @@ They use manual sync, no finalizers, and must never be synced with prune.
 
 | Applications | Source |
 | --- | --- |
-| cart-service, catalogue-service, currency-service, mcp-server, payment-service, redis, shipping-service, user-service, web | The `services/<service>` manifests as they are. |
+| catalogue-service, currency-service, mcp-server, payment-service, user-service, web | The `services/<service>` manifests as they are. |
+| cart-service, shipping-service | The same, with Redis taken from Secret `redis-roboshop-credentials`: mk4's shared Valkey (miniKube `minikube-infrastructure/redis.tf`, ACL user `roboshop`, database 6). `services/redis` is not deployed on mk4. |
 | ai-gateway, kafka-bridge, postgres, rabbitmq | The same, with their volumes on the `standard` StorageClass. |
 | moks | The same, with the widget origins set to `https://jithendar.com`. |
 | mongodb | `argocd-eks/apps/data` (StatefulSet, ServiceAccount, catalog ConfigMap) on `standard`. |
@@ -33,6 +34,10 @@ Differences from `argocd-eks`:
 - **`harbor-pull`.** Every service pulls `registry.jithendar.com/jithendar/roboshop-*:latest`. From the miniKube
   checkout: `python3 deploy/minikube/harbor/registry.py pull-secrets --namespace roboshop-ai` (asks for the
   `robot$k8s-pull` secret).
+- **`redis-roboshop-credentials`.** Written into `roboshop-ai` by Terraform in the miniKube checkout
+  (`redis_tenants.roboshop` in `vars/mk4.tfvars`); cart-service and shipping-service read host, port, username,
+  password and db from it. Their images must include `REDIS_USERNAME`/`REDIS_DB` support (cart `server.py`,
+  shipping `application.yml`).
 - **`roboshop-secrets`.** Argo CD does not manage Secrets. From the miniKube checkout:
   `python3 scripts/argocd/bootstrap.py --app-secrets-only --context mk4`. Razorpay, SES and Turnstile values are
   set separately; without Turnstile keys, registration is refused.
@@ -45,7 +50,7 @@ kubectl --context mk4 apply -k argocd-minikube
 argocd app sync argocd/roboshop-config
 # create harbor-pull and roboshop-secrets (Prerequisites), then:
 argocd app sync argocd/roboshop-mongodb argocd/roboshop-postgres argocd/roboshop-rabbitmq \
-  argocd/roboshop-redis argocd/roboshop-kafka-bridge
+  argocd/roboshop-kafka-bridge
 argocd app sync --project roboshop
 ```
 

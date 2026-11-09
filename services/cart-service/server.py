@@ -95,6 +95,7 @@ class CartService:
 
 if __name__ == '__main__':
     configure_telemetry('cart-service')
-    client = redis.Redis(host=os.getenv('REDIS_HOST','redis'),port=int(os.getenv('REDIS_PORT','6379')),password=os.environ['REDIS_PASSWORD'],decode_responses=True,socket_timeout=3,socket_connect_timeout=3)
+    # REDIS_USERNAME/REDIS_DB: an ACL user and its database on a shared server (mk4's Valkey); unset = default user, db 0.
+    client = redis.Redis(host=os.getenv('REDIS_HOST','redis'),port=int(os.getenv('REDIS_PORT','6379')),username=os.getenv('REDIS_USERNAME') or None,password=os.environ['REDIS_PASSWORD'],db=int(os.getenv('REDIS_DB','0')),decode_responses=True,socket_timeout=3,socket_connect_timeout=3)
     app = CartService(client, os.environ['CART_SERVICE_TOKEN'])
     serve('cart-service', 4107, app.handle)

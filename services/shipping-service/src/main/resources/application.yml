@@ -7,6 +7,7 @@ spring:
       port: ${REDIS_PORT:6379}
       username: ${REDIS_USERNAME:default}
       password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DB:0}
       connect-timeout: 300ms
       timeout: 300ms
       ssl:

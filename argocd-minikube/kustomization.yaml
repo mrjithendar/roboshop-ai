@@ -14,7 +14,6 @@ resources:
 - payment-service.yaml
 - postgres.yaml
 - rabbitmq.yaml
-- redis.yaml
 - roboshop-config.yaml
 - routing.yaml
 - shipping-service.yaml

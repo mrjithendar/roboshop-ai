@@ -25,3 +25,33 @@ spec:
     repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: services/cart-service
+    # The shared Valkey (namespace redis, ACL user roboshop, database 6): Secret redis-roboshop-credentials, written
+    # by Terraform in the miniKube repo (minikube-infrastructure/redis.tf). roboshop-ai runs no Redis of its own here.
+    kustomize:
+      patches:
+      - target:
+          kind: Deployment
+          name: cart-service
+        patch: |-
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: cart-service
+          spec:
+            template:
+              spec:
+                containers:
+                - name: cart-service
+                  env:
+                  - name: REDIS_HOST
+                    value: null
+                    valueFrom: {secretKeyRef: {name: redis-roboshop-credentials, key: host}}
+                  - name: REDIS_PORT
+                    value: null
+                    valueFrom: {secretKeyRef: {name: redis-roboshop-credentials, key: port}}
+                  - name: REDIS_USERNAME
+                    valueFrom: {secretKeyRef: {name: redis-roboshop-credentials, key: username}}
+                  - name: REDIS_PASSWORD
+                    valueFrom: {secretKeyRef: {name: redis-roboshop-credentials, key: password}}
+                  - name: REDIS_DB
+                    valueFrom: {secretKeyRef: {name: redis-roboshop-credentials, key: db}}
