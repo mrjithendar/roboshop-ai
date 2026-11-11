@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-config
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: roboshop-k3s
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  project: roboshop
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: roboshop-ai
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: false
+      selfHeal: true
+    syncOptions:
+    - FailOnSharedResource=true
+    - PruneLast=true
+    - CreateNamespace=true
+  # Namespace (labelled for Istio injection) and shared ConfigMap from argocd-eks, pointed at jithendar.com instead
+  # of eks.jithendar.com.
+  source:
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    targetRevision: master
+    path: argocd-eks/apps/roboshop
+    kustomize:
+      patches:
+      # Istio sidecars in every pod (apps/mesh); pods get one when they restart.
+      - target:
+          kind: Namespace
+          name: roboshop-ai
+        patch: |-
+          - op: add
+            path: /metadata/labels
+            value:
+              istio-injection: enabled
+      - target:
+          kind: ConfigMap
+          name: roboshop-config
+        patch: |-
+          - op: replace
+            path: /data/PUBLIC_ORIGIN
+            value: https://jithendar.com
+          - op: replace
+            path: /data/TURNSTILE_HOSTNAME
+            value: jithendar.com
+          - op: replace
+            path: /data/DEPLOYMENT_ENVIRONMENT
+            value: k3s

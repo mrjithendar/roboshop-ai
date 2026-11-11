@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-routing
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: roboshop-k3s
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  project: roboshop
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: roboshop-ai
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: false
+      selfHeal: true
+    syncOptions:
+    - FailOnSharedResource=true
+    - PruneLast=true
+    - CreateNamespace=true
+  # Delegate VirtualService for https://jithendar.com/roboshop (the edge routing table is VirtualService istio-ingress/jithendar-com).
+  source:
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    targetRevision: master
+    path: argocd-k3s/apps/routing

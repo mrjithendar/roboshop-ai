@@ -1,0 +1,9 @@
+# STRICT: only pods with a sidecar can connect. Every caller on the cluster is meshed (the Istio gateway, Prometheus), so no
+# port is left PERMISSIVE. The mesh-wide default is STRICT too; this keeps it if that changes.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+spec:
+  mtls:
+    mode: STRICT

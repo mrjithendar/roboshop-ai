@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-ai-gateway
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: roboshop-k3s
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  project: roboshop
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: roboshop-ai
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: false
+      selfHeal: true
+    syncOptions:
+    - FailOnSharedResource=true
+    - PruneLast=true
+    - CreateNamespace=true
+  # Hetzner k3s: Hetzner Cloud volumes (hcloud-volumes, the default); the manifests ask for EKS gp3-encrypted.
+  source:
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    targetRevision: master
+    path: services/ai-gateway
+    kustomize:
+      patches:
+      - target:
+          kind: PersistentVolumeClaim
+          name: gateway-data
+        patch: |-
+          - op: replace
+            path: /spec/storageClassName
+            value: hcloud-volumes

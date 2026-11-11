@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: roboshop
+  namespace: argocd
+spec:
+  description: RoboShop on the Hetzner k3s cluster, the cluster Argo CD runs in
+  sourceRepos:
+  - https://github.com/mrjithendar/roboshop-ai.git
+  destinations:
+  - namespace: roboshop-ai
+    server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+  - group: ''
+    kind: Namespace
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  namespaceResourceBlacklist:
+  - group: ''
+    kind: Secret

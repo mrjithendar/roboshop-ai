@@ -1,0 +1,16 @@
+# Only these callers (their mTLS identity) reach anything in roboshop-ai: its own pods, the Istio ingress gateway
+# (/roboshop) and monitoring (Prometheus envoy-stats, Grafana). Dry run first (annotation istio.io/dry-run): Envoy lets
+# everything through and only counts what it would refuse; miniKube scripts/istio/authz-dry-run-report.py reads the
+# counts. Delete the annotation once they stay at 0.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-known-callers
+  annotations:
+    istio.io/dry-run: "true"
+spec:
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: [roboshop-ai, istio-ingress, monitoring]

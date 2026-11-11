@@ -1,0 +1,12 @@
+# Istio for roboshop-ai on the Hetzner k3s cluster. The namespace label istio-injection=enabled comes from the roboshop-config
+# Application (../../roboshop-config.yaml); Istio, its CNI plugin, the ingress gateway and the mesh-wide STRICT default
+# are installed on the cluster (istio-system, istio-ingress). /roboshop requests reach web from the gateway over mTLS.
+# Unlike argocd-eks/apps/mesh there are no per-service ServiceAccounts: pods keep the default ServiceAccount, and one
+# namespace-wide AuthorizationPolicy says which namespaces may call in.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: roboshop-ai
+resources:
+- peerauthentication.yaml
+- networkpolicy.yaml
+- authorizationpolicy.yaml

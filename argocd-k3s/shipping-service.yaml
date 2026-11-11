@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: roboshop-shipping-service
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: roboshop-k3s
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  project: roboshop
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: roboshop-ai
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: false
+      selfHeal: true
+    syncOptions:
+    - FailOnSharedResource=true
+    - PruneLast=true
+    - CreateNamespace=true
+  source:
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    targetRevision: master
+    path: services/shipping-service
+    # The shared Valkey (namespace redis, ACL user roboshop, database 6): Secret redis-roboshop-credentials, written
+    # by Terraform (managed-by: terraform). roboshop-ai runs no Redis of its own here.
+    kustomize:
+      patches:
+      - target:
+          kind: Deployment
+          name: shipping-service
+        patch: |-
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: shipping-service
+          spec:
+            template:
+              spec:
+                containers:
+                - name: shipping-service
+                  env:
+                  - name: REDIS_HOST
+                    value: null
+                    valueFrom: {secretKeyRef: {name: redis-roboshop-credentials, key: host}}
+                  - name: REDIS_PORT
+                    value: null
+                    valueFrom: {secretKeyRef: {name: redis-roboshop-credentials, key: port}}
+                  - name: REDIS_USERNAME
+                    valueFrom: {secretKeyRef: {name: redis-roboshop-credentials, key: username}}
+                  - name: REDIS_PASSWORD
+                    valueFrom: {secretKeyRef: {name: redis-roboshop-credentials, key: password}}
+                  - name: REDIS_DB
+                    valueFrom: {secretKeyRef: {name: redis-roboshop-credentials, key: db}}

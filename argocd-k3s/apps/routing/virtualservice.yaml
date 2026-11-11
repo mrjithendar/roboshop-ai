@@ -1,0 +1,20 @@
+# https://jithendar.com/roboshop on the Istio ingress gateway: a delegate of the edge routing table
+# (VirtualService istio-ingress/jithendar-com sends /roboshop here). web serves from /, so /roboshop is stripped (see
+# services/web/nginx/README.md). TLS and HTTP to HTTPS are the gateway's. The gateway sends mTLS,
+# so the namespace's STRICT PeerAuthentication (apps/mesh) holds for this route too.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: roboshop
+spec:
+  http:
+  - name: web
+    rewrite:
+      uriRegexRewrite:
+        match: ^/roboshop/?
+        rewrite: /
+    route:
+    - destination:
+        host: web.roboshop-ai.svc.cluster.local
+        port:
+          number: 8080
