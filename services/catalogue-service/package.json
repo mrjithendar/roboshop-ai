@@ -13,6 +13,6 @@
     "ingest": "node import.mjs"
   },
   "dependencies": {
-    "mongodb": "7.7.0"
+    "mongodb": "7.8.0"
   }
 }
