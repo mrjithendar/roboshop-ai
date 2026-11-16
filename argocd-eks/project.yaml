@@ -6,8 +6,10 @@ metadata:
 spec:
   description: RoboShop on the roboshop-demo EKS cluster, managed from Argo CD on mk4
   sourceRepos:
-  - https://github.com/mrjithendar/roboshop-ai.git
-  - https://github.com/mrjithendar/tools.git
+  - https://github.com/moks-tech/roboshop-ai.git
+  - https://github.com/mrjithendar/roboshop-ai.git  # until every Application names moks-tech (2026-11-16 org move)
+  - https://github.com/moks-tech/tools.git
+  - https://github.com/mrjithendar/tools.git  # until every Application names moks-tech (2026-11-16 org move)
   destinations:
   - namespace: roboshop-ai
     name: roboshop-demo

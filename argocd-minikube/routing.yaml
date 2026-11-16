@@ -23,6 +23,6 @@ spec:
     - CreateNamespace=true
   # Delegate VirtualService for https://jithendar.com/roboshop (the Istio gateway routing table is in miniKube).
   source:
-    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    repoURL: https://github.com/moks-tech/roboshop-ai.git
     targetRevision: master
     path: argocd-minikube/apps/routing

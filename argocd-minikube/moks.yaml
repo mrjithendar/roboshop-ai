@@ -23,7 +23,7 @@ spec:
     - CreateNamespace=true
   # The widget checks the browser origin; mk4 serves RoboShop at https://jithendar.com/roboshop.
   source:
-    repoURL: https://github.com/mrjithendar/roboshop-ai.git
+    repoURL: https://github.com/moks-tech/roboshop-ai.git
     targetRevision: master
     path: services/moks
     kustomize:
