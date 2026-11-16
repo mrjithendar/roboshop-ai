@@ -23,7 +23,7 @@ spec:
     - CreateNamespace=true
   # mk4 has only the minikube-hostpath "standard" StorageClass; the manifests ask for EKS gp3-encrypted.
   source:
-    repoURL: https://github.com/moks-tech/roboshop-ai.git
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: services/rabbitmq
     kustomize:

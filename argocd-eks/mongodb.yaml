@@ -23,7 +23,7 @@ spec:
     - CreateNamespace=true
   # The catalog ConfigMap is generated from services/mongodb/catalog.js.
   source:
-    repoURL: https://github.com/moks-tech/roboshop-ai.git
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: argocd-eks/apps/data
     directory:

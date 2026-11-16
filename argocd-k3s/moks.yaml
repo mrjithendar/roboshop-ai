@@ -23,7 +23,7 @@ spec:
     - CreateNamespace=true
   # The widget checks the browser origin; the k3s cluster serves RoboShop at https://jithendar.com/roboshop.
   source:
-    repoURL: https://github.com/moks-tech/roboshop-ai.git
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: services/moks
     kustomize:

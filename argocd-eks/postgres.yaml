@@ -23,7 +23,7 @@ spec:
     - CreateNamespace=true
     - ServerSideApply=true
   source:
-    repoURL: https://github.com/moks-tech/roboshop-ai.git
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: services/postgres
     kustomize:

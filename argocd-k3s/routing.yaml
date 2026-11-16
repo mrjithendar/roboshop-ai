@@ -23,6 +23,6 @@ spec:
     - CreateNamespace=true
   # Delegate VirtualService for https://jithendar.com/roboshop (the edge routing table is VirtualService istio-ingress/jithendar-com).
   source:
-    repoURL: https://github.com/moks-tech/roboshop-ai.git
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: argocd-k3s/apps/routing

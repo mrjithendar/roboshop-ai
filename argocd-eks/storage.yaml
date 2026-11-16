@@ -23,7 +23,7 @@ spec:
     - CreateNamespace=true
   # Default StorageClass for every PVC here; needs the EBS CSI add-on (see README.md).
   source:
-    repoURL: https://github.com/moks-tech/roboshop-ai.git
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: argocd-eks/apps/storage
     directory:

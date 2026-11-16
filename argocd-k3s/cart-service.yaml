@@ -22,7 +22,7 @@ spec:
     - PruneLast=true
     - CreateNamespace=true
   source:
-    repoURL: https://github.com/moks-tech/roboshop-ai.git
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: services/cart-service
     # The shared Valkey (namespace redis, ACL user roboshop, database 6): Secret redis-roboshop-credentials, written

@@ -24,7 +24,7 @@ spec:
   # Namespace (labelled for Istio injection) and shared ConfigMap from argocd-eks, pointed at jithendar.com instead
   # of eks.jithendar.com.
   source:
-    repoURL: https://github.com/moks-tech/roboshop-ai.git
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: argocd-eks/apps/roboshop
     kustomize:

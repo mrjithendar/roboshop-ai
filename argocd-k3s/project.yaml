@@ -6,8 +6,7 @@ metadata:
 spec:
   description: RoboShop on the Hetzner k3s cluster, the cluster Argo CD runs in
   sourceRepos:
-  - https://github.com/moks-tech/roboshop-ai.git
-  - https://github.com/mrjithendar/roboshop-ai.git  # until every Application names moks-tech (2026-11-16 org move)
+  - https://github.com/mrjithendar/roboshop-ai.git
   destinations:
   - namespace: roboshop-ai
     server: https://kubernetes.default.svc

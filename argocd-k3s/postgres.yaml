@@ -23,7 +23,7 @@ spec:
     - CreateNamespace=true
   # Hetzner k3s: Hetzner Cloud volumes (hcloud-volumes, the default); the manifests ask for EKS gp3-encrypted.
   source:
-    repoURL: https://github.com/moks-tech/roboshop-ai.git
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: services/postgres
     kustomize:

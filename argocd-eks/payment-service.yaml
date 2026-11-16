@@ -23,7 +23,7 @@ spec:
     - CreateNamespace=true
   # Mesh identity: the ServiceAccount comes from argocd-eks/apps/mesh.
   source:
-    repoURL: https://github.com/moks-tech/roboshop-ai.git
+    repoURL: https://github.com/mrjithendar/roboshop-ai.git
     targetRevision: master
     path: services/payment-service
     kustomize:
