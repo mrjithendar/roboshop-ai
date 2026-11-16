@@ -2,20 +2,20 @@
 
 > Initialization supports CentOS Stream 9/10, Amazon Linux 2023, Ubuntu 22.04/24.04 LTS,
 > and macOS development/client tooling on x86_64/ARM64. See
-> [the script matrix](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/operations/scripts.md) for operation-specific prerequisites.
+> [the script matrix](https://github.com/moks-tech/tools/blob/master/roboshop/docs/operations/scripts.md) for operation-specific prerequisites.
 
 
 
-Host setup and cluster tooling live in the [tools repository](https://github.com/mrjithendar/tools/tree/master/roboshop) (`roboshop/`); clone it beside this repository. Start a new host with `./init.sh --help` there, then choose `--profile dev`, `docker`,
+Host setup and cluster tooling live in the [tools repository](https://github.com/moks-tech/tools/tree/master/roboshop) (`roboshop/`); clone it beside this repository. Start a new host with `./init.sh --help` there, then choose `--profile dev`, `docker`,
 `minikube` or `aws`. Use `--dry-run` first. See the
-[operational script index](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/operations/scripts.md) for dependencies, canonical
+[operational script index](https://github.com/moks-tech/tools/blob/master/roboshop/docs/operations/scripts.md) for dependencies, canonical
 commands, compatibility paths and first-time setup. Initialization never deploys
 applications, creates credentials or starts a cluster.
 
 
 ## Repository layout
 
-This repository holds the microservices (`services/`), tests (`tests/`, `evaluation*/`), GitHub runner setup (`runner/`) and the jithendar.com site (`sites/`). Cluster configuration, Argo CD, Minikube, observability, Terraform, operational docs and deployment scripts moved to [mrjithendar/tools](https://github.com/mrjithendar/tools/tree/master/roboshop) under `roboshop/`, cloned as `../tools`. Argo CD reads `services/*` manifests from this repository and everything else from tools.
+This repository holds the microservices (`services/`), tests (`tests/`, `evaluation*/`), GitHub runner setup (`runner/`) and the jithendar.com site (`sites/`). Cluster configuration, Argo CD, Minikube, observability, Terraform, operational docs and deployment scripts moved to [moks-tech/tools](https://github.com/moks-tech/tools/tree/master/roboshop) under `roboshop/`, cloned as `../tools`. Argo CD reads `services/*` manifests from this repository and everything else from tools.
 
 RoboShop includes a TypeScript storefront, MongoDB catalogue and accounts, Redis cart service, Java shipping, Razorpay payment integration, Python AI gateway and shopping assistant, and distributed tracing. Application and supporting services live under `services/`.
 
@@ -34,9 +34,9 @@ cd ../tools/roboshop
 `deploy-minikube.sh` manages the cluster only. `patch-ssl.sh` reuses an existing,
 Ready site certificate; it does not install cert-manager or issue a certificate.
 Set `KUBECONFIG` when using `kubectl.sh`, or provide its downloaded kubeconfig.
-See [the command index](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/operations/scripts.md) for prerequisites.
+See [the command index](https://github.com/moks-tech/tools/blob/master/roboshop/docs/operations/scripts.md) for prerequisites.
 
-Applications are deployed through the [Argo CD catalog](https://github.com/mrjithendar/tools/blob/master/roboshop/argocd/README.md).
+Applications are deployed through the [Argo CD catalog](https://github.com/moks-tech/tools/blob/master/roboshop/argocd/README.md).
 Build/publish tooling remains available; update image references in Git and sync
 through Argo CD. Imperative application deployment scripts and the old
 Deploy-Minikube workflow have been removed. Existing manifests, Secrets and PVCs
@@ -73,21 +73,21 @@ There is no all-in-one local launcher any more: run the services you need (see e
 | `services/mongodb` | Product catalogue data (`catalog.js`) imported into MongoDB; MongoDB itself is deployed from the tools repo |
 | `services/postgres`, `services/redis`, `services/rabbitmq` | Data and messaging |
 
-Each workload owns a `*-deployment.yaml`. Each application has its own Dockerfile. Metrics, logging and tracing configuration lives in the tools repo; see [observability](https://github.com/mrjithendar/tools/blob/master/roboshop/observability/README.md). `legacy/original-roboshop/` retains reference application source.
+Each workload owns a `*-deployment.yaml`. Each application has its own Dockerfile. Metrics, logging and tracing configuration lives in the tools repo; see [observability](https://github.com/moks-tech/tools/blob/master/roboshop/observability/README.md). `legacy/original-roboshop/` retains reference application source.
 
 ## Accounts, products and payments
 
-Login is required for checkout. Customers shop, admins manage products, and the single super admin manages roles and store settings. There is **no default administrator password**. Follow the [bootstrap and permissions guide](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/architecture/identity-and-admin.md).
+Login is required for checkout. Customers shop, admins manage products, and the single super admin manages roles and store settings. There is **no default administrator password**. Follow the [bootstrap and permissions guide](https://github.com/moks-tech/tools/blob/master/roboshop/docs/architecture/identity-and-admin.md).
 
-The merchant catalogue contains twenty robots; product images are labelled concept renders. Synthetic test profiles/reviews remain separate from authentic customer accounts and ratings. See [catalogue and review operations](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/deployment/robotics-showcase.md).
+The merchant catalogue contains twenty robots; product images are labelled concept renders. Synthetic test profiles/reviews remain separate from authentic customer accounts and ratings. See [catalogue and review operations](https://github.com/moks-tech/tools/blob/master/roboshop/docs/deployment/robotics-showcase.md).
 
 Payments remain unavailable until Razorpay credentials are configured. Minikube defaults to test mode. Live payments require deliberate merchant configuration, supported currency and HTTPS. The webhook path for this deployment is `/roboshop/api/payments/webhook`. See [payment setup](services/payment-service/README.md). Carrier fulfilment, refunds and disputes are not automated.
 
 ## AI and observability
 
-No LLM is enabled by default. The super admin can test and activate Amazon Bedrock or an approved Ollama endpoint under **Admin → AI / LLM configuration**. See [provider setup](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/deployment/llm-providers.md).
+No LLM is enabled by default. The super admin can test and activate Amazon Bedrock or an approved Ollama endpoint under **Admin → AI / LLM configuration**. See [provider setup](https://github.com/moks-tech/tools/blob/master/roboshop/docs/deployment/llm-providers.md).
 
-Application metrics are private `/metrics` endpoints. Configure scrape targets in `observability/prometheus/values.yaml`; see [Prometheus](https://github.com/mrjithendar/tools/blob/master/roboshop/observability/prometheus/README.md). Traces go through the OpenTelemetry collector to Jaeger. Jaeger storage is ephemeral in this sandbox.
+Application metrics are private `/metrics` endpoints. Configure scrape targets in `observability/prometheus/values.yaml`; see [Prometheus](https://github.com/moks-tech/tools/blob/master/roboshop/observability/prometheus/README.md). Traces go through the OpenTelemetry collector to Jaeger. Jaeger storage is ephemeral in this sandbox.
 
 ## Verification and limits
 
@@ -103,7 +103,7 @@ The gateway’s durable JSON order ledger remains single-writer: keep one gatewa
 
 ## Service ownership
 
-Services build from their own directories and own their dependency manifests, assets and service-specific tooling. For example: `docker build -t roboshop-web:local services/web`. Root scripts coordinate the platform. See [service boundaries and repository extraction](https://github.com/mrjithendar/tools/blob/master/roboshop/docs/architecture/service-repositories.md) for local tests, service-owned libraries and the future repository split.
+Services build from their own directories and own their dependency manifests, assets and service-specific tooling. For example: `docker build -t roboshop-web:local services/web`. Root scripts coordinate the platform. See [service boundaries and repository extraction](https://github.com/moks-tech/tools/blob/master/roboshop/docs/architecture/service-repositories.md) for local tests, service-owned libraries and the future repository split.
 
 ### Moks — An AI agent for everyone.
 
@@ -134,7 +134,7 @@ and `ai-gateway` to enable the integration; no checkout dependency on Kafka is a
 
 ### Create missing Minikube secrets
 
-From `../miniKube`, use `./create-secrets.sh --context mk4` to preview, then add `--apply` to create missing RoboShop, monitoring and WordPress credentials. Optional `--all` includes JFrog; `--ecr` refreshes image-pull tokens using existing AWS authentication. Existing credentials are preserved. See [secret setup and recovery safeguards](https://github.com/mrjithendar/tools/blob/master/roboshop/scripts/setup/SECRETS.md).
+From `../miniKube`, use `./create-secrets.sh --context mk4` to preview, then add `--apply` to create missing RoboShop, monitoring and WordPress credentials. Optional `--all` includes JFrog; `--ecr` refreshes image-pull tokens using existing AWS authentication. Existing credentials are preserved. See [secret setup and recovery safeguards](https://github.com/moks-tech/tools/blob/master/roboshop/scripts/setup/SECRETS.md).
 
 ## License
 

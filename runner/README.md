@@ -6,7 +6,7 @@
 > runners on the server that runs the cluster; remove existing ones with `bash runner/setup.sh remove`.
 > If runners must stay on that host, run `scripts/protect-host.sh` there to cap them.
 
-`runner/setup.sh` installs runners for `mrjithendar/jithendar.com` as systemd services. One run sets up
+`runner/setup.sh` installs runners for `moks-tech/jithendar.com` as systemd services. One run sets up
 **two runners**, so a pull-request check and a release build can run at the same time.
 
 ```bash
@@ -47,7 +47,7 @@ command line or printed.
 | Variable | Default |
 |---|---|
 | `RUNNER_COUNT` | `2` (1–19). Lowering it later does not remove runners; use `remove` and reinstall |
-| `RUNNER_REPO` | `mrjithendar/jithendar.com` |
+| `RUNNER_REPO` | `moks-tech/jithendar.com` |
 | `RUNNER_DIR` | `~/actions-runners/jithendar-com` |
 | `RUNNER_NAME` | short host name (runners are `<name>-1`, `<name>-2`) |
 | `RUNNER_LABELS` | none (comma-separated extra labels) |

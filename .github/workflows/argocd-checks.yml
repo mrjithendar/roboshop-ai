@@ -1,6 +1,6 @@
 name: Argo CD catalog checks
-# Argo CD manifests live here. The MongoDB catalog test is read from mrjithendar/tools (public); the mk4 catalog
-# validator and its tests from mrjithendar/miniKube (private: needs secret MINIKUBE_READ_TOKEN, a fine-grained token with
+# Argo CD manifests live here. The MongoDB catalog test is read from moks-tech/tools (public); the mk4 catalog
+# validator and its tests from moks-tech/kubernetes (private: needs secret MINIKUBE_READ_TOKEN, a fine-grained token with
 # contents:read on miniKube; without it that job is skipped).
 on:
   pull_request:
@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with: {path: roboshop-ai, persist-credentials: false}
       - uses: actions/checkout@v7.0.1
-        with: {repository: mrjithendar/tools, path: tools, persist-credentials: false}
+        with: {repository: moks-tech/tools, path: tools, persist-credentials: false}
       - uses: actions/setup-python@v7
         with: {python-version: '3.14'}
       - run: python -m pip install PyYAML pytest
@@ -53,10 +53,10 @@ jobs:
         with: {path: roboshop-ai, persist-credentials: false}
       - uses: actions/checkout@v7.0.1
         if: env.HAS_TOKEN == 'true'
-        with: {repository: mrjithendar/miniKube, path: miniKube, token: '${{ secrets.MINIKUBE_READ_TOKEN }}', persist-credentials: false}
+        with: {repository: moks-tech/kubernetes, path: miniKube, token: '${{ secrets.MINIKUBE_READ_TOKEN }}', persist-credentials: false}
       - uses: actions/checkout@v7.0.1
         if: env.HAS_TOKEN == 'true'
-        with: {repository: mrjithendar/jithendar.com, path: jithendar.com, persist-credentials: false}
+        with: {repository: moks-tech/jithendar.com, path: jithendar.com, persist-credentials: false}
       - uses: actions/setup-python@v7
         if: env.HAS_TOKEN == 'true'
         with: {python-version: '3.14'}
