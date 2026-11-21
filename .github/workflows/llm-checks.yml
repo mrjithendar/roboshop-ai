@@ -20,7 +20,7 @@ permissions:
   contents: read
 jobs:
   mocked-providers:
-    runs-on: ubuntu-latest
+    runs-on: mk4
     timeout-minutes: 10
     env:
       AWS_EC2_METADATA_DISABLED: 'true'

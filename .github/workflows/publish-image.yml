@@ -22,7 +22,7 @@ permissions:
 jobs:
   publish:
     # Every push builds the image; only the default branch pushes :latest to Harbor.
-    runs-on: ubuntu-latest
+    runs-on: mk4
     timeout-minutes: 30
     env:
       SERVICE: ${{ inputs.service }}
@@ -65,7 +65,7 @@ jobs:
           HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
         run: printf '%s' "$HARBOR_PASSWORD" | docker login registry.jithendar.com --username "$HARBOR_USERNAME" --password-stdin
 
-      # GitHub-hosted runners are amd64; mk4 nodes are arm64, so emulate it.
+      # The mk4 runners are arm64 already; QEMU stays for builds on an amd64 runner.
       - uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
