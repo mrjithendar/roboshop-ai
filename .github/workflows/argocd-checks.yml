@@ -16,7 +16,7 @@ permissions:
   contents: read
 jobs:
   mongodb-catalog:
-    runs-on: mk4
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
     env:
       ROBOSHOP_AI_DIR: ${{ github.workspace }}/roboshop-ai
@@ -34,7 +34,7 @@ jobs:
       - run: python -m pytest -q tests/test_mongodb_catalog.py
 
   mk4-catalog:
-    runs-on: mk4
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 20
     env:
       ROBOSHOP_AI_DIR: ${{ github.workspace }}/roboshop-ai
